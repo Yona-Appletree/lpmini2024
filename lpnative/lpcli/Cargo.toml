@@ -1,0 +1,5 @@
+[package]
+name = "lpcli"
+
+[dependencies]
+lplib = { path = "../lplib", features = ["std"] }

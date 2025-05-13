@@ -30,7 +30,7 @@ export function Demo() {
       gl2d.ops.checkerboard.draw([1, 0.5, 0, 1], [0, 0, 0.5, 1]);
 
       // Rotate
-      gl2d.ops.rotate.draw(0, fracTimeCosine(6000, { min: -1, max: 1 }));
+      gl2d.ops.rotate.draw(0, fracTimeCosine(6000, { min: 0.5, max: 1 }));
 
       // Apply polar scroll with animated offset
       gl2d.ops.polarScroll.draw(fracTimeSawtooth(2500));

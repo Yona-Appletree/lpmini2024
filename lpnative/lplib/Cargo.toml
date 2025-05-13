@@ -1,0 +1,15 @@
+[package]
+name = "lplib"
+
+[dependencies]
+# put any compatible core deps here
+
+[lib]
+crate-type = ["rlib"]
+
+[features]
+default = ["std"]
+std = []
+
+[package.metadata.docs.rs]
+features = ["std"]
