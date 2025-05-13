@@ -1,12 +1,8 @@
-import VisPreview from "./components/VisPreview";
 import "./App.css";
+import { Demo } from "./components/demo/demo.component.tsx";
 
 function App() {
-  return (
-    <div style={{ width: "100vw", height: "100vh", overflow: "hidden" }}>
-      <VisPreview />
-    </div>
-  );
+  return <Demo />;
 }
 
 export default App;

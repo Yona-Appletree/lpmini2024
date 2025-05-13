@@ -1,7 +1,7 @@
 import { defaultCanvasSize } from "../pipeline/pipeline-stage";
 import { Size2d } from "./size2d";
 
-export function Canvas(size: Size2d = defaultCanvasSize) {
+export function Canvas({ size = defaultCanvasSize }) {
   const canvas = document.createElement("canvas");
   canvas.width = size.width;
   canvas.height = size.height;
@@ -10,7 +10,7 @@ export function Canvas(size: Size2d = defaultCanvasSize) {
     canvas,
     ensureSizeContext<T extends ContextType>(
       contextType: T,
-      { size = defaultCanvasSize }: { size?: Size2d } = {}
+      { size = defaultCanvasSize }: { size?: Size2d } = {},
     ): ContextFor<T> {
       if (canvas.width !== size.width || canvas.height !== size.height) {
         canvas.width = size.width;
@@ -29,7 +29,7 @@ export type ContextType = "2d" | "webgl" | "webgl2";
 export type ContextFor<T extends ContextType> = T extends "2d"
   ? CanvasRenderingContext2D
   : T extends "webgl"
-  ? WebGLRenderingContext
-  : T extends "webgl2"
-  ? WebGL2RenderingContext
-  : never;
+    ? WebGLRenderingContext
+    : T extends "webgl2"
+      ? WebGL2RenderingContext
+      : never;

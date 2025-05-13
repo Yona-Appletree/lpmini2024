@@ -3,7 +3,7 @@ import React from "react";
 
 export interface PipelineStage {
   config: PipelineStageConfig;
-  generateShaderCode(pipeline: PipelineConfig): string;
+  buildOperations(pipeline: PipelineConfig): Operation[];
   component: () => React.ReactElement;
 }
 

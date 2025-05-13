@@ -17,7 +17,7 @@ export function CheckerboardStage(): PipelineStage {
   return {
     config: config,
     component: () => <CheckerboardComponent config={config} />,
-    generateShaderCode: (pipeline: PipelineConfig) => {
+    buildOperations: (pipeline: PipelineConfig) => {
       return `
         void main() {
           vec2 uv = gl_FragCoord.xy / uResolution;
