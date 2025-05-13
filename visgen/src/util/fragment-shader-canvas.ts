@@ -34,7 +34,7 @@ export function FragmentShaderCanvas(canvas = createCanvas()) {
   if (!gl.getShaderParameter(vertexShader, gl.COMPILE_STATUS)) {
     console.error(
       "Vertex shader compilation error:",
-      gl.getShaderInfoLog(vertexShader),
+      gl.getShaderInfoLog(vertexShader)
     );
     gl.deleteShader(vertexShader);
     throw new Error("Failed to compile vertex shader");
@@ -55,7 +55,7 @@ export function FragmentShaderCanvas(canvas = createCanvas()) {
       0,
       gl.RGBA,
       gl.UNSIGNED_BYTE,
-      null,
+      null
     );
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
@@ -68,7 +68,7 @@ export function FragmentShaderCanvas(canvas = createCanvas()) {
       gl.COLOR_ATTACHMENT0,
       gl.TEXTURE_2D,
       texture,
-      0,
+      0
     );
 
     return { framebuffer, texture };
@@ -80,7 +80,7 @@ export function FragmentShaderCanvas(canvas = createCanvas()) {
   function clear() {
     gl.bindFramebuffer(
       gl.FRAMEBUFFER,
-      framebuffers[currentFramebufferIndex].framebuffer,
+      framebuffers[currentFramebufferIndex].framebuffer
     );
     gl.clearColor(0, 0, 0, 1);
     gl.clear(gl.COLOR_BUFFER_BIT);
@@ -89,7 +89,7 @@ export function FragmentShaderCanvas(canvas = createCanvas()) {
   function drawImage(image: CanvasImageSource) {
     gl.bindFramebuffer(
       gl.FRAMEBUFFER,
-      framebuffers[currentFramebufferIndex].framebuffer,
+      framebuffers[currentFramebufferIndex].framebuffer
     );
     gl.clearColor(0, 0, 0, 1);
     gl.clear(gl.COLOR_BUFFER_BIT);
@@ -102,7 +102,7 @@ export function FragmentShaderCanvas(canvas = createCanvas()) {
       gl.RGBA,
       gl.RGBA,
       gl.UNSIGNED_BYTE,
-      image as TexImageSource,
+      image as TexImageSource
     );
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
@@ -120,7 +120,7 @@ export function FragmentShaderCanvas(canvas = createCanvas()) {
       void main() {
         gl_FragColor = texture2D(uTexture, vUv);
       }
-    `,
+    `
     );
     gl.compileShader(fragmentShader);
 
@@ -128,7 +128,7 @@ export function FragmentShaderCanvas(canvas = createCanvas()) {
     if (!gl.getShaderParameter(fragmentShader, gl.COMPILE_STATUS)) {
       console.error(
         "Fragment shader compilation error:",
-        gl.getShaderInfoLog(fragmentShader),
+        gl.getShaderInfoLog(fragmentShader)
       );
       gl.deleteShader(fragmentShader);
       throw new Error("Failed to compile fragment shader");
@@ -160,7 +160,16 @@ export function FragmentShaderCanvas(canvas = createCanvas()) {
     gl.deleteShader(fragmentShader);
   }
 
-  function runShader(shaderGlsl: string) {
+  function runShader(
+    shaderGlsl: string,
+    uniforms: Record<
+      string,
+      | { type: "float"; value: number }
+      | { type: "vec2"; value: [number, number] }
+      | { type: "vec3"; value: [number, number, number] }
+      | { type: "vec4"; value: [number, number, number, number] }
+    > = {}
+  ) {
     // Create fragment shader
     const fragmentShader = gl.createShader(gl.FRAGMENT_SHADER)!;
     gl.shaderSource(fragmentShader, shaderGlsl);
@@ -170,7 +179,7 @@ export function FragmentShaderCanvas(canvas = createCanvas()) {
     if (!gl.getShaderParameter(fragmentShader, gl.COMPILE_STATUS)) {
       console.error(
         "Fragment shader compilation error:",
-        gl.getShaderInfoLog(fragmentShader),
+        gl.getShaderInfoLog(fragmentShader)
       );
       gl.deleteShader(fragmentShader);
       throw new Error("Failed to compile fragment shader");
@@ -203,17 +212,52 @@ export function FragmentShaderCanvas(canvas = createCanvas()) {
       gl.uniform2f(resolutionLocation, width, height);
     }
 
+    for (const [uniformName, uniformValue] of Object.entries(uniforms)) {
+      const uniformLocation = gl.getUniformLocation(program, uniformName);
+      if (uniformLocation !== null) {
+        switch (uniformValue.type) {
+          case "float":
+            gl.uniform1f(uniformLocation, uniformValue.value);
+            break;
+          case "vec2":
+            gl.uniform2f(
+              uniformLocation,
+              uniformValue.value[0],
+              uniformValue.value[1]
+            );
+            break;
+          case "vec3":
+            gl.uniform3f(
+              uniformLocation,
+              uniformValue.value[0],
+              uniformValue.value[1],
+              uniformValue.value[2]
+            );
+            break;
+          case "vec4":
+            gl.uniform4f(
+              uniformLocation,
+              uniformValue.value[0],
+              uniformValue.value[1],
+              uniformValue.value[2],
+              uniformValue.value[3]
+            );
+            break;
+        }
+      }
+    }
+
     // Set input texture uniform
     const inputTextureLocation = gl.getUniformLocation(
       program,
-      "uInputTexture",
+      "uInputTexture"
     );
     if (inputTextureLocation !== null) {
       gl.uniform1i(inputTextureLocation, 0);
       gl.activeTexture(gl.TEXTURE0);
       gl.bindTexture(
         gl.TEXTURE_2D,
-        framebuffers[currentFramebufferIndex].texture,
+        framebuffers[currentFramebufferIndex].texture
       );
     }
 
@@ -221,7 +265,7 @@ export function FragmentShaderCanvas(canvas = createCanvas()) {
     currentFramebufferIndex = (currentFramebufferIndex + 1) % 2;
     gl.bindFramebuffer(
       gl.FRAMEBUFFER,
-      framebuffers[currentFramebufferIndex].framebuffer,
+      framebuffers[currentFramebufferIndex].framebuffer
     );
     gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
 
@@ -243,3 +287,5 @@ export function FragmentShaderCanvas(canvas = createCanvas()) {
     drawToScreen,
   };
 }
+
+export type FragmentShaderCanvas = ReturnType<typeof FragmentShaderCanvas>;
