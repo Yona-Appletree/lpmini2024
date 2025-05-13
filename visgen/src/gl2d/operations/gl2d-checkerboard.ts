@@ -1,5 +1,5 @@
-import type { Gl2dContext } from "../../gl2d/gl2d-context";
-import { Gl2dFragmentShader } from "../../gl2d/gl2d-fragment-shader";
+import type { Gl2dContext } from "../gl2d-context.ts";
+import { Gl2dFragmentShader } from "../gl2d-fragment-shader.ts";
 
 export function Gl2dCheckerboard(context: Gl2dContext) {
   const shader = Gl2dFragmentShader(context, glsl);
@@ -7,7 +7,7 @@ export function Gl2dCheckerboard(context: Gl2dContext) {
   return {
     draw(
       color1: [number, number, number, number],
-      color2: [number, number, number, number]
+      color2: [number, number, number, number],
     ) {
       shader.draw({
         uColor1: {

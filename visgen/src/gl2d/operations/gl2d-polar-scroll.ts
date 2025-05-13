@@ -1,0 +1,68 @@
+import type { Gl2dContext } from "../gl2d-context.ts";
+import { Gl2dFragmentShader } from "../gl2d-fragment-shader.ts";
+
+export function Gl2dPolarScroll(context: Gl2dContext) {
+  const shader = Gl2dFragmentShader(context, glsl);
+
+  return {
+    draw(offset: number) {
+      shader.draw({
+        uOffset: {
+          type: "float",
+          value: offset,
+        },
+      });
+    },
+    [Symbol.dispose]() {
+      shader[Symbol.dispose]();
+    },
+  };
+}
+
+export type Gl2dPolarScroll = ReturnType<typeof Gl2dPolarScroll>;
+
+const glsl = `
+      #version 300 es
+      precision highp float;
+      
+      in vec2 vUv;
+      out vec4 fragColor;
+      uniform vec2 uResolution;
+      uniform sampler2D uInputTexture;
+      uniform float uOffset;
+
+      void main() {
+        // Convert UV to normalized device coordinates (-1 to 1)
+        vec2 ndc = vUv * 2.0 - 1.0;
+        
+        // Convert to polar coordinates
+        float r = length(ndc);
+        float theta = atan(ndc.y, ndc.x);
+        
+        // Apply offset to radius and wrap around
+        float newR = fract(r + uOffset);
+        
+        // Convert back to Cartesian coordinates
+        vec2 newNdc = vec2(cos(theta), sin(theta)) * newR;
+        
+        // Convert back to UV space
+        vec2 newUv = (newNdc + 1.0) * 0.5;
+        
+        // Sample with proper filtering
+        vec2 pixelSize = 1.0 / uResolution;
+        vec4 color = vec4(0.0);
+        float totalWeight = 0.0;
+        
+        // Sample multiple points to avoid artifacts
+        for (int i = -1; i <= 1; i++) {
+          for (int j = -1; j <= 1; j++) {
+            vec2 offset = vec2(float(i), float(j)) * pixelSize;
+            float weight = 1.0 - length(vec2(i, j)) / 2.0;
+            color += texture(uInputTexture, newUv + offset) * weight;
+            totalWeight += weight;
+          }
+        }
+        
+        fragColor = color / totalWeight;
+      }
+    `.trim();

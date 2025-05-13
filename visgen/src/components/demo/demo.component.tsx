@@ -1,17 +1,9 @@
 import { useEffect, useRef, useState } from "react";
 import { Gl2d } from "../../gl2d/gl2d";
-import { Gl2dHslShift } from "./gl2d-hsl-shift.ts";
-import { Gl2dPolarScroll } from "./gl2d-polar-scroll.ts";
-import { Gl2dCheckerboard } from "./gl2d-checkerboard.ts";
 
 export function Demo() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const gl2dRef = useRef<{
-    gl2d: Gl2d;
-    checkerboard: Gl2dCheckerboard;
-    hslShift: Gl2dHslShift;
-    polarScroll: Gl2dPolarScroll;
-  } | null>(null);
+  const gl2dRef = useRef<Gl2d | null>(null);
   const [speed, setSpeed] = useState(2.5); // Speed in seconds for one complete cycle
   const animationRef = useRef<number>(0);
 
@@ -21,36 +13,33 @@ export function Demo() {
     // Create Gl2d instance once and store it in ref
     if (!gl2dRef.current) {
       const gl2d = Gl2d(canvasRef.current);
-      gl2dRef.current = {
-        gl2d,
-        checkerboard: Gl2dCheckerboard(gl2d.context),
-        hslShift: Gl2dHslShift(gl2d.context),
-        polarScroll: Gl2dPolarScroll(gl2d.context),
-      };
+      gl2dRef.current = Gl2d(canvasRef.current);
     }
 
-    const { gl2d, checkerboard, hslShift, polarScroll } = gl2dRef.current;
+    const gl2d = gl2dRef.current;
 
     const startTime = performance.now();
 
     const animate = (currentTime: number) => {
       if (!gl2dRef.current) return;
 
-      // Calculate progress from 0 to 1 based on speed
-      const elapsed = (currentTime - startTime) / 1000; // Convert to seconds
-      const progress = (elapsed % speed) / speed;
-
       // Clear the canvas
       gl2d.clear();
 
       // Draw checkerboard
-      checkerboard.draw([1, 0.5, 0, 1], [0, 1, 0, 1]);
+      gl2d.ops.checkerboard.draw([1, 0.5, 0, 1], [0, 0, 0.5, 1]);
+
+      // Rotate
+      gl2d.ops.rotate.draw(0, fracTimeCosine(6000, { min: -1, max: 1 }));
 
       // Apply polar scroll with animated offset
-      polarScroll.draw(progress);
+      gl2d.ops.polarScroll.draw(fracTimeSawtooth(2500));
+
+      // Blur
+      gl2d.ops.blur.draw(25, 0.25);
 
       // Apply HSL shift
-      hslShift.draw(progress, 0, 0);
+      gl2d.ops.hslShift.draw(fracTimeCosine(3500), 0, 0);
 
       gl2d.context.drawToScreen();
 
@@ -102,5 +91,25 @@ export function Demo() {
         </div>
       </div>
     </div>
+  );
+}
+
+function fracTimeSawtooth(
+  periodMs: number,
+  { nowMs = Date.now(), min = 0, max = 1 } = {}
+) {
+  const elapsedMs = nowMs;
+  const frac = elapsedMs % periodMs;
+  return min + (max - min) * (frac / periodMs);
+}
+
+function fracTimeCosine(
+  periodMs: number,
+  { nowMs = Date.now(), min = 0, max = 1 } = {}
+) {
+  const elapsedMs = nowMs;
+  const frac = elapsedMs % periodMs;
+  return (
+    min + (max - min) * (0.5 * (1 - Math.cos((frac / periodMs) * 2 * Math.PI)))
   );
 }

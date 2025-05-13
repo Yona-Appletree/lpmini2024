@@ -1,15 +1,19 @@
-import type { Gl2dContext } from "../../gl2d/gl2d-context";
-import { Gl2dFragmentShader } from "../../gl2d/gl2d-fragment-shader";
+import type { Gl2dContext } from "../gl2d-context.ts";
+import { Gl2dFragmentShader } from "../gl2d-fragment-shader.ts";
 
 export function Gl2dBlur(context: Gl2dContext) {
   const shader = Gl2dFragmentShader(context, glsl);
 
   return {
-    draw(radius: number) {
+    draw(radius: number, exponent: number = 2.0) {
       shader.draw({
         uBlurRadius: {
           type: "float",
           value: radius,
+        },
+        uExponent: {
+          type: "float",
+          value: exponent,
         },
       });
     },
@@ -30,10 +34,11 @@ const glsl = `
       uniform vec2 uResolution;
       uniform sampler2D uInputTexture;
       uniform float uBlurRadius; // Blur radius in pixels
+      uniform float uExponent; // Controls the shape of the Gaussian kernel
 
       // Calculate Gaussian weight based on distance and sigma
       float gaussian(float x, float sigma) {
-        return exp(-(x * x) / (2.0 * sigma * sigma)) / (sqrt(2.0 * 3.14159) * sigma);
+        return exp(-pow(x, uExponent) / (2.0 * sigma * sigma)) / (sqrt(2.0 * 3.14159) * sigma);
       }
 
       void main() {
@@ -44,30 +49,25 @@ const glsl = `
         float sigma = max(1.0, uBlurRadius * 0.5);
         float totalWeight = 0.0;
         
-        // Calculate kernel size based on radius (2 * radius + 1)
+        // Calculate kernel size based on radius
         int kernelSize = int(min(15.0, 2.0 * uBlurRadius + 1.0));
         int halfKernel = kernelSize / 2;
         
-        // Horizontal blur
-        for (int i = -halfKernel; i <= halfKernel; i++) {
-          float weight = gaussian(float(i), sigma);
-          vec2 offset = vec2(float(i)) * pixelSize;
-          color += texture(uInputTexture, vUv + offset) * weight;
-          totalWeight += weight;
+        // Circular Gaussian blur
+        for (int y = -halfKernel; y <= halfKernel; y++) {
+          for (int x = -halfKernel; x <= halfKernel; x++) {
+            // Calculate distance from center
+            float dist = sqrt(float(x * x + y * y));
+            // Skip samples outside the circle
+            if (dist > float(halfKernel)) continue;
+            
+            float weight = gaussian(dist, sigma);
+            vec2 offset = vec2(float(x), float(y)) * pixelSize;
+            color += texture(uInputTexture, vUv + offset) * weight;
+            totalWeight += weight;
+          }
         }
-        color /= totalWeight;
         
-        // Vertical blur
-        vec4 finalColor = vec4(0.0);
-        totalWeight = 0.0;
-        for (int i = -halfKernel; i <= halfKernel; i++) {
-          float weight = gaussian(float(i), sigma);
-          vec2 offset = vec2(0.0, float(i)) * pixelSize;
-          finalColor += texture(uInputTexture, vUv + offset) * weight;
-          totalWeight += weight;
-        }
-        finalColor /= totalWeight;
-        
-        fragColor = finalColor;
+        fragColor = color / totalWeight;
       }
     `.trim();

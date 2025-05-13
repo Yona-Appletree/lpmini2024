@@ -1,15 +1,19 @@
-import type { Gl2dContext } from "../../gl2d/gl2d-context";
-import { Gl2dFragmentShader } from "../../gl2d/gl2d-fragment-shader";
+import type { Gl2dContext } from "../gl2d-context.ts";
+import { Gl2dFragmentShader } from "../gl2d-fragment-shader.ts";
 
-export function Gl2dPolarScroll(context: Gl2dContext) {
+export function Gl2dRotate(context: Gl2dContext) {
   const shader = Gl2dFragmentShader(context, glsl);
 
   return {
-    draw(offset: number) {
+    draw(angleFrac: number, swirlFactor: number = 2.0) {
       shader.draw({
-        uOffset: {
+        uAngle: {
           type: "float",
-          value: offset,
+          value: angleFrac * Math.PI * 2,
+        },
+        uSwirlFactor: {
+          type: "float",
+          value: swirlFactor,
         },
       });
     },
@@ -19,7 +23,7 @@ export function Gl2dPolarScroll(context: Gl2dContext) {
   };
 }
 
-export type Gl2dPolarScroll = ReturnType<typeof Gl2dPolarScroll>;
+export type Gl2dRotate = ReturnType<typeof Gl2dRotate>;
 
 const glsl = `
       #version 300 es
@@ -29,24 +33,36 @@ const glsl = `
       out vec4 fragColor;
       uniform vec2 uResolution;
       uniform sampler2D uInputTexture;
-      uniform float uOffset;
+      uniform float uAngle;
+      uniform float uSwirlFactor;
 
+      const float PI = 3.14159265359;
+
+      
       void main() {
         // Convert UV to normalized device coordinates (-1 to 1)
         vec2 ndc = vUv * 2.0 - 1.0;
         
-        // Convert to polar coordinates
-        float r = length(ndc);
-        float theta = atan(ndc.y, ndc.x);
+        // Calculate distance from center (0 to 1)
+        float dist = length(ndc);
         
-        // Apply offset to radius and wrap around
-        float newR = fract(r + uOffset);
+        // Calculate angle based on distance - more rotation further from center
+        // uSwirlFactor of 1.0 means one full rotation at the edges
+        float angle = uAngle + (dist * uSwirlFactor * 2.0 * PI);
         
-        // Convert back to Cartesian coordinates
-        vec2 newNdc = vec2(cos(theta), sin(theta)) * newR;
+        // Create rotation matrix
+        float cosAngle = cos(angle);
+        float sinAngle = sin(angle);
+        mat2 rotationMatrix = mat2(
+          cosAngle, -sinAngle,
+          sinAngle, cosAngle
+        );
+        
+        // Apply rotation
+        vec2 rotatedNdc = rotationMatrix * ndc;
         
         // Convert back to UV space
-        vec2 newUv = (newNdc + 1.0) * 0.5;
+        vec2 newUv = (rotatedNdc + 1.0) * 0.5;
         
         // Sample with proper filtering
         vec2 pixelSize = 1.0 / uResolution;

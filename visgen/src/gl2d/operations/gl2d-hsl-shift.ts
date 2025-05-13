@@ -1,5 +1,5 @@
-import type { Gl2dContext } from "../../gl2d/gl2d-context";
-import { Gl2dFragmentShader } from "../../gl2d/gl2d-fragment-shader";
+import type { Gl2dContext } from "../gl2d-context.ts";
+import { Gl2dFragmentShader } from "../gl2d-fragment-shader.ts";
 
 export function Gl2dHslShift(context: Gl2dContext) {
   const shader = Gl2dFragmentShader(context, glsl);

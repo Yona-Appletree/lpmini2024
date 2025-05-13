@@ -15,4 +15,4 @@ export interface PipelineConfig {
   size: Size2d;
 }
 
-export const defaultCanvasSize = Size2d(1024, 1024);
+export const defaultCanvasSize = Size2d(256, 256);
