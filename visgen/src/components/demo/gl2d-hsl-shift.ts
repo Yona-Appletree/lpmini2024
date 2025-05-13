@@ -1,19 +1,26 @@
-import type { FragmentShaderCanvas } from "../../util/fragment-shader-canvas.ts";
+import type { Gl2dContext } from "../../gl2d/gl2d-context";
+import { Gl2dFragmentShader } from "../../gl2d/gl2d-fragment-shader";
 
-export function hslShiftShader(
-  canvas: FragmentShaderCanvas,
-  hueShift: number,
-  satShift: number,
-  lightShift: number
-) {
-  canvas.runShader(hslShiftGlsl, {
-    uHueShift: { type: "float", value: hueShift },
-    uSatShift: { type: "float", value: satShift },
-    uLightShift: { type: "float", value: lightShift },
-  });
+export function Gl2dHslShift(context: Gl2dContext) {
+  const shader = Gl2dFragmentShader(context, glsl);
+
+  return {
+    draw(hueShift: number, satShift: number, lightShift: number) {
+      shader.draw({
+        uHueShift: { type: "float", value: hueShift },
+        uSatShift: { type: "float", value: satShift },
+        uLightShift: { type: "float", value: lightShift },
+      });
+    },
+    [Symbol.dispose]() {
+      shader[Symbol.dispose]();
+    },
+  };
 }
 
-const hslShiftGlsl = `
+export type Gl2dHslShift = ReturnType<typeof Gl2dHslShift>;
+
+const glsl = `
   #version 300 es
   precision highp float;
 

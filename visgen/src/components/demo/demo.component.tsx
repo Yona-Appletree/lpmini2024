@@ -1,38 +1,58 @@
 import { useEffect, useRef, useState } from "react";
-import { FragmentShaderCanvas } from "../../util/fragment-shader-canvas.ts";
-import { runCheckerboardShader } from "./checkerboard-shader.tsx";
-import { polarScrollShader } from "./polar-scroll-shader.tsx";
-import { hslShiftShader } from "./hsl-shift-shader.tsx";
+import { Gl2d } from "../../gl2d/gl2d";
+import { Gl2dHslShift } from "./gl2d-hsl-shift.ts";
+import { Gl2dPolarScroll } from "./gl2d-polar-scroll.ts";
+import { Gl2dCheckerboard } from "./gl2d-checkerboard.ts";
 
 export function Demo() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const gl2dRef = useRef<{
+    gl2d: Gl2d;
+    checkerboard: Gl2dCheckerboard;
+    hslShift: Gl2dHslShift;
+    polarScroll: Gl2dPolarScroll;
+  } | null>(null);
   const [speed, setSpeed] = useState(2.5); // Speed in seconds for one complete cycle
-  const animationRef = useRef<number>();
+  const animationRef = useRef<number>(0);
 
   useEffect(() => {
     if (!canvasRef.current) return;
 
-    const canvas = FragmentShaderCanvas(canvasRef.current);
-    let startTime = performance.now();
+    // Create Gl2d instance once and store it in ref
+    if (!gl2dRef.current) {
+      const gl2d = Gl2d(canvasRef.current);
+      gl2dRef.current = {
+        gl2d,
+        checkerboard: Gl2dCheckerboard(gl2d.context),
+        hslShift: Gl2dHslShift(gl2d.context),
+        polarScroll: Gl2dPolarScroll(gl2d.context),
+      };
+    }
+
+    const { gl2d, checkerboard, hslShift, polarScroll } = gl2dRef.current;
+
+    const startTime = performance.now();
 
     const animate = (currentTime: number) => {
+      if (!gl2dRef.current) return;
+
       // Calculate progress from 0 to 1 based on speed
       const elapsed = (currentTime - startTime) / 1000; // Convert to seconds
       const progress = (elapsed % speed) / speed;
 
       // Clear the canvas
-      canvas.clear();
+      gl2d.clear();
 
       // Draw checkerboard
-      runCheckerboardShader(canvas, [1, 0.5, 0, 1], [0, 1, 0, 1]);
+      checkerboard.draw([1, 0.5, 0, 1], [0, 1, 0, 1]);
 
       // Apply polar scroll with animated offset
-      polarScrollShader(canvas, progress);
+      polarScroll.draw(progress);
 
       // Apply HSL shift
-      hslShiftShader(canvas, progress, 0, 0);
+      hslShift.draw(progress, 0, 0);
 
-      canvas.drawToScreen();
+      gl2d.context.drawToScreen();
 
       // Continue animation
       animationRef.current = requestAnimationFrame(animate);

@@ -1,15 +1,26 @@
-import type { FragmentShaderCanvas } from "../../util/fragment-shader-canvas";
+import type { Gl2dContext } from "../../gl2d/gl2d-context";
+import { Gl2dFragmentShader } from "../../gl2d/gl2d-fragment-shader";
 
-export function blurShader(canvas: FragmentShaderCanvas, radius: number) {
-  canvas.runShader(glsl, {
-    uBlurRadius: {
-      type: "float",
-      value: radius,
+export function Gl2dBlur(context: Gl2dContext) {
+  const shader = Gl2dFragmentShader(context, glsl);
+
+  return {
+    draw(radius: number) {
+      shader.draw({
+        uBlurRadius: {
+          type: "float",
+          value: radius,
+        },
+      });
     },
-  });
+    [Symbol.dispose]() {
+      shader[Symbol.dispose]();
+    },
+  };
 }
 
-// Gaussian blur shader with configurable radius
+export type Gl2dBlur = ReturnType<typeof Gl2dBlur>;
+
 const glsl = `
       #version 300 es
       precision highp float;
