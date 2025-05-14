@@ -1,5 +1,4 @@
 import { z, type ZodRawShape } from "zod";
-import { Throw } from "../util/throw.ts";
 
 export function EffectParamDef<
   TType extends string,
@@ -18,6 +17,6 @@ export function EffectParamDef<
         ...args,
         type,
       }),
-    { schema: fullSchema }
+    { schema: fullSchema },
   );
 }

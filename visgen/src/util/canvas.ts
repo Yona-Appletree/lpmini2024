@@ -10,7 +10,7 @@ export function Canvas({ size = defaultCanvasSize }) {
     canvas,
     ensureSizeContext<T extends ContextType>(
       contextType: T,
-      { size = defaultCanvasSize }: { size?: Size2d } = {}
+      { size = defaultCanvasSize }: { size?: Size2d } = {},
     ): ContextFor<T> {
       if (canvas.width !== size.width || canvas.height !== size.height) {
         canvas.width = size.width;

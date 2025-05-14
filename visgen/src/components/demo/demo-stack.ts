@@ -1,0 +1,34 @@
+import { Gl2dCheckerboard } from "../../gl2d-effect/effects/gl2d-checkerboard.ts";
+import {
+  Gl2dEffectStack,
+  StackItem,
+} from "../../gl2d-effect/gl2d-effect-stack.ts";
+
+export const demoStack = Gl2dEffectStack({
+  size: { width: 800, height: 600 },
+  items: [
+    StackItem("Gl2dCheckerboard", {
+      color1: [1, 0.5, 0, 1],
+      color2: [0, 0, 0.5, 1],
+      gridSize: 10,
+    }),
+  ],
+});
+
+/*
+
+      // Draw checkerboard
+      gl2d.ops.checkerboard.draw([1, 0.5, 0, 1], [0, 0, 0.5, 1]);
+
+      // Rotate
+      gl2d.ops.rotate.draw(0, fracTimeCosine(6000, { min: 0.5, max: 1 }));
+
+      // Apply polar scroll with animated offset
+      gl2d.ops.polarScroll.draw(fracTimeSawtooth(2500));
+
+      // Blur
+      gl2d.ops.blur.draw(25, 0.25);
+
+      // Apply HSL shift
+      gl2d.ops.hslShift.draw(fracTimeCosine(3500), 0, 0);
+      */

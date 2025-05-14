@@ -96,7 +96,7 @@ export function Demo() {
 
 function fracTimeSawtooth(
   periodMs: number,
-  { nowMs = Date.now(), min = 0, max = 1 } = {}
+  { nowMs = Date.now(), min = 0, max = 1 } = {},
 ) {
   const elapsedMs = nowMs;
   const frac = elapsedMs % periodMs;
@@ -105,7 +105,7 @@ function fracTimeSawtooth(
 
 function fracTimeCosine(
   periodMs: number,
-  { nowMs = Date.now(), min = 0, max = 1 } = {}
+  { nowMs = Date.now(), min = 0, max = 1 } = {},
 ) {
   const elapsedMs = nowMs;
   const frac = elapsedMs % periodMs;

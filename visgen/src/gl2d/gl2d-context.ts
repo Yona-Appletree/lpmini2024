@@ -33,7 +33,7 @@ export function Gl2dContext(canvas = createCanvas()) {
   if (!gl.getShaderParameter(vertexShader, gl.COMPILE_STATUS)) {
     console.error(
       "Vertex shader compilation error:",
-      gl.getShaderInfoLog(vertexShader)
+      gl.getShaderInfoLog(vertexShader),
     );
     gl.deleteShader(vertexShader);
     throw new Error("Failed to compile vertex shader");
@@ -54,7 +54,7 @@ export function Gl2dContext(canvas = createCanvas()) {
       0,
       gl.RGBA,
       gl.UNSIGNED_BYTE,
-      null
+      null,
     );
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
@@ -67,7 +67,7 @@ export function Gl2dContext(canvas = createCanvas()) {
       gl.COLOR_ATTACHMENT0,
       gl.TEXTURE_2D,
       texture,
-      0
+      0,
     );
 
     return { framebuffer, texture };
