@@ -7,10 +7,11 @@ import {
 export const demoStack = Gl2dEffectStack({
   size: { width: 800, height: 600 },
   items: [
-    StackItem("Gl2dCheckerboard", {
+    StackItem("checkerboard", {
       color1: [1, 0.5, 0, 1],
       color2: [0, 0, 0.5, 1],
-      gridSize: 10,
+      rows: 10,
+      columns: 10,
     }),
   ],
 });

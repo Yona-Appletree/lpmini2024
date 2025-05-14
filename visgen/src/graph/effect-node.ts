@@ -1,7 +1,7 @@
 import { Size2d } from "../util/size2d.ts";
 import React from "react";
 import type { Gl2d } from "../gl2d/gl2d.ts";
-import type { BaseEffectParam } from "../effect-param/base-effect-param.ts";
+import type { BaseEffectParam } from "../effect-param/effect-param-def.ts";
 
 export interface EffectNode {
   config: Record<string, BaseEffectParam>;

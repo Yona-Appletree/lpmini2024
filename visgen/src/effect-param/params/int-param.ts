@@ -1,4 +1,4 @@
-import { EffectParamDef } from "../base-effect-param.ts";
+import { EffectParamDef } from "../effect-param-def.ts";
 import { z } from "zod";
 import { ValueKind } from "../value-kind.ts";
 import { ValueUnit } from "../value-unit.ts";
