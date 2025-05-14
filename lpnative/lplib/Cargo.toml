@@ -1,5 +1,6 @@
 [package]
 name = "lplib"
+edition = "2021"
 
 [dependencies]
 # put any compatible core deps here

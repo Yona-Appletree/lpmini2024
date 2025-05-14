@@ -1,4 +1,6 @@
 [package]
 name = "lpfirmware"
+edition = "2021"
 
 [dependencies]
+lplib = { path = "../lplib" }

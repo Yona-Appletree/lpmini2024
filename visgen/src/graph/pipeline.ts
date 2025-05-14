@@ -1,5 +1,5 @@
-import { CheckerboardStage } from "./checkerboard/checkerboard.stage";
-import { defaultCanvasSize, type PipelineStage } from "./pipeline-stage.ts";
+import { CheckerboardStage } from "./checkerboard/checkerboard.stage.tsx";
+import { defaultCanvasSize, type EffectNode } from "./effect-node.ts";
 import { Size2d } from "../util/size2d.ts";
 
 export function Pipeline() {
@@ -15,7 +15,7 @@ export function Pipeline() {
 
 export interface Pipeline {
   config: PipelineConfig;
-  stages: PipelineStage[];
+  stages: EffectNode[];
 }
 
 export interface PipelineConfig {

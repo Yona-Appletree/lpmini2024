@@ -1,4 +1,4 @@
-import { defaultCanvasSize } from "../pipeline/pipeline-stage";
+import { defaultCanvasSize } from "../graph/effect-node.ts";
 import { Size2d } from "./size2d";
 
 export function Canvas({ size = defaultCanvasSize }) {
@@ -10,7 +10,7 @@ export function Canvas({ size = defaultCanvasSize }) {
     canvas,
     ensureSizeContext<T extends ContextType>(
       contextType: T,
-      { size = defaultCanvasSize }: { size?: Size2d } = {},
+      { size = defaultCanvasSize }: { size?: Size2d } = {}
     ): ContextFor<T> {
       if (canvas.width !== size.width || canvas.height !== size.height) {
         canvas.width = size.width;

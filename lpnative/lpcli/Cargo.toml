@@ -1,5 +1,6 @@
 [package]
 name = "lpcli"
+edition = "2021"
 
 [dependencies]
 lplib = { path = "../lplib", features = ["std"] }

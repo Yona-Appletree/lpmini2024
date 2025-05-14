@@ -1,12 +1,12 @@
 import type {
-  PipelineStage,
+  EffectNode,
   PipelineConfig,
   PipelineStageConfig as PipelineStageConfig,
-} from "../pipeline-stage";
-import { Canvas } from "../../util/canvas";
-import { CheckerboardComponent } from "./checkerboard.component";
+} from "../effect-node.ts";
+import { Canvas } from "../../util/canvas.ts";
+import { CheckerboardComponent } from "./checkerboard.component.tsx";
 
-export function CheckerboardStage(): PipelineStage {
+export function CheckerboardStage(): EffectNode {
   const canvas = Canvas();
   const config: CheckerboardConfig = {
     name: "Checkerboard",

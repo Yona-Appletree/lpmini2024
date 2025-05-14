@@ -1,4 +1,4 @@
-import { defaultCanvasSize } from "../pipeline/pipeline-stage";
+import { defaultCanvasSize } from "../graph/effect-node.ts";
 
 export function createCanvas(size = defaultCanvasSize): HTMLCanvasElement {
   const canvas = document.createElement("canvas");

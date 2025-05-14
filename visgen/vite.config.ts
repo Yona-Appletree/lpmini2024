@@ -9,4 +9,8 @@ export default defineConfig({
       usePolling: true,
     },
   },
+  test: {
+    globals: false,
+    environment: "node",
+  },
 });

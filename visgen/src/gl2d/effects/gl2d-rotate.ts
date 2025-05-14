@@ -1,27 +1,41 @@
+import { Float32Param } from "../../params/float32-param.ts";
 import type { Gl2dContext } from "../gl2d-context.ts";
 import { Gl2dFragmentShader } from "../gl2d-fragment-shader.ts";
+import { Gl2dEffect } from "./gl2d-effect.ts";
 
-export function Gl2dRotate(context: Gl2dContext) {
-  const shader = Gl2dFragmentShader(context, glsl);
+export const Gl2dRotate = Gl2dEffect(
+  {
+    angleNorm: Float32Param({ default: 0 }),
+    swirlNorm: Float32Param({ default: 2.0 }),
+  },
+  (context: Gl2dContext) => {
+    const shader = Gl2dFragmentShader(context, glsl);
 
-  return {
-    draw(angleFrac: number, swirlFactor: number = 2.0) {
-      shader.draw({
-        uAngle: {
-          type: "float",
-          value: angleFrac * Math.PI * 2,
-        },
-        uSwirlFactor: {
-          type: "float",
-          value: swirlFactor,
-        },
-      });
-    },
-    [Symbol.dispose]() {
-      shader[Symbol.dispose]();
-    },
-  };
-}
+    return {
+      draw({
+        angleNorm = 0,
+        swirlNorm = 0,
+      }: {
+        angleNorm: number;
+        swirlNorm: number;
+      }) {
+        shader.draw({
+          uAngle: {
+            type: "float",
+            value: angleNorm * Math.PI * 2,
+          },
+          uSwirlFactor: {
+            type: "float",
+            value: swirlNorm,
+          },
+        });
+      },
+      [Symbol.dispose]() {
+        shader[Symbol.dispose]();
+      },
+    };
+  }
+);
 
 export type Gl2dRotate = ReturnType<typeof Gl2dRotate>;
 

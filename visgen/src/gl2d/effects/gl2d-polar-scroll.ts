@@ -1,23 +1,30 @@
+import { Float32Param } from "../../params/float32-param.ts";
 import type { Gl2dContext } from "../gl2d-context.ts";
 import { Gl2dFragmentShader } from "../gl2d-fragment-shader.ts";
+import { Gl2dEffect } from "./gl2d-effect.ts";
 
-export function Gl2dPolarScroll(context: Gl2dContext) {
-  const shader = Gl2dFragmentShader(context, glsl);
+export const Gl2dPolarScroll = Gl2dEffect(
+  {
+    offset: Float32Param({ default: 0 }),
+  },
+  (context: Gl2dContext) => {
+    const shader = Gl2dFragmentShader(context, glsl);
 
-  return {
-    draw(offset: number) {
-      shader.draw({
-        uOffset: {
-          type: "float",
-          value: offset,
-        },
-      });
-    },
-    [Symbol.dispose]() {
-      shader[Symbol.dispose]();
-    },
-  };
-}
+    return {
+      draw({ offset }: { offset: number }) {
+        shader.draw({
+          uOffset: {
+            type: "float",
+            value: offset,
+          },
+        });
+      },
+      [Symbol.dispose]() {
+        shader[Symbol.dispose]();
+      },
+    };
+  }
+);
 
 export type Gl2dPolarScroll = ReturnType<typeof Gl2dPolarScroll>;
 

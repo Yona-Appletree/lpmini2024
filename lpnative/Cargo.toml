@@ -1,11 +1,11 @@
 [workspace]
 members = [
-    "lpcli",
     "lplib",
+    "lpcli",
     "lpfirmware",
 ]
 
 [workspace.package]
 name = "lpnative"
 version = "0.1.0"
-edition = "2024"
+edition = "2021"

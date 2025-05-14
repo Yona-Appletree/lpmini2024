@@ -1,22 +1,39 @@
+import { Float32Param } from "../../params/float32-param.ts";
 import type { Gl2dContext } from "../gl2d-context.ts";
 import { Gl2dFragmentShader } from "../gl2d-fragment-shader.ts";
+import { Gl2dEffect } from "./gl2d-effect.ts";
 
-export function Gl2dHslShift(context: Gl2dContext) {
-  const shader = Gl2dFragmentShader(context, glsl);
+export const Gl2dHslShift = Gl2dEffect(
+  {
+    hueShift: Float32Param({ default: 0 }),
+    satShift: Float32Param({ default: 0 }),
+    lightShift: Float32Param({ default: 0 }),
+  },
+  (context: Gl2dContext) => {
+    const shader = Gl2dFragmentShader(context, glsl);
 
-  return {
-    draw(hueShift: number, satShift: number, lightShift: number) {
-      shader.draw({
-        uHueShift: { type: "float", value: hueShift },
-        uSatShift: { type: "float", value: satShift },
-        uLightShift: { type: "float", value: lightShift },
-      });
-    },
-    [Symbol.dispose]() {
-      shader[Symbol.dispose]();
-    },
-  };
-}
+    return {
+      draw({
+        hueShift,
+        satShift,
+        lightShift,
+      }: {
+        hueShift: number;
+        satShift: number;
+        lightShift: number;
+      }) {
+        shader.draw({
+          uHueShift: { type: "float", value: hueShift },
+          uSatShift: { type: "float", value: satShift },
+          uLightShift: { type: "float", value: lightShift },
+        });
+      },
+      [Symbol.dispose]() {
+        shader[Symbol.dispose]();
+      },
+    };
+  }
+);
 
 export type Gl2dHslShift = ReturnType<typeof Gl2dHslShift>;
 
