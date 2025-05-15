@@ -1,7 +1,7 @@
 import { EffectParamDef } from "../effect-param-def.ts";
 import { ValueKind } from "../value-kind.ts";
 import { ValueUnit } from "../value-unit.ts";
-import { Int32 } from "../../util/types/int32.ts";
+import { Int32 } from "../../data/types/int32.ts";
 
 export const IntParam = EffectParamDef("int", {
   default: Int32.schema.default(0),
