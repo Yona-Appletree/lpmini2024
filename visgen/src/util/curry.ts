@@ -55,12 +55,12 @@ type RemainingParameters<PROVIDED extends any[], EXPECTED extends any[]> =
       [];
 
 type PartialTuple<TUPLE extends any[], EXTRACTED extends any[] = []> =
-  // If the tuple provided has at least one required value
+  // If the tuple provided has at least one required nodes
   TUPLE extends [infer NEXT_PARAM, ...infer REMAINING]
     ? // recurse back in to this type with one less item
-      // in the original tuple, and the latest extracted value
+      // in the original tuple, and the latest extracted nodes
       // added to the extracted list as optional
       PartialTuple<REMAINING, [...EXTRACTED, NEXT_PARAM?]>
-    : // else if there are no more values,
+    : // else if there are no more nodes,
       // return an empty tuple so that too is a valid option
       [...EXTRACTED, ...TUPLE];
