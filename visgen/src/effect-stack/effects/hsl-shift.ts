@@ -1,8 +1,8 @@
 import { FloatParam } from "../../effect-param/params/float-param.ts";
-import { Gl2dEffectDef } from "../gl2d-effect-def.ts";
+import { EffectDef } from "../effect-def.ts";
 import { glsl } from "../../util/glsl.ts";
 
-export const Gl2dHslShift = Gl2dEffectDef(
+export const HslShift = EffectDef(
   "hsl-shift",
   {
     params: {
@@ -79,7 +79,7 @@ export const Gl2dHslShift = Gl2dEffectDef(
       vec3 rgb = hsl2rgb(hsl);
       fragColor = vec4(rgb, color.a);
     }
-  `
+  `,
 );
 
-export type Gl2dHslShift = ReturnType<typeof Gl2dHslShift>;
+export type Gl2dHslShift = ReturnType<typeof HslShift>;

@@ -1,17 +1,16 @@
-import { Gl2dCheckerboard } from "../../gl2d-effect/effects/gl2d-checkerboard.ts";
-import {
-  Gl2dEffectStack,
-  StackItem,
-} from "../../gl2d-effect/gl2d-effect-stack.ts";
+import { EffectStackConfig } from "../../effect-stack/effect-stack-config.ts";
+import { Checkerboard } from "../../effect-stack/effects/checkerboard.ts";
 
-export const demoStack = Gl2dEffectStack({
-  size: { width: 800, height: 600 },
-  items: [
-    StackItem("checkerboard", {
-      color1: [1, 0.5, 0, 1],
-      color2: [0, 0, 0.5, 1],
-      rows: 10,
-      columns: 10,
+export const demoStack = EffectStackConfig({
+  size: [128, 128],
+  effects: [
+    Checkerboard.Config({
+      args: {
+        color1: [1, 0.5, 0, 1],
+        color2: [0, 0, 0.5, 1],
+        rows: 10,
+        columns: 10,
+      },
     }),
   ],
 });

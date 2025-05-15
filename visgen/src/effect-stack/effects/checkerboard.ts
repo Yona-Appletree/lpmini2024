@@ -1,9 +1,9 @@
 import { Vec4Param } from "../../effect-param/params/vec4-param.ts";
-import { Gl2dEffectDef } from "../gl2d-effect-def.ts";
+import { EffectDef } from "../effect-def.ts";
 import { glsl } from "../../util/glsl.ts";
 import { IntParam } from "../../effect-param/params/int-param.ts";
 
-export const Gl2dCheckerboard = Gl2dEffectDef(
+export const Checkerboard = EffectDef(
   "checkerboard",
   {
     params: {
@@ -32,4 +32,4 @@ export const Gl2dCheckerboard = Gl2dEffectDef(
   `,
 );
 
-export type Gl2dCheckerboard = ReturnType<typeof Gl2dCheckerboard>;
+export type Gl2dCheckerboard = ReturnType<typeof Checkerboard>;

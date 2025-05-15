@@ -1,8 +1,8 @@
 import { FloatParam } from "../../effect-param/params/float-param.ts";
-import { Gl2dEffectDef } from "../gl2d-effect-def.ts";
+import { EffectDef } from "../effect-def.ts";
 import { glsl } from "../../util/glsl.ts";
 
-export const Gl2dBlur = Gl2dEffectDef(
+export const Blur = EffectDef(
   "blur",
   {
     params: {
@@ -62,7 +62,7 @@ export const Gl2dBlur = Gl2dEffectDef(
       
       fragColor = color / totalWeight;
     }
-  `
+  `,
 );
 
-export type Gl2dBlur = ReturnType<typeof Gl2dBlur>;
+export type Gl2dBlur = ReturnType<typeof Blur>;

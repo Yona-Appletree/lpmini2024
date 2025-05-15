@@ -1,8 +1,8 @@
 import { FloatParam } from "../../effect-param/params/float-param.ts";
-import { Gl2dEffectDef } from "../gl2d-effect-def.ts";
+import { EffectDef } from "../effect-def.ts";
 import { glsl } from "../../util/glsl.ts";
 
-export const Gl2dRotate = Gl2dEffectDef(
+export const Rotate = EffectDef(
   "rotate",
   {
     params: {
@@ -65,7 +65,7 @@ export const Gl2dRotate = Gl2dEffectDef(
       
       fragColor = color / totalWeight;
     }
-  `
+  `,
 );
 
-export type Gl2dRotate = ReturnType<typeof Gl2dRotate>;
+export type Gl2dRotate = ReturnType<typeof Rotate>;

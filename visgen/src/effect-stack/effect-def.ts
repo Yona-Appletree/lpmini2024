@@ -5,30 +5,48 @@ import {
   Gl2dFragmentShader,
   type ShaderUniformsRecord,
 } from "../gl2d/gl2d-fragment-shader";
+import { z } from "zod";
+import { EffectParam } from "../effect-param/effect-param.ts";
+import { Throw } from "../util/throw.ts";
+import { TypedObjectDef } from "../util/zod/typed-object-def.ts";
 
-export function Gl2dEffectDef<TId extends string, TParams extends EffectParams>(
+export function EffectDef<TId extends string, TParams extends EffectParams>(
   type: TId,
   metadata: {
     label?: string;
     params: TParams;
   },
-  glsl: string
+  glsl: string,
 ) {
   // Verify that the effect-param are valid
   const paramNameToUniformName: Record<string, string> = Object.fromEntries(
     Object.keys(metadata.params).map((key) => [
       key,
       "u" + key[0].toUpperCase() + key.slice(1),
-    ])
+    ]),
   );
 
   for (const [key, uniformName] of Object.entries(paramNameToUniformName)) {
     if (!glsl.includes(uniformName)) {
       throw new Error(
-        `Uniform not found in shader: paramName=${key}, uniformName=${uniformName}`
+        `Uniform not found in shader: paramName=${key}, uniformName=${uniformName}`,
       );
     }
   }
+
+  const argsShape = Object.fromEntries(
+    Object.entries(metadata.params).map(([key, param]) => [
+      key,
+      EffectParam.schemaRecord[param.type].shape.default ??
+        Throw("Unknown param type: " + param.type),
+    ]),
+  ) as {
+    [TKey in keyof TParams]: (typeof EffectParam.schemaRecord)[TParams[TKey]["type"]]["shape"]["default"];
+  };
+
+  const Config = TypedObjectDef(type, {
+    args: z.object(argsShape),
+  });
 
   return Object.assign(
     (context: Gl2dContext) => {
@@ -45,13 +63,13 @@ export function Gl2dEffectDef<TId extends string, TParams extends EffectParams>(
                     type: metadata.params[paramName].type,
                     value: args[paramName],
                   },
-                ]
-              )
-            ) as ShaderUniformsRecord
+                ],
+              ),
+            ) as ShaderUniformsRecord,
           );
         },
       };
     },
-    { type, metadata, glsl } as const
+    { type, Config, metadata, glsl } as const,
   );
 }

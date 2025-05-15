@@ -1,3 +1,5 @@
+import { z } from "zod";
+
 export const LiteralArgument = z.object({
   argType: z.literal("literal"),
   value: z.unknown(),
