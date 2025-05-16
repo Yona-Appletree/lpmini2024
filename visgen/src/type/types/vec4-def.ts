@@ -1,8 +1,8 @@
-import { type BaseTypeMeta, GenericTypeDef } from "../type-spec-fn.ts";
+import { type BaseTypeMeta, GenericTypeDef, TypeSpec } from "../type-spec.ts";
 import { z } from "zod";
 
 export const Vec4Def = GenericTypeDef("vec4", (meta: Vec4Meta) =>
-  TypeDef("vec4", meta, z.tuple([z.number(), z.number()])),
+  TypeSpec("vec4", meta, z.tuple([z.number(), z.number()])),
 );
 
 export type Vec4 = ReturnType<typeof Vec4Def>;

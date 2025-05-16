@@ -2,7 +2,7 @@ import { z } from "zod";
 
 export function GenericTypeDef<
   TName extends string,
-  TArgs extends never[],
+  TArgs extends any[],
   TType extends TypeSpecFn<TName>,
   TFn extends (...args: TArgs) => TType,
 >(typeName: TName, typeFn: TFn) {
@@ -11,7 +11,7 @@ export function GenericTypeDef<
   });
 }
 
-export function TypeDef<
+export function TypeSpec<
   TName extends string,
   TMeta extends object,
   TSchema extends z.Schema,

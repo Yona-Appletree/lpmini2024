@@ -1,8 +1,4 @@
-import {
-  type BaseTypeMeta,
-  GenericTypeDef,
-  type TypeSpec,
-} from "../type-spec-fn.ts";
+import { type BaseTypeMeta, GenericTypeDef, TypeSpec } from "../type-spec.ts";
 import { mapValues } from "../../util/map-values.ts";
 import { z } from "zod";
 
@@ -12,7 +8,7 @@ export const RecordDef = GenericTypeDef(
     shape: TShape,
     meta: BaseTypeMeta = {},
   ) =>
-    TypeDef(
+    TypeSpec(
       "record",
       {
         ...meta,

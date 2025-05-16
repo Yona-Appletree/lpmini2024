@@ -1,4 +1,4 @@
-import { type BaseTypeMeta, GenericTypeDef } from "../type-spec-fn.ts";
+import { type BaseTypeMeta, GenericTypeDef, TypeSpec } from "../type-spec.ts";
 import { z } from "zod";
 
 export const EnumDef = GenericTypeDef(
@@ -7,5 +7,5 @@ export const EnumDef = GenericTypeDef(
     meta: BaseTypeMeta & {
       values: TValues;
     },
-  ) => TypeDef("enum", meta, z.enum(meta.values)),
+  ) => TypeSpec("enum", meta, z.enum(meta.values)),
 );

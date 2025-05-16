@@ -7,7 +7,7 @@ import { Vec2Def } from "./types/vec2-def.ts";
 import { Vec3Def } from "./types/vec3-def.ts";
 import { Vec4Def } from "./types/vec4-def.ts";
 
-export const TypeDefs = [
+export const TypeDef = [
   ArrayDef,
   EnumDef,
   FloatDef,
@@ -18,4 +18,4 @@ export const TypeDefs = [
   Vec4Def,
 ];
 
-export type TypeName = (typeof TypeDefs)[number]["name"];
+export type TypeName = (typeof TypeDef)[number]["name"];

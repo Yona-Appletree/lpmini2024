@@ -15,6 +15,6 @@ export function ValueDef<TType extends string, TShape extends ZodRawShape>(
         ...args,
         $expr,
       }),
-    { schema },
+    { schema } as const,
   );
 }

@@ -1,14 +1,10 @@
 import { z } from "zod";
-import {
-  type BaseTypeMeta,
-  GenericTypeDef,
-  type TypeSpec,
-} from "../type-spec-fn.ts";
+import { type BaseTypeMeta, GenericTypeDef, TypeSpec } from "../type-spec.ts";
 
 export const ArrayDef = GenericTypeDef(
   "array",
   (itemType: TypeSpec, meta: BaseTypeMeta = {}) =>
-    TypeDef("array", { ...meta, itemType }, z.array(itemType.schema)),
+    TypeSpec("array", { ...meta, itemType }, z.array(itemType.schema)),
 );
 export type ArrayDef = ReturnType<typeof ArrayDef>;
 
