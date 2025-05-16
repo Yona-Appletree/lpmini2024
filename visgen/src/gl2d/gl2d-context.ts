@@ -1,4 +1,5 @@
 import { createCanvas } from "../util/create-canvas.ts";
+import { glsl } from "../util/glsl.ts";
 
 export function Gl2dContext(canvas = createCanvas()) {
   const gl = canvas.getContext("webgl2")!;
@@ -33,10 +34,50 @@ export function Gl2dContext(canvas = createCanvas()) {
   if (!gl.getShaderParameter(vertexShader, gl.COMPILE_STATUS)) {
     console.error(
       "Vertex shader compilation error:",
-      gl.getShaderInfoLog(vertexShader),
+      gl.getShaderInfoLog(vertexShader)
     );
     gl.deleteShader(vertexShader);
     throw new Error("Failed to compile vertex shader");
+  }
+
+  // Create a simple program to draw the image
+  const copyFragmentShader = gl.createShader(gl.FRAGMENT_SHADER)!;
+  gl.shaderSource(
+    copyFragmentShader,
+    glsl`
+      #version 300 es
+      precision highp float;
+      in vec2 vUv;
+      uniform sampler2D uTexture;
+      out vec4 fragColor;
+      void main() {
+        fragColor = texture(uTexture, vUv);
+      }
+    `
+  );
+  gl.compileShader(copyFragmentShader);
+
+  // Check fragment shader compilation
+  if (!gl.getShaderParameter(copyFragmentShader, gl.COMPILE_STATUS)) {
+    console.error(
+      "Fragment shader compilation error:",
+      gl.getShaderInfoLog(copyFragmentShader)
+    );
+    gl.deleteShader(copyFragmentShader);
+    throw new Error("Failed to compile fragment shader");
+  }
+
+  const copyProgram = gl.createProgram()!;
+  gl.attachShader(copyProgram, vertexShader);
+  gl.attachShader(copyProgram, copyFragmentShader);
+  gl.linkProgram(copyProgram);
+
+  // Check program linking
+  if (!gl.getProgramParameter(copyProgram, gl.LINK_STATUS)) {
+    console.error("Program linking error:", gl.getProgramInfoLog(copyProgram));
+    gl.deleteProgram(copyProgram);
+    gl.deleteShader(copyFragmentShader);
+    throw new Error("Failed to link program");
   }
 
   // Create framebuffers for ping-pong
@@ -54,7 +95,7 @@ export function Gl2dContext(canvas = createCanvas()) {
       0,
       gl.RGBA,
       gl.UNSIGNED_BYTE,
-      null,
+      null
     );
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
@@ -67,7 +108,7 @@ export function Gl2dContext(canvas = createCanvas()) {
       gl.COLOR_ATTACHMENT0,
       gl.TEXTURE_2D,
       texture,
-      0,
+      0
     );
 
     return { framebuffer, texture };
@@ -86,7 +127,9 @@ export function Gl2dContext(canvas = createCanvas()) {
     width,
     height,
     framebuffers,
+    copyProgram,
     vertexShader,
+    copyFragmentShader,
     drawToScreen,
 
     rotateFramebuffers() {
@@ -97,6 +140,13 @@ export function Gl2dContext(canvas = createCanvas()) {
         aBuffer,
         bBuffer,
       };
+    },
+
+    [Symbol.dispose]() {
+      gl.deleteProgram(copyProgram);
+      gl.deleteShader(vertexShader);
+      gl.deleteShader(copyFragmentShader);
+      gl.deleteBuffer(positionBuffer);
     },
   };
 }

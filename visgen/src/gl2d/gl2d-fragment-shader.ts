@@ -12,7 +12,7 @@ export function Gl2dFragmentShader(canvas: Gl2dContext, shaderGlsl: string) {
   if (!gl.getShaderParameter(fragmentShader, gl.COMPILE_STATUS)) {
     console.error(
       "Fragment shader compilation error:",
-      gl.getShaderInfoLog(fragmentShader),
+      gl.getShaderInfoLog(fragmentShader)
     );
     gl.deleteShader(fragmentShader);
     throw new Error("Failed to compile fragment shader");
@@ -50,6 +50,9 @@ export function Gl2dFragmentShader(canvas: Gl2dContext, shaderGlsl: string) {
       const uniformLocation = gl.getUniformLocation(program, uniformName);
       if (uniformLocation !== null) {
         switch (uniformValue.type) {
+          case "int32":
+            gl.uniform1i(uniformLocation, uniformValue.value);
+            break;
           case "float32":
             gl.uniform1f(uniformLocation, uniformValue.value);
             break;
@@ -57,7 +60,7 @@ export function Gl2dFragmentShader(canvas: Gl2dContext, shaderGlsl: string) {
             gl.uniform2f(
               uniformLocation,
               uniformValue.value[0],
-              uniformValue.value[1],
+              uniformValue.value[1]
             );
             break;
           case "vec3":
@@ -65,7 +68,7 @@ export function Gl2dFragmentShader(canvas: Gl2dContext, shaderGlsl: string) {
               uniformLocation,
               uniformValue.value[0],
               uniformValue.value[1],
-              uniformValue.value[2],
+              uniformValue.value[2]
             );
             break;
           case "vec4":
@@ -74,9 +77,11 @@ export function Gl2dFragmentShader(canvas: Gl2dContext, shaderGlsl: string) {
               uniformValue.value[0],
               uniformValue.value[1],
               uniformValue.value[2],
-              uniformValue.value[3],
+              uniformValue.value[3]
             );
             break;
+          default:
+            throw new Error(`Unsupported uniform type: ${uniformValue.type}`);
         }
       }
     }
@@ -86,7 +91,7 @@ export function Gl2dFragmentShader(canvas: Gl2dContext, shaderGlsl: string) {
     // Set input texture uniform
     const inputTextureLocation = gl.getUniformLocation(
       program,
-      "uInputTexture",
+      "uInputTexture"
     );
     if (inputTextureLocation !== null) {
       gl.uniform1i(inputTextureLocation, 0);

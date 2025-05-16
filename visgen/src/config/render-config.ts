@@ -20,7 +20,7 @@ export function renderConfig({
           spec: (spec.info.meta as ArrayMeta).itemType,
           config: item,
           nodeMap,
-        }),
+        })
       );
 
     case "record":
@@ -33,15 +33,15 @@ export function renderConfig({
               config: value,
               nodeMap,
             }),
-          ],
-        ),
+          ]
+        )
       );
 
     default:
       if (typeof config === "object" && config !== null && "$expr" in config) {
         switch (config.$expr) {
           case "node-output":
-            return nodeMap.get((config as NodeOutputValue).nodeId);
+            return nodeMap.get((config as NodeOutputValue).nodeId)?.output;
         }
       } else {
         return config;
