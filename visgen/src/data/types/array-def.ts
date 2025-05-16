@@ -6,7 +6,7 @@ import {
   type TypeSpec,
 } from "../type-def.ts";
 
-export const ArrayOf = GenericTypeDef(
+export const ArrayDef = GenericTypeDef(
   "array",
   (itemType: TypeSpec, meta: BaseTypeMeta = {}) =>
     TypeDef("array", { ...meta, itemType }, z.array(itemType.schema)),

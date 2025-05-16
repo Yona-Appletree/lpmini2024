@@ -7,7 +7,7 @@ import {
 import { mapValues } from "../../util/map-values.ts";
 import { z } from "zod";
 
-export const RecordOf = GenericTypeDef(
+export const RecordDef = GenericTypeDef(
   "record",
   <TShape extends Record<string, TypeSpec>>(
     shape: TShape,

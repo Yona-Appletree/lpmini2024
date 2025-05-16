@@ -1,11 +1,11 @@
 import { expectTypeOf, test } from "vitest";
-import { RecordOf } from "./record-of.ts";
-import { Int32 } from "./int32.ts";
+import { RecordDef } from "./record-def.ts";
+import { IntDef } from "./int-def.ts";
 import { z } from "zod";
 
 test("basic", () => {
-  const TestRec = RecordOf({
-    theta: Int32(),
+  const TestRec = RecordDef({
+    theta: IntDef(),
   });
 
   expectTypeOf<z.output<typeof TestRec.schema>>().toEqualTypeOf<{
