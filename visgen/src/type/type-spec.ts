@@ -57,3 +57,5 @@ export interface BaseTypeMeta {
   label?: string;
   description?: string;
 }
+
+export type TypeValue<T extends TypeSpec> = z.output<T["schema"]>;

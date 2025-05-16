@@ -1,30 +1,32 @@
-import { z } from "zod";
-import type { EffectParams } from "../effect-param/effect-params.ts";
-import { EffectParam } from "../effect-param/effect-param.ts";
-import { Throw } from "../util/throw.ts";
 import { TypedObjectDef } from "../util/zod/typed-object-def.ts";
+import type { TypeSpec, TypeValue } from "../type/type-spec.ts";
+import { configSchemaFor } from "../config/config-schema-for.ts";
 
-export function NodeDef<TId extends string, TParams extends EffectParams>(
+export function NodeDef<TId extends string, TMeta extends NodeMetadata>(
   type: TId,
-  metadata: {
-    label?: string;
-    params: TParams;
-    output: EffectParam;
-  },
+  metadata: TMeta,
+  nodeFn: () => NodeInstance<TMeta>,
 ) {
-  const argsShape = Object.fromEntries(
-    Object.entries(metadata.params).map(([key, param]) => [
-      key,
-      EffectParam.schemaRecord[param.type].shape.default ??
-        Throw("Unknown param type: " + param.type),
-    ]),
-  ) as {
-    [TKey in keyof TParams]: (typeof EffectParam.schemaRecord)[TParams[TKey]["type"]]["shape"]["default"];
-  };
-
   const Config = TypedObjectDef(type, {
-    args: z.object(argsShape),
+    input: configSchemaFor(metadata.input),
   });
 
-  return Object.assign(() => {}, { type, Config, metadata } as const);
+  return Object.assign(nodeFn, { type, Config, metadata } as const);
+}
+
+interface NodeMetadata<
+  TInput extends TypeSpec = TypeSpec,
+  TOutput extends TypeSpec = TypeSpec,
+> {
+  label: string;
+  input: TInput;
+  output: TOutput;
+}
+
+export interface NodeInstance<TMeta extends NodeMetadata = NodeMetadata> {
+  update: (args: {
+    input: TypeValue<TMeta["input"]>;
+    deltaMs: number;
+  }) => TypeValue<TMeta["output"]>;
+  [Symbol.dispose]?: () => void;
 }
