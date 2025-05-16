@@ -1,10 +1,10 @@
 import { z } from "zod";
 
-export function GenericTypeDef<
+export function defineType<
   TName extends string,
-  TArgs extends any[],
   TType extends TypeSpecFn<TName>,
-  TFn extends (...args: TArgs) => TType,
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  TFn extends (...args: any[]) => TType,
 >(typeName: TName, typeFn: TFn) {
   return Object.assign(typeFn, {
     typeName: typeName,
@@ -24,7 +24,7 @@ export function TypeSpec<
         meta,
       } as const,
       schema,
-    } as const
+    } as const,
   );
 }
 
@@ -53,6 +53,7 @@ export interface TypeSpecFn<
   (...args: z.input<TSchema>): z.output<TSchema>;
 }
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 export type TypeSpecOf<T extends (...args: any[]) => TypeSpecFn> = {
   [K in keyof ReturnType<T>]: ReturnType<T>[K];
 };

@@ -1,7 +1,7 @@
-import { ImageDef } from "../../type/types/image-def";
-import { IntDef } from "../../type/types/int-def";
-import { RecordDef } from "../../type/types/record-def";
-import { Vec4Def } from "../../type/types/vec4-def";
+import { ImageDef } from "../../data/types/image-def";
+import { IntDef } from "../../data/types/int-def";
+import { RecordDef } from "../../data/types/record-def";
+import { Vec4Def } from "../../data/types/vec4-def";
 import { glsl } from "../../util/glsl";
 import { Gl2dNodeDef } from "../gl2d-node-def";
 
@@ -35,5 +35,5 @@ export const GlCheckerboardNode = Gl2dNodeDef(
         float checker = mod(grid.x + grid.y, 2.0);
         fragColor = mix(uColor1, uColor2, checker);
     }
-  `
+  `,
 );

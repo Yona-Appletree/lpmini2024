@@ -1,7 +1,7 @@
-import { type TypeMeta, GenericTypeDef, TypeSpec } from "../type-spec.ts";
+import { defineType, type TypeMeta, TypeSpec } from "../type-spec.ts";
 import { z } from "zod";
 
-export const EnumDef = GenericTypeDef(
+export const EnumDef = defineType(
   "enum",
   <TValues extends [string, ...string[]]>(
     meta: TypeMeta<TValues[number]> & {

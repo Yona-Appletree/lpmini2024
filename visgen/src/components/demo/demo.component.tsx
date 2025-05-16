@@ -36,7 +36,7 @@ export function Demo() {
       {Array.from(graphRef.current?.nodeMap?.entries() ?? []).map(
         ([id, node]) => (
           <GraphNodeComponent key={id} id={id} node={node} />
-        )
+        ),
       )}
     </div>
   );

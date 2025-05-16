@@ -278,15 +278,7 @@
       "semi": {
         "type": "literal",
         "literal": ";",
-        "whitespace": [
-          "\n\n",
-          [
-            [
-              "// Helper functions for RGB <-> HSL",
-              "\n"
-            ]
-          ]
-        ]
+        "whitespace": ["\n\n", [["// Helper functions for RGB <-> HSL", "\n"]]]
       }
     },
     {
@@ -3514,15 +3506,7 @@
             "semi": {
               "type": "literal",
               "literal": ";",
-              "whitespace": [
-                " ",
-                [
-                  [
-                    "// Hue wraps",
-                    "\n    "
-                  ]
-                ]
-              ]
+              "whitespace": [" ", [["// Hue wraps", "\n    "]]]
             }
           },
           {
@@ -3623,15 +3607,7 @@
             "semi": {
               "type": "literal",
               "literal": ";",
-              "whitespace": [
-                " ",
-                [
-                  [
-                    "// Clamp saturation",
-                    "\n    "
-                  ]
-                ]
-              ]
+              "whitespace": [" ", [["// Clamp saturation", "\n    "]]]
             }
           },
           {
@@ -3732,15 +3708,7 @@
             "semi": {
               "type": "literal",
               "literal": ";",
-              "whitespace": [
-                " ",
-                [
-                  [
-                    "// Clamp lightness",
-                    "\n    "
-                  ]
-                ]
-              ]
+              "whitespace": [" ", [["// Clamp lightness", "\n    "]]]
             }
           },
           {
@@ -3993,9 +3961,7 @@
         "rgb2hsl": {
           "vec3: vec3": {
             "returnType": "vec3",
-            "parameterTypes": [
-              "vec3"
-            ],
+            "parameterTypes": ["vec3"],
             "declaration": {
               "type": "function",
               "prototype": {
@@ -6834,11 +6800,7 @@
         "hue2rgb": {
           "float: float, float, float": {
             "returnType": "float",
-            "parameterTypes": [
-              "float",
-              "float",
-              "float"
-            ],
+            "parameterTypes": ["float", "float", "float"],
             "declaration": {
               "type": "function",
               "prototype": {
@@ -8223,9 +8185,7 @@
         "hsl2rgb": {
           "vec3: vec3": {
             "returnType": "vec3",
-            "parameterTypes": [
-              "vec3"
-            ],
+            "parameterTypes": ["vec3"],
             "declaration": {
               "type": "function",
               "prototype": {
@@ -10170,9 +10130,7 @@
         "main": {
           "void: void": {
             "returnType": "void",
-            "parameterTypes": [
-              "void"
-            ],
+            "parameterTypes": ["void"],
             "declaration": {
               "type": "function",
               "prototype": {
@@ -10446,15 +10404,7 @@
                     "semi": {
                       "type": "literal",
                       "literal": ";",
-                      "whitespace": [
-                        " ",
-                        [
-                          [
-                            "// Hue wraps",
-                            "\n    "
-                          ]
-                        ]
-                      ]
+                      "whitespace": [" ", [["// Hue wraps", "\n    "]]]
                     }
                   },
                   {
@@ -10555,15 +10505,7 @@
                     "semi": {
                       "type": "literal",
                       "literal": ";",
-                      "whitespace": [
-                        " ",
-                        [
-                          [
-                            "// Clamp saturation",
-                            "\n    "
-                          ]
-                        ]
-                      ]
+                      "whitespace": [" ", [["// Clamp saturation", "\n    "]]]
                     }
                   },
                   {
@@ -10664,15 +10606,7 @@
                     "semi": {
                       "type": "literal",
                       "literal": ";",
-                      "whitespace": [
-                        " ",
-                        [
-                          [
-                            "// Clamp lightness",
-                            "\n    "
-                          ]
-                        ]
-                      ]
+                      "whitespace": [" ", [["// Clamp lightness", "\n    "]]]
                     }
                   },
                   {
@@ -11091,15 +11025,7 @@
                       "semi": {
                         "type": "literal",
                         "literal": ";",
-                        "whitespace": [
-                          " ",
-                          [
-                            [
-                              "// Hue wraps",
-                              "\n    "
-                            ]
-                          ]
-                        ]
+                        "whitespace": [" ", [["// Hue wraps", "\n    "]]]
                       }
                     },
                     {
@@ -11200,15 +11126,7 @@
                       "semi": {
                         "type": "literal",
                         "literal": ";",
-                        "whitespace": [
-                          " ",
-                          [
-                            [
-                              "// Clamp saturation",
-                              "\n    "
-                            ]
-                          ]
-                        ]
+                        "whitespace": [" ", [["// Clamp saturation", "\n    "]]]
                       }
                     },
                     {
@@ -11309,15 +11227,7 @@
                       "semi": {
                         "type": "literal",
                         "literal": ";",
-                        "whitespace": [
-                          " ",
-                          [
-                            [
-                              "// Clamp lightness",
-                              "\n    "
-                            ]
-                          ]
-                        ]
+                        "whitespace": [" ", [["// Clamp lightness", "\n    "]]]
                       }
                     },
                     {
@@ -11575,9 +11485,7 @@
           "rgb2hsl": {
             "vec3: vec3": {
               "returnType": "vec3",
-              "parameterTypes": [
-                "vec3"
-              ],
+              "parameterTypes": ["vec3"],
               "declaration": {
                 "type": "function",
                 "prototype": {
@@ -14416,11 +14324,7 @@
           "hue2rgb": {
             "float: float, float, float": {
               "returnType": "float",
-              "parameterTypes": [
-                "float",
-                "float",
-                "float"
-              ],
+              "parameterTypes": ["float", "float", "float"],
               "declaration": {
                 "type": "function",
                 "prototype": {
@@ -15805,9 +15709,7 @@
           "hsl2rgb": {
             "vec3: vec3": {
               "returnType": "vec3",
-              "parameterTypes": [
-                "vec3"
-              ],
+              "parameterTypes": ["vec3"],
               "declaration": {
                 "type": "function",
                 "prototype": {
@@ -17752,9 +17654,7 @@
           "main": {
             "void: void": {
               "returnType": "void",
-              "parameterTypes": [
-                "void"
-              ],
+              "parameterTypes": ["void"],
               "declaration": {
                 "type": "function",
                 "prototype": {
@@ -18028,15 +17928,7 @@
                       "semi": {
                         "type": "literal",
                         "literal": ";",
-                        "whitespace": [
-                          " ",
-                          [
-                            [
-                              "// Hue wraps",
-                              "\n    "
-                            ]
-                          ]
-                        ]
+                        "whitespace": [" ", [["// Hue wraps", "\n    "]]]
                       }
                     },
                     {
@@ -18137,15 +18029,7 @@
                       "semi": {
                         "type": "literal",
                         "literal": ";",
-                        "whitespace": [
-                          " ",
-                          [
-                            [
-                              "// Clamp saturation",
-                              "\n    "
-                            ]
-                          ]
-                        ]
+                        "whitespace": [" ", [["// Clamp saturation", "\n    "]]]
                       }
                     },
                     {
@@ -18246,15 +18130,7 @@
                       "semi": {
                         "type": "literal",
                         "literal": ";",
-                        "whitespace": [
-                          " ",
-                          [
-                            [
-                              "// Clamp lightness",
-                              "\n    "
-                            ]
-                          ]
-                        ]
+                        "whitespace": [" ", [["// Clamp lightness", "\n    "]]]
                       }
                     },
                     {
@@ -18673,15 +18549,7 @@
                         "semi": {
                           "type": "literal",
                           "literal": ";",
-                          "whitespace": [
-                            " ",
-                            [
-                              [
-                                "// Hue wraps",
-                                "\n    "
-                              ]
-                            ]
-                          ]
+                          "whitespace": [" ", [["// Hue wraps", "\n    "]]]
                         }
                       },
                       {
@@ -18784,12 +18652,7 @@
                           "literal": ";",
                           "whitespace": [
                             " ",
-                            [
-                              [
-                                "// Clamp saturation",
-                                "\n    "
-                              ]
-                            ]
+                            [["// Clamp saturation", "\n    "]]
                           ]
                         }
                       },
@@ -18893,12 +18756,7 @@
                           "literal": ";",
                           "whitespace": [
                             " ",
-                            [
-                              [
-                                "// Clamp lightness",
-                                "\n    "
-                              ]
-                            ]
+                            [["// Clamp lightness", "\n    "]]
                           ]
                         }
                       },
@@ -19435,9 +19293,7 @@
             "rgb2hsl": {
               "vec3: vec3": {
                 "returnType": "vec3",
-                "parameterTypes": [
-                  "vec3"
-                ],
+                "parameterTypes": ["vec3"],
                 "declaration": {
                   "type": "function",
                   "prototype": {
@@ -22276,11 +22132,7 @@
             "hue2rgb": {
               "float: float, float, float": {
                 "returnType": "float",
-                "parameterTypes": [
-                  "float",
-                  "float",
-                  "float"
-                ],
+                "parameterTypes": ["float", "float", "float"],
                 "declaration": {
                   "type": "function",
                   "prototype": {
@@ -23665,9 +23517,7 @@
             "hsl2rgb": {
               "vec3: vec3": {
                 "returnType": "vec3",
-                "parameterTypes": [
-                  "vec3"
-                ],
+                "parameterTypes": ["vec3"],
                 "declaration": {
                   "type": "function",
                   "prototype": {
@@ -25612,9 +25462,7 @@
             "main": {
               "void: void": {
                 "returnType": "void",
-                "parameterTypes": [
-                  "void"
-                ],
+                "parameterTypes": ["void"],
                 "declaration": {
                   "type": "function",
                   "prototype": {
@@ -25888,15 +25736,7 @@
                         "semi": {
                           "type": "literal",
                           "literal": ";",
-                          "whitespace": [
-                            " ",
-                            [
-                              [
-                                "// Hue wraps",
-                                "\n    "
-                              ]
-                            ]
-                          ]
+                          "whitespace": [" ", [["// Hue wraps", "\n    "]]]
                         }
                       },
                       {
@@ -25999,12 +25839,7 @@
                           "literal": ";",
                           "whitespace": [
                             " ",
-                            [
-                              [
-                                "// Clamp saturation",
-                                "\n    "
-                              ]
-                            ]
+                            [["// Clamp saturation", "\n    "]]
                           ]
                         }
                       },
@@ -26108,12 +25943,7 @@
                           "literal": ";",
                           "whitespace": [
                             " ",
-                            [
-                              [
-                                "// Clamp lightness",
-                                "\n    "
-                              ]
-                            ]
+                            [["// Clamp lightness", "\n    "]]
                           ]
                         }
                       },
@@ -26533,15 +26363,7 @@
                           "semi": {
                             "type": "literal",
                             "literal": ";",
-                            "whitespace": [
-                              " ",
-                              [
-                                [
-                                  "// Hue wraps",
-                                  "\n    "
-                                ]
-                              ]
-                            ]
+                            "whitespace": [" ", [["// Hue wraps", "\n    "]]]
                           }
                         },
                         {
@@ -26644,12 +26466,7 @@
                             "literal": ";",
                             "whitespace": [
                               " ",
-                              [
-                                [
-                                  "// Clamp saturation",
-                                  "\n    "
-                                ]
-                              ]
+                              [["// Clamp saturation", "\n    "]]
                             ]
                           }
                         },
@@ -26753,12 +26570,7 @@
                             "literal": ";",
                             "whitespace": [
                               " ",
-                              [
-                                [
-                                  "// Clamp lightness",
-                                  "\n    "
-                                ]
-                              ]
+                              [["// Clamp lightness", "\n    "]]
                             ]
                           }
                         },
@@ -27341,9 +27153,7 @@
               "rgb2hsl": {
                 "vec3: vec3": {
                   "returnType": "vec3",
-                  "parameterTypes": [
-                    "vec3"
-                  ],
+                  "parameterTypes": ["vec3"],
                   "declaration": {
                     "type": "function",
                     "prototype": {
@@ -30182,11 +29992,7 @@
               "hue2rgb": {
                 "float: float, float, float": {
                   "returnType": "float",
-                  "parameterTypes": [
-                    "float",
-                    "float",
-                    "float"
-                  ],
+                  "parameterTypes": ["float", "float", "float"],
                   "declaration": {
                     "type": "function",
                     "prototype": {
@@ -31571,9 +31377,7 @@
               "hsl2rgb": {
                 "vec3: vec3": {
                   "returnType": "vec3",
-                  "parameterTypes": [
-                    "vec3"
-                  ],
+                  "parameterTypes": ["vec3"],
                   "declaration": {
                     "type": "function",
                     "prototype": {
@@ -33518,9 +33322,7 @@
               "main": {
                 "void: void": {
                   "returnType": "void",
-                  "parameterTypes": [
-                    "void"
-                  ],
+                  "parameterTypes": ["void"],
                   "declaration": {
                     "type": "function",
                     "prototype": {
@@ -33794,15 +33596,7 @@
                           "semi": {
                             "type": "literal",
                             "literal": ";",
-                            "whitespace": [
-                              " ",
-                              [
-                                [
-                                  "// Hue wraps",
-                                  "\n    "
-                                ]
-                              ]
-                            ]
+                            "whitespace": [" ", [["// Hue wraps", "\n    "]]]
                           }
                         },
                         {
@@ -33905,12 +33699,7 @@
                             "literal": ";",
                             "whitespace": [
                               " ",
-                              [
-                                [
-                                  "// Clamp saturation",
-                                  "\n    "
-                                ]
-                              ]
+                              [["// Clamp saturation", "\n    "]]
                             ]
                           }
                         },
@@ -34014,12 +33803,7 @@
                             "literal": ";",
                             "whitespace": [
                               " ",
-                              [
-                                [
-                                  "// Clamp lightness",
-                                  "\n    "
-                                ]
-                              ]
+                              [["// Clamp lightness", "\n    "]]
                             ]
                           }
                         },
@@ -34439,15 +34223,7 @@
                             "semi": {
                               "type": "literal",
                               "literal": ";",
-                              "whitespace": [
-                                " ",
-                                [
-                                  [
-                                    "// Hue wraps",
-                                    "\n    "
-                                  ]
-                                ]
-                              ]
+                              "whitespace": [" ", [["// Hue wraps", "\n    "]]]
                             }
                           },
                           {
@@ -34550,12 +34326,7 @@
                               "literal": ";",
                               "whitespace": [
                                 " ",
-                                [
-                                  [
-                                    "// Clamp saturation",
-                                    "\n    "
-                                  ]
-                                ]
+                                [["// Clamp saturation", "\n    "]]
                               ]
                             }
                           },
@@ -34659,12 +34430,7 @@
                               "literal": ";",
                               "whitespace": [
                                 " ",
-                                [
-                                  [
-                                    "// Clamp lightness",
-                                    "\n    "
-                                  ]
-                                ]
+                                [["// Clamp lightness", "\n    "]]
                               ]
                             }
                           },
@@ -35251,9 +35017,7 @@
               "rgb2hsl": {
                 "vec3: vec3": {
                   "returnType": "vec3",
-                  "parameterTypes": [
-                    "vec3"
-                  ],
+                  "parameterTypes": ["vec3"],
                   "declaration": {
                     "type": "function",
                     "prototype": {
@@ -38092,11 +37856,7 @@
               "hue2rgb": {
                 "float: float, float, float": {
                   "returnType": "float",
-                  "parameterTypes": [
-                    "float",
-                    "float",
-                    "float"
-                  ],
+                  "parameterTypes": ["float", "float", "float"],
                   "declaration": {
                     "type": "function",
                     "prototype": {
@@ -39481,9 +39241,7 @@
               "hsl2rgb": {
                 "vec3: vec3": {
                   "returnType": "vec3",
-                  "parameterTypes": [
-                    "vec3"
-                  ],
+                  "parameterTypes": ["vec3"],
                   "declaration": {
                     "type": "function",
                     "prototype": {
@@ -41428,9 +41186,7 @@
               "main": {
                 "void: void": {
                   "returnType": "void",
-                  "parameterTypes": [
-                    "void"
-                  ],
+                  "parameterTypes": ["void"],
                   "declaration": {
                     "type": "function",
                     "prototype": {
@@ -41704,15 +41460,7 @@
                           "semi": {
                             "type": "literal",
                             "literal": ";",
-                            "whitespace": [
-                              " ",
-                              [
-                                [
-                                  "// Hue wraps",
-                                  "\n    "
-                                ]
-                              ]
-                            ]
+                            "whitespace": [" ", [["// Hue wraps", "\n    "]]]
                           }
                         },
                         {
@@ -41815,12 +41563,7 @@
                             "literal": ";",
                             "whitespace": [
                               " ",
-                              [
-                                [
-                                  "// Clamp saturation",
-                                  "\n    "
-                                ]
-                              ]
+                              [["// Clamp saturation", "\n    "]]
                             ]
                           }
                         },
@@ -41924,12 +41667,7 @@
                             "literal": ";",
                             "whitespace": [
                               " ",
-                              [
-                                [
-                                  "// Clamp lightness",
-                                  "\n    "
-                                ]
-                              ]
+                              [["// Clamp lightness", "\n    "]]
                             ]
                           }
                         },
@@ -42349,15 +42087,7 @@
                             "semi": {
                               "type": "literal",
                               "literal": ";",
-                              "whitespace": [
-                                " ",
-                                [
-                                  [
-                                    "// Hue wraps",
-                                    "\n    "
-                                  ]
-                                ]
-                              ]
+                              "whitespace": [" ", [["// Hue wraps", "\n    "]]]
                             }
                           },
                           {
@@ -42460,12 +42190,7 @@
                               "literal": ";",
                               "whitespace": [
                                 " ",
-                                [
-                                  [
-                                    "// Clamp saturation",
-                                    "\n    "
-                                  ]
-                                ]
+                                [["// Clamp saturation", "\n    "]]
                               ]
                             }
                           },
@@ -42569,12 +42294,7 @@
                               "literal": ";",
                               "whitespace": [
                                 " ",
-                                [
-                                  [
-                                    "// Clamp lightness",
-                                    "\n    "
-                                  ]
-                                ]
+                                [["// Clamp lightness", "\n    "]]
                               ]
                             }
                           },
@@ -43161,9 +42881,7 @@
               "rgb2hsl": {
                 "vec3: vec3": {
                   "returnType": "vec3",
-                  "parameterTypes": [
-                    "vec3"
-                  ],
+                  "parameterTypes": ["vec3"],
                   "declaration": {
                     "type": "function",
                     "prototype": {
@@ -46002,11 +45720,7 @@
               "hue2rgb": {
                 "float: float, float, float": {
                   "returnType": "float",
-                  "parameterTypes": [
-                    "float",
-                    "float",
-                    "float"
-                  ],
+                  "parameterTypes": ["float", "float", "float"],
                   "declaration": {
                     "type": "function",
                     "prototype": {
@@ -47391,9 +47105,7 @@
               "hsl2rgb": {
                 "vec3: vec3": {
                   "returnType": "vec3",
-                  "parameterTypes": [
-                    "vec3"
-                  ],
+                  "parameterTypes": ["vec3"],
                   "declaration": {
                     "type": "function",
                     "prototype": {
@@ -49338,9 +49050,7 @@
               "main": {
                 "void: void": {
                   "returnType": "void",
-                  "parameterTypes": [
-                    "void"
-                  ],
+                  "parameterTypes": ["void"],
                   "declaration": {
                     "type": "function",
                     "prototype": {
@@ -49614,15 +49324,7 @@
                           "semi": {
                             "type": "literal",
                             "literal": ";",
-                            "whitespace": [
-                              " ",
-                              [
-                                [
-                                  "// Hue wraps",
-                                  "\n    "
-                                ]
-                              ]
-                            ]
+                            "whitespace": [" ", [["// Hue wraps", "\n    "]]]
                           }
                         },
                         {
@@ -49725,12 +49427,7 @@
                             "literal": ";",
                             "whitespace": [
                               " ",
-                              [
-                                [
-                                  "// Clamp saturation",
-                                  "\n    "
-                                ]
-                              ]
+                              [["// Clamp saturation", "\n    "]]
                             ]
                           }
                         },
@@ -49834,12 +49531,7 @@
                             "literal": ";",
                             "whitespace": [
                               " ",
-                              [
-                                [
-                                  "// Clamp lightness",
-                                  "\n    "
-                                ]
-                              ]
+                              [["// Clamp lightness", "\n    "]]
                             ]
                           }
                         },
@@ -50259,15 +49951,7 @@
                             "semi": {
                               "type": "literal",
                               "literal": ";",
-                              "whitespace": [
-                                " ",
-                                [
-                                  [
-                                    "// Hue wraps",
-                                    "\n    "
-                                  ]
-                                ]
-                              ]
+                              "whitespace": [" ", [["// Hue wraps", "\n    "]]]
                             }
                           },
                           {
@@ -50370,12 +50054,7 @@
                               "literal": ";",
                               "whitespace": [
                                 " ",
-                                [
-                                  [
-                                    "// Clamp saturation",
-                                    "\n    "
-                                  ]
-                                ]
+                                [["// Clamp saturation", "\n    "]]
                               ]
                             }
                           },
@@ -50479,12 +50158,7 @@
                               "literal": ";",
                               "whitespace": [
                                 " ",
-                                [
-                                  [
-                                    "// Clamp lightness",
-                                    "\n    "
-                                  ]
-                                ]
+                                [["// Clamp lightness", "\n    "]]
                               ]
                             }
                           },
@@ -51067,9 +50741,7 @@
           "rgb2hsl": {
             "vec3: vec3": {
               "returnType": "vec3",
-              "parameterTypes": [
-                "vec3"
-              ],
+              "parameterTypes": ["vec3"],
               "declaration": {
                 "type": "function",
                 "prototype": {
@@ -53908,11 +53580,7 @@
           "hue2rgb": {
             "float: float, float, float": {
               "returnType": "float",
-              "parameterTypes": [
-                "float",
-                "float",
-                "float"
-              ],
+              "parameterTypes": ["float", "float", "float"],
               "declaration": {
                 "type": "function",
                 "prototype": {
@@ -55297,9 +54965,7 @@
           "hsl2rgb": {
             "vec3: vec3": {
               "returnType": "vec3",
-              "parameterTypes": [
-                "vec3"
-              ],
+              "parameterTypes": ["vec3"],
               "declaration": {
                 "type": "function",
                 "prototype": {
@@ -57244,9 +56910,7 @@
           "main": {
             "void: void": {
               "returnType": "void",
-              "parameterTypes": [
-                "void"
-              ],
+              "parameterTypes": ["void"],
               "declaration": {
                 "type": "function",
                 "prototype": {
@@ -57520,15 +57184,7 @@
                       "semi": {
                         "type": "literal",
                         "literal": ";",
-                        "whitespace": [
-                          " ",
-                          [
-                            [
-                              "// Hue wraps",
-                              "\n    "
-                            ]
-                          ]
-                        ]
+                        "whitespace": [" ", [["// Hue wraps", "\n    "]]]
                       }
                     },
                     {
@@ -57629,15 +57285,7 @@
                       "semi": {
                         "type": "literal",
                         "literal": ";",
-                        "whitespace": [
-                          " ",
-                          [
-                            [
-                              "// Clamp saturation",
-                              "\n    "
-                            ]
-                          ]
-                        ]
+                        "whitespace": [" ", [["// Clamp saturation", "\n    "]]]
                       }
                     },
                     {
@@ -57738,15 +57386,7 @@
                       "semi": {
                         "type": "literal",
                         "literal": ";",
-                        "whitespace": [
-                          " ",
-                          [
-                            [
-                              "// Clamp lightness",
-                              "\n    "
-                            ]
-                          ]
-                        ]
+                        "whitespace": [" ", [["// Clamp lightness", "\n    "]]]
                       }
                     },
                     {
@@ -58165,15 +57805,7 @@
                         "semi": {
                           "type": "literal",
                           "literal": ";",
-                          "whitespace": [
-                            " ",
-                            [
-                              [
-                                "// Hue wraps",
-                                "\n    "
-                              ]
-                            ]
-                          ]
+                          "whitespace": [" ", [["// Hue wraps", "\n    "]]]
                         }
                       },
                       {
@@ -58276,12 +57908,7 @@
                           "literal": ";",
                           "whitespace": [
                             " ",
-                            [
-                              [
-                                "// Clamp saturation",
-                                "\n    "
-                              ]
-                            ]
+                            [["// Clamp saturation", "\n    "]]
                           ]
                         }
                       },
@@ -58385,12 +58012,7 @@
                           "literal": ";",
                           "whitespace": [
                             " ",
-                            [
-                              [
-                                "// Clamp lightness",
-                                "\n    "
-                              ]
-                            ]
+                            [["// Clamp lightness", "\n    "]]
                           ]
                         }
                       },
@@ -58853,9 +58475,7 @@
           "rgb2hsl": {
             "vec3: vec3": {
               "returnType": "vec3",
-              "parameterTypes": [
-                "vec3"
-              ],
+              "parameterTypes": ["vec3"],
               "declaration": {
                 "type": "function",
                 "prototype": {
@@ -61694,11 +61314,7 @@
           "hue2rgb": {
             "float: float, float, float": {
               "returnType": "float",
-              "parameterTypes": [
-                "float",
-                "float",
-                "float"
-              ],
+              "parameterTypes": ["float", "float", "float"],
               "declaration": {
                 "type": "function",
                 "prototype": {
@@ -63083,9 +62699,7 @@
           "hsl2rgb": {
             "vec3: vec3": {
               "returnType": "vec3",
-              "parameterTypes": [
-                "vec3"
-              ],
+              "parameterTypes": ["vec3"],
               "declaration": {
                 "type": "function",
                 "prototype": {
@@ -65030,9 +64644,7 @@
           "main": {
             "void: void": {
               "returnType": "void",
-              "parameterTypes": [
-                "void"
-              ],
+              "parameterTypes": ["void"],
               "declaration": {
                 "type": "function",
                 "prototype": {
@@ -65306,15 +64918,7 @@
                       "semi": {
                         "type": "literal",
                         "literal": ";",
-                        "whitespace": [
-                          " ",
-                          [
-                            [
-                              "// Hue wraps",
-                              "\n    "
-                            ]
-                          ]
-                        ]
+                        "whitespace": [" ", [["// Hue wraps", "\n    "]]]
                       }
                     },
                     {
@@ -65415,15 +65019,7 @@
                       "semi": {
                         "type": "literal",
                         "literal": ";",
-                        "whitespace": [
-                          " ",
-                          [
-                            [
-                              "// Clamp saturation",
-                              "\n    "
-                            ]
-                          ]
-                        ]
+                        "whitespace": [" ", [["// Clamp saturation", "\n    "]]]
                       }
                     },
                     {
@@ -65524,15 +65120,7 @@
                       "semi": {
                         "type": "literal",
                         "literal": ";",
-                        "whitespace": [
-                          " ",
-                          [
-                            [
-                              "// Clamp lightness",
-                              "\n    "
-                            ]
-                          ]
-                        ]
+                        "whitespace": [" ", [["// Clamp lightness", "\n    "]]]
                       }
                     },
                     {
@@ -65951,15 +65539,7 @@
                         "semi": {
                           "type": "literal",
                           "literal": ";",
-                          "whitespace": [
-                            " ",
-                            [
-                              [
-                                "// Hue wraps",
-                                "\n    "
-                              ]
-                            ]
-                          ]
+                          "whitespace": [" ", [["// Hue wraps", "\n    "]]]
                         }
                       },
                       {
@@ -66062,12 +65642,7 @@
                           "literal": ";",
                           "whitespace": [
                             " ",
-                            [
-                              [
-                                "// Clamp saturation",
-                                "\n    "
-                              ]
-                            ]
+                            [["// Clamp saturation", "\n    "]]
                           ]
                         }
                       },
@@ -66171,12 +65746,7 @@
                           "literal": ";",
                           "whitespace": [
                             " ",
-                            [
-                              [
-                                "// Clamp lightness",
-                                "\n    "
-                              ]
-                            ]
+                            [["// Clamp lightness", "\n    "]]
                           ]
                         }
                       },
@@ -66691,9 +66261,7 @@
             "rgb2hsl": {
               "vec3: vec3": {
                 "returnType": "vec3",
-                "parameterTypes": [
-                  "vec3"
-                ],
+                "parameterTypes": ["vec3"],
                 "declaration": {
                   "type": "function",
                   "prototype": {
@@ -69532,11 +69100,7 @@
             "hue2rgb": {
               "float: float, float, float": {
                 "returnType": "float",
-                "parameterTypes": [
-                  "float",
-                  "float",
-                  "float"
-                ],
+                "parameterTypes": ["float", "float", "float"],
                 "declaration": {
                   "type": "function",
                   "prototype": {
@@ -70921,9 +70485,7 @@
             "hsl2rgb": {
               "vec3: vec3": {
                 "returnType": "vec3",
-                "parameterTypes": [
-                  "vec3"
-                ],
+                "parameterTypes": ["vec3"],
                 "declaration": {
                   "type": "function",
                   "prototype": {
@@ -72868,9 +72430,7 @@
             "main": {
               "void: void": {
                 "returnType": "void",
-                "parameterTypes": [
-                  "void"
-                ],
+                "parameterTypes": ["void"],
                 "declaration": {
                   "type": "function",
                   "prototype": {
@@ -73144,15 +72704,7 @@
                         "semi": {
                           "type": "literal",
                           "literal": ";",
-                          "whitespace": [
-                            " ",
-                            [
-                              [
-                                "// Hue wraps",
-                                "\n    "
-                              ]
-                            ]
-                          ]
+                          "whitespace": [" ", [["// Hue wraps", "\n    "]]]
                         }
                       },
                       {
@@ -73255,12 +72807,7 @@
                           "literal": ";",
                           "whitespace": [
                             " ",
-                            [
-                              [
-                                "// Clamp saturation",
-                                "\n    "
-                              ]
-                            ]
+                            [["// Clamp saturation", "\n    "]]
                           ]
                         }
                       },
@@ -73364,12 +72911,7 @@
                           "literal": ";",
                           "whitespace": [
                             " ",
-                            [
-                              [
-                                "// Clamp lightness",
-                                "\n    "
-                              ]
-                            ]
+                            [["// Clamp lightness", "\n    "]]
                           ]
                         }
                       },
@@ -73789,15 +73331,7 @@
                           "semi": {
                             "type": "literal",
                             "literal": ";",
-                            "whitespace": [
-                              " ",
-                              [
-                                [
-                                  "// Hue wraps",
-                                  "\n    "
-                                ]
-                              ]
-                            ]
+                            "whitespace": [" ", [["// Hue wraps", "\n    "]]]
                           }
                         },
                         {
@@ -73900,12 +73434,7 @@
                             "literal": ";",
                             "whitespace": [
                               " ",
-                              [
-                                [
-                                  "// Clamp saturation",
-                                  "\n    "
-                                ]
-                              ]
+                              [["// Clamp saturation", "\n    "]]
                             ]
                           }
                         },
@@ -74009,12 +73538,7 @@
                             "literal": ";",
                             "whitespace": [
                               " ",
-                              [
-                                [
-                                  "// Clamp lightness",
-                                  "\n    "
-                                ]
-                              ]
+                              [["// Clamp lightness", "\n    "]]
                             ]
                           }
                         },
@@ -74533,9 +74057,7 @@
             "rgb2hsl": {
               "vec3: vec3": {
                 "returnType": "vec3",
-                "parameterTypes": [
-                  "vec3"
-                ],
+                "parameterTypes": ["vec3"],
                 "declaration": {
                   "type": "function",
                   "prototype": {
@@ -77374,11 +76896,7 @@
             "hue2rgb": {
               "float: float, float, float": {
                 "returnType": "float",
-                "parameterTypes": [
-                  "float",
-                  "float",
-                  "float"
-                ],
+                "parameterTypes": ["float", "float", "float"],
                 "declaration": {
                   "type": "function",
                   "prototype": {
@@ -78763,9 +78281,7 @@
             "hsl2rgb": {
               "vec3: vec3": {
                 "returnType": "vec3",
-                "parameterTypes": [
-                  "vec3"
-                ],
+                "parameterTypes": ["vec3"],
                 "declaration": {
                   "type": "function",
                   "prototype": {
@@ -80710,9 +80226,7 @@
             "main": {
               "void: void": {
                 "returnType": "void",
-                "parameterTypes": [
-                  "void"
-                ],
+                "parameterTypes": ["void"],
                 "declaration": {
                   "type": "function",
                   "prototype": {
@@ -80986,15 +80500,7 @@
                         "semi": {
                           "type": "literal",
                           "literal": ";",
-                          "whitespace": [
-                            " ",
-                            [
-                              [
-                                "// Hue wraps",
-                                "\n    "
-                              ]
-                            ]
-                          ]
+                          "whitespace": [" ", [["// Hue wraps", "\n    "]]]
                         }
                       },
                       {
@@ -81097,12 +80603,7 @@
                           "literal": ";",
                           "whitespace": [
                             " ",
-                            [
-                              [
-                                "// Clamp saturation",
-                                "\n    "
-                              ]
-                            ]
+                            [["// Clamp saturation", "\n    "]]
                           ]
                         }
                       },
@@ -81206,12 +80707,7 @@
                           "literal": ";",
                           "whitespace": [
                             " ",
-                            [
-                              [
-                                "// Clamp lightness",
-                                "\n    "
-                              ]
-                            ]
+                            [["// Clamp lightness", "\n    "]]
                           ]
                         }
                       },
@@ -81631,15 +81127,7 @@
                           "semi": {
                             "type": "literal",
                             "literal": ";",
-                            "whitespace": [
-                              " ",
-                              [
-                                [
-                                  "// Hue wraps",
-                                  "\n    "
-                                ]
-                              ]
-                            ]
+                            "whitespace": [" ", [["// Hue wraps", "\n    "]]]
                           }
                         },
                         {
@@ -81742,12 +81230,7 @@
                             "literal": ";",
                             "whitespace": [
                               " ",
-                              [
-                                [
-                                  "// Clamp saturation",
-                                  "\n    "
-                                ]
-                              ]
+                              [["// Clamp saturation", "\n    "]]
                             ]
                           }
                         },
@@ -81851,12 +81334,7 @@
                             "literal": ";",
                             "whitespace": [
                               " ",
-                              [
-                                [
-                                  "// Clamp lightness",
-                                  "\n    "
-                                ]
-                              ]
+                              [["// Clamp lightness", "\n    "]]
                             ]
                           }
                         },
@@ -82430,9 +81908,7 @@
           "rgb2hsl": {
             "vec3: vec3": {
               "returnType": "vec3",
-              "parameterTypes": [
-                "vec3"
-              ],
+              "parameterTypes": ["vec3"],
               "declaration": {
                 "type": "function",
                 "prototype": {
@@ -85271,11 +84747,7 @@
           "hue2rgb": {
             "float: float, float, float": {
               "returnType": "float",
-              "parameterTypes": [
-                "float",
-                "float",
-                "float"
-              ],
+              "parameterTypes": ["float", "float", "float"],
               "declaration": {
                 "type": "function",
                 "prototype": {
@@ -86660,9 +86132,7 @@
           "hsl2rgb": {
             "vec3: vec3": {
               "returnType": "vec3",
-              "parameterTypes": [
-                "vec3"
-              ],
+              "parameterTypes": ["vec3"],
               "declaration": {
                 "type": "function",
                 "prototype": {
@@ -88607,9 +88077,7 @@
           "main": {
             "void: void": {
               "returnType": "void",
-              "parameterTypes": [
-                "void"
-              ],
+              "parameterTypes": ["void"],
               "declaration": {
                 "type": "function",
                 "prototype": {
@@ -88883,15 +88351,7 @@
                       "semi": {
                         "type": "literal",
                         "literal": ";",
-                        "whitespace": [
-                          " ",
-                          [
-                            [
-                              "// Hue wraps",
-                              "\n    "
-                            ]
-                          ]
-                        ]
+                        "whitespace": [" ", [["// Hue wraps", "\n    "]]]
                       }
                     },
                     {
@@ -88992,15 +88452,7 @@
                       "semi": {
                         "type": "literal",
                         "literal": ";",
-                        "whitespace": [
-                          " ",
-                          [
-                            [
-                              "// Clamp saturation",
-                              "\n    "
-                            ]
-                          ]
-                        ]
+                        "whitespace": [" ", [["// Clamp saturation", "\n    "]]]
                       }
                     },
                     {
@@ -89101,15 +88553,7 @@
                       "semi": {
                         "type": "literal",
                         "literal": ";",
-                        "whitespace": [
-                          " ",
-                          [
-                            [
-                              "// Clamp lightness",
-                              "\n    "
-                            ]
-                          ]
-                        ]
+                        "whitespace": [" ", [["// Clamp lightness", "\n    "]]]
                       }
                     },
                     {
@@ -89528,15 +88972,7 @@
                         "semi": {
                           "type": "literal",
                           "literal": ";",
-                          "whitespace": [
-                            " ",
-                            [
-                              [
-                                "// Hue wraps",
-                                "\n    "
-                              ]
-                            ]
-                          ]
+                          "whitespace": [" ", [["// Hue wraps", "\n    "]]]
                         }
                       },
                       {
@@ -89639,12 +89075,7 @@
                           "literal": ";",
                           "whitespace": [
                             " ",
-                            [
-                              [
-                                "// Clamp saturation",
-                                "\n    "
-                              ]
-                            ]
+                            [["// Clamp saturation", "\n    "]]
                           ]
                         }
                       },
@@ -89748,12 +89179,7 @@
                           "literal": ";",
                           "whitespace": [
                             " ",
-                            [
-                              [
-                                "// Clamp lightness",
-                                "\n    "
-                              ]
-                            ]
+                            [["// Clamp lightness", "\n    "]]
                           ]
                         }
                       },

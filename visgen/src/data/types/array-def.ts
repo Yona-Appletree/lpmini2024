@@ -1,12 +1,12 @@
 import { z } from "zod";
 import {
+  defineType,
   type TypeMeta,
-  GenericTypeDef,
   TypeSpec,
   type TypeValue,
 } from "../type-spec.ts";
 
-export const ArrayDef = GenericTypeDef(
+export const ArrayDef = defineType(
   "array",
   <TItem extends TypeSpec>(
     itemType: TItem,

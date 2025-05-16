@@ -1,8 +1,8 @@
 import { z } from "zod";
-import { type TypeMeta, GenericTypeDef, TypeSpec } from "../type-spec.ts";
+import { defineType, type TypeMeta, TypeSpec } from "../type-spec.ts";
 
-export const FloatDef = GenericTypeDef("float32", (meta: FloatMeta) =>
-  TypeSpec("float32", meta, z.number())
+export const FloatDef = defineType("float32", (meta: FloatMeta) =>
+  TypeSpec("float32", meta, z.number()),
 );
 
 export interface FloatMeta extends TypeMeta<number> {

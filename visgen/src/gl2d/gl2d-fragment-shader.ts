@@ -12,7 +12,7 @@ export function Gl2dFragmentShader(canvas: Gl2dContext, shaderGlsl: string) {
   if (!gl.getShaderParameter(fragmentShader, gl.COMPILE_STATUS)) {
     console.error(
       "Fragment shader compilation error:",
-      gl.getShaderInfoLog(fragmentShader)
+      gl.getShaderInfoLog(fragmentShader),
     );
     gl.deleteShader(fragmentShader);
     throw new Error("Failed to compile fragment shader");
@@ -60,7 +60,7 @@ export function Gl2dFragmentShader(canvas: Gl2dContext, shaderGlsl: string) {
             gl.uniform2f(
               uniformLocation,
               uniformValue.value[0],
-              uniformValue.value[1]
+              uniformValue.value[1],
             );
             break;
           case "vec3":
@@ -68,7 +68,7 @@ export function Gl2dFragmentShader(canvas: Gl2dContext, shaderGlsl: string) {
               uniformLocation,
               uniformValue.value[0],
               uniformValue.value[1],
-              uniformValue.value[2]
+              uniformValue.value[2],
             );
             break;
           case "vec4":
@@ -77,7 +77,7 @@ export function Gl2dFragmentShader(canvas: Gl2dContext, shaderGlsl: string) {
               uniformValue.value[0],
               uniformValue.value[1],
               uniformValue.value[2],
-              uniformValue.value[3]
+              uniformValue.value[3],
             );
             break;
           default:
@@ -91,7 +91,7 @@ export function Gl2dFragmentShader(canvas: Gl2dContext, shaderGlsl: string) {
     // Set input texture uniform
     const inputTextureLocation = gl.getUniformLocation(
       program,
-      "uInputTexture"
+      "uInputTexture",
     );
     if (inputTextureLocation !== null) {
       gl.uniform1i(inputTextureLocation, 0);

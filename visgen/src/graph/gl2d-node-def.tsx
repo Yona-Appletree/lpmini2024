@@ -3,8 +3,8 @@ import { useRef } from "react";
 
 import { Gl2dFragmentShader } from "../gl2d/gl2d-fragment-shader";
 import { Gl2d } from "../gl2d/gl2d";
-import { ImageDef } from "../type/types/image-def";
-import { RecordDef, type RecordSpec } from "../type/types/record-def";
+import { ImageDef } from "../data/types/image-def.ts";
+import { RecordDef, type RecordSpec } from "../data/types/record-def.ts";
 
 import { defineNode } from "./define-node.ts";
 

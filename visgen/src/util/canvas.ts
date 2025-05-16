@@ -1,20 +1,20 @@
-import { defaultCanvasSize } from "../graph/effect-node.ts";
-import { Size2d } from "./size2d";
+import { defaultCanvasSize } from "@/util/default-canvas-size.ts";
+import type { Vec2 } from "@/data/types/vec2-def.ts";
 
 export function Canvas({ size = defaultCanvasSize }) {
   const canvas = document.createElement("canvas");
-  canvas.width = size.width;
-  canvas.height = size.height;
+  canvas.width = size[0];
+  canvas.height = size[1];
 
   return {
     canvas,
     ensureSizeContext<T extends ContextType>(
       contextType: T,
-      { size = defaultCanvasSize }: { size?: Size2d } = {},
+      { size: [width, height] = defaultCanvasSize }: { size?: Vec2 } = {},
     ): ContextFor<T> {
-      if (canvas.width !== size.width || canvas.height !== size.height) {
-        canvas.width = size.width;
-        canvas.height = size.height;
+      if (canvas.width !== width || canvas.height !== height) {
+        canvas.width = width;
+        canvas.height = height;
       }
 
       const ctx = canvas.getContext(contextType);

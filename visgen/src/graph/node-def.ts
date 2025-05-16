@@ -1,4 +1,4 @@
-import type { TypeValue } from "../type/type-spec.ts";
+import type { TypeValue } from "../data/type-spec.ts";
 import type { JSX } from "react";
 import type { NodeMetadata } from "./define-node.ts";
 

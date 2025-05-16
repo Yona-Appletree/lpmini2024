@@ -1,6 +1,6 @@
-import { ImageDef } from "../../type/types/image-def";
-import { FloatDef } from "../../type/types/float-def";
-import { RecordDef } from "../../type/types/record-def";
+import { ImageDef } from "../../data/types/image-def";
+import { FloatDef } from "../../data/types/float-def";
+import { RecordDef } from "../../data/types/record-def";
 import { glsl } from "../../util/glsl";
 import { Gl2dNodeDef } from "../gl2d-node-def";
 
@@ -69,5 +69,5 @@ export const GlRotateNode = Gl2dNodeDef(
       
       fragColor = color / totalWeight;
     }
-  `
+  `,
 );

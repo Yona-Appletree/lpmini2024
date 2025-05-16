@@ -1,7 +1,7 @@
 import { TypedObjectDef } from "../util/zod/typed-object-def.ts";
 import { configSchemaFor } from "../config/config-schema-for.ts";
 import type { NodeInstance } from "./node-def.ts";
-import type { TypeSpec } from "../type/type-spec.ts";
+import type { TypeSpec } from "../data/type-spec.ts";
 
 export function defineNode<TId extends string, TMeta extends NodeMetadata>(
   type: TId,

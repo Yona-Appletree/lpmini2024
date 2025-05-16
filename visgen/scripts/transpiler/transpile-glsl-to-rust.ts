@@ -1,11 +1,10 @@
-import { parse, generate } from "@shaderfrog/glsl-parser";
+import { parse } from "@shaderfrog/glsl-parser";
 import type {
   DeclarationStatementNode,
   DeclaratorListNode,
-  Program,
   FunctionNode,
-  ProgramStatement,
   KeywordNode,
+  Program,
 } from "@shaderfrog/glsl-parser/ast";
 import { typeMap } from "./glsl-type-to-rust";
 
@@ -44,7 +43,7 @@ function handleProgram(shaderInfo: ShaderInfo, program: Program) {
       case "declaration_statement":
         handleDeclarationStatement(
           shaderInfo,
-          node as DeclarationStatementNode
+          node as DeclarationStatementNode,
         );
         break;
       case "function":
@@ -56,7 +55,7 @@ function handleProgram(shaderInfo: ShaderInfo, program: Program) {
 
 function handleDeclarationStatement(
   shaderInfo: ShaderInfo,
-  node: DeclarationStatementNode
+  node: DeclarationStatementNode,
 ) {
   if (node.declaration.type !== "declarator_list") return;
 
@@ -69,7 +68,7 @@ function handleDeclarationStatement(
   // Get qualifiers (uniform, in, out)
   const qualifiers =
     declaratorList.specified_type.qualifiers?.map(
-      (q) => (q as KeywordNode<string>).token
+      (q) => (q as KeywordNode<string>).token,
     ) || [];
 
   for (const declaration of declaratorList.declarations) {
@@ -93,7 +92,7 @@ function handleFunction(shaderInfo: ShaderInfo, node: FunctionNode) {
   };
 }
 
-function generateFunctionCode(node: FunctionNode): string {
+function generateFunctionCode(_node: FunctionNode): string {
   // TODO: Implement function code generation
   return "";
 }

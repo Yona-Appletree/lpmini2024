@@ -1,8 +1,7 @@
-import { glsl } from "../util/glsl.ts";
 import { Gl2dContext } from "./gl2d-context.ts";
 
 export function gl2dDrawImage(context: Gl2dContext, image: CanvasImageSource) {
-  const { gl, framebuffers, vertexShader } = context;
+  const { gl, framebuffers } = context;
   gl.bindFramebuffer(gl.FRAMEBUFFER, framebuffers[0].framebuffer);
   gl.clearColor(0, 0, 0, 1);
   gl.clear(gl.COLOR_BUFFER_BIT);
@@ -15,7 +14,7 @@ export function gl2dDrawImage(context: Gl2dContext, image: CanvasImageSource) {
     gl.RGBA,
     gl.RGBA,
     gl.UNSIGNED_BYTE,
-    image as TexImageSource
+    image as TexImageSource,
   );
   gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
   gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
@@ -26,7 +25,7 @@ export function gl2dDrawImage(context: Gl2dContext, image: CanvasImageSource) {
 
   const positionLocation = gl.getAttribLocation(
     context.copyProgram,
-    "aVertexPosition"
+    "aVertexPosition",
   );
   gl.enableVertexAttribArray(positionLocation);
   gl.vertexAttribPointer(positionLocation, 2, gl.FLOAT, false, 0, 0);

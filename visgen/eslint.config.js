@@ -22,11 +22,18 @@ export default tseslint.config(
       promise: promisePlugin,
     },
     rules: {
+      // -----------------------------------------------------------------------
+      // React
+      //
       ...reactHooksPlugin.configs.recommended.rules,
       "react-refresh/only-export-components": [
         "warn",
         { allowConstantExport: true },
       ],
+
+      // -----------------------------------------------------------------------
+      // Unused imports & variables
+      //
       "no-unused-vars": "off",
       "@typescript-eslint/no-unused-vars": "off",
       "unused-imports/no-unused-imports": "error",
@@ -34,6 +41,29 @@ export default tseslint.config(
         "error",
         { args: "after-used", argsIgnorePattern: "^_" },
       ],
+
+      // -----------------------------------------------------------------------
+      // Imports
+      //
+      "sort-imports": [
+        "error",
+        {
+          ignoreCase: true,
+          ignoreDeclarationSort: true,
+        },
+      ],
+    },
+  },
+
+  // ---------------------------------------------------------------------------
+  // Disable react export rule for shadcn-ui
+  //
+  // See https://github.com/shadcn-ui/ui/issues/1534
+  //
+  {
+    files: ["**/ui/**/*.ts", "**/ui/**/*.tsx", "**/tools/theme-provider.tsx"],
+    rules: {
+      "react-refresh/only-export-components": "off",
     },
   },
 );

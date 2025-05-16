@@ -196,15 +196,7 @@
       "semi": {
         "type": "literal",
         "literal": ";",
-        "whitespace": [
-          " ",
-          [
-            [
-              "// First checkerboard color",
-              "\n"
-            ]
-          ]
-        ]
+        "whitespace": [" ", [["// First checkerboard color", "\n"]]]
       }
     },
     {
@@ -245,15 +237,7 @@
       "semi": {
         "type": "literal",
         "literal": ";",
-        "whitespace": [
-          " ",
-          [
-            [
-              "// Second checkerboard color",
-              "\n\n"
-            ]
-          ]
-        ]
+        "whitespace": [" ", [["// Second checkerboard color", "\n\n"]]]
       }
     },
     {
@@ -415,15 +399,7 @@
             "semi": {
               "type": "literal",
               "literal": ";",
-              "whitespace": [
-                " ",
-                [
-                  [
-                    "// 8x8 grid",
-                    "\n    "
-                  ]
-                ]
-              ]
+              "whitespace": [" ", [["// 8x8 grid", "\n    "]]]
             }
           },
           {
@@ -888,9 +864,7 @@
         "main": {
           "void: void": {
             "returnType": "void",
-            "parameterTypes": [
-              "void"
-            ],
+            "parameterTypes": ["void"],
             "declaration": {
               "type": "function",
               "prototype": {
@@ -1050,15 +1024,7 @@
                     "semi": {
                       "type": "literal",
                       "literal": ";",
-                      "whitespace": [
-                        " ",
-                        [
-                          [
-                            "// 8x8 grid",
-                            "\n    "
-                          ]
-                        ]
-                      ]
+                      "whitespace": [" ", [["// 8x8 grid", "\n    "]]]
                     }
                   },
                   {
@@ -1401,15 +1367,7 @@
                       "semi": {
                         "type": "literal",
                         "literal": ";",
-                        "whitespace": [
-                          " ",
-                          [
-                            [
-                              "// 8x8 grid",
-                              "\n    "
-                            ]
-                          ]
-                        ]
+                        "whitespace": [" ", [["// 8x8 grid", "\n    "]]]
                       }
                     },
                     {
@@ -1598,11 +1556,7 @@
         "hue2rgb": {
           "float: float, float, float": {
             "returnType": "float",
-            "parameterTypes": [
-              "float",
-              "float",
-              "float"
-            ],
+            "parameterTypes": ["float", "float", "float"],
             "declaration": {
               "type": "function",
               "prototype": {
@@ -2085,9 +2039,7 @@
           "main": {
             "void: void": {
               "returnType": "void",
-              "parameterTypes": [
-                "void"
-              ],
+              "parameterTypes": ["void"],
               "declaration": {
                 "type": "function",
                 "prototype": {
@@ -2247,15 +2199,7 @@
                       "semi": {
                         "type": "literal",
                         "literal": ";",
-                        "whitespace": [
-                          " ",
-                          [
-                            [
-                              "// 8x8 grid",
-                              "\n    "
-                            ]
-                          ]
-                        ]
+                        "whitespace": [" ", [["// 8x8 grid", "\n    "]]]
                       }
                     },
                     {
@@ -2598,15 +2542,7 @@
                         "semi": {
                           "type": "literal",
                           "literal": ";",
-                          "whitespace": [
-                            " ",
-                            [
-                              [
-                                "// 8x8 grid",
-                                "\n    "
-                              ]
-                            ]
-                          ]
+                          "whitespace": [" ", [["// 8x8 grid", "\n    "]]]
                         }
                       },
                       {
@@ -2795,11 +2731,7 @@
           "hue2rgb": {
             "float: float, float, float": {
               "returnType": "float",
-              "parameterTypes": [
-                "float",
-                "float",
-                "float"
-              ],
+              "parameterTypes": ["float", "float", "float"],
               "declaration": {
                 "type": "function",
                 "prototype": {
@@ -3346,9 +3278,7 @@
           "main": {
             "void: void": {
               "returnType": "void",
-              "parameterTypes": [
-                "void"
-              ],
+              "parameterTypes": ["void"],
               "declaration": {
                 "type": "function",
                 "prototype": {
@@ -3508,15 +3438,7 @@
                       "semi": {
                         "type": "literal",
                         "literal": ";",
-                        "whitespace": [
-                          " ",
-                          [
-                            [
-                              "// 8x8 grid",
-                              "\n    "
-                            ]
-                          ]
-                        ]
+                        "whitespace": [" ", [["// 8x8 grid", "\n    "]]]
                       }
                     },
                     {
@@ -3859,15 +3781,7 @@
                         "semi": {
                           "type": "literal",
                           "literal": ";",
-                          "whitespace": [
-                            " ",
-                            [
-                              [
-                                "// 8x8 grid",
-                                "\n    "
-                              ]
-                            ]
-                          ]
+                          "whitespace": [" ", [["// 8x8 grid", "\n    "]]]
                         }
                       },
                       {
@@ -4056,11 +3970,7 @@
           "hue2rgb": {
             "float: float, float, float": {
               "returnType": "float",
-              "parameterTypes": [
-                "float",
-                "float",
-                "float"
-              ],
+              "parameterTypes": ["float", "float", "float"],
               "declaration": {
                 "type": "function",
                 "prototype": {

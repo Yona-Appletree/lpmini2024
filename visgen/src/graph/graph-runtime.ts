@@ -1,5 +1,5 @@
 import { GraphConfig } from "./graph-config";
-import { nodeDefByType, type NodeDef } from "./node-config";
+import { type NodeDef, nodeDefByType } from "./node-config";
 import type { NodeInstance } from "./node-def";
 import { evaluateConfig } from "../config/evaluate-config.ts";
 
@@ -8,6 +8,7 @@ export function GraphRuntime(config: GraphConfig) {
     string,
     {
       nodeDef: NodeDef;
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       instance: NodeInstance<any>;
       output: unknown;
       input: unknown;
