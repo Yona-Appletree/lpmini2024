@@ -1,7 +1,7 @@
 import { GraphConfig } from "./graph-config";
 import { nodeDefByType, type NodeDef } from "./node-config";
 import type { NodeInstance } from "./node-def";
-import { renderConfig } from "../config/render-config.ts";
+import { evaluateConfig } from "../config/evaluate-config.ts";
 
 export function GraphRuntime(config: GraphConfig) {
   const nodeMap = new Map<
@@ -35,7 +35,7 @@ export function GraphRuntime(config: GraphConfig) {
     tick: () => {
       for (const [id, node] of nodeMap.entries()) {
         const nodeDef = nodeDefByType[config.nodes[id].type];
-        const input = renderConfig({
+        const input = evaluateConfig({
           spec: nodeDef.metadata.input,
           config: config.nodes[id].input,
           nodeMap,

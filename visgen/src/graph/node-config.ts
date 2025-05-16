@@ -1,4 +1,3 @@
-import type { ZodObject } from "zod";
 import { UnionDef } from "../util/zod/union-def";
 import { GlBlurNode } from "./nodes/gl-blur-node";
 import { GlCheckerboardNode } from "./nodes/gl-checkerboard-node";
@@ -6,6 +5,8 @@ import { GlHslShiftNode } from "./nodes/gl-hsl-shift-node";
 import { GlPolarScrollNode } from "./nodes/gl-polar-scroll";
 import { GlRotateNode } from "./nodes/gl-rotate";
 import { LowFrequencyOscillator } from "./nodes/low-frequency-oscillator-node";
+
+// -----------------------------------------------------------------------------
 
 const nodeDefs = [
   GlCheckerboardNode,
@@ -16,8 +17,10 @@ const nodeDefs = [
   GlBlurNode,
 ] as const;
 
+// -----------------------------------------------------------------------------
+
 export const nodeDefByType = Object.fromEntries(
-  nodeDefs.map((nodeDef) => [nodeDef.type, nodeDef])
+  nodeDefs.map((nodeDef) => [nodeDef.type, nodeDef]),
 ) as {
   [I in keyof typeof nodeDefs as (typeof nodeDefs)[I] extends { type: string }
     ? (typeof nodeDefs)[I]["type"]
@@ -26,19 +29,24 @@ export const nodeDefByType = Object.fromEntries(
 
 export type NodeDef = (typeof nodeDefByType)[keyof typeof nodeDefByType];
 
+// -----------------------------------------------------------------------------
+
 export const NodeConfig = UnionDef(
   "type",
   nodeDefs.map(
-    (nodeDef) => nodeDef.Config.schema
-  ) as unknown as MapNodeDefsToSchemas<typeof nodeDefs>
+    (nodeDef) => nodeDef.Config.schema,
+  ) as unknown as MapNodeDefsToSchemas<typeof nodeDefs>,
 );
+export type NodeConfig = (typeof nodeDefByType)[keyof typeof nodeDefByType];
 
-type MapNodeDefsToSchemas<T extends readonly any[]> = T extends readonly [
+// -----------------------------------------------------------------------------
+
+type MapNodeDefsToSchemas<T extends readonly unknown[]> = T extends readonly [
   infer First,
   ...infer Rest,
 ]
   ? readonly [
-      First extends { Config: { schema: any } }
+      First extends { Config: { schema: unknown } }
         ? First["Config"]["schema"]
         : never,
       ...MapNodeDefsToSchemas<Rest>,

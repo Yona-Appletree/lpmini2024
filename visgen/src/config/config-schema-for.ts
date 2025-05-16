@@ -2,9 +2,9 @@ import type { TypeSpec } from "../type/type-spec.ts";
 import type { TypeName } from "../type/type-def.ts";
 import type { ArrayDef, ArrayMeta } from "../type/types/array-def.ts";
 import { RecordDef, type RecordMeta } from "../type/types/record-def.ts";
-import { NodeOutputValue } from "./values/node-value.ts";
 import { z } from "zod";
 import { mapValues } from "../util/map-values.ts";
+import { ConfigExpr } from "./config-expr.ts";
 
 export function configSchemaFor<TSpec extends TypeSpec<TypeName>>(
   spec: TSpec,
@@ -14,17 +14,16 @@ export function configSchemaFor<TSpec extends TypeSpec<TypeName>>(
       return z.array(
         configSchemaFor((spec.info.meta as ArrayMeta).itemType),
       ) as ConfigValue<TSpec>;
+
     case "record":
       return z.object(
         mapValues((spec.info.meta as RecordMeta).shape, (type) =>
           configSchemaFor(type),
         ),
       ) as ConfigValue<TSpec>;
+
     default:
-      return z.union([
-        spec.schema,
-        NodeOutputValue.schema,
-      ]) as ConfigValue<TSpec>;
+      return z.union([spec.schema, ConfigExpr.schema]) as ConfigValue<TSpec>;
   }
 }
 
@@ -44,4 +43,4 @@ export type ConfigValue<T extends TypeSpec<TypeName> = TypeSpec<TypeName>> =
           }>
         : never
       : // everything else
-        z.ZodUnion<[T["schema"], typeof NodeOutputValue.schema]>;
+        z.ZodUnion<[T["schema"], typeof ConfigExpr.schema]>;

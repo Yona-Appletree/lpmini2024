@@ -1,4 +1,9 @@
-import { type TypeMeta, GenericTypeDef, TypeSpec } from "../type-spec.ts";
+import {
+  type TypeMeta,
+  type TypeSpecOf,
+  GenericTypeDef,
+  TypeSpec,
+} from "../type-spec.ts";
 import { mapValues } from "../../util/map-values.ts";
 import { z } from "zod";
 
@@ -6,12 +11,12 @@ export const RecordDef = GenericTypeDef(
   "record",
   <TShape extends Record<string, TypeSpec>>(
     shape: TShape,
-    meta: Omit<TypeMeta<unknown>, "default"> = {},
+    meta: Omit<TypeMeta<unknown>, "default"> = {}
   ) => {
     const schema = z.object(
       mapValues(shape, (it) => it.schema) as {
         [TKey in keyof TShape]: TShape[TKey]["schema"];
-      },
+      }
     );
 
     return TypeSpec(
@@ -23,12 +28,13 @@ export const RecordDef = GenericTypeDef(
         >,
         shape,
       },
-      schema,
+      schema
     );
-  },
+  }
 );
 
 export type RecordDef = ReturnType<typeof RecordDef>;
+export type RecordSpec = TypeSpecOf<typeof RecordDef>;
 
 export interface RecordMeta<
   TShape extends Record<string, TypeSpec> = Record<string, TypeSpec>,

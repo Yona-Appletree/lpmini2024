@@ -2,7 +2,7 @@ import type { TypeSpec } from "../type/type-spec.ts";
 import type { ConfigValue } from "./config-schema-for.ts";
 import type { ArrayMeta } from "../type/types/array-def.ts";
 import type { RecordMeta } from "../type/types/record-def.ts";
-import type { NodeOutputValue } from "./values/node-value.ts";
+import type { NodeOutputExpr } from "./expressions/node-output-expr.ts";
 
 export function renderConfig({
   spec,
@@ -20,7 +20,7 @@ export function renderConfig({
           spec: (spec.info.meta as ArrayMeta).itemType,
           config: item,
           nodeMap,
-        })
+        }),
       );
 
     case "record":
@@ -33,15 +33,15 @@ export function renderConfig({
               config: value,
               nodeMap,
             }),
-          ]
-        )
+          ],
+        ),
       );
 
     default:
       if (typeof config === "object" && config !== null && "$expr" in config) {
         switch (config.$expr) {
           case "node-output":
-            return nodeMap.get((config as NodeOutputValue).nodeId)?.output;
+            return nodeMap.get((config as NodeOutputExpr).nodeId)?.output;
         }
       } else {
         return config;

@@ -1,8 +1,8 @@
-import { defineNode } from "../node-def.ts";
 import { FloatDef } from "../../type/types/float-def.ts";
 import { EnumDef } from "../../type/types/enum-def.ts";
 import { RecordDef } from "../../type/types/record-def.ts";
 import { easingFunctions, easingTypes } from "../../util/easing.ts";
+import { defineNode } from "../define-node.ts";
 
 export const LowFrequencyOscillator = defineNode(
   "time-curve",
@@ -38,5 +38,5 @@ export const LowFrequencyOscillator = defineNode(
         return <div>value = {output}</div>;
       },
     };
-  }
+  },
 );

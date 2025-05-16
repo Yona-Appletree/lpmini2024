@@ -9,3 +9,9 @@ npm install
 npm run dev
 
 ```
+
+
+
+# TODO / Ideas
+
+- [ ] What to do about vectors in configs, not easy to assign expressions to components

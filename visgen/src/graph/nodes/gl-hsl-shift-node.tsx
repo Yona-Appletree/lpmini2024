@@ -1,18 +1,21 @@
-import { FloatParam } from "../../effect-param/params/float-param.ts";
-import { EffectDef } from "../effect-def.ts";
-import { glsl } from "../../util/glsl.ts";
+import { ImageDef } from "../../type/types/image-def";
+import { FloatDef } from "../../type/types/float-def";
+import { RecordDef } from "../../type/types/record-def";
+import { glsl } from "../../util/glsl";
+import { Gl2dNodeDef } from "../gl2d-node-def";
 
-export const HslShift = EffectDef(
-  "hsl-shift",
+export const GlHslShiftNode = Gl2dNodeDef(
+  "gl-hsl-shift",
   {
-    params: {
-      hueShift: FloatParam({ default: 0 }),
-      satShift: FloatParam({ default: 0 }),
-      lightShift: FloatParam({ default: 0 }),
-    },
+    label: "HSL Shift",
+    params: RecordDef({
+      hueShift: FloatDef({ default: 0 }),
+      satShift: FloatDef({ default: 0 }),
+      lightShift: FloatDef({ default: 0 }),
+    }),
+    output: ImageDef(),
   },
-  glsl`
-    #version 300 es
+  glsl`#version 300 es
     precision highp float;
 
     in vec2 vUv;
@@ -22,7 +25,6 @@ export const HslShift = EffectDef(
     uniform float uSatShift;
     uniform float uLightShift;
 
-    // Helper functions for RGB <-> HSL
     vec3 rgb2hsl(vec3 c) {
       float maxC = max(max(c.r, c.g), c.b);
       float minC = min(min(c.r, c.g), c.b);
@@ -73,13 +75,11 @@ export const HslShift = EffectDef(
     void main() {
       vec4 color = texture(uInputTexture, vUv);
       vec3 hsl = rgb2hsl(color.rgb);
-      hsl.x = fract(hsl.x + uHueShift); // Hue wraps
-      hsl.y = clamp(hsl.y + uSatShift, 0.0, 1.0); // Clamp saturation
-      hsl.z = clamp(hsl.z + uLightShift, 0.0, 1.0); // Clamp lightness
+      hsl.x = fract(hsl.x + uHueShift);
+      hsl.y = clamp(hsl.y + uSatShift, 0.0, 1.0);
+      hsl.z = clamp(hsl.z + uLightShift, 0.0, 1.0);
       vec3 rgb = hsl2rgb(hsl);
       fragColor = vec4(rgb, color.a);
     }
-  `,
+  `
 );
-
-export type Gl2dHslShift = ReturnType<typeof HslShift>;

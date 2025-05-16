@@ -24,7 +24,7 @@ export function TypeSpec<
         meta,
       } as const,
       schema,
-    } as const,
+    } as const
   );
 }
 
@@ -52,6 +52,10 @@ export interface TypeSpecFn<
 > extends TypeSpec<TName, TSchema, TMeta> {
   (...args: z.input<TSchema>): z.output<TSchema>;
 }
+
+export type TypeSpecOf<T extends (...args: any[]) => TypeSpecFn> = {
+  [K in keyof ReturnType<T>]: ReturnType<T>[K];
+};
 
 export interface TypeMeta<T> {
   label?: string;

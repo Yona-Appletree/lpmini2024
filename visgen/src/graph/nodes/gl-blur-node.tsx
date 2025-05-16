@@ -1,34 +1,29 @@
-import { FloatParam } from "../../effect-param/params/float-param.ts";
-import { EffectDef } from "../effect-def.ts";
-import { glsl } from "../../util/glsl.ts";
+import { ImageDef } from "../../type/types/image-def";
+import { FloatDef } from "../../type/types/float-def";
+import { RecordDef } from "../../type/types/record-def";
+import { glsl } from "../../util/glsl";
+import { Gl2dNodeDef } from "../gl2d-node-def";
 
-export const Blur = EffectDef(
-  "blur",
+export const GlBlurNode = Gl2dNodeDef(
+  "gl-blur",
   {
-    params: {
-      radius: FloatParam({
-        default: 0.01,
-        min: 0,
-        max: 0.5,
-        step: 0.01,
-      }),
-      exponent: FloatParam({
-        default: 2.0,
-      }),
-    },
+    label: "Blur",
+    params: RecordDef({
+      radius: FloatDef({ default: 0.01, min: 0, max: 0.5, step: 0.01 }),
+      exponent: FloatDef({ default: 2.0 }),
+    }),
+    output: ImageDef(),
   },
-  glsl`
-    #version 300 es
+  glsl`#version 300 es
     precision highp float;
     
     in vec2 vUv;
     out vec4 fragColor;
     uniform vec2 uResolution;
     uniform sampler2D uInputTexture;
-    uniform float uRadius; // Blur radius in pixels
-    uniform float uExponent; // Controls the shape of the Gaussian kernel
+    uniform float uRadius;
+    uniform float uExponent;
 
-    // Calculate Gaussian weight based on distance and sigma
     float gaussian(float x, float sigma) {
       return exp(-pow(x, uExponent) / (2.0 * sigma * sigma)) / (sqrt(2.0 * 3.14159) * sigma);
     }
@@ -37,20 +32,15 @@ export const Blur = EffectDef(
       vec2 pixelSize = 1.0 / uResolution;
       vec4 color = vec4(0.0);
       
-      // Calculate sigma based on radius
       float sigma = max(1.0, uRadius * 0.5);
       float totalWeight = 0.0;
       
-      // Calculate kernel size based on radius
       int kernelSize = int(min(15.0, 2.0 * uRadius + 1.0));
       int halfKernel = kernelSize / 2;
       
-      // Circular Gaussian blur
       for (int y = -halfKernel; y <= halfKernel; y++) {
         for (int x = -halfKernel; x <= halfKernel; x++) {
-          // Calculate distance from center
           float dist = sqrt(float(x * x + y * y));
-          // Skip samples outside the circle
           if (dist > float(halfKernel)) continue;
           
           float weight = gaussian(dist, sigma);
@@ -62,7 +52,5 @@ export const Blur = EffectDef(
       
       fragColor = color / totalWeight;
     }
-  `,
+  `
 );
-
-export type Gl2dBlur = ReturnType<typeof Blur>;
