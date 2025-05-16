@@ -1,6 +1,6 @@
 import { EffectParamDef } from "../effect-param-def.ts";
-import { ValueKind } from "../value-kind.ts";
-import { ValueUnit } from "../value-unit.ts";
+import { ScalarQuantity } from "../../data/scalar-quantity.ts";
+import { ValueUnit } from "../../data/value-unit.ts";
 import { Int32 } from "../../data/types/int32.ts";
 
 export const IntParam = EffectParamDef("int", {
@@ -9,7 +9,7 @@ export const IntParam = EffectParamDef("int", {
   max: Int32.schema.optional(),
   step: Int32.schema.default(1),
 
-  kind: ValueKind.default("unknown"),
+  kind: ScalarQuantity.default("unknown"),
   unit: ValueUnit.default("unknown"),
 });
 export type IntParam = ReturnType<typeof IntParam>;

@@ -5,7 +5,7 @@ import { z } from "zod";
 
 test("basic", () => {
   const TestRec = RecordOf({
-    theta: Int32,
+    theta: Int32(),
   });
 
   expectTypeOf<z.output<typeof TestRec.schema>>().toEqualTypeOf<{

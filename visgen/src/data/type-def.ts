@@ -1,38 +1,57 @@
 import { z } from "zod";
 
 export function GenericTypeDef<
-  TSpecifier extends string,
-  TFn extends (...args: any[]) => TypeDef<any>,
->(typeName: TSpecifier, typeFn: TFn) {
+  TName extends string,
+  TArgs extends any[],
+  TType extends TypeDef<TypeInfo<TName>>,
+  TFn extends (...args: TArgs) => TType,
+>(typeName: TName, typeFn: TFn) {
   return Object.assign(typeFn, {
     typeName: typeName,
   });
 }
 
 export function TypeDef<
-  TSpecifier extends TypeSpecifier,
+  TName extends string,
+  TMeta extends object,
   TSchema extends z.Schema,
->(specifier: TSpecifier, schema: TSchema) {
+>(name: TName, meta: TMeta, schema: TSchema) {
   return Object.assign(
-    (args: z.input<TSchema>): z.output<TSchema> => schema.parse(args),
+    (input: z.input<TSchema>): z.output<TSchema> => schema.parse(input),
     {
+      info: {
+        name,
+        meta,
+      } as const,
       schema,
-      specifier,
-    },
+    } as const,
   );
 }
 
-export interface TypeMeta<T = unknown> {
-  schema: z.Schema<T>;
-  specifier: TypeSpecifier;
+export interface TypeInfo<
+  TName extends string = string,
+  TMeta extends object = object,
+> {
+  name: TName;
+  meta: TMeta;
 }
 
-export interface TypeDef<T = unknown> extends TypeMeta<T> {
-  (args: T): T;
+export interface TypeSpec<
+  TInfo extends TypeInfo = TypeInfo,
+  TSchema extends z.Schema = z.Schema,
+> {
+  schema: TSchema;
+  info: TInfo;
 }
 
-export type TypeSpecifier = string | [string, SpecifierArg];
-export type SpecifierArg =
-  | string
-  | SpecifierArg[]
-  | { [key: string]: SpecifierArg };
+export interface TypeDef<
+  TInfo extends TypeInfo = TypeInfo,
+  TSchema extends z.Schema = z.Schema,
+> extends TypeSpec<TInfo, TSchema> {
+  (...args: z.input<TSchema>): z.output<TSchema>;
+}
+
+export interface BaseTypeMeta {
+  label?: string;
+  description?: string;
+}

@@ -1,5 +1,6 @@
 import { z } from "zod";
-import { TypeDef } from "../type-def.ts";
+import { type BaseTypeMeta, GenericTypeDef, TypeDef } from "../type-def.ts";
 
-export const Float32 = TypeDef("float32", z.number());
-export type Float32 = ReturnType<typeof Float32>;
+export const Float32 = GenericTypeDef("float32", (meta: BaseTypeMeta = {}) =>
+  TypeDef("float32", meta, z.number().int().min(-2147483648).max(2147483647)),
+);
