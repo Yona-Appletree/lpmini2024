@@ -1,6 +1,22 @@
 import { z } from "zod";
-import { type BaseTypeMeta, GenericTypeDef, TypeSpec } from "../type-spec.ts";
+import { type TypeMeta, GenericTypeDef, TypeSpec } from "../type-spec.ts";
 
-export const FloatDef = GenericTypeDef("float32", (meta: BaseTypeMeta = {}) =>
-  TypeSpec("float32", meta, z.number().int().min(-2147483648).max(2147483647)),
+export const FloatDef = GenericTypeDef("float32", (meta: FloatMeta) =>
+  TypeSpec("float32", meta, z.number().int()),
 );
+
+export interface FloatMeta extends TypeMeta<number> {
+  unit?: string;
+  ui?:
+    | {
+        type: "slider";
+        min: number;
+        max: number;
+        step: number;
+      }
+    | {
+        type: "number";
+        min: number;
+        max: number;
+      };
+}

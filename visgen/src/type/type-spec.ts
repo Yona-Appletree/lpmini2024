@@ -13,8 +13,8 @@ export function GenericTypeDef<
 
 export function TypeSpec<
   TName extends string,
-  TMeta extends object,
   TSchema extends z.Schema,
+  TMeta extends TypeMeta<z.output<TSchema>>,
 >(name: TName, meta: TMeta, schema: TSchema) {
   return Object.assign(
     (input: z.input<TSchema>): z.output<TSchema> => schema.parse(input),
@@ -38,8 +38,8 @@ export interface TypeInfo<
 
 export interface TypeSpec<
   TName extends string = string,
-  TMeta extends object = object,
   TSchema extends z.Schema = z.Schema,
+  TMeta extends TypeMeta<z.output<TSchema>> = TypeMeta<z.output<TSchema>>,
 > {
   schema: TSchema;
   info: TypeInfo<TName, TMeta>;
@@ -47,15 +47,16 @@ export interface TypeSpec<
 
 export interface TypeSpecFn<
   TName extends string = string,
-  TMeta extends object = object,
   TSchema extends z.Schema = z.Schema,
-> extends TypeSpec<TName, TMeta, TSchema> {
+  TMeta extends TypeMeta<z.output<TSchema>> = TypeMeta<z.output<TSchema>>,
+> extends TypeSpec<TName, TSchema, TMeta> {
   (...args: z.input<TSchema>): z.output<TSchema>;
 }
 
-export interface BaseTypeMeta {
+export interface TypeMeta<T> {
   label?: string;
   description?: string;
+  default: T;
 }
 
 export type TypeValue<T extends TypeSpec> = z.output<T["schema"]>;

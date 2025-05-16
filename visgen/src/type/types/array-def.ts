@@ -1,13 +1,28 @@
 import { z } from "zod";
-import { type BaseTypeMeta, GenericTypeDef, TypeSpec } from "../type-spec.ts";
+import {
+  type TypeMeta,
+  GenericTypeDef,
+  TypeSpec,
+  type TypeValue,
+} from "../type-spec.ts";
 
 export const ArrayDef = GenericTypeDef(
   "array",
-  (itemType: TypeSpec, meta: BaseTypeMeta = {}) =>
-    TypeSpec("array", { ...meta, itemType }, z.array(itemType.schema)),
+  <TItem extends TypeSpec>(
+    itemType: TItem,
+    meta: Omit<TypeMeta<unknown>, "default"> & {
+      default?: Array<TypeValue<TItem>>;
+    } = {},
+  ) =>
+    TypeSpec(
+      "array",
+      { ...meta, default: [], itemType },
+      z.array(itemType.schema),
+    ),
 );
 export type ArrayDef = ReturnType<typeof ArrayDef>;
 
-export interface ArrayMeta<T extends TypeSpec = TypeSpec> extends BaseTypeMeta {
-  itemType: T;
+export interface ArrayMeta<TItemSpec extends TypeSpec = TypeSpec>
+  extends TypeMeta<TypeValue<TItemSpec>> {
+  itemType: TItemSpec;
 }

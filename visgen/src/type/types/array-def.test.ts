@@ -4,7 +4,7 @@ import { z } from "zod";
 import { ArrayDef } from "./array-def.ts";
 
 test("basic", () => {
-  const TestArray = ArrayDef(IntDef());
+  const TestArray = ArrayDef(IntDef({ default: 0 }));
 
   expectTypeOf<z.output<typeof TestArray.schema>>().toEqualTypeOf<number[]>();
 
