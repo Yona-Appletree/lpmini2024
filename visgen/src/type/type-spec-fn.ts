@@ -2,8 +2,8 @@ import { z } from "zod";
 
 export function GenericTypeDef<
   TName extends string,
-  TArgs extends any[],
-  TType extends TypeDef<TypeInfo<TName>>,
+  TArgs extends never[],
+  TType extends TypeSpecFn<TName>,
   TFn extends (...args: TArgs) => TType,
 >(typeName: TName, typeFn: TFn) {
   return Object.assign(typeFn, {
@@ -37,17 +37,19 @@ export interface TypeInfo<
 }
 
 export interface TypeSpec<
-  TInfo extends TypeInfo = TypeInfo,
+  TName extends string = string,
+  TMeta extends object = object,
   TSchema extends z.Schema = z.Schema,
 > {
   schema: TSchema;
-  info: TInfo;
+  info: TypeInfo<TName, TMeta>;
 }
 
-export interface TypeDef<
-  TInfo extends TypeInfo = TypeInfo,
+export interface TypeSpecFn<
+  TName extends string = string,
+  TMeta extends object = object,
   TSchema extends z.Schema = z.Schema,
-> extends TypeSpec<TInfo, TSchema> {
+> extends TypeSpec<TName, TMeta, TSchema> {
   (...args: z.input<TSchema>): z.output<TSchema>;
 }
 
