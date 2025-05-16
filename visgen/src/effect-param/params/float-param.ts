@@ -1,7 +1,7 @@
 import { EffectParamDef } from "../effect-param-def.ts";
 import { z } from "zod";
-import { ScalarQuantity } from "../../data/scalar-quantity.ts";
-import { ValueUnit } from "../../data/value-unit.ts";
+import { ScalarQuantity } from "../../type/scalar-quantity.ts";
+import { ValueUnit } from "../../type/value-unit.ts";
 
 export const FloatParam = EffectParamDef("float", {
   default: z.number().default(0),

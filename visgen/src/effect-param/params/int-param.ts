@@ -1,6 +1,6 @@
 import { EffectParamDef } from "../effect-param-def.ts";
-import { ScalarQuantity } from "../../data/scalar-quantity.ts";
-import { ValueUnit } from "../../data/value-unit.ts";
+import { ScalarQuantity } from "../../type/scalar-quantity.ts";
+import { ValueUnit } from "../../type/value-unit.ts";
 
 export const IntParam = EffectParamDef("int", {
   default: IntParam.schema.default(0),

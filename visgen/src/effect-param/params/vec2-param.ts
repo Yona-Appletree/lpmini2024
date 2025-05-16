@@ -1,7 +1,7 @@
 import { EffectParamDef } from "../effect-param-def.ts";
-import { ScalarQuantity } from "../../data/scalar-quantity.ts";
-import { ValueUnit } from "../../data/value-unit.ts";
-import { Vec2Def } from "../../data/types/vec2-def.ts";
+import { ScalarQuantity } from "../../type/scalar-quantity.ts";
+import { ValueUnit } from "../../type/value-unit.ts";
+import { Vec2Def } from "../../type/types/vec2-def.ts";
 
 export const Vec2Param = EffectParamDef("vec2", {
   default: Vec2Def.schema.default([0, 0]),

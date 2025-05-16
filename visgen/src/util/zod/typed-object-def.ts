@@ -3,7 +3,7 @@ import { z, type ZodRawShape } from "zod";
 /**
  * Creates a factory function for json types backed by zod.
  *
- * Allows for a friendly style for building the data.
+ * Allows for a friendly style for building the type.
  *
  * ```typescript
  * const User = ObjectDef({ name: z.string() });
