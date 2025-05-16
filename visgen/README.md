@@ -10,7 +10,11 @@ npm run dev
 
 ```
 
+# Stack
 
+- React
+- (tailwind)[]
+- (shad-cn)[https://ui.shadcn.com/docs]
 
 # TODO / Ideas
 

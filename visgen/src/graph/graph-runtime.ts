@@ -38,7 +38,7 @@ export function GraphRuntime(config: GraphConfig) {
         const input = evaluateConfig({
           spec: nodeDef.metadata.input,
           config: config.nodes[id].input,
-          nodeMap,
+          context: { nodeMap },
         }) as unknown;
         const output = node.instance.update({ input });
 
