@@ -9,6 +9,7 @@ export function Gl2d(canvas = createCanvas()) {
   const context = Gl2dContext(canvas);
 
   return {
+    canvas,
     context,
     fragmentShader: curry(Gl2dFragmentShader, context),
     clear: curry(gl2dClear, context),

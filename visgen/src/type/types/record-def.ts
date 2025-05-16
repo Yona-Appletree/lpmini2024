@@ -21,7 +21,7 @@ export const RecordDef = GenericTypeDef(
         default: mapValues(shape, (it) => it.info.meta.default) as z.output<
           typeof schema
         >,
-        shape: mapValues(shape, (it) => it.info),
+        shape,
       },
       schema,
     );

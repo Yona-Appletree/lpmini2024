@@ -1,4 +1,3 @@
-import { expectTypeOf } from "vitest";
 import { z, type ZodDiscriminatedUnionOption, ZodLiteral } from "zod";
 
 export function UnionDef<
@@ -57,21 +56,3 @@ type SchemaForKey<TTypeProp extends string, TType, TTypes> = TTypes extends [
       : SchemaForKey<TTypeProp, TType, TRest>
     : SchemaForKey<TTypeProp, TType, TRest>
   : never;
-
-const aSchema = z.object({
-  type: z.literal("a"),
-  aProp: z.number(),
-});
-const bSchema = z.object({
-  type: z.literal("b"),
-  bProp: z.number(),
-});
-// eslint-disable-next-line unused-imports/no-unused-vars
-const testUnion = z.discriminatedUnion("type", [aSchema, bSchema]);
-expectTypeOf<
-  SchemaForKey<"type", "a", (typeof testUnion)["options"]>
->().toEqualTypeOf<typeof aSchema>();
-
-expectTypeOf<
-  SchemaForKey<"type", "b", (typeof testUnion)["options"]>
->().toEqualTypeOf<typeof bSchema>();

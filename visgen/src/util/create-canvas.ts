@@ -1,9 +1,7 @@
-import { defaultCanvasSize } from "../graph/effect-node.ts";
-
-export function createCanvas(size = defaultCanvasSize): HTMLCanvasElement {
+export function createCanvas(size = [256, 256]): HTMLCanvasElement {
   const canvas = document.createElement("canvas");
-  canvas.width = size.width;
-  canvas.height = size.height;
+  canvas.width = size[0];
+  canvas.height = size[1];
 
   return canvas;
 }
