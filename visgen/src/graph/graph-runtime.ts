@@ -26,7 +26,8 @@ export function GraphRuntime(config: GraphConfig) {
       instance,
       input,
       output: instance.update({
-        input: nodeDef.metadata.input.info.meta.default,
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        input: nodeDef.metadata.input.info.meta.default as any,
       }),
     });
   }

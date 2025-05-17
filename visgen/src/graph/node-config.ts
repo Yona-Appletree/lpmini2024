@@ -7,6 +7,8 @@ import { GlRotateNode } from "./nodes/gl-rotate";
 import { LowFrequencyOscillator } from "./nodes/low-frequency-oscillator-node";
 
 // -----------------------------------------------------------------------------
+// nodeDefs
+//
 
 const nodeDefs = [
   GlCheckerboardNode,
@@ -18,6 +20,8 @@ const nodeDefs = [
 ] as const;
 
 // -----------------------------------------------------------------------------
+// nodeDefByType
+//
 
 export const nodeDefByType = Object.fromEntries(
   nodeDefs.map((nodeDef) => [nodeDef.type, nodeDef]),
@@ -30,6 +34,8 @@ export const nodeDefByType = Object.fromEntries(
 export type NodeDef = (typeof nodeDefByType)[keyof typeof nodeDefByType];
 
 // -----------------------------------------------------------------------------
+// NodeConfig
+//
 
 export const NodeConfig = UnionDef(
   "type",
@@ -38,8 +44,6 @@ export const NodeConfig = UnionDef(
   ) as unknown as MapNodeDefsToSchemas<typeof nodeDefs>,
 );
 export type NodeConfig = (typeof nodeDefByType)[keyof typeof nodeDefByType];
-
-// -----------------------------------------------------------------------------
 
 type MapNodeDefsToSchemas<T extends readonly unknown[]> = T extends readonly [
   infer First,
