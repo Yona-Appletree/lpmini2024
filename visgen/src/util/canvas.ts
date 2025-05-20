@@ -1,5 +1,5 @@
 import { defaultCanvasSize } from "@/util/default-canvas-size.ts";
-import type { Vec2 } from "@/data/types/vec2-def.ts";
+import type { Vec2 } from "@/data/types/vec2-def.tsx";
 
 export function Canvas({ size = defaultCanvasSize }) {
   const canvas = document.createElement("canvas");
@@ -8,6 +8,11 @@ export function Canvas({ size = defaultCanvasSize }) {
 
   return {
     canvas,
+    get context2d() {
+      const ctx = canvas.getContext("2d");
+      if (!ctx) throw new Error("Failed to get context");
+      return ctx;
+    },
     ensureSizeContext<T extends ContextType>(
       contextType: T,
       { size: [width, height] = defaultCanvasSize }: { size?: Vec2 } = {},

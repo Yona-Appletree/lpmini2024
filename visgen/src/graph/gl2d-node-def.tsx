@@ -3,10 +3,10 @@ import { useRef } from "react";
 
 import { Gl2dFragmentShader } from "../gl2d/gl2d-fragment-shader";
 import { Gl2d } from "../gl2d/gl2d";
-import { ImageDef } from "../data/types/image-def.ts";
-import { RecordDef, type RecordSpec } from "../data/types/record-def.ts";
+import { ImageDef } from "../data/types/image-def.tsx";
 
 import { defineNode } from "./define-node.ts";
+import { RecordDef, type RecordSpec } from "@/data/types/record-def.tsx";
 
 export function Gl2dNodeDef<
   TId extends string,

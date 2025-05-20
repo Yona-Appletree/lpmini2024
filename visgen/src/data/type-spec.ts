@@ -1,4 +1,8 @@
 import { z } from "zod";
+import { Component } from "react";
+import type { DataInputComponent } from "./data-input-component";
+import type { ConfigEvalContext } from "@/config/config-eval-context";
+import type { RuntimeContext } from "@/graph/graph-runtime";
 
 export function defineType<
   TName extends string,
@@ -15,7 +19,12 @@ export function TypeSpec<
   TName extends string,
   TSchema extends z.Schema,
   TMeta extends TypeMeta<z.output<TSchema>>,
->(name: TName, meta: TMeta, schema: TSchema) {
+>(
+  name: TName,
+  meta: TMeta,
+  schema: TSchema,
+  component: TypeInputComponent<TSchema, TMeta>
+) {
   return Object.assign(
     (input: z.input<TSchema>): z.output<TSchema> => schema.parse(input),
     {
@@ -24,7 +33,8 @@ export function TypeSpec<
         meta,
       } as const,
       schema,
-    } as const,
+      component,
+    } as const
   );
 }
 
@@ -43,7 +53,18 @@ export interface TypeSpec<
 > {
   schema: TSchema;
   info: TypeInfo<TName, TMeta>;
+  component: TypeInputComponent<TSchema, TMeta>;
 }
+
+export type TypeInputComponent<
+  TSchema extends z.Schema = z.Schema,
+  TMeta extends TypeMeta<z.output<TSchema>> = TypeMeta<z.output<TSchema>>,
+> = React.FunctionComponent<{
+  context: RuntimeContext;
+  meta: TMeta;
+  currentValue: z.output<TSchema>;
+  onChange: (value: z.output<TSchema>) => void;
+}>;
 
 export interface TypeSpecFn<
   TName extends string = string,

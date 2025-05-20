@@ -1,6 +1,6 @@
 import { expect, test } from "vitest";
-import { IntDef } from "./int-def.ts";
-import { ArrayDef } from "./array-def.ts";
+import { IntDef } from "./int-def.tsx";
+import { ArrayDef } from "./array-def.tsx";
 
 test("basic", () => {
   const TestDef = ArrayDef(IntDef({ default: 0 }));

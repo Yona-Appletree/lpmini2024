@@ -1,8 +1,10 @@
-import { FloatDef } from "../../data/types/float-def.ts";
-import { EnumDef } from "../../data/types/enum-def.ts";
-import { RecordDef } from "../../data/types/record-def.ts";
+import { FloatDef } from "../../data/types/float-def.tsx";
+import { EnumDef } from "../../data/types/enum-def.tsx";
+import { RecordDef } from "../../data/types/record-def.tsx";
 import { easingFunctions, easingTypes } from "../../util/easing.ts";
 import { defineNode } from "../define-node.ts";
+import { TimeSeriesCanvas } from "@/lib/time-series-canvas.ts";
+import { CanvasImage } from "@/components/canvas-image.tsx";
 
 export const LowFrequencyOscillator = defineNode(
   "time-curve",
@@ -23,6 +25,8 @@ export const LowFrequencyOscillator = defineNode(
     output: FloatDef({ default: 0 }),
   },
   () => {
+    const timeSeriesCanvas = TimeSeriesCanvas();
+
     return {
       update: ({ input }) => {
         const nowSeconds = Date.now() / 1000;
@@ -32,10 +36,16 @@ export const LowFrequencyOscillator = defineNode(
             ? easingFunctions[input.easing](phase * 2)
             : easingFunctions[input.easing]((1 - phase) * 2);
 
+        timeSeriesCanvas.add(value);
+
         return value * (input.max - input.min) + input.min;
       },
       component: ({ output }) => {
-        return <div>value = {output}</div>;
+        return (
+          <div>
+            <CanvasImage image={timeSeriesCanvas} />
+          </div>
+        );
       },
     };
   },

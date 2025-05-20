@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { GraphRuntime } from "../../graph/graph-runtime.ts";
 import { demoConfig } from "./demo-graph.ts";
-import { GraphNodeComponent } from "./graph-node.component";
+import { GraphNodeComponent } from "../graph-node.component.tsx";
 
 export function Demo() {
   const graphRef = useRef<GraphRuntime | null>(null);
@@ -32,7 +32,6 @@ export function Demo() {
 
   return (
     <div>
-      time={currentTime}
       {Array.from(graphRef.current?.nodeMap?.entries() ?? []).map(
         ([id, node]) => (
           <GraphNodeComponent key={id} id={id} node={node} />

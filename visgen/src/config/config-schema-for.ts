@@ -1,7 +1,7 @@
 import type { TypeSpec } from "../data/type-spec.ts";
 import type { TypeName } from "../data/type-def.ts";
-import type { ArrayDef, ArrayMeta } from "../data/types/array-def.ts";
-import { RecordDef, type RecordMeta } from "../data/types/record-def.ts";
+import type { ArrayDef, ArrayMeta } from "../data/types/array-def.tsx";
+import { RecordDef, type RecordMeta } from "../data/types/record-def.tsx";
 import { z } from "zod";
 import { mapValues } from "../util/map-values.ts";
 import { ConfigExpr } from "./config-expr.ts";

@@ -1,6 +1,6 @@
 import { expectTypeOf, test } from "vitest";
-import { RecordDef } from "./record-def.ts";
-import { IntDef } from "./int-def.ts";
+import { RecordDef } from "./record-def.tsx";
+import { IntDef } from "./int-def.tsx";
 import { z } from "zod";
 
 test("basic", () => {

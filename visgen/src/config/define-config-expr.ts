@@ -1,6 +1,6 @@
 import { z, type ZodObject, type ZodRawShape } from "zod";
 
-import type { ConfigEvalContext } from "./evaluate-config.ts";
+import type { ConfigEvalContext } from "./config-eval-context.ts";
 
 export function defineConfigExpr<
   TType extends string,
@@ -11,7 +11,7 @@ export function defineConfigExpr<
   evalFn: (args: {
     context: ConfigEvalContext;
     value: z.output<ZodObject<TShape>>;
-  }) => unknown,
+  }) => unknown
 ) {
   const schema = z.object({
     ...shape,
@@ -24,6 +24,6 @@ export function defineConfigExpr<
         ...args,
         $expr,
       }),
-    { type: $expr, schema, evalFn } as const,
+    { type: $expr, schema, evalFn } as const
   );
 }

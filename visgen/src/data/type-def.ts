@@ -1,11 +1,11 @@
-import { ArrayDef } from "./types/array-def.ts";
-import { EnumDef } from "./types/enum-def.ts";
-import { FloatDef } from "./types/float-def.ts";
-import { IntDef } from "./types/int-def.ts";
-import { RecordDef } from "./types/record-def.ts";
-import { Vec2Def } from "./types/vec2-def.ts";
-import { Vec3Def } from "./types/vec3-def.ts";
-import { Vec4Def } from "./types/vec4-def.ts";
+import { ArrayDef } from "./types/array-def.tsx";
+import { EnumDef } from "./types/enum-def.tsx";
+import { FloatDef } from "./types/float-def.tsx";
+import { IntDef } from "./types/int-def.tsx";
+import { RecordDef } from "./types/record-def.tsx";
+import { Vec2Def } from "./types/vec2-def.tsx";
+import { Vec3Def } from "./types/vec3-def.tsx";
+import { Vec4Def } from "./types/vec4-def.tsx";
 
 export const TypeDef = [
   ArrayDef,

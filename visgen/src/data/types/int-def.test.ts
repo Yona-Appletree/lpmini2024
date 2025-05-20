@@ -1,5 +1,5 @@
 import { expect, expectTypeOf, test } from "vitest";
-import { IntDef } from "./int-def.ts";
+import { IntDef } from "./int-def.tsx";
 import { z } from "zod";
 
 test("basic", () => {

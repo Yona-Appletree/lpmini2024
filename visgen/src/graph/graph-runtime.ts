@@ -4,27 +4,18 @@ import type { NodeInstance } from "./node-def";
 import { evaluateConfig } from "../config/evaluate-config.ts";
 
 export function GraphRuntime(config: GraphConfig) {
-  const nodeMap = new Map<
-    string,
-    {
-      nodeDef: NodeDef;
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      instance: NodeInstance<any>;
-      output: unknown;
-      input: unknown;
-    }
-  >();
+  const nodeMap = new Map<string, RuntimeNode>();
 
   // Initialize nodes
   for (const [id, node] of Object.entries(config.nodes)) {
     const nodeDef = nodeDefByType[node.type];
     const instance = nodeDef();
-    const input = nodeDef.metadata.input.info.meta.default;
 
     nodeMap.set(id, {
+      id,
       nodeDef,
       instance,
-      input,
+      input: nodeDef.metadata.input.info.meta.default,
       output: instance.update({
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         input: nodeDef.metadata.input.info.meta.default as any,
@@ -52,3 +43,16 @@ export function GraphRuntime(config: GraphConfig) {
 }
 
 export type GraphRuntime = ReturnType<typeof GraphRuntime>;
+
+export interface RuntimeNode {
+  id: string;
+  nodeDef: NodeDef;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  instance: NodeInstance<any>;
+  output: unknown;
+  input: unknown;
+}
+
+export interface RuntimeContext {
+  nodeMap: Map<string, RuntimeNode>;
+}

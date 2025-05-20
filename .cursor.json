@@ -1,0 +1,29 @@
+{
+  "editor": {
+    "formatOnSave": true,
+    "tabSize": 2,
+    "insertSpaces": true,
+    "trimTrailingWhitespace": true,
+    "insertFinalNewline": true
+  },
+  "typescript": {
+    "preferences": {
+      "quoteStyle": "single",
+      "semicolons": "insert",
+      "trailingComma": "es5"
+    }
+  },
+  "javascript": {
+    "preferences": {
+      "quoteStyle": "single",
+      "semicolons": "insert",
+      "trailingComma": "es5"
+    }
+  },
+  "files": {
+    "naming": {
+      "pattern": "^[a-z][a-z0-9]*(?:-[a-z0-9]+)*$",
+      "message": "File names should be in kebab-case (e.g., my-component.tsx)"
+    }
+  }
+}

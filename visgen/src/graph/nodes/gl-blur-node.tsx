@@ -1,4 +1,4 @@
-import { ImageDef } from "../../data/types/image-def";
+import { ImageDef } from "../../data/types/image-def.tsx";
 import { FloatDef } from "../../data/types/float-def";
 import { RecordDef } from "../../data/types/record-def";
 import { glsl } from "../../util/glsl";

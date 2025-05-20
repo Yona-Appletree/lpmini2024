@@ -1,7 +1,7 @@
-import { ImageDef } from "../../data/types/image-def";
-import { IntDef } from "../../data/types/int-def";
+import { ImageDef } from "../../data/types/image-def.tsx";
+import { IntDef } from "../../data/types/int-def.tsx";
 import { RecordDef } from "../../data/types/record-def";
-import { Vec4Def } from "../../data/types/vec4-def";
+import { Vec4Def } from "../../data/types/vec4-def.tsx";
 import { glsl } from "../../util/glsl";
 import { Gl2dNodeDef } from "../gl2d-node-def";
 

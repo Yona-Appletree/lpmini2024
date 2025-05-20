@@ -1,16 +1,10 @@
 import type { TypeSpec } from "../data/type-spec.ts";
 import type { ConfigValue } from "./config-schema-for.ts";
-import type { ArrayMeta } from "../data/types/array-def.ts";
-import type { RecordMeta } from "../data/types/record-def.ts";
+import type { ArrayMeta } from "../data/types/array-def.tsx";
+import type { RecordMeta } from "../data/types/record-def.tsx";
 import { configExprByType, type ConfigExprType } from "./config-expr.ts";
 import { Throw } from "../util/throw.ts";
-
-/**
- * Context in which configuration values are evaluated.
- */
-export interface ConfigEvalContext {
-  nodeMap: Map<string, { output: unknown }>;
-}
+import type { ConfigEvalContext } from "./config-eval-context.ts";
 
 /**
  * Evaluate a config value producing a value, a context.
