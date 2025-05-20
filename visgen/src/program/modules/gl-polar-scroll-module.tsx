@@ -2,9 +2,9 @@ import { ImageDef } from "../../data/types/image-def.tsx";
 import { FloatDef } from "../../data/types/float-def";
 import { RecordDef } from "../../data/types/record-def";
 import { glsl } from "../../util/glsl";
-import { Gl2dNodeDef } from "../gl2d-node-def";
+import { GlModuleDef } from "../gl-module-def.tsx";
 
-export const GlPolarScrollNode = Gl2dNodeDef(
+export const GlPolarScrollNode = GlModuleDef(
   "gl-polar-scroll",
   {
     label: "Polar Scroll",

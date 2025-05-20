@@ -1,16 +1,16 @@
 import { useEffect, useRef, useState } from "react";
-import { GraphRuntime } from "../../graph/graph-runtime.ts";
+import { ProgramRuntime } from "@/program/program-runtime.ts";
 import { demoConfig } from "./demo-graph.ts";
 import { GraphNodeComponent } from "../graph-node.component.tsx";
 
 export function Demo() {
-  const graphRef = useRef<GraphRuntime | null>(null);
+  const graphRef = useRef<ProgramRuntime | null>(null);
   const animationRef = useRef<number>(0);
   const [currentTime, setCurrentTime] = useState(0);
 
   useEffect(() => {
     if (!graphRef.current) {
-      graphRef.current = GraphRuntime(demoConfig);
+      graphRef.current = ProgramRuntime(demoConfig);
     }
 
     const animate = () => {

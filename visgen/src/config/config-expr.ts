@@ -1,9 +1,9 @@
 import { UnionDef } from "../util/zod/union-def.ts";
-import { NodeOutputExpr } from "./expressions/node-output-expr.ts";
+import { ModuleOutputExpr } from "./expressions/module-output-expr.ts";
 
 // -----------------------------------------------------------------------------
 
-const configExprDefs = [NodeOutputExpr] as const;
+const configExprDefs = [ModuleOutputExpr] as const;
 
 // -----------------------------------------------------------------------------
 

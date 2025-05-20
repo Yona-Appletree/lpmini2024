@@ -1,8 +1,7 @@
-import { GraphConfig } from "../../graph/graph-config.ts";
-import { GlCheckerboardNode } from "../../graph/nodes/gl-checkerboard-node.tsx";
-import { GlPolarScrollNode } from "../../graph/nodes/gl-polar-scroll.tsx";
-import { GlRotateNode } from "../../graph/nodes/gl-rotate.tsx";
-import { LowFrequencyOscillator } from "../../graph/nodes/low-frequency-oscillator-node.tsx";
+import { GlCheckerboardModule } from "@/program/modules/gl-checkerboard-module.tsx";
+import { GlPolarScrollNode } from "@/program/modules/gl-polar-scroll-module.tsx";
+import { GlRotateNode } from "@/program/modules/gl-rotate-module.tsx";
+import { LowFrequencyOscillator } from "@/program/modules/low-frequency-oscillator-module.tsx";
 
 export const demoConfig = GraphConfig({
   nodes: {
@@ -15,7 +14,7 @@ export const demoConfig = GraphConfig({
       },
     }),
 
-    checkerboard: GlCheckerboardNode.Config({
+    checkerboard: GlCheckerboardModule.Config({
       input: {
         image: null,
         args: {

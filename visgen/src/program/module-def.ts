@@ -1,8 +1,8 @@
 import type { TypeValue } from "../data/type-spec.ts";
 import type { JSX } from "react";
-import type { NodeMetadata } from "./define-node.ts";
+import type { ModuleMetadata } from "./define-module.ts";
 
-export interface NodeInstance<TMeta extends NodeMetadata = NodeMetadata> {
+export interface NodeInstance<TMeta extends ModuleMetadata = ModuleMetadata> {
   update: (args: {
     input: TypeValue<TMeta["input"]>;
   }) => TypeValue<TMeta["output"]>;

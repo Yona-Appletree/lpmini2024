@@ -1,4 +1,4 @@
-import type { RuntimeContext, RuntimeNode } from "@/graph/graph-runtime";
+import type { RuntimeContext, RuntimeNode } from "@/program/program-runtime.ts";
 
 export function GraphNodeComponent({
   context,

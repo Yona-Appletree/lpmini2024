@@ -2,11 +2,11 @@ import { FloatDef } from "../../data/types/float-def.tsx";
 import { EnumDef } from "../../data/types/enum-def.tsx";
 import { RecordDef } from "../../data/types/record-def.tsx";
 import { easingFunctions, easingTypes } from "../../util/easing.ts";
-import { defineNode } from "../define-node.ts";
+import { defineModule } from "../define-module.ts";
 import { TimeSeriesCanvas } from "@/lib/time-series-canvas.ts";
 import { CanvasImage } from "@/components/canvas-image.tsx";
 
-export const LowFrequencyOscillator = defineNode(
+export const LowFrequencyOscillator = defineModule(
   "time-curve",
   {
     label: "Time-based curve",

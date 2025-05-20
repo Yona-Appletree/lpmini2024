@@ -5,10 +5,10 @@ import { Gl2dFragmentShader } from "../gl2d/gl2d-fragment-shader";
 import { Gl2d } from "../gl2d/gl2d";
 import { ImageDef } from "../data/types/image-def.tsx";
 
-import { defineNode } from "./define-node.ts";
+import { defineModule } from "./define-module.ts";
 import { RecordDef, type RecordSpec } from "@/data/types/record-def.tsx";
 
-export function Gl2dNodeDef<
+export function GlModuleDef<
   TId extends string,
   TMetadata extends {
     label: string;
@@ -31,7 +31,7 @@ export function Gl2dNodeDef<
     }
   }
 
-  return defineNode(
+  return defineModule(
     type,
     {
       label: metadata.label,

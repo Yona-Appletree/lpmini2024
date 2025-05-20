@@ -1,8 +1,5 @@
 import { z } from "zod";
-import { Component } from "react";
-import type { DataInputComponent } from "./data-input-component";
-import type { ConfigEvalContext } from "@/config/config-eval-context";
-import type { RuntimeContext } from "@/graph/graph-runtime";
+import type { RuntimeContext } from "@/program/program-runtime.ts";
 
 export function defineType<
   TName extends string,
@@ -23,7 +20,7 @@ export function TypeSpec<
   name: TName,
   meta: TMeta,
   schema: TSchema,
-  component: TypeInputComponent<TSchema, TMeta>
+  component: TypeInputComponent<TSchema, TMeta>,
 ) {
   return Object.assign(
     (input: z.input<TSchema>): z.output<TSchema> => schema.parse(input),
@@ -34,7 +31,7 @@ export function TypeSpec<
       } as const,
       schema,
       component,
-    } as const
+    } as const,
   );
 }
 

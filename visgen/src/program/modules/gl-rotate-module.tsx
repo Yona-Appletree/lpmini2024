@@ -2,9 +2,9 @@ import { ImageDef } from "../../data/types/image-def.tsx";
 import { FloatDef } from "../../data/types/float-def";
 import { RecordDef } from "../../data/types/record-def";
 import { glsl } from "../../util/glsl";
-import { Gl2dNodeDef } from "../gl2d-node-def";
+import { GlModuleDef } from "../gl-module-def.tsx";
 
-export const GlRotateNode = Gl2dNodeDef(
+export const GlRotateNode = GlModuleDef(
   "gl-rotate",
   {
     label: "Rotate",

@@ -1,14 +1,14 @@
-import { GraphConfig } from "./graph-config";
-import { type NodeDef, nodeDefByType } from "./node-config";
-import type { NodeInstance } from "./node-def";
+import { ProgramConfig } from "./program-config.ts";
+import { type ModuleDef, moduleDefByType } from "./module-config.ts";
+import type { NodeInstance } from "./module-def.ts";
 import { evaluateConfig } from "../config/evaluate-config.ts";
 
-export function GraphRuntime(config: GraphConfig) {
+export function ProgramRuntime(config: ProgramConfig) {
   const nodeMap = new Map<string, RuntimeNode>();
 
-  // Initialize nodes
+  // Initialize modules
   for (const [id, node] of Object.entries(config.nodes)) {
-    const nodeDef = nodeDefByType[node.type];
+    const nodeDef = moduleDefByType[node.type];
     const instance = nodeDef();
 
     nodeMap.set(id, {
@@ -27,7 +27,7 @@ export function GraphRuntime(config: GraphConfig) {
     nodeMap,
     tick: () => {
       for (const [id, node] of nodeMap.entries()) {
-        const nodeDef = nodeDefByType[config.nodes[id].type];
+        const nodeDef = moduleDefByType[config.nodes[id].type];
         const input = evaluateConfig({
           spec: nodeDef.metadata.input,
           config: config.nodes[id].input,
@@ -42,11 +42,11 @@ export function GraphRuntime(config: GraphConfig) {
   };
 }
 
-export type GraphRuntime = ReturnType<typeof GraphRuntime>;
+export type GraphRuntime = ReturnType<typeof ProgramRuntime>;
 
 export interface RuntimeNode {
   id: string;
-  nodeDef: NodeDef;
+  nodeDef: ModuleDef;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   instance: NodeInstance<any>;
   output: unknown;
