@@ -10,7 +10,7 @@ export function RecordConfigComponent(
   return (
     <div className="grid grid-cols-[auto_1fr] gap-2 p-1 items-baseline justify-items-start">
       {Object.entries(shape.info.meta.shape).map(([propName, valueSpec]) => {
-        const value = props.value[propName];
+        const value = props.configValue[propName];
 
         return (
           <>
@@ -19,12 +19,12 @@ export function RecordConfigComponent(
             </label>
             <ConfigNodeComponent
               key={propName + "-value"}
-              value={value}
+              configValue={value}
               typeSpec={valueSpec}
               programConfig={props.programConfig}
               onChange={(value) => {
                 // TODO Config mutability
-                props.value[propName] = value;
+                props.configValue[propName] = value;
               }}
             />
           </>

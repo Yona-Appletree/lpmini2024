@@ -30,9 +30,12 @@ export function ModuleComponent({
       </div>
       <div>
         <ConfigNodeComponent
-          value={node.nodeConfig.input}
+          configValue={node.nodeConfig.input}
           programConfig={context.programConfig}
           typeSpec={node.nodeDef.metadata.input}
+          onChange={() => {
+            // TODO do mutation right
+          }}
         />
       </div>
     </div>

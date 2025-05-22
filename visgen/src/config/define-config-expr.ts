@@ -13,7 +13,7 @@ export function defineConfigExpr<
     value: z.output<ZodObject<TShape>>;
   }) => unknown,
   component: React.FunctionComponent<{
-    value: z.output<ZodObject<TShape>>;
+    configValue: z.output<ZodObject<TShape>>;
     setValue: (value: z.output<ZodObject<TShape>>) => void;
     programConfig: {
       nodes: Record<string, unknown>;

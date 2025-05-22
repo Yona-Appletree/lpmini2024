@@ -8,16 +8,16 @@ export function ArrayConfigComponent(props: ConfigNodeProps<unknown[]>) {
 
   return (
     <div className="flex flex-wrap gap-2">
-      {props.value.map((value, index) => {
+      {props.configValue.map((value, index) => {
         return (
           <ConfigNodeComponent
             key={index}
             typeSpec={itemSpec}
-            value={value}
+            configValue={value}
             programConfig={props.programConfig}
             onChange={(value) => {
               // TODO Mutability
-              props.value[index] = value;
+              props.configValue[index] = value;
             }}
           />
         );

@@ -20,7 +20,7 @@ export const ModuleOutputExpr = defineConfigExpr(
   (props) => {
     return (
       <Select
-        value={props.value.moduleId as string}
+        value={props.configValue.moduleId as string}
         onValueChange={(moduleId) =>
           props.setValue({ moduleId: moduleId as ModuleId })
         }

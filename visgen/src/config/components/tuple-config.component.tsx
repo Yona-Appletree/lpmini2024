@@ -12,11 +12,11 @@ export function TupleConfigComponent(props: ConfigNodeProps<unknown[]>) {
           <ConfigNodeComponent
             key={index}
             typeSpec={itemSpec}
-            value={props.value[index]}
+            configValue={props.configValue[index]}
             programConfig={props.programConfig}
             onChange={(value) => {
               // TODO Mutability
-              props.value[index] = value;
+              props.configValue[index] = value;
             }}
           />
         );

@@ -3,7 +3,7 @@ import { ModuleOutputExpr } from "./expressions/module-output-expr.tsx";
 
 // -----------------------------------------------------------------------------
 
-const configExprDefs = [ModuleOutputExpr] as const;
+export const configExprDefs = [ModuleOutputExpr] as const;
 
 // -----------------------------------------------------------------------------
 
