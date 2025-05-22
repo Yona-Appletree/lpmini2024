@@ -4,7 +4,7 @@ import {
   type TypeMeta,
   TypeSpec,
   type TypeValue,
-} from "../../type-spec.ts";
+} from "../type-spec.ts";
 import { deepClone } from "@/util/deep-clone.ts";
 
 export const ArrayDef = defineType(
@@ -25,7 +25,32 @@ export const ArrayDef = defineType(
         itemType,
       },
       z.array(itemType.schema),
-      () => <div>array input</div>,
+      (props) => {
+        const ItemComponent = itemType.component;
+
+        return (
+          <div>
+            {props.currentValue.map((_, index) => {
+              return (
+                <div key={index}>
+                  <ItemComponent
+                    context={props.context}
+                    meta={itemType.info.meta}
+                    currentValue={props.currentValue[index]}
+                    onChange={(value) => {
+                      props.onChange(
+                        props.currentValue.map((v, i) =>
+                          i === index ? value : v,
+                        ),
+                      );
+                    }}
+                  />
+                </div>
+              );
+            })}
+          </div>
+        );
+      },
     ),
 );
 export type ArrayDef = ReturnType<typeof ArrayDef>;

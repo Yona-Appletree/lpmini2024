@@ -40,7 +40,7 @@ export const LowFrequencyOscillator = defineModule(
 
         return value * (input.max - input.min) + input.min;
       },
-      component: ({ output }) => {
+      component: () => {
         return (
           <div>
             <CanvasImage image={timeSeriesCanvas} />

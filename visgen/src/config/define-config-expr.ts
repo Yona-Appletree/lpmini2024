@@ -11,7 +11,7 @@ export function defineConfigExpr<
   evalFn: (args: {
     context: ConfigEvalContext;
     value: z.output<ZodObject<TShape>>;
-  }) => unknown
+  }) => unknown,
 ) {
   const schema = z.object({
     ...shape,
@@ -24,6 +24,6 @@ export function defineConfigExpr<
         ...args,
         $expr,
       }),
-    { type: $expr, schema, evalFn } as const
+    { type: $expr, schema, evalFn } as const,
   );
 }

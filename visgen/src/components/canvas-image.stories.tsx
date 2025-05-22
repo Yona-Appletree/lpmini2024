@@ -1,4 +1,4 @@
-import type { Meta, StoryObj } from "@storybook/react";
+import type { Meta } from "@storybook/react";
 import { TimeSeriesCanvas } from "@/lib/time-series-canvas.ts";
 import { useEffect } from "react";
 import { CanvasImage } from "./canvas-image";
@@ -11,7 +11,7 @@ const meta = {
 } satisfies Meta<typeof CanvasImage>;
 
 export default meta;
-type Story = StoryObj<typeof meta>;
+//type Story = StoryObj<typeof meta>;
 
 export const TimeSeriesGraph = {
   args: {
@@ -19,7 +19,7 @@ export const TimeSeriesGraph = {
     height: "64px",
     timeSeries: TimeSeriesCanvas(),
   },
-  render: ({ timeSeries }: { timeSeries: TimeSeriesCanvas }) => {
+  render: function Render({ timeSeries }: { timeSeries: TimeSeriesCanvas }) {
     useEffect(() => {
       // Set up animation
       const startTime = Date.now();
@@ -46,7 +46,7 @@ export const TimeSeriesGraph = {
       return () => {
         running = false;
       };
-    }, []);
+    });
 
     return <CanvasImage image={timeSeries} />;
   },

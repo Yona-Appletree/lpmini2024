@@ -6,7 +6,7 @@ export const ImageDef = defineType(
   (meta: TypeMeta<CanvasImageSource | null> = { default: null }) =>
     TypeSpec("image", meta, CanvasImageSource.nullable(), () => {
       return <div>Image.</div>;
-    })
+    }),
 );
 
 export type ImageRgba = ReturnType<typeof ImageDef>;
@@ -19,5 +19,5 @@ export const CanvasImageSource = z.custom<CanvasImageSource>(
     it instanceof HTMLCanvasElement ||
     it instanceof ImageBitmap ||
     it instanceof OffscreenCanvas ||
-    it instanceof VideoFrame
+    it instanceof VideoFrame,
 );

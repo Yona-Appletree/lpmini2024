@@ -1,5 +1,5 @@
 import { defaultCanvasSize } from "@/util/default-canvas-size.ts";
-import type { Vec2 } from "@/data/types/array/vec2-def.tsx";
+import type { Vec2 } from "@/data/types/vec2-def.tsx";
 
 export function Canvas({ size = defaultCanvasSize }) {
   const canvas = document.createElement("canvas");

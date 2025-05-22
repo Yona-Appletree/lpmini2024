@@ -1,6 +1,6 @@
 import type { RuntimeContext, RuntimeNode } from "@/program/program-runtime.ts";
 
-export function GraphNodeComponent({
+export function ModuleComponent({
   context,
   node,
 }: {

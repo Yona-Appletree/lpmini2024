@@ -12,12 +12,12 @@ export const RecordDef = defineType(
   "record",
   <TShape extends Record<string, TypeSpec>>(
     shape: TShape,
-    meta: Omit<TypeMeta<unknown>, "default"> = {}
+    meta: Omit<TypeMeta<unknown>, "default"> = {},
   ) => {
     const schema = z.object(
       mapValues(shape, (it) => it.schema) as {
         [TKey in keyof TShape]: TShape[TKey]["schema"];
-      }
+      },
     );
 
     return TypeSpec(
@@ -53,9 +53,9 @@ export const RecordDef = defineType(
             })}
           </div>
         );
-      }
+      },
     );
-  }
+  },
 );
 
 export type RecordDef = ReturnType<typeof RecordDef>;

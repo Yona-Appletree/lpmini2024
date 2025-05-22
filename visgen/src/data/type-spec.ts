@@ -1,5 +1,6 @@
 import { z } from "zod";
 import type { RuntimeContext } from "@/program/program-runtime.ts";
+import type { ShaderUniformValue } from "@/gl2d/gl2d-fragment-shader.ts";
 
 export function defineType<
   TName extends string,
@@ -78,6 +79,7 @@ export type TypeSpecOf<T extends (...args: any[]) => TypeSpecFn> = {
 export interface TypeMetaInfo {
   label?: string;
   description?: string;
+  glType?: ShaderUniformValue["type"];
 }
 
 export interface TypeMeta<T> extends TypeMetaInfo {

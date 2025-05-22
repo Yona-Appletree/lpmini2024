@@ -10,4 +10,4 @@ export const ModuleOutputExpr = defineConfigExpr(
     return context.nodeMap.get(value.nodeId)?.output;
   },
 );
-export type NodeOutputExpr = ReturnType<typeof ModuleOutputExpr>;
+export type ModuleOutputExpr = ReturnType<typeof ModuleOutputExpr>;

@@ -9,7 +9,10 @@ export const GlBlurModule = GlModuleDef(
   {
     label: "Blur",
     params: RecordDef({
-      radius: FloatDef({ default: 0.01, min: 0, max: 0.5, step: 0.01 }),
+      radius: FloatDef({
+        default: 0.01,
+        ui: { type: "slider", min: 0, max: 0.5, step: 0.01 },
+      }),
       exponent: FloatDef({ default: 2.0 }),
     }),
     output: ImageDef(),

@@ -42,7 +42,7 @@ export function ProgramRuntime(config: ProgramConfig) {
   };
 }
 
-export type GraphRuntime = ReturnType<typeof ProgramRuntime>;
+export type ProgramRuntime = ReturnType<typeof ProgramRuntime>;
 
 export interface RuntimeNode {
   id: string;

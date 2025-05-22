@@ -49,7 +49,8 @@ export function Gl2dFragmentShader(canvas: Gl2dContext, shaderGlsl: string) {
     for (const [uniformName, uniformValue] of Object.entries(uniforms)) {
       const uniformLocation = gl.getUniformLocation(program, uniformName);
       if (uniformLocation !== null) {
-        switch (uniformValue.type) {
+        const valueType = uniformValue.type;
+        switch (valueType) {
           case "int32":
             gl.uniform1i(uniformLocation, uniformValue.value);
             break;
@@ -81,7 +82,7 @@ export function Gl2dFragmentShader(canvas: Gl2dContext, shaderGlsl: string) {
             );
             break;
           default:
-            throw new Error(`Unsupported uniform type: ${uniformValue.type}`);
+            throw new Error(`Unsupported uniform type: ${valueType}`);
         }
       }
     }
@@ -115,10 +116,11 @@ export function Gl2dFragmentShader(canvas: Gl2dContext, shaderGlsl: string) {
 
 export type Gl2dFragmentShader = ReturnType<typeof Gl2dFragmentShader>;
 
-export type ShaderUniformsRecord = Record<
-  string,
+export type ShaderUniformsRecord = Record<string, ShaderUniformValue>;
+
+export type ShaderUniformValue =
+  | { type: "int32"; value: number }
   | { type: "float32"; value: number }
   | { type: "vec2"; value: [number, number] }
   | { type: "vec3"; value: [number, number, number] }
-  | { type: "vec4"; value: [number, number, number, number] }
->;
+  | { type: "vec4"; value: [number, number, number, number] };

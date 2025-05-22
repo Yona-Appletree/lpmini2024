@@ -2,8 +2,9 @@ import { GlCheckerboardModule } from "@/program/modules/gl-checkerboard-module.t
 import { GlPolarScrollNode } from "@/program/modules/gl-polar-scroll-module.tsx";
 import { GlRotateNode } from "@/program/modules/gl-rotate-module.tsx";
 import { LowFrequencyOscillator } from "@/program/modules/low-frequency-oscillator-module.tsx";
+import { ProgramConfig } from "@/program/program-config.ts";
 
-export const demoConfig = GraphConfig({
+export const demoConfig = ProgramConfig({
   nodes: {
     lfo: LowFrequencyOscillator.Config({
       input: {

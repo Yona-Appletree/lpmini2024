@@ -1,6 +1,6 @@
+import type { CanvasHTMLAttributes } from "react";
 import { useEffect, useRef } from "react";
 import type { ChangingImage } from "@/lib/changing-image.ts";
-import type { CanvasHTMLAttributes } from "react";
 
 interface CanvasImageProps extends CanvasHTMLAttributes<HTMLCanvasElement> {
   image: ChangingImage;
@@ -27,7 +27,7 @@ export function CanvasImage({ image, ...props }: CanvasImageProps) {
         // Draw the image, scaled to fit
         const scale = Math.min(
           canvas.width / img.width,
-          canvas.height / img.height
+          canvas.height / img.height,
         );
         const x = (canvas.width - img.width * scale) / 2;
         const y = (canvas.height - img.height * scale) / 2;
@@ -36,7 +36,7 @@ export function CanvasImage({ image, ...props }: CanvasImageProps) {
           x,
           y,
           img.width * scale,
-          img.height * scale
+          img.height * scale,
         );
       }
     };

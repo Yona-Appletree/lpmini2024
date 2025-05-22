@@ -1,7 +1,6 @@
 import type { ShaderUniformsRecord } from "../gl2d/gl2d-fragment-shader";
-import { useRef } from "react";
-
 import { Gl2dFragmentShader } from "../gl2d/gl2d-fragment-shader";
+import { useRef } from "react";
 import { Gl2d } from "../gl2d/gl2d";
 import { ImageDef } from "../data/types/image-def.tsx";
 
@@ -70,12 +69,14 @@ export function GlModuleDef<
             gl2d.drawImage(input.image);
           }
 
+          const paramsShape = metadata.params.info.meta.shape;
+
           const args = Object.fromEntries(
             Object.entries(paramNameToUniformName).map(
               ([paramName, uniformName]) => [
                 uniformName,
                 {
-                  type: metadata.params.info.meta.shape[paramName].info.name,
+                  type: paramsShape[paramName].info.meta.glType,
                   value: input.args?.[paramName as keyof typeof input.args],
                 },
               ],

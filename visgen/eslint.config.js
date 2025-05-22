@@ -3,13 +3,19 @@ import globals from "globals";
 import reactHooksPlugin from "eslint-plugin-react-hooks";
 import reactRefreshPlugin from "eslint-plugin-react-refresh";
 import tseslint from "typescript-eslint";
+import importPlugin from "eslint-plugin-import";
 import unusedImportsPlugin from "eslint-plugin-unused-imports";
 import promisePlugin from "eslint-plugin-promise";
 
 export default tseslint.config(
   { ignores: ["dist"] },
   {
-    extends: [js.configs.recommended, ...tseslint.configs.recommended],
+    extends: [
+      js.configs.recommended,
+      ...tseslint.configs.recommended,
+      importPlugin.flatConfigs.recommended,
+      importPlugin.flatConfigs.typescript,
+    ],
     files: ["**/*.{ts,tsx}"],
     languageOptions: {
       ecmaVersion: 2020,
@@ -52,6 +58,8 @@ export default tseslint.config(
           ignoreDeclarationSort: true,
         },
       ],
+
+      "import/no-unresolved": "off",
     },
   },
 

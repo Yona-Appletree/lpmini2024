@@ -1,4 +1,4 @@
-import type { Vec2 } from "@/data/types/array/vec2-def.tsx";
+import type { Vec2 } from "@/data/types/vec2-def.tsx";
 import { createCanvas2d } from "@/util/create-canvas-2d.ts";
 import type { ChangingImage, ImageChangedEvent } from "@/lib/changing-image.ts";
 
@@ -7,7 +7,6 @@ export function TimeSeriesCanvas({
   size = [400, 64],
   startTime = Date.now(),
   lineWidth = 2,
-  gridTime = 1000,
 }: {
   pixelTime?: number;
   size?: Vec2;
@@ -25,7 +24,6 @@ export function TimeSeriesCanvas({
 
   let lastValue: number | null = null;
   let lastTime = startTime;
-  const lastGridTime = startTime;
 
   return {
     currentImage: () => {
