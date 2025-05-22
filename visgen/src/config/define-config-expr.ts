@@ -12,6 +12,13 @@ export function defineConfigExpr<
     context: ConfigEvalContext;
     value: z.output<ZodObject<TShape>>;
   }) => unknown,
+  component: React.FunctionComponent<{
+    value: z.output<ZodObject<TShape>>;
+    setValue: (value: z.output<ZodObject<TShape>>) => void;
+    programConfig: {
+      nodes: Record<string, unknown>;
+    };
+  }>,
 ) {
   const schema = z.object({
     ...shape,
@@ -24,6 +31,6 @@ export function defineConfigExpr<
         ...args,
         $expr,
       }),
-    { type: $expr, schema, evalFn } as const,
+    { type: $expr, schema, evalFn, component } as const,
   );
 }

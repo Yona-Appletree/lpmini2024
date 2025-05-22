@@ -1,5 +1,5 @@
 import { UnionDef } from "../util/zod/union-def.ts";
-import { ModuleOutputExpr } from "./expressions/module-output-expr.ts";
+import { ModuleOutputExpr } from "./expressions/module-output-expr.tsx";
 
 // -----------------------------------------------------------------------------
 

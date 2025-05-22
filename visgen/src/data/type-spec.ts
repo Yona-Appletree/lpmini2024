@@ -1,5 +1,4 @@
 import { z } from "zod";
-import type { RuntimeContext } from "@/program/program-runtime.ts";
 import type { ShaderUniformValue } from "@/gl2d/gl2d-fragment-shader.ts";
 
 export function defineType<
@@ -61,7 +60,6 @@ export type TypeInputComponent<TMeta extends TypeMeta<unknown>> =
   React.FunctionComponent<TypeInputComponentProps<TMeta>>;
 
 export type TypeInputComponentProps<TMeta extends TypeMeta<unknown>> = {
-  context: RuntimeContext;
   meta: TMeta;
   currentValue: TMeta["default"];
   onChange: (value: TMeta["default"]) => void;

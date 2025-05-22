@@ -1,22 +1,27 @@
 import { ProgramConfig } from "./program-config.ts";
-import { type ModuleDef, moduleDefByType } from "./module-config.ts";
+import {
+  ModuleConfig,
+  type ModuleDef,
+  moduleDefByType,
+} from "./module-config.ts";
 import type { NodeInstance } from "./module-def.ts";
 import { evaluateConfig } from "../config/evaluate-config.ts";
 
 export function ProgramRuntime(config: ProgramConfig) {
-  const nodeMap = new Map<string, RuntimeNode>();
+  const moduleMap = new Map<string, ModuleInstance>();
   const tickHandlers: (() => void)[] = [];
 
   let isRunning = true;
 
   // Initialize modules
-  for (const [id, node] of Object.entries(config.nodes)) {
-    const nodeDef = moduleDefByType[node.type];
+  for (const [id, nodeConfig] of Object.entries(config.nodes)) {
+    const nodeDef = moduleDefByType[nodeConfig.type];
     const instance = nodeDef();
 
-    nodeMap.set(id, {
+    moduleMap.set(id, {
       id,
       nodeDef,
+      nodeConfig,
       instance,
       input: nodeDef.metadata.input.info.meta.default,
       output: instance.update({
@@ -29,12 +34,12 @@ export function ProgramRuntime(config: ProgramConfig) {
   const tick = () => {
     if (!isRunning) return;
 
-    for (const [id, node] of nodeMap.entries()) {
+    for (const [id, node] of moduleMap.entries()) {
       const nodeDef = moduleDefByType[config.nodes[id].type];
       const input = evaluateConfig({
         spec: nodeDef.metadata.input,
         config: config.nodes[id].input,
-        context: { nodeMap },
+        context: { moduleMap },
       }) as unknown;
       const output = node.instance.update({ input });
 
@@ -68,18 +73,20 @@ export function ProgramRuntime(config: ProgramConfig) {
   };
 
   return {
-    nodeMap,
+    moduleMap,
     tick,
     addTickHandler,
     start,
     stop,
+    programConfig: config,
   };
 }
 
 export type ProgramRuntime = ReturnType<typeof ProgramRuntime>;
 
-export interface RuntimeNode {
+export interface ModuleInstance {
   id: string;
+  nodeConfig: ModuleConfig;
   nodeDef: ModuleDef;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   instance: NodeInstance<any>;
@@ -88,6 +95,7 @@ export interface RuntimeNode {
 }
 
 export interface RuntimeContext {
-  nodeMap: Map<string, RuntimeNode>;
+  moduleMap: Map<string, ModuleInstance>;
   addTickHandler: (handler: () => void) => () => void;
+  programConfig: ProgramConfig;
 }

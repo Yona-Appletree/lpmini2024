@@ -3,6 +3,7 @@ import {
   defineType,
   type TypeMeta,
   TypeSpec,
+  type TypeSpecOf,
   type TypeValue,
 } from "../type-spec.ts";
 import { deepClone } from "@/util/deep-clone.ts";
@@ -50,6 +51,7 @@ export const TupleDef = defineType(
     ),
 );
 export type TupleDef = ReturnType<typeof TupleDef>;
+export type TupleSpec = TypeSpecOf<typeof TupleDef>;
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export interface TupleMeta<TItems extends TupleItems = any>

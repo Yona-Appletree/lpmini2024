@@ -3,6 +3,7 @@ import {
   defineType,
   type TypeMeta,
   TypeSpec,
+  type TypeSpecOf,
   type TypeValue,
 } from "../type-spec.ts";
 import { deepClone } from "@/util/deep-clone.ts";
@@ -54,6 +55,7 @@ export const ArrayDef = defineType(
     ),
 );
 export type ArrayDef = ReturnType<typeof ArrayDef>;
+export type ArraySpec = TypeSpecOf<typeof ArrayDef>;
 
 export interface ArrayMeta<TItem extends TypeSpec = TypeSpec>
   extends TypeMeta<Array<TypeValue<TItem>>> {

@@ -5,6 +5,7 @@ import { GlHslShiftModule } from "@/program/modules/gl-hsl-shift-module.tsx";
 import { GlPolarScrollNode } from "@/program/modules/gl-polar-scroll-module.tsx";
 import { GlRotateNode } from "@/program/modules/gl-rotate-module.tsx";
 import { LowFrequencyOscillator } from "@/program/modules/low-frequency-oscillator-module.tsx";
+import { z } from "zod";
 
 // -----------------------------------------------------------------------------
 // nodeDefs
@@ -45,8 +46,9 @@ export const ModuleConfig = UnionDef(
     (nodeDef) => nodeDef.Config.schema,
   ) as unknown as MapModuleDefsToSchemas<typeof moduleDefs>,
 );
-export type ModuleConfig =
-  (typeof moduleDefByType)[keyof typeof moduleDefByType];
+export type ModuleConfig = z.output<
+  (typeof moduleDefByType)[keyof typeof moduleDefByType]["Config"]["schema"]
+>;
 
 type MapModuleDefsToSchemas<T extends readonly unknown[]> = T extends readonly [
   infer First,

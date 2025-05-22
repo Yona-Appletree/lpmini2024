@@ -5,6 +5,7 @@ import { RecordDef, type RecordMeta } from "../data/types/record-def.tsx";
 import { z } from "zod";
 import { mapValues } from "../util/map-values.ts";
 import { ConfigExpr } from "./config-expr.ts";
+import type { TupleMeta } from "@/data/types/tuple-def.tsx";
 
 export function configSchemaFor<TSpec extends TypeSpec<TypeName>>(
   spec: TSpec,
@@ -13,6 +14,13 @@ export function configSchemaFor<TSpec extends TypeSpec<TypeName>>(
     case "array":
       return z.array(
         configSchemaFor((spec.info.meta as ArrayMeta).itemType),
+      ) as ConfigValue<TSpec>;
+
+    case "tuple":
+      return z.tuple(
+        (spec.info.meta as TupleMeta).itemTypes.map((it) =>
+          configSchemaFor(it),
+        ),
       ) as ConfigValue<TSpec>;
 
     case "record":

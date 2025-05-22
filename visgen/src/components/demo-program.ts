@@ -31,16 +31,16 @@ export const demoConfig = ProgramConfig({
       input: {
         image: {
           $expr: "node-output",
-          nodeId: "checkerboard",
+          moduleId: "checkerboard",
         },
         args: {
           angle: {
             $expr: "node-output",
-            nodeId: "lfo",
+            moduleId: "lfo",
           },
           swirl: {
             $expr: "node-output",
-            nodeId: "lfo",
+            moduleId: "lfo",
           },
         },
       },
@@ -50,12 +50,12 @@ export const demoConfig = ProgramConfig({
       input: {
         image: {
           $expr: "node-output",
-          nodeId: "rotate",
+          moduleId: "rotate",
         },
         args: {
           offset: {
             $expr: "node-output",
-            nodeId: "lfo",
+            moduleId: "lfo",
           },
         },
       },

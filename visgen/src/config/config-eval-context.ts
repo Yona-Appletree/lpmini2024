@@ -3,7 +3,7 @@
  */
 
 export interface ConfigEvalContext {
-  nodeMap: Map<
+  moduleMap: Map<
     string,
     {
       output: unknown;

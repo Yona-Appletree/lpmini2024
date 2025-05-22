@@ -1,15 +1,17 @@
-import type { RuntimeContext, RuntimeNode } from "@/program/program-runtime.ts";
+import type {
+  ModuleInstance,
+  RuntimeContext,
+} from "@/program/program-runtime.ts";
+import { ConfigNodeComponent } from "@/config/components/config-node.component.tsx";
 
 export function ModuleComponent({
   context,
   node,
 }: {
   context: RuntimeContext;
-  node: RuntimeNode;
+  node: ModuleInstance;
 }) {
   const PreviewComponent = node.instance.component;
-
-  const InputComponent = node.nodeDef.metadata.input.component;
 
   return (
     <div className="border-1 inline-flex flex-col gap-2 rounded">
@@ -27,13 +29,10 @@ export function ModuleComponent({
         />
       </div>
       <div>
-        <InputComponent
-          context={context}
-          meta={node.nodeDef.metadata.input.info.meta}
-          currentValue={node.input}
-          onChange={(newValue) => {
-            node.input = newValue;
-          }}
+        <ConfigNodeComponent
+          value={node.nodeConfig.input}
+          programConfig={context.programConfig}
+          typeSpec={node.nodeDef.metadata.input}
         />
       </div>
     </div>
