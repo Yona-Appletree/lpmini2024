@@ -24,7 +24,13 @@ export const TupleDef = defineType(
         ...meta,
         itemTypes,
       },
-      z.tuple(itemTypes.map((it) => it.schema) as TupleSchemas<TItems>),
+      z.tuple(
+        itemTypes.map((it) => it.schema) as TupleSchemas<TItems>,
+        // this works around a weird issue with the generic type
+        // when the tuple value isn't known
+      ) as TItems extends unknown[]
+        ? z.ZodTuple<TupleSchemas<TItems>>
+        : z.ZodTuple<[]>,
       (props) => (
         <div className="flex flex-wrap gap-2">
           {itemTypes.map((it, index) => {
@@ -33,7 +39,6 @@ export const TupleDef = defineType(
             return (
               <ItemComponent
                 key={index}
-                context={props.context}
                 meta={it.info.meta}
                 currentValue={props.currentValue[index]}
                 onChange={(value) => {
@@ -60,7 +65,7 @@ export interface TupleMeta<TItems extends TupleItems = any>
   glType?: "vec2" | "vec3" | "vec4";
 }
 
-export type TupleItems = [TypeSpec, ...TypeSpec[]];
+export type TupleItems = [] | [TypeSpec, ...TypeSpec[]];
 export type TupleValue<T extends TupleItems> = T extends [
   infer First,
   ...infer Rest,

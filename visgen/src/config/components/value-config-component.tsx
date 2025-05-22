@@ -1,5 +1,5 @@
 import { isObject } from "@/util/is-object.ts";
-import { configExprByType } from "@/config/config-expr.ts";
+import { configExprByType } from "@/config/config-node";
 import type { ConfigNodeProps } from "@/config/components/config-node.component.tsx";
 
 export function ValueConfigComponent(props: ConfigNodeProps) {

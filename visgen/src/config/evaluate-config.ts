@@ -1,8 +1,8 @@
 import type { TypeSpec } from "../data/type-spec.ts";
-import type { ConfigValue } from "./config-schema-for.ts";
+import type { ConfigForType } from "./config-schema-for.ts";
 import type { ArrayMeta } from "../data/types/array-def.tsx";
 import type { RecordMeta } from "../data/types/record-def.tsx";
-import { configExprByType, type ConfigExprType } from "./config-expr.ts";
+import { configExprByType, type ConfigExprType } from "./config-node.ts";
 import { Throw } from "../util/throw.ts";
 import type { ConfigEvalContext } from "./config-eval-context.ts";
 
@@ -22,18 +22,18 @@ export function evaluateConfig({
 }): unknown {
   switch (spec.info.name) {
     case "array":
-      return (config as ConfigValue[]).map((item, index) =>
+      return (config as ConfigForType[]).map((item, index) =>
         evaluateConfig({
           spec: (spec.info.meta as ArrayMeta).itemType,
           config: item,
           context,
           path: [...path, index.toString()],
-        }),
+        })
       );
 
     case "record":
       return Object.fromEntries(
-        Object.entries(config as Record<string, ConfigValue>).map(
+        Object.entries(config as Record<string, ConfigForType>).map(
           ([key, value]) => [
             key,
             evaluateConfig({
@@ -42,8 +42,8 @@ export function evaluateConfig({
               context,
               path: [...path, key],
             }),
-          ],
-        ),
+          ]
+        )
       );
 
     default:
@@ -51,7 +51,7 @@ export function evaluateConfig({
         const valueDef =
           configExprByType[config.$expr as ConfigExprType] ??
           Throw(
-            `Unsupported config value: path=${path}, $expr=${config.$expr}`,
+            `Unsupported config value: path=${path}, $expr=${config.$expr}`
           );
 
         return valueDef.evalFn({

@@ -30,16 +30,16 @@ export const demoConfig = ProgramConfig({
     rotate: GlRotateNode.Config({
       input: {
         image: {
-          $expr: "node-output",
+          $expr: "$moduleOutput",
           moduleId: "checkerboard",
         },
         args: {
           angle: {
-            $expr: "node-output",
+            $expr: "$moduleOutput",
             moduleId: "lfo",
           },
           swirl: {
-            $expr: "node-output",
+            $expr: "$moduleOutput",
             moduleId: "lfo",
           },
         },
@@ -49,12 +49,12 @@ export const demoConfig = ProgramConfig({
     polarScroll: GlPolarScrollNode.Config({
       input: {
         image: {
-          $expr: "node-output",
+          $expr: "$moduleOutput",
           moduleId: "rotate",
         },
         args: {
           offset: {
-            $expr: "node-output",
+            $expr: "$moduleOutput",
             moduleId: "lfo",
           },
         },

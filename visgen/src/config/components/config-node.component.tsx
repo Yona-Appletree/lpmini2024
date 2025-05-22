@@ -4,7 +4,7 @@ import { TupleConfigComponent } from "@/config/components/tuple-config.component
 import { RecordConfigComponent } from "@/config/components/record-config.component.tsx";
 import { ValueConfigComponent } from "@/config/components/value-config-component.tsx";
 
-import { configExprDefs } from "../config-expr";
+import { configExprDefs } from "../config-node";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { ButtonRadioGroupItem } from "@/components/button-radio-group";
 import { ButtonRadioGroup } from "@/components/button-radio-group";

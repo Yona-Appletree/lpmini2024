@@ -30,7 +30,7 @@ export const RecordDef = defineType(
         shape,
       },
       schema,
-      ({ context, currentValue, onChange }) => {
+      ({ currentValue, onChange }) => {
         return (
           <div className="grid grid-cols-[auto_1fr] gap-2 p-1 items-baseline justify-items-start">
             {Object.entries(shape).map(([prop, valueSpec]) => {

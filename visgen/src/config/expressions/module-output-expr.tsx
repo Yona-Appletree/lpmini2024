@@ -8,12 +8,13 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select.tsx";
+import { z } from "zod";
 
 export const ModuleOutputExpr = defineConfigExpr(
-  "node-output",
-  {
+  "$moduleOutput",
+  z.object({
     moduleId: ModuleId.schema,
-  },
+  }),
   ({ context, value }) => {
     return context.moduleMap.get(value.moduleId)?.output;
   },
@@ -39,6 +40,6 @@ export const ModuleOutputExpr = defineConfigExpr(
         </SelectContent>
       </Select>
     );
-  },
+  }
 );
 export type ModuleOutputExpr = ReturnType<typeof ModuleOutputExpr>;

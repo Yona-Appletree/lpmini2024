@@ -9,5 +9,5 @@ export function Vec2Def(meta: SetOptional<TypeMeta<Vec2>, "default">) {
     glType: "vec2",
   });
 }
-
+export type Vec2Def = ReturnType<typeof Vec2Def>;
 export type Vec2 = [number, number];

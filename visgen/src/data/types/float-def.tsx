@@ -1,5 +1,10 @@
 import { z } from "zod";
-import { defineType, type TypeMeta, TypeSpec } from "../type-spec.ts";
+import {
+  defineType,
+  type TypeMeta,
+  TypeSpec,
+  type TypeSpecOf,
+} from "../type-spec.ts";
 import { Input } from "@/components/ui/input.tsx";
 
 export const FloatDef = defineType("float32", (meta: FloatMeta) =>
@@ -36,6 +41,8 @@ export const FloatDef = defineType("float32", (meta: FloatMeta) =>
     },
   ),
 );
+export type FloatDef = ReturnType<typeof FloatDef>;
+export type FloatSpec = TypeSpecOf<typeof FloatDef>;
 
 export interface FloatMeta extends TypeMeta<number> {
   unit?: string;
