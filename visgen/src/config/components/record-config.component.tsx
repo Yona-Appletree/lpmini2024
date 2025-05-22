@@ -6,26 +6,24 @@ export function RecordConfigComponent(
   props: ConfigNodeProps<Record<string, unknown>>,
 ) {
   const shape = props.typeSpec as RecordSpec;
+  const value = props.configValue.value ?? {};
 
   return (
     <div className="grid grid-cols-[auto_1fr] gap-2 p-1 items-baseline justify-items-start">
       {Object.entries(shape.info.meta.shape).map(([propName, valueSpec]) => {
-        const value = props.configValue[propName];
+        const itemValue = value[propName] ?? {};
 
         return (
           <>
             <label key={propName + "-label"} className="text-right">
               {propName}
             </label>
+
             <ConfigNodeComponent
               key={propName + "-value"}
-              configValue={value}
+              configValue={itemValue}
               typeSpec={valueSpec}
               programConfig={props.programConfig}
-              onChange={(value) => {
-                // TODO Config mutability
-                props.configValue[propName] = value;
-              }}
             />
           </>
         );

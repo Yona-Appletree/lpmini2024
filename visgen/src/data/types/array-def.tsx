@@ -35,7 +35,6 @@ export const ArrayDef = defineType(
               return (
                 <div key={index}>
                   <ItemComponent
-                    context={props.context}
                     meta={itemType.info.meta}
                     currentValue={props.currentValue[index]}
                     onChange={(value) => {

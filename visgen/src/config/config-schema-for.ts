@@ -1,19 +1,15 @@
-import type { TypeSpec } from "../data/type-spec.ts";
+import type { TypeSpec, TypeValue } from "../data/type-spec.ts";
 import type { TypeName } from "../data/type-def.ts";
-import type { ArrayDef, ArrayMeta } from "../data/types/array-def.tsx";
-import { RecordDef, type RecordMeta } from "../data/types/record-def.tsx";
+import type { ArrayMeta } from "../data/types/array-def.tsx";
+import { type RecordMeta } from "../data/types/record-def.tsx";
 import { z } from "zod";
 import { mapValues } from "../util/map-values.ts";
 import { ConfigExprKey, ConfigNodeExpr } from "./config-node.ts";
-import type {
-  TupleDef,
-  TupleMeta,
-  TupleSchemas,
-} from "@/data/types/tuple-def.tsx";
+import type { TupleItems, TupleMeta } from "@/data/types/tuple-def.tsx";
 
 export function configSchemaFor<TSpec extends TypeSpec<TypeName>>(
   spec: TSpec,
-): ConfigSchemaFor<TSpec> {
+): z.Schema<ConfigValueFor<TSpec>> {
   const valueSchema = (() => {
     switch (spec.info.name) {
       case "array":
@@ -42,35 +38,36 @@ export function configSchemaFor<TSpec extends TypeSpec<TypeName>>(
     ...ConfigNodeExpr.schema.shape,
     value: valueSchema.optional(),
     activeExpr: ConfigExprKey.schema.optional(),
-  }) as ConfigSchemaFor<TSpec>;
+  }) as unknown as z.Schema<ConfigValueFor<TSpec>>;
 }
 
-export type ConfigSchemaFor<T extends TypeSpec<TypeName> = TypeSpec<TypeName>> =
-  z.ZodObject<
-    (typeof ConfigNodeExpr)["schema"]["shape"] & {
-      activeExpr: z.ZodOptional<(typeof ConfigExprKey)["schema"]>;
-      value: // Array
-      z.ZodOptional<
-        T["info"] extends ArrayDef
-          ? T["info"]["meta"] extends ArrayMeta
-            ? z.ZodArray<ConfigSchemaFor<T["info"]["meta"]["itemType"]>>
-            : z.ZodLiteral<"bad1">
-          : // Record
-            T["info"] extends RecordDef
-            ? T["info"]["meta"] extends RecordMeta
-              ? z.ZodObject<{
-                  [TKey in keyof T["info"]["meta"]["shape"]]: ConfigSchemaFor<
-                    T["info"]["meta"]["shape"][TKey]
-                  >;
-                }>
-              : z.ZodLiteral<"bad2">
-            : // Tuple
-              T["info"] extends TupleDef
-              ? T["info"]["meta"] extends TupleMeta
-                ? z.ZodTuple<TupleSchemas<T["info"]["meta"]["itemTypes"]>>
-                : z.ZodLiteral<"bad3">
-              : // everything else
-                T["schema"]
-      >;
-    }
-  >;
+export type ConfigValueFor<T extends TypeSpec<TypeName> = TypeSpec<TypeName>> =
+  Partial<(typeof ConfigNodeExpr)["schema"]["shape"]> & {
+    activeExpr?: ConfigExprKey;
+    value?: // Array
+    T["info"]["meta"] extends ArrayMeta
+      ? Array<ConfigValueFor<T["info"]["meta"]["itemType"]>>
+      : // Record
+        T["info"]["meta"] extends RecordMeta
+        ? {
+            [TKey in keyof T["info"]["meta"]["shape"]]: ConfigValueFor<
+              T["info"]["meta"]["shape"][TKey]
+            >;
+          }
+        : // Tuple
+          T["info"]["meta"] extends TupleMeta
+          ? ConfigValueForTuple<T["info"]["meta"]["itemTypes"]>
+          : // everything else
+            TypeValue<T>;
+  };
+
+export type ConfigValueForTuple<T extends TupleItems> = T extends [
+  infer First,
+  ...infer Rest,
+]
+  ? First extends TypeSpec
+    ? Rest extends TupleItems
+      ? [ConfigValueFor<First>, ...ConfigValueForTuple<Rest>]
+      : [ConfigValueFor<First>]
+    : []
+  : [];

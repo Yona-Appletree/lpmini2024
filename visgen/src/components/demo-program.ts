@@ -8,39 +8,64 @@ export const demoConfig = ProgramConfig({
   nodes: {
     lfo: LowFrequencyOscillator.Config({
       input: {
-        period: 5,
-        easing: "quadInOut",
-        min: 0,
-        max: 1,
+        value: {
+          period: { value: 5 },
+          easing: { value: "quadInOut" },
+          min: { value: 0 },
+          max: { value: 1 },
+        },
       },
     }),
 
     checkerboard: GlCheckerboardModule.Config({
       input: {
-        image: null,
-        args: {
-          color1: [1, 0.5, 0, 1],
-          color2: [0, 0, 0.5, 1],
-          rows: 10,
-          columns: 10,
+        value: {
+          image: { value: null },
+          args: {
+            value: {
+              color1: {
+                value: [
+                  { value: 1 },
+                  { value: 0.5 },
+                  { value: 0 },
+                  { value: 1 },
+                ],
+              },
+              color2: {
+                value: [
+                  { value: 0 },
+                  { value: 0 },
+                  { value: 0.5 },
+                  { value: 1 },
+                ],
+              },
+              rows: { value: 10 },
+              columns: { value: 10 },
+            },
+          },
         },
       },
     }),
 
     rotate: GlRotateNode.Config({
       input: {
-        image: {
-          $expr: "$moduleOutput",
-          moduleId: "checkerboard",
-        },
-        args: {
-          angle: {
-            $expr: "$moduleOutput",
-            moduleId: "lfo",
+        value: {
+          image: {
+            $moduleOutput: {
+              moduleId: "checkerboard",
+            },
+            activeExpr: "$moduleOutput",
           },
-          swirl: {
-            $expr: "$moduleOutput",
-            moduleId: "lfo",
+          args: {
+            value: {
+              angle: { value: 0 },
+              swirl: {
+                $moduleOutput: {
+                  moduleId: "lfo",
+                },
+                activeExpr: "$moduleOutput",
+              },
+            },
           },
         },
       },
@@ -48,14 +73,22 @@ export const demoConfig = ProgramConfig({
 
     polarScroll: GlPolarScrollNode.Config({
       input: {
-        image: {
-          $expr: "$moduleOutput",
-          moduleId: "rotate",
-        },
-        args: {
-          offset: {
-            $expr: "$moduleOutput",
-            moduleId: "lfo",
+        value: {
+          image: {
+            $moduleOutput: {
+              moduleId: "rotate",
+            },
+            activeExpr: "$moduleOutput",
+          },
+          args: {
+            value: {
+              offset: {
+                $moduleOutput: {
+                  moduleId: "lfo",
+                },
+                activeExpr: "$moduleOutput",
+              },
+            },
           },
         },
       },

@@ -14,7 +14,7 @@ export const EnumDef = defineType(
   <TValues extends [string, ...string[]]>(
     meta: TypeMeta<TValues[number]> & {
       options: TValues;
-    }
+    },
   ) =>
     TypeSpec(
       "enum",
@@ -39,6 +39,6 @@ export const EnumDef = defineType(
             </Select>
           </div>
         );
-      }
-    )
+      },
+    ),
 );

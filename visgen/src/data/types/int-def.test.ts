@@ -3,10 +3,10 @@ import { IntDef } from "./int-def.tsx";
 import { z } from "zod";
 
 test("basic", () => {
-  const TestDef = IntDef({ default: 0 });
+  const intType = IntDef({ default: 0 });
 
-  expectTypeOf<z.output<typeof TestDef.schema>>().toEqualTypeOf<number>();
+  expectTypeOf<z.output<typeof intType.schema>>().toEqualTypeOf<number>();
 
   const value = 10;
-  expect(TestDef(value)).toEqual(value);
+  expect(intType(value)).toEqual(value);
 });

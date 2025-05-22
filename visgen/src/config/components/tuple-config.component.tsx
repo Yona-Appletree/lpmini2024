@@ -1,9 +1,11 @@
 import type { ConfigNodeProps } from "@/config/components/config-node.component.ts";
 import type { TupleSpec } from "@/data/types/tuple-def.tsx";
 import { ConfigNodeComponent } from "@/config/components/config-node.component.tsx";
+import type { ConfigNode } from "@/config/config-node.ts";
 
-export function TupleConfigComponent(props: ConfigNodeProps<unknown[]>) {
+export function TupleConfigComponent(props: ConfigNodeProps<ConfigNode[]>) {
   const typeSpec = props.typeSpec as TupleSpec;
+  const value = props.configValue.value ?? [];
 
   return (
     <div className="flex flex-wrap gap-2">
@@ -12,12 +14,8 @@ export function TupleConfigComponent(props: ConfigNodeProps<unknown[]>) {
           <ConfigNodeComponent
             key={index}
             typeSpec={itemSpec}
-            configValue={props.configValue[index]}
+            configValue={value[index] ?? {}}
             programConfig={props.programConfig}
-            onChange={(value) => {
-              // TODO Mutability
-              props.configValue[index] = value;
-            }}
           />
         );
       })}

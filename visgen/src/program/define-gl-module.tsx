@@ -20,13 +20,13 @@ export function defineGlModule<
     Object.keys(metadata.params.info.meta.shape).map((key) => [
       key,
       "u" + key[0].toUpperCase() + key.slice(1),
-    ])
+    ]),
   );
 
   for (const [key, uniformName] of Object.entries(paramNameToUniformName)) {
     if (!glsl.includes(uniformName)) {
       throw new Error(
-        `Uniform not found in shader: paramName=${key}, uniformName=${uniformName}`
+        `Uniform not found in shader: paramName=${key}, uniformName=${uniformName}`,
       );
     }
   }
@@ -84,8 +84,8 @@ export function defineGlModule<
                   type: paramsShape[paramName].info.meta.glType,
                   value: input.args?.[paramName as keyof typeof input.args],
                 },
-              ]
-            )
+              ],
+            ),
           ) as ShaderUniformsRecord;
           shader.draw(args);
           gl2d.context.drawToScreen();
@@ -95,6 +95,6 @@ export function defineGlModule<
         },
         component: Component,
       };
-    }
+    },
   );
 }

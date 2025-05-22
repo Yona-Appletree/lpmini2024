@@ -2,37 +2,85 @@ import type { TypeSpec } from "@/data/type-spec.ts";
 import { ArrayConfigComponent } from "@/config/components/array-config.component.tsx";
 import { TupleConfigComponent } from "@/config/components/tuple-config.component.tsx";
 import { RecordConfigComponent } from "@/config/components/record-config.component.tsx";
-import { ValueConfigComponent } from "@/config/components/value-config-component.tsx";
 
-import { configExprDefs } from "../config-node";
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-import { ButtonRadioGroupItem } from "@/components/button-radio-group";
-import { ButtonRadioGroup } from "@/components/button-radio-group";
+import {
+  configExprByType,
+  configExprDefs,
+  type ConfigExprKey,
+  type ConfigNode,
+} from "../config-node";
+import {
+  ButtonRadioGroup,
+  ButtonRadioGroupItem,
+} from "@/components/button-radio-group";
 
 export function ConfigNodeComponent(props: ConfigNodeProps) {
-  const editComponent = (() => {
+  const activeExprKey = props.configValue.activeExpr;
+
+  const valueComponent = (() => {
+    // Active expression
+    if (activeExprKey != null) {
+      const ExprComponent = configExprByType[activeExprKey].component;
+      return (
+        <ExprComponent
+          programConfig={props.programConfig}
+          exprValue={props.configValue[activeExprKey]}
+          onChange={(it) => (props.configValue[activeExprKey] = it)}
+        />
+      );
+    }
+
+    // Value
     switch (props.typeSpec.info.name) {
       case "record":
-        return <RecordConfigComponent {...props} />;
+        return (
+          <RecordConfigComponent
+            {...(props as ConfigNodeProps<Record<string, ConfigNode>>)}
+          />
+        );
 
       case "array":
-        return <ArrayConfigComponent {...props} />;
+        return (
+          <ArrayConfigComponent {...(props as ConfigNodeProps<ConfigNode[]>)} />
+        );
 
       case "tuple":
-        return <TupleConfigComponent {...props} />;
+        return (
+          <TupleConfigComponent {...(props as ConfigNodeProps<ConfigNode[]>)} />
+        );
 
-      default:
-        return <ValueConfigComponent {...props} />;
+      default: {
+        const InputComponent = props.typeSpec.component;
+        return (
+          <InputComponent
+            meta={props.typeSpec.info.meta}
+            currentValue={props.configValue.value}
+            onChange={(it) => (props.configValue.value = it)}
+          />
+        );
+      }
     }
   })();
 
   return (
     <div>
-      {editComponent}
-      <ButtonRadioGroup defaultValue="raw" onValueChange={props.onChange}>
-        <ButtonRadioGroupItem value="raw" label="Raw" />
+      {valueComponent}
+
+      <ButtonRadioGroup
+        defaultValue="value"
+        value={activeExprKey ?? "value"}
+        onValueChange={(newVal) => {
+          props.configValue.activeExpr =
+            newVal === "value" ? undefined : (newVal as ConfigExprKey);
+        }}
+      >
+        <ButtonRadioGroupItem value="value" label="Value" />
         {configExprDefs.map((it) => (
-          <ButtonRadioGroupItem key={it.name} value={it.name} label={it.name} />
+          <ButtonRadioGroupItem
+            key={it.exprKey}
+            value={it.exprKey}
+            label={it.exprKey}
+          />
         ))}
       </ButtonRadioGroup>
     </div>
@@ -40,8 +88,7 @@ export function ConfigNodeComponent(props: ConfigNodeProps) {
 }
 
 export interface ConfigNodeProps<T = unknown> {
-  configValue: T;
-  onChange: (value: T) => void;
+  configValue: ConfigNode<T>;
   typeSpec: TypeSpec;
   programConfig: {
     nodes: Record<string, unknown>;

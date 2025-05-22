@@ -13,28 +13,25 @@ export function defineType<
 
 export function TypeSpec<
   TName extends string,
-  TSchema extends z.Schema,
-  TMeta extends TypeMeta<z.output<TSchema>>,
+  TValue,
+  TMeta extends TypeMeta<TValue>,
 >(
   name: TName,
   meta: TMeta,
-  schema: TSchema,
+  schema: z.ZodSchema<TValue>,
   component: TypeInputComponent<TMeta>,
 ) {
-  return Object.assign(
-    (input: z.input<TSchema>): z.output<TSchema> => schema.parse(input),
-    {
-      info: {
-        name,
-        meta,
-      } as const,
-      schema,
-
-      // Typing the components is too hard right now.
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      component: component as TypeInputComponent<any>,
+  return Object.assign((input: TValue): TValue => schema.parse(input), {
+    info: {
+      name,
+      meta,
     } as const,
-  );
+    schema,
+
+    // Typing the components is too hard right now.
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    component: component as TypeInputComponent<any>,
+  } as const);
 }
 
 export interface TypeInfo<
@@ -47,13 +44,13 @@ export interface TypeInfo<
 
 export interface TypeSpec<
   TName extends string = string,
-  TSchema extends z.Schema = z.Schema,
-  TMeta extends TypeMeta<z.output<TSchema>> = TypeMeta<z.output<TSchema>>,
+  TValue = unknown,
+  TMeta extends TypeMeta<TValue> = TypeMeta<TValue>,
 > {
-  schema: TSchema;
   info: TypeInfo<TName, TMeta>;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   component: TypeInputComponent<any>;
+  schema: z.ZodSchema<TValue>;
 }
 
 export type TypeInputComponent<TMeta extends TypeMeta<unknown>> =
@@ -67,10 +64,10 @@ export type TypeInputComponentProps<TMeta extends TypeMeta<unknown>> = {
 
 export interface TypeSpecFn<
   TName extends string = string,
-  TSchema extends z.Schema = z.Schema,
-  TMeta extends TypeMeta<z.output<TSchema>> = TypeMeta<z.output<TSchema>>,
-> extends TypeSpec<TName, TSchema, TMeta> {
-  (...args: z.input<TSchema>): z.output<TSchema>;
+  TValue = unknown,
+  TMeta extends TypeMeta<TValue> = TypeMeta<TValue>,
+> extends TypeSpec<TName, TValue, TMeta> {
+  (args: TValue): TValue;
 }
 
 export type TypeSpecOf<
@@ -90,4 +87,4 @@ export interface TypeMeta<T> extends TypeMetaInfo {
   default: T;
 }
 
-export type TypeValue<T extends TypeSpec> = z.output<T["schema"]>;
+export type TypeValue<T extends TypeSpec> = T["info"]["meta"]["default"];

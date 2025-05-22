@@ -38,7 +38,7 @@ export function ProgramRuntime(config: ProgramConfig) {
       const nodeDef = moduleDefByType[config.nodes[id].type];
       const input = evaluateConfig({
         spec: nodeDef.metadata.input,
-        config: config.nodes[id].input,
+        configNode: config.nodes[id].input,
         context: { moduleMap },
       }) as unknown;
       const output = node.instance.update({ input });

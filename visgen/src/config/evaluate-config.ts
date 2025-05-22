@@ -5,27 +5,46 @@ import type { RecordMeta } from "../data/types/record-def.tsx";
 import { configExprByType, type ConfigExprType } from "./config-node.ts";
 import { Throw } from "../util/throw.ts";
 import type { ConfigEvalContext } from "./config-eval-context.ts";
+import type { ConfigNode } from "./config-node.ts";
+import type { TupleMeta } from "@/data/types/tuple-def.tsx";
 
 /**
  * Evaluate a config value producing a value, a context.
  */
 export function evaluateConfig({
   spec,
-  config,
+  configNode,
   context,
   path = [],
 }: {
   spec: TypeSpec;
-  config: unknown;
+  configNode: ConfigNode;
   context: ConfigEvalContext;
   path?: string[];
 }): unknown {
+  const activeExprKey = configNode.activeExpr;
+
+  if (activeExprKey != null) {
+    const valueDef = configExprByType[activeExprKey];
+
+    if (valueDef == null) {
+      throw new Error(`Unknown config expr: ${activeExprKey}`);
+    }
+
+    return valueDef.evalFn({
+      context,
+      value: configNode[activeExprKey],
+    });
+  }
+
+  const value = configNode.value;
+
   switch (spec.info.name) {
     case "array":
-      return (config as ConfigForType[]).map((item, index) =>
+      return (value as ConfigNode[]).map((item, index) =>
         evaluateConfig({
           spec: (spec.info.meta as ArrayMeta).itemType,
-          config: item,
+          configNode: item,
           context,
           path: [...path, index.toString()],
         })
@@ -33,12 +52,12 @@ export function evaluateConfig({
 
     case "record":
       return Object.fromEntries(
-        Object.entries(config as Record<string, ConfigForType>).map(
+        Object.entries(value as Record<string, ConfigNode>).map(
           ([key, value]) => [
             key,
             evaluateConfig({
               spec: (spec.info.meta as RecordMeta).shape[key],
-              config: value,
+              configNode: value,
               context,
               path: [...path, key],
             }),
@@ -46,20 +65,17 @@ export function evaluateConfig({
         )
       );
 
-    default:
-      if (typeof config === "object" && config !== null && "$expr" in config) {
-        const valueDef =
-          configExprByType[config.$expr as ConfigExprType] ??
-          Throw(
-            `Unsupported config value: path=${path}, $expr=${config.$expr}`
-          );
-
-        return valueDef.evalFn({
+    case "tuple":
+      return (value as ConfigNode[]).map((item, index) =>
+        evaluateConfig({
+          spec: (spec.info.meta as TupleMeta).itemTypes[index],
+          configNode: item,
           context,
-          value: valueDef.schema.parse(config),
-        });
-      } else {
-        return config;
-      }
+          path: [...path, index.toString()],
+        })
+      );
+
+    default:
+      return value;
   }
 }

@@ -20,7 +20,7 @@ export function renderConfig({
           spec: (spec.info.meta as ArrayMeta).itemType,
           config: item,
           moduleMap,
-        })
+        }),
       );
 
     case "record":
@@ -33,8 +33,8 @@ export function renderConfig({
               config: value,
               moduleMap,
             }),
-          ]
-        )
+          ],
+        ),
       );
 
     default:

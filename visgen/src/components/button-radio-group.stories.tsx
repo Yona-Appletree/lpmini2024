@@ -1,8 +1,8 @@
 import type { Meta, StoryObj } from "@storybook/react";
 import { ButtonRadioGroup, ButtonRadioGroupItem } from "./button-radio-group";
 import {
-  AlignLeft,
   AlignCenter,
+  AlignLeft,
   AlignRight,
   Bold,
   Italic,

@@ -15,7 +15,7 @@ export const TupleDef = defineType(
     itemTypes: TItems,
     meta: SetOptional<Omit<TupleMeta<TItems>, "itemTypes">, "default"> = {},
   ) =>
-    TypeSpec(
+    TypeSpec<"tuple", TupleValue<TItems>, TupleMeta<TItems>>(
       "tuple",
       {
         default: itemTypes.map((it) =>
@@ -26,11 +26,7 @@ export const TupleDef = defineType(
       },
       z.tuple(
         itemTypes.map((it) => it.schema) as TupleSchemas<TItems>,
-        // this works around a weird issue with the generic type
-        // when the tuple value isn't known
-      ) as TItems extends unknown[]
-        ? z.ZodTuple<TupleSchemas<TItems>>
-        : z.ZodTuple<[]>,
+      ) as unknown as z.ZodSchema<TupleValue<TItems>>,
       (props) => (
         <div className="flex flex-wrap gap-2">
           {itemTypes.map((it, index) => {
@@ -55,7 +51,7 @@ export const TupleDef = defineType(
       ),
     ),
 );
-export type TupleDef = ReturnType<typeof TupleDef>;
+export type TupleDef = TypeSpec<"tuple", [], TupleMeta<[]>>;
 export type TupleSpec = TypeSpecOf<typeof TupleDef>;
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any

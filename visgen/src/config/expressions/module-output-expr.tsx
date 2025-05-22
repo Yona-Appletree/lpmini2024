@@ -13,17 +13,19 @@ import { z } from "zod";
 export const ModuleOutputExpr = defineConfigExpr(
   "$moduleOutput",
   z.object({
-    moduleId: ModuleId.schema,
+    moduleId: z.string(),
   }),
   ({ context, value }) => {
-    return context.moduleMap.get(value.moduleId)?.output;
+    return value?.moduleId
+      ? context.moduleMap.get(value.moduleId)?.output
+      : undefined;
   },
   (props) => {
     return (
       <Select
-        value={props.configValue.moduleId as string}
+        value={props.exprValue?.moduleId as string}
         onValueChange={(moduleId) =>
-          props.setValue({ moduleId: moduleId as ModuleId })
+          props.onChange({ moduleId: moduleId as ModuleId })
         }
       >
         <SelectTrigger>

@@ -3,6 +3,7 @@ import {
   type TypeMeta,
   TypeSpec,
   type TypeSpecOf,
+  type TypeValue,
 } from "../type-spec.ts";
 import { mapValues } from "../../util/map-values.ts";
 import { z } from "zod";
@@ -14,22 +15,18 @@ export const RecordDef = defineType(
     shape: TShape,
     meta: Omit<TypeMeta<unknown>, "default"> = {},
   ) => {
-    const schema = z.object(
-      mapValues(shape, (it) => it.schema) as {
-        [TKey in keyof TShape]: TShape[TKey]["schema"];
-      },
-    );
+    type TValue = {
+      [TKey in keyof TShape]: TypeValue<TShape[TKey]>;
+    };
 
-    return TypeSpec(
+    return TypeSpec<"record", TValue, RecordMeta<TShape>>(
       "record",
       {
         ...meta,
-        default: mapValues(shape, (it) => it.info.meta.default) as z.output<
-          typeof schema
-        >,
+        default: mapValues(shape, (it) => it.info.meta.default) as TValue,
         shape,
       },
-      schema,
+      z.object(mapValues(shape, (it) => it.schema)) as z.Schema<TValue>,
       ({ currentValue, onChange }) => {
         return (
           <div className="grid grid-cols-[auto_1fr] gap-2 p-1 items-baseline justify-items-start">
@@ -44,7 +41,6 @@ export const RecordDef = defineType(
                   </label>
                   <InputComponent
                     key={prop + "-value"}
-                    context={context}
                     meta={valueSpec.info.meta}
                     currentValue={currentValue[prop]}
                     onChange={(value) =>

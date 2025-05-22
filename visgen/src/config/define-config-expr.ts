@@ -1,4 +1,4 @@
-import { z, type ZodObject, type ZodRawShape } from "zod";
+import { z } from "zod";
 
 import type { ConfigEvalContext } from "./config-eval-context.ts";
 
@@ -10,15 +10,11 @@ export function defineConfigExpr<
   schema: TSchema,
   evalFn: (args: {
     context: ConfigEvalContext;
-    value: z.output<TSchema>;
+    value?: z.output<TSchema>;
   }) => unknown,
-  component: React.FunctionComponent<{
-    configValue: z.output<TSchema>;
-    setValue: (value: z.output<TSchema>) => void;
-    programConfig: {
-      nodes: Record<string, unknown>;
-    };
-  }>
+  component: React.FunctionComponent<
+    ConfigExprComponentProps<z.output<TSchema>>
+  >,
 ) {
   return Object.assign(
     (args: Omit<z.input<TSchema>, "$expr">) =>
@@ -26,9 +22,17 @@ export function defineConfigExpr<
         ...args,
         $expr,
       }),
-    { exprKey: $expr, schema, evalFn, component } as const
+    { exprKey: $expr, schema, evalFn, component } as const,
   );
 }
+
+export type ConfigExprComponentProps<T> = {
+  exprValue: T | undefined;
+  onChange: (value: T) => void;
+  programConfig: {
+    nodes: Record<string, unknown>;
+  };
+};
 
 export type ConfigExprDef = ReturnType<
   typeof defineConfigExpr<string, z.Schema>
