@@ -1,3 +1,11 @@
+import {
+  Select,
+  SelectContent,
+  SelectGroup,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select.tsx";
 import { defineType, type TypeMeta, TypeSpec } from "../type-spec.ts";
 import { z } from "zod";
 
@@ -6,7 +14,7 @@ export const EnumDef = defineType(
   <TValues extends [string, ...string[]]>(
     meta: TypeMeta<TValues[number]> & {
       options: TValues;
-    },
+    }
   ) =>
     TypeSpec(
       "enum",
@@ -15,18 +23,22 @@ export const EnumDef = defineType(
       ({ currentValue, onChange }) => {
         return (
           <div>
-            <select
-              value={currentValue}
-              onChange={(e) => onChange(e.target.value)}
-            >
-              {meta.options.map((option) => (
-                <option key={option} value={option}>
-                  {option}
-                </option>
-              ))}
-            </select>
+            <Select value={currentValue} onValueChange={onChange}>
+              <SelectTrigger>
+                <SelectValue placeholder="Select an option" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectGroup>
+                  {meta.options.map((option) => (
+                    <SelectItem key={option} value={option}>
+                      {option}
+                    </SelectItem>
+                  ))}
+                </SelectGroup>
+              </SelectContent>
+            </Select>
           </div>
         );
-      },
-    ),
+      }
+    )
 );

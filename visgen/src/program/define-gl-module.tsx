@@ -1,13 +1,14 @@
 import type { ShaderUniformsRecord } from "../gl2d/gl2d-fragment-shader";
 import { Gl2dFragmentShader } from "../gl2d/gl2d-fragment-shader";
-import { useRef } from "react";
+import { useEffect, useRef } from "react";
 import { Gl2d } from "../gl2d/gl2d";
 import { ImageDef } from "../data/types/image-def.tsx";
 
 import { defineModule } from "./define-module.ts";
 import { RecordDef, type RecordSpec } from "@/data/types/record-def.tsx";
+import type { RuntimeContext } from "@/program/program-runtime.ts";
 
-export function GlModuleDef<
+export function defineGlModule<
   TId extends string,
   TMetadata extends {
     label: string;
@@ -19,13 +20,13 @@ export function GlModuleDef<
     Object.keys(metadata.params.info.meta.shape).map((key) => [
       key,
       "u" + key[0].toUpperCase() + key.slice(1),
-    ]),
+    ])
   );
 
   for (const [key, uniformName] of Object.entries(paramNameToUniformName)) {
     if (!glsl.includes(uniformName)) {
       throw new Error(
-        `Uniform not found in shader: paramName=${key}, uniformName=${uniformName}`,
+        `Uniform not found in shader: paramName=${key}, uniformName=${uniformName}`
       );
     }
   }
@@ -44,13 +45,17 @@ export function GlModuleDef<
       const gl2d = Gl2d();
       const shader = Gl2dFragmentShader(gl2d.context, glsl.trim());
 
-      function Component() {
+      function Component(props: { context: RuntimeContext }) {
         const canvasRef = useRef<HTMLCanvasElement | null>(null);
 
-        const ctx = canvasRef.current?.getContext("2d");
-        if (ctx) {
-          ctx.drawImage(gl2d.canvas, 0, 0);
-        }
+        useEffect(() => {
+          return props.context.addTickHandler(() => {
+            const ctx = canvasRef.current?.getContext("2d");
+            if (ctx) {
+              ctx.drawImage(gl2d.canvas, 0, 0);
+            }
+          });
+        }, [props.context]);
 
         return (
           <div>
@@ -79,8 +84,8 @@ export function GlModuleDef<
                   type: paramsShape[paramName].info.meta.glType,
                   value: input.args?.[paramName as keyof typeof input.args],
                 },
-              ],
-            ),
+              ]
+            )
           ) as ShaderUniformsRecord;
           shader.draw(args);
           gl2d.context.drawToScreen();
@@ -90,6 +95,6 @@ export function GlModuleDef<
         },
         component: Component,
       };
-    },
+    }
   );
 }

@@ -5,6 +5,9 @@ import { evaluateConfig } from "../config/evaluate-config.ts";
 
 export function ProgramRuntime(config: ProgramConfig) {
   const nodeMap = new Map<string, RuntimeNode>();
+  const tickHandlers: (() => void)[] = [];
+
+  let isRunning = true;
 
   // Initialize modules
   for (const [id, node] of Object.entries(config.nodes)) {
@@ -23,22 +26,53 @@ export function ProgramRuntime(config: ProgramConfig) {
     });
   }
 
+  const tick = () => {
+    if (!isRunning) return;
+
+    for (const [id, node] of nodeMap.entries()) {
+      const nodeDef = moduleDefByType[config.nodes[id].type];
+      const input = evaluateConfig({
+        spec: nodeDef.metadata.input,
+        config: config.nodes[id].input,
+        context: { nodeMap },
+      }) as unknown;
+      const output = node.instance.update({ input });
+
+      node.input = input;
+      node.output = output;
+    }
+
+    for (const handler of tickHandlers) {
+      handler();
+    }
+
+    requestAnimationFrame(tick);
+  };
+
+  const start = () => {
+    if (isRunning) return;
+
+    isRunning = true;
+    requestAnimationFrame(tick);
+  };
+
+  const stop = () => {
+    isRunning = false;
+  };
+
+  const addTickHandler = (handler: () => void) => {
+    tickHandlers.push(handler);
+    return () => {
+      tickHandlers.splice(tickHandlers.indexOf(handler), 1);
+    };
+  };
+
   return {
     nodeMap,
-    tick: () => {
-      for (const [id, node] of nodeMap.entries()) {
-        const nodeDef = moduleDefByType[config.nodes[id].type];
-        const input = evaluateConfig({
-          spec: nodeDef.metadata.input,
-          config: config.nodes[id].input,
-          context: { nodeMap },
-        }) as unknown;
-        const output = node.instance.update({ input });
-
-        node.input = input;
-        node.output = output;
-      }
-    },
+    tick,
+    addTickHandler,
+    start,
+    stop,
   };
 }
 
@@ -55,4 +89,5 @@ export interface RuntimeNode {
 
 export interface RuntimeContext {
   nodeMap: Map<string, RuntimeNode>;
+  addTickHandler: (handler: () => void) => () => void;
 }

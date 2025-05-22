@@ -32,15 +32,18 @@ export const RecordDef = defineType(
       schema,
       ({ context, currentValue, onChange }) => {
         return (
-          <div>
+          <div className="grid grid-cols-[auto_1fr] gap-2 p-1 items-baseline justify-items-start">
             {Object.entries(shape).map(([prop, valueSpec]) => {
               const InputComponent =
                 valueSpec.component ??
                 Throw("Component not found for type: " + valueSpec.info.name);
               return (
-                <div key={prop} className="flex gap-2">
-                  <label>{prop}</label>
+                <>
+                  <label key={prop + "-label"} className="text-right">
+                    {prop}
+                  </label>
                   <InputComponent
+                    key={prop + "-value"}
                     context={context}
                     meta={valueSpec.info.meta}
                     currentValue={currentValue[prop]}
@@ -48,7 +51,7 @@ export const RecordDef = defineType(
                       onChange({ ...currentValue, [prop]: value })
                     }
                   />
-                </div>
+                </>
               );
             })}
           </div>

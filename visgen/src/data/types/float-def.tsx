@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { defineType, type TypeMeta, TypeSpec } from "../type-spec.ts";
+import { Input } from "@/components/ui/input.tsx";
 
 export const FloatDef = defineType("float32", (meta: FloatMeta) =>
   TypeSpec(
@@ -12,7 +13,7 @@ export const FloatDef = defineType("float32", (meta: FloatMeta) =>
       switch (ui.type) {
         case "slider":
           return (
-            <input
+            <Input
               type="range"
               min={ui.min}
               max={ui.max}
@@ -24,8 +25,9 @@ export const FloatDef = defineType("float32", (meta: FloatMeta) =>
 
         case "number":
           return (
-            <input
+            <Input
               type="number"
+              className="w-[72px]"
               value={currentValue}
               onChange={(e) => onChange(Number(e.target.value))}
             />

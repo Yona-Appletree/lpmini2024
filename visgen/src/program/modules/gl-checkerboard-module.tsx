@@ -3,9 +3,9 @@ import { IntDef } from "../../data/types/int-def.tsx";
 import { RecordDef } from "../../data/types/record-def";
 import { Vec4Def } from "../../data/types/vec4-def.tsx";
 import { glsl } from "../../util/glsl";
-import { GlModuleDef } from "../gl-module-def.tsx";
+import { defineGlModule } from "../define-gl-module.tsx";
 
-export const GlCheckerboardModule = GlModuleDef(
+export const GlCheckerboardModule = defineGlModule(
   "gl-checkerboard",
   {
     label: "Checkerboard",

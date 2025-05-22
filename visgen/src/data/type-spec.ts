@@ -30,7 +30,10 @@ export function TypeSpec<
         meta,
       } as const,
       schema,
-      component,
+
+      // Typing the components is too hard right now.
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      component: component as TypeInputComponent<any>,
     } as const,
   );
 }
@@ -50,7 +53,8 @@ export interface TypeSpec<
 > {
   schema: TSchema;
   info: TypeInfo<TName, TMeta>;
-  component: TypeInputComponent<TMeta>;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  component: TypeInputComponent<any>;
 }
 
 export type TypeInputComponent<TMeta extends TypeMeta<unknown>> =
@@ -71,8 +75,10 @@ export interface TypeSpecFn<
   (...args: z.input<TSchema>): z.output<TSchema>;
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-export type TypeSpecOf<T extends (...args: any[]) => TypeSpecFn> = {
+export type TypeSpecOf<
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  T extends (...args: any[]) => TypeSpecFn<any, any, any>,
+> = {
   [K in keyof ReturnType<T>]: ReturnType<T>[K];
 };
 
