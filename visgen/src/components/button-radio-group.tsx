@@ -6,7 +6,6 @@ import * as RadioGroupPrimitive from "@radix-ui/react-radio-group";
 //
 
 import { cn } from "../lib/utils";
-import { CheckCircle } from "lucide-react";
 
 const ButtonRadioGroup = React.forwardRef<
   React.ComponentRef<typeof RadioGroupPrimitive.Root>,
@@ -14,7 +13,7 @@ const ButtonRadioGroup = React.forwardRef<
 >(({ className, ...props }, ref) => {
   return (
     <RadioGroupPrimitive.Root
-      className={cn("flex gap-5", className)}
+      className={cn("flex gap-1 rounded-lg bg-muted p-1", className)}
       {...props}
       ref={ref}
     />
@@ -25,7 +24,7 @@ ButtonRadioGroup.displayName = RadioGroupPrimitive.Root.displayName;
 const ButtonRadioGroupItem = React.forwardRef<
   React.ElementRef<typeof RadioGroupPrimitive.Item>,
   {
-    icon: React.ReactNode;
+    icon?: React.ReactNode;
     label: string;
   } & React.ComponentPropsWithoutRef<typeof RadioGroupPrimitive.Item>
 >(({ className, icon, label, ...props }, ref) => {
@@ -33,23 +32,14 @@ const ButtonRadioGroupItem = React.forwardRef<
     <RadioGroupPrimitive.Item
       ref={ref}
       className={cn(
-        "border data-[state=checked]:bg-background text-center h-[125px] w-[125px] rounded-md focus:outline-none 2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50",
+        "inline-flex items-center justify-center gap-2 rounded-md px-3 py-2 text-sm font-medium ring-offset-background transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50",
+        "hover:bg-background/50 data-[state=checked]:bg-background data-[state=checked]:text-foreground",
         className
       )}
       {...props}
     >
-      <RadioGroupPrimitive.RadioGroupIndicator className="relative">
-        <div className="relative">
-          <div className="absolute -ml-2 -mt-[30px] ">
-            <CheckCircle className="text-primary" />
-          </div>
-        </div>
-      </RadioGroupPrimitive.RadioGroupIndicator>
-
-      <div className="flex flex-col justify-center">
-        <div className="self-center">{icon}</div>
-        <div className="text-sm pt-2">{label}</div>
-      </div>
+      {icon && <span className="h-4 w-4">{icon}</span>}
+      <span>{label}</span>
     </RadioGroupPrimitive.Item>
   );
 });

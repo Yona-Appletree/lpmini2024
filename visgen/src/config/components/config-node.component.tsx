@@ -6,6 +6,8 @@ import { ValueConfigComponent } from "@/config/components/value-config-component
 
 import { configExprDefs } from "../config-expr";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { ButtonRadioGroupItem } from "@/components/button-radio-group";
+import { ButtonRadioGroup } from "@/components/button-radio-group";
 
 export function ConfigNodeComponent(props: ConfigNodeProps) {
   const editComponent = (() => {
@@ -27,12 +29,12 @@ export function ConfigNodeComponent(props: ConfigNodeProps) {
   return (
     <div>
       {editComponent}
-      <RadioGroup>
-        <RadioGroupItem value="raw">Raw</RadioGroupItem>
+      <ButtonRadioGroup defaultValue="raw" onValueChange={props.onChange}>
+        <ButtonRadioGroupItem value="raw" label="Raw" />
         {configExprDefs.map((it) => (
-          <RadioGroupItem value={it.name}>{it.name}</RadioGroupItem>
+          <ButtonRadioGroupItem key={it.name} value={it.name} label={it.name} />
         ))}
-      </RadioGroup>
+      </ButtonRadioGroup>
     </div>
   );
 }
