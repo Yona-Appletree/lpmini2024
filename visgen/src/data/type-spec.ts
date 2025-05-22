@@ -3,9 +3,8 @@ import type { RuntimeContext } from "@/program/program-runtime.ts";
 
 export function defineType<
   TName extends string,
-  TType extends TypeSpecFn<TName>,
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  TFn extends (...args: any[]) => TType,
+  TFn extends (...args: any[]) => TypeSpecFn<TName, any, any>,
 >(typeName: TName, typeFn: TFn) {
   return Object.assign(typeFn, {
     typeName: typeName,
@@ -20,7 +19,7 @@ export function TypeSpec<
   name: TName,
   meta: TMeta,
   schema: TSchema,
-  component: TypeInputComponent<TSchema, TMeta>,
+  component: TypeInputComponent<TMeta>,
 ) {
   return Object.assign(
     (input: z.input<TSchema>): z.output<TSchema> => schema.parse(input),
@@ -50,18 +49,18 @@ export interface TypeSpec<
 > {
   schema: TSchema;
   info: TypeInfo<TName, TMeta>;
-  component: TypeInputComponent<TSchema, TMeta>;
+  component: TypeInputComponent<TMeta>;
 }
 
-export type TypeInputComponent<
-  TSchema extends z.Schema = z.Schema,
-  TMeta extends TypeMeta<z.output<TSchema>> = TypeMeta<z.output<TSchema>>,
-> = React.FunctionComponent<{
+export type TypeInputComponent<TMeta extends TypeMeta<unknown>> =
+  React.FunctionComponent<TypeInputComponentProps<TMeta>>;
+
+export type TypeInputComponentProps<TMeta extends TypeMeta<unknown>> = {
   context: RuntimeContext;
   meta: TMeta;
-  currentValue: z.output<TSchema>;
-  onChange: (value: z.output<TSchema>) => void;
-}>;
+  currentValue: TMeta["default"];
+  onChange: (value: TMeta["default"]) => void;
+};
 
 export interface TypeSpecFn<
   TName extends string = string,
@@ -76,9 +75,12 @@ export type TypeSpecOf<T extends (...args: any[]) => TypeSpecFn> = {
   [K in keyof ReturnType<T>]: ReturnType<T>[K];
 };
 
-export interface TypeMeta<T> {
+export interface TypeMetaInfo {
   label?: string;
   description?: string;
+}
+
+export interface TypeMeta<T> extends TypeMetaInfo {
   default: T;
 }
 

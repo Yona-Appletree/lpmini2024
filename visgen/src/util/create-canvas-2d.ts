@@ -1,4 +1,4 @@
-import type { Vec2 } from "@/data/types/vec2-def.tsx";
+import type { Vec2 } from "@/data/types/array/vec2-def.tsx";
 
 export function createCanvas2d(size: Vec2) {
   const canvas = document.createElement("canvas");

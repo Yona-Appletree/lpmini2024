@@ -1,6 +1,6 @@
 import type { TypeSpec } from "../data/type-spec.ts";
 import type { ConfigValue } from "./config-schema-for.ts";
-import type { ArrayMeta } from "../data/types/array-def.tsx";
+import type { ArrayMeta } from "../data/types/array/array-def.tsx";
 import type { RecordMeta } from "../data/types/record-def.tsx";
 import { configExprByType, type ConfigExprType } from "./config-expr.ts";
 import { Throw } from "../util/throw.ts";

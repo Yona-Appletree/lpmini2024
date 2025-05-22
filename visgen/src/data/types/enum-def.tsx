@@ -7,22 +7,26 @@ export const EnumDef = defineType(
     meta: TypeMeta<TValues[number]> & {
       options: TValues;
     },
-  ) => TypeSpec("enum", meta, z.enum(meta.options),
-   ({ context, currentValue, onChange }) => {
-    return (
-      <div>
-        <select
-          value={currentValue}
-          onChange={(e) => onChange(e.target.value)}
-        >
-          {meta.options.map((option) => (
-            <option key={option} value={option}>
-                {option}
-              </option>
-            ))}
-          </select>
-        </div>
-      );
-    },
-  ),
+  ) =>
+    TypeSpec(
+      "enum",
+      meta,
+      z.enum(meta.options),
+      ({ currentValue, onChange }) => {
+        return (
+          <div>
+            <select
+              value={currentValue}
+              onChange={(e) => onChange(e.target.value)}
+            >
+              {meta.options.map((option) => (
+                <option key={option} value={option}>
+                  {option}
+                </option>
+              ))}
+            </select>
+          </div>
+        );
+      },
+    ),
 );

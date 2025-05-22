@@ -1,4 +1,4 @@
-import type { Vec2 } from "@/data/types/vec2-def.tsx";
+import type { Vec2 } from "@/data/types/array/vec2-def.tsx";
 import { createCanvas2d } from "@/util/create-canvas-2d.ts";
 import type { ChangingImage, ImageChangedEvent } from "@/lib/changing-image.ts";
 
