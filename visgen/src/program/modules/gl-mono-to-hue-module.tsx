@@ -11,6 +11,7 @@ export const GlMonoToHueModule = defineGlModule(
     params: RecordDef({
       saturation: FloatDef({ default: 0.8 }),
       luminance: FloatDef({ default: 0.5 }),
+      hueShift: FloatDef({ default: 0.0 }),
     }),
     output: ImageDef(),
   },
@@ -22,6 +23,7 @@ export const GlMonoToHueModule = defineGlModule(
     uniform sampler2D uInputTexture;
     uniform float uSaturation;
     uniform float uLuminance;
+    uniform float uHueShift;
 
     float hue2rgb(float p, float q, float t) {
       if (t < 0.0) t += 1.0;
@@ -56,6 +58,9 @@ export const GlMonoToHueModule = defineGlModule(
       
       // Apply sine function to smooth the result and normalize to [0,1]
       float smoothedHue = (sin(mono * 6.28318530718) + 1.0) * 0.5;
+      
+      // Add the hue shift and wrap around to [0,1]
+      smoothedHue = fract(smoothedHue + uHueShift);
       
       // Create HSL color using the smoothed monochrome value as hue
       vec3 hsl = vec3(smoothedHue, uSaturation, uLuminance);

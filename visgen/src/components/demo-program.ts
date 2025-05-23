@@ -26,15 +26,15 @@ export const demoConfig = ProgramConfig({
           args: {
             value: {
               color1: {
-                $hexColor: "#32A5A3",
+                $hexColor: "#000000",
                 activeExpr: "$hexColor",
               },
               color2: {
-                $hexColor: "#780011",
+                $hexColor: "#FFFFFF",
                 activeExpr: "$hexColor",
               },
-              rows: { value: 10 },
-              columns: { value: 10 },
+              rows: { value: 5 },
+              columns: { value: 5 },
             },
           },
         },
@@ -94,6 +94,12 @@ export const demoConfig = ProgramConfig({
             value: {
               saturation: { value: 0.5 },
               luminance: { value: 0.5 },
+              hueShift: {
+                $moduleOutput: {
+                  moduleId: "lfo",
+                },
+                activeExpr: "$moduleOutput",
+              },
             },
           },
         },
