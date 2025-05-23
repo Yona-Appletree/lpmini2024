@@ -18,9 +18,11 @@ import {
   SelectTrigger,
 } from "@/components/ui/select";
 import { PencilLineIcon } from "lucide-react";
+import { useVersion } from "@/hooks/use-version.tsx";
 
 export function ConfigNodeComponent(props: ConfigNodeProps) {
   const activeExprKey = props.configValue.activeExpr;
+  const incrementVersion = useVersion();
 
   const valueComponent = (() => {
     // Active expression
@@ -30,7 +32,10 @@ export function ConfigNodeComponent(props: ConfigNodeProps) {
         <ExprComponent
           programConfig={props.programConfig}
           exprValue={props.configValue[activeExprKey]}
-          onChange={(it) => (props.configValue[activeExprKey] = it)}
+          onChange={(it) => {
+            props.configValue[activeExprKey] = it;
+            incrementVersion();
+          }}
         />
       );
     }
@@ -64,6 +69,7 @@ export function ConfigNodeComponent(props: ConfigNodeProps) {
             }
             onChange={(it) => {
               props.configValue.value = it;
+              incrementVersion();
             }}
           />
         );
@@ -78,6 +84,7 @@ export function ConfigNodeComponent(props: ConfigNodeProps) {
         onValueChange={(newVal) => {
           props.configValue.activeExpr =
             newVal === "value" ? undefined : (newVal as ConfigExprKey);
+          incrementVersion();
         }}
       >
         <SelectTrigger showChevron={false}>

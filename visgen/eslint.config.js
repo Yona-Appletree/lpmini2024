@@ -60,6 +60,12 @@ export default tseslint.config(
       ],
 
       "import/no-unresolved": "off",
+
+      // -----------------------------------------------------------------------
+      // General
+      //
+
+      "object-shorthand": ["error", "always"],
     },
   },
 

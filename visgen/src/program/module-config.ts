@@ -4,7 +4,7 @@ import { GlCheckerboardModule } from "@/program/modules/gl-checkerboard-module.t
 import { GlHslShiftModule } from "@/program/modules/gl-hsl-shift-module.tsx";
 import { GlPolarScrollNode } from "@/program/modules/gl-polar-scroll-module.tsx";
 import { GlRotateNode } from "@/program/modules/gl-rotate-module.tsx";
-import { LowFrequencyOscillator } from "@/program/modules/low-frequency-oscillator-module.tsx";
+import { OscillatorModule } from "@/program/modules/oscillator-module.tsx";
 import { z } from "zod";
 
 // -----------------------------------------------------------------------------
@@ -13,7 +13,7 @@ import { z } from "zod";
 
 const moduleDefs = [
   GlCheckerboardModule,
-  LowFrequencyOscillator,
+  OscillatorModule,
   GlRotateNode,
   GlPolarScrollNode,
   GlHslShiftModule,

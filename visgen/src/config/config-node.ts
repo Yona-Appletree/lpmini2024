@@ -1,11 +1,12 @@
 import { ZodDef } from "@/util/zod/zod-def.ts";
 import { z } from "zod";
 import { ModuleOutputExpr } from "./expressions/module-output-expr.tsx";
+import { HexColorExpr } from "@/config/expressions/hex-color-expr.tsx";
 
 // -----------------------------------------------------------------------------
 // Expr definitions
 
-export const configExprDefs = [ModuleOutputExpr] as const;
+export const configExprDefs = [ModuleOutputExpr, HexColorExpr] as const;
 
 // -----------------------------------------------------------------------------
 // Map of exprKey to expr definition

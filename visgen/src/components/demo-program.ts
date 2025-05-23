@@ -1,26 +1,26 @@
 import { GlCheckerboardModule } from "@/program/modules/gl-checkerboard-module.tsx";
 import { GlPolarScrollNode } from "@/program/modules/gl-polar-scroll-module.tsx";
 import { GlRotateNode } from "@/program/modules/gl-rotate-module.tsx";
-import { LowFrequencyOscillator } from "@/program/modules/low-frequency-oscillator-module.tsx";
+import { OscillatorModule } from "@/program/modules/oscillator-module.tsx";
 import { ProgramConfig } from "@/program/program-config.ts";
 
 export const demoConfig = ProgramConfig({
   nodes: {
-    lfo: LowFrequencyOscillator.Config({
+    lfo: OscillatorModule.Config({
       input: {
         value: {
           period: { value: 5 },
-          easing: { value: "quadInOut" },
+          easing: { value: "sine" },
           min: { value: 0 },
           max: { value: 1 },
         },
       },
     }),
-    lfo2: LowFrequencyOscillator.Config({
+    lfo2: OscillatorModule.Config({
       input: {
         value: {
           period: { value: 7 },
-          easing: { value: "quadInOut" },
+          easing: { value: "sawtooth" },
           min: { value: 0 },
           max: { value: 1 },
         },
@@ -34,20 +34,12 @@ export const demoConfig = ProgramConfig({
           args: {
             value: {
               color1: {
-                value: [
-                  { value: 1 },
-                  { value: 0.5 },
-                  { value: 0 },
-                  { value: 1 },
-                ],
+                $hexColor: "#32A5A3",
+                activeExpr: "$hexColor",
               },
               color2: {
-                value: [
-                  { value: 0 },
-                  { value: 0 },
-                  { value: 0.5 },
-                  { value: 1 },
-                ],
+                $hexColor: "#780011",
+                activeExpr: "$hexColor",
               },
               rows: { value: 10 },
               columns: { value: 10 },
@@ -94,7 +86,7 @@ export const demoConfig = ProgramConfig({
             value: {
               offset: {
                 $moduleOutput: {
-                  moduleId: "lfo",
+                  moduleId: "lfo2",
                 },
                 activeExpr: "$moduleOutput",
               },

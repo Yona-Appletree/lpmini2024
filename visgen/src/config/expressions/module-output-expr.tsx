@@ -26,12 +26,14 @@ export const ModuleOutputExpr = defineConfigExpr(
       : undefined;
   },
   (props) => {
+    console.info(props.exprValue?.moduleId);
+
     return (
       <Select
         value={props.exprValue?.moduleId as string}
-        onValueChange={(moduleId) =>
-          props.onChange({ moduleId: moduleId as ModuleId })
-        }
+        onValueChange={(moduleId) => {
+          props.onChange({ moduleId: moduleId as ModuleId });
+        }}
       >
         <SelectTrigger>
           <SelectValue placeholder="Select an option" />

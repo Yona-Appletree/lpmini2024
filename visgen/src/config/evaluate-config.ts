@@ -1,27 +1,24 @@
 import type { TypeSpec } from "../data/type-spec.ts";
-import type { ConfigForType } from "./config-schema-for.ts";
 import type { ArrayMeta } from "../data/types/array-def.tsx";
 import type { RecordMeta } from "../data/types/record-def.tsx";
-import { configExprByType, type ConfigExprType } from "./config-node.ts";
-import { Throw } from "../util/throw.ts";
+import { configExprByType, ConfigNode } from "./config-node.ts";
 import type { ConfigEvalContext } from "./config-eval-context.ts";
-import type { ConfigNode } from "./config-node.ts";
 import type { TupleMeta } from "@/data/types/tuple-def.tsx";
 
 /**
  * Evaluate a config value producing a value, a context.
  */
-export function evaluateConfig({
+export function evaluateConfig<T = unknown>({
   spec,
   configNode,
   context,
   path = [],
 }: {
   spec: TypeSpec;
-  configNode: ConfigNode;
+  configNode: ConfigNode<T>;
   context: ConfigEvalContext;
   path?: string[];
-}): unknown {
+}): T {
   const activeExprKey = configNode.activeExpr;
 
   if (activeExprKey != null) {
@@ -47,7 +44,7 @@ export function evaluateConfig({
           configNode: item,
           context,
           path: [...path, index.toString()],
-        })
+        }),
       );
 
     case "record":
@@ -61,8 +58,8 @@ export function evaluateConfig({
               context,
               path: [...path, key],
             }),
-          ]
-        )
+          ],
+        ),
       );
 
     case "tuple":
@@ -72,7 +69,7 @@ export function evaluateConfig({
           configNode: item,
           context,
           path: [...path, index.toString()],
-        })
+        }),
       );
 
     default:
