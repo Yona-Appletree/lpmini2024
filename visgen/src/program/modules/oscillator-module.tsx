@@ -54,7 +54,7 @@ export const OscillatorModule = defineModule(
         );
       },
     };
-  },
+  }
 );
 
 const waveFunctions: Record<WaveFunctionKey, (phase: number) => number> = {
@@ -62,7 +62,8 @@ const waveFunctions: Record<WaveFunctionKey, (phase: number) => number> = {
   sine: (phase: number) => Math.sin(phase * 2 * Math.PI) * 0.5 + 0.5,
   square: (phase: number) => (phase < 0.5 ? 1 : 0),
   triangle: (phase: number) => {
-    const value = phase * 4 - 2;
-    return value - Math.floor(value);
+    return phase < 0.5
+      ? 2 * phase // Linear increase from 0 to 1
+      : 2 * (1 - phase); // Linear decrease from 1 to 0
   },
 };

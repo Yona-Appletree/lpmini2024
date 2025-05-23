@@ -1,4 +1,6 @@
 import { GlCheckerboardModule } from "@/program/modules/gl-checkerboard-module.tsx";
+import { GlMonoToHueModule } from "@/program/modules/gl-mono-to-hue-module";
+import { GlPerlinModule } from "@/program/modules/gl-perlin-module";
 import { GlPolarScrollNode } from "@/program/modules/gl-polar-scroll-module.tsx";
 import { GlRotateNode } from "@/program/modules/gl-rotate-module.tsx";
 import { OscillatorModule } from "@/program/modules/oscillator-module.tsx";
@@ -6,16 +8,6 @@ import { ProgramConfig } from "@/program/program-config.ts";
 
 export const demoConfig = ProgramConfig({
   nodes: {
-    lfo: OscillatorModule.Config({
-      input: {
-        value: {
-          period: { value: 5 },
-          easing: { value: "sine" },
-          min: { value: 0 },
-          max: { value: 1 },
-        },
-      },
-    }),
     lfo2: OscillatorModule.Config({
       input: {
         value: {
@@ -49,24 +41,59 @@ export const demoConfig = ProgramConfig({
       },
     }),
 
-    rotate: GlRotateNode.Config({
+    lfo3: OscillatorModule.Config({
+      input: {
+        value: {
+          period: { value: 30 },
+          easing: { value: "triangle" },
+          min: { value: 0 },
+          max: { value: 5 },
+        },
+      },
+    }),
+
+    perlin: GlPerlinModule.Config({
+      input: {
+        value: {
+          image: { value: null },
+          args: {
+            value: {
+              color: {
+                $hexColor: "#FFFFFF",
+                activeExpr: "$hexColor",
+              },
+              scale: { value: 1 },
+              timeOffset: {
+                $moduleOutput: {
+                  moduleId: "lfo3",
+                },
+                activeExpr: "$moduleOutput",
+              },
+              octaves: { value: 3 },
+              persistence: { value: 0.4 },
+              lacunarity: { value: 2 },
+              contrast: { value: 1.1 },
+              brightness: { value: 0.01 },
+              sharpness: { value: 15 },
+            },
+          },
+        },
+      },
+    }),
+
+    monoToHue: GlMonoToHueModule.Config({
       input: {
         value: {
           image: {
             $moduleOutput: {
-              moduleId: "checkerboard",
+              moduleId: "perlin",
             },
             activeExpr: "$moduleOutput",
           },
           args: {
             value: {
-              angle: { value: 0 },
-              swirl: {
-                $moduleOutput: {
-                  moduleId: "lfo",
-                },
-                activeExpr: "$moduleOutput",
-              },
+              saturation: { value: 0.5 },
+              luminance: { value: 0.5 },
             },
           },
         },
@@ -78,7 +105,7 @@ export const demoConfig = ProgramConfig({
         value: {
           image: {
             $moduleOutput: {
-              moduleId: "rotate",
+              moduleId: "monoToHue",
             },
             activeExpr: "$moduleOutput",
           },
@@ -87,6 +114,40 @@ export const demoConfig = ProgramConfig({
               offset: {
                 $moduleOutput: {
                   moduleId: "lfo2",
+                },
+                activeExpr: "$moduleOutput",
+              },
+            },
+          },
+        },
+      },
+    }),
+
+    lfo: OscillatorModule.Config({
+      input: {
+        value: {
+          period: { value: 5 },
+          easing: { value: "sine" },
+          min: { value: -0.25 },
+          max: { value: 0.25 },
+        },
+      },
+    }),
+    rotate: GlRotateNode.Config({
+      input: {
+        value: {
+          image: {
+            $moduleOutput: {
+              moduleId: "polarScroll",
+            },
+            activeExpr: "$moduleOutput",
+          },
+          args: {
+            value: {
+              angle: { value: 0 },
+              swirl: {
+                $moduleOutput: {
+                  moduleId: "lfo",
                 },
                 activeExpr: "$moduleOutput",
               },

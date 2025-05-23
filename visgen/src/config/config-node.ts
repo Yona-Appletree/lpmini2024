@@ -2,17 +2,22 @@ import { ZodDef } from "@/util/zod/zod-def.ts";
 import { z } from "zod";
 import { ModuleOutputExpr } from "./expressions/module-output-expr.tsx";
 import { HexColorExpr } from "@/config/expressions/hex-color-expr.tsx";
+import { TimeExpr } from "./expressions/time-expr.tsx";
 
 // -----------------------------------------------------------------------------
 // Expr definitions
 
-export const configExprDefs = [ModuleOutputExpr, HexColorExpr] as const;
+export const configExprDefs = [
+  ModuleOutputExpr,
+  HexColorExpr,
+  TimeExpr,
+] as const;
 
 // -----------------------------------------------------------------------------
 // Map of exprKey to expr definition
 
 export const configExprByType = Object.fromEntries(
-  configExprDefs.map((def) => [def.exprKey, def]),
+  configExprDefs.map((def) => [def.exprKey, def])
 ) as {
   [I in keyof typeof configExprDefs as (typeof configExprDefs)[I] extends {
     exprKey: string;
@@ -28,7 +33,7 @@ export type ConfigExprType = keyof typeof configExprByType;
 //
 
 export const ConfigExprKey = ZodDef(
-  z.enum(configExprDefs.map((def) => def.exprKey) as unknown as ExprKeys),
+  z.enum(configExprDefs.map((def) => def.exprKey) as unknown as ExprKeys)
 );
 export type ConfigExprKey = ReturnType<typeof ConfigExprKey>;
 
@@ -38,7 +43,7 @@ export const ConfigNodeExpr = ZodDef(
   z
     .object({
       ...(Object.fromEntries(
-        configExprDefs.map((def) => [def.exprKey, def.schema]),
+        configExprDefs.map((def) => [def.exprKey, def.schema])
       ) as {
         [I in keyof typeof configExprDefs as (typeof configExprDefs)[I] extends {
           exprKey: string;
@@ -51,7 +56,7 @@ export const ConfigNodeExpr = ZodDef(
           : never;
       }),
     })
-    .partial(),
+    .partial()
 );
 export type ConfigNodeExpr = ReturnType<typeof ConfigNodeExpr>;
 
@@ -78,7 +83,7 @@ export const ConfigNode = ZodDef(
   ConfigNodeExpr.schema.extend({
     value: z.unknown().optional(),
     activeExpr: ConfigExprKey.schema.optional(),
-  }),
+  })
 );
 
 export type ConfigNode<T = unknown> = Omit<

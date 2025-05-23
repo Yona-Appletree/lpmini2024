@@ -31,13 +31,13 @@ npm run dev
 - [ ] Output modules
 - [ ] Rust core
 
-## Features
+## General Features
 
 - [ ] Save/load config
 - [ ] Add / delete modules
 - [ ] Config functions / recursive config values
 - [ ] Restrict wiring module output values to only same type
-- [ ] 
+- [ ] Config error handling
 
 ## Bugs
 
@@ -49,3 +49,4 @@ npm run dev
 - [ ] MSA Fluid
 - [ ] Color mixing images
 - [ ] Offsetting images using other images
+- [ ] Monochrome images?
