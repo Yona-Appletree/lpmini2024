@@ -13,7 +13,7 @@ const ButtonRadioGroup = React.forwardRef<
 >(({ className, ...props }, ref) => {
   return (
     <RadioGroupPrimitive.Root
-      className={cn("flex gap-1 rounded-lg bg-muted p-1", className)}
+      className={cn("inline-flex gap-1 rounded-lg bg-muted p-1", className)}
       {...props}
       ref={ref}
     />
@@ -32,14 +32,17 @@ const ButtonRadioGroupItem = React.forwardRef<
     <RadioGroupPrimitive.Item
       ref={ref}
       className={cn(
-        "inline-flex items-center justify-center gap-2 rounded-md p-1 text-sm font-medium ring-offset-background transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50",
-        "hover:bg-background/50 data-[state=checked]:bg-background data-[state=checked]:text-foreground",
-        className,
+        "inline-flex items-center justify-center gap-2 rounded-md p-1 text-sm font-medium ring-offset-background ",
+        "transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+        " focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50",
+        "hover:bg-background/50 ",
+        "data-[state=checked]:bg-primary data-[state=checked]:text-primary-foreground",
+        className
       )}
       {...props}
     >
       {icon && <span className="h-4 w-4">{icon}</span>}
-      <span>{label}</span>
+      {label && <span>{label}</span>}
     </RadioGroupPrimitive.Item>
   );
 });

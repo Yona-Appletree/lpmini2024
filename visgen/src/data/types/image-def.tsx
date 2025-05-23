@@ -5,7 +5,7 @@ export const ImageDef = defineType(
   "image",
   (meta: TypeMeta<CanvasImageSource | null> = { default: null }) =>
     TypeSpec("image", meta, CanvasImageSource.nullable(), () => {
-      return <div>Image.</div>;
+      return <div>(null image)</div>;
     }),
 );
 

@@ -16,6 +16,16 @@ export const demoConfig = ProgramConfig({
         },
       },
     }),
+    lfo2: LowFrequencyOscillator.Config({
+      input: {
+        value: {
+          period: { value: 7 },
+          easing: { value: "quadInOut" },
+          min: { value: 0 },
+          max: { value: 1 },
+        },
+      },
+    }),
 
     checkerboard: GlCheckerboardModule.Config({
       input: {

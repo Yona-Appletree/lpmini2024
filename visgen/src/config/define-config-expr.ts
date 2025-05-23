@@ -1,12 +1,17 @@
 import { z } from "zod";
 
 import type { ConfigEvalContext } from "./config-eval-context.ts";
+import React from "react";
 
 export function defineConfigExpr<
   TType extends string,
   TSchema extends z.Schema,
 >(
   $expr: TType,
+  meta: {
+    icon?: string | React.JSX.Element;
+    label: string;
+  },
   schema: TSchema,
   evalFn: (args: {
     context: ConfigEvalContext;
@@ -14,7 +19,7 @@ export function defineConfigExpr<
   }) => unknown,
   component: React.FunctionComponent<
     ConfigExprComponentProps<z.output<TSchema>>
-  >,
+  >
 ) {
   return Object.assign(
     (args: Omit<z.input<TSchema>, "$expr">) =>
@@ -22,7 +27,7 @@ export function defineConfigExpr<
         ...args,
         $expr,
       }),
-    { exprKey: $expr, schema, evalFn, component } as const,
+    { exprKey: $expr, meta, schema, evalFn, component } as const
   );
 }
 

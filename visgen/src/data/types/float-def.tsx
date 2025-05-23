@@ -13,7 +13,7 @@ export const FloatDef = defineType("float32", (meta: FloatMeta) =>
     { glType: "float32", ...meta },
     z.number(),
     ({ meta, currentValue, onChange }) => {
-      const ui = (meta as FloatMeta).ui ?? { type: "number" };
+      const ui = (meta as FloatMeta).ui ?? { type: "number", step: 0.1 };
 
       switch (ui.type) {
         case "slider":
@@ -34,6 +34,9 @@ export const FloatDef = defineType("float32", (meta: FloatMeta) =>
               type="number"
               className="w-[72px]"
               value={currentValue}
+              min={ui.min}
+              max={ui.max}
+              step={ui.step}
               onChange={(e) => onChange(Number(e.target.value))}
             />
           );
@@ -57,5 +60,6 @@ export interface FloatMeta extends TypeMeta<number> {
         type: "number";
         min: number;
         max: number;
+        step: number;
       };
 }

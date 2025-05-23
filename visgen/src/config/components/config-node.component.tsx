@@ -9,10 +9,15 @@ import {
   type ConfigExprKey,
   type ConfigNode,
 } from "../config-node";
+
 import {
-  ButtonRadioGroup,
-  ButtonRadioGroupItem,
-} from "@/components/button-radio-group";
+  Select,
+  SelectContent,
+  SelectGroup,
+  SelectItem,
+  SelectTrigger,
+} from "@/components/ui/select";
+import { PencilLineIcon } from "lucide-react";
 
 export function ConfigNodeComponent(props: ConfigNodeProps) {
   const activeExprKey = props.configValue.activeExpr;
@@ -54,8 +59,12 @@ export function ConfigNodeComponent(props: ConfigNodeProps) {
         return (
           <InputComponent
             meta={props.typeSpec.info.meta}
-            currentValue={props.configValue.value}
-            onChange={(it) => (props.configValue.value = it)}
+            currentValue={
+              props.configValue.value ?? props.typeSpec.info.meta.default
+            }
+            onChange={(it) => {
+              props.configValue.value = it;
+            }}
           />
         );
       }
@@ -63,26 +72,34 @@ export function ConfigNodeComponent(props: ConfigNodeProps) {
   })();
 
   return (
-    <div>
-      {valueComponent}
-
-      <ButtonRadioGroup
-        defaultValue="value"
+    <div className="flex items-center">
+      <Select
         value={activeExprKey ?? "value"}
         onValueChange={(newVal) => {
           props.configValue.activeExpr =
             newVal === "value" ? undefined : (newVal as ConfigExprKey);
         }}
       >
-        <ButtonRadioGroupItem value="value" label="Value" />
-        {configExprDefs.map((it) => (
-          <ButtonRadioGroupItem
-            key={it.exprKey}
-            value={it.exprKey}
-            label={it.exprKey}
-          />
-        ))}
-      </ButtonRadioGroup>
+        <SelectTrigger showChevron={false}>
+          {configExprDefs.find((it) => it.exprKey === activeExprKey)?.meta
+            .icon ?? <PencilLineIcon className="w-4" />}
+        </SelectTrigger>
+        <SelectContent>
+          <SelectGroup>
+            <SelectItem key="value" value="value">
+              <PencilLineIcon className="w-4" />
+              Value
+            </SelectItem>
+            {configExprDefs.map((option) => (
+              <SelectItem key={option.exprKey} value={option.exprKey}>
+                {option.meta.icon}
+                {option.meta.label}
+              </SelectItem>
+            ))}
+          </SelectGroup>
+        </SelectContent>
+      </Select>
+      {valueComponent}
     </div>
   );
 }

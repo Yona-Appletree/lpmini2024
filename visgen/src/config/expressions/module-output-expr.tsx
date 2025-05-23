@@ -9,9 +9,14 @@ import {
   SelectValue,
 } from "@/components/ui/select.tsx";
 import { z } from "zod";
+import { CableIcon } from "lucide-react";
 
 export const ModuleOutputExpr = defineConfigExpr(
   "$moduleOutput",
+  {
+    label: "Module Output",
+    icon: <CableIcon className="size-4" />,
+  },
   z.object({
     moduleId: z.string(),
   }),
@@ -42,6 +47,6 @@ export const ModuleOutputExpr = defineConfigExpr(
         </SelectContent>
       </Select>
     );
-  }
+  },
 );
 export type ModuleOutputExpr = ReturnType<typeof ModuleOutputExpr>;
