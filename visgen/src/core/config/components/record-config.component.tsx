@@ -1,0 +1,33 @@
+import type { ConfigNodeProps } from "@/core/config/components/config-node.component.tsx";
+import type { RecordSpec } from "@/core/data/types/record-def.tsx";
+import { ConfigNodeComponent } from "@/core/config/components/config-node.component.tsx";
+
+export function RecordConfigComponent(
+  props: ConfigNodeProps<Record<string, unknown>>,
+) {
+  const shape = props.typeSpec as RecordSpec;
+  const value = props.configValue.value ?? {};
+
+  return (
+    <div className="grid grid-cols-[auto_1fr] gap-2 p-1 items-baseline justify-items-start">
+      {Object.entries(shape.info.meta.shape).map(([propName, valueSpec]) => {
+        const itemValue = value[propName] ?? {};
+
+        return (
+          <>
+            <label key={propName + "-label"} className="text-right">
+              {propName}
+            </label>
+
+            <ConfigNodeComponent
+              key={propName + "-value"}
+              configValue={itemValue}
+              typeSpec={valueSpec}
+              programConfig={props.programConfig}
+            />
+          </>
+        );
+      })}
+    </div>
+  );
+}
