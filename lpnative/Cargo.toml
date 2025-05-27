@@ -3,9 +3,18 @@ members = [
     "lplib",
     "lpcli",
     "lpfirmware",
+    "lpfirmware-esp32c3",
 ]
+resolver = "2"
 
 [workspace.package]
 name = "lpnative"
 version = "0.1.0"
 edition = "2021"
+
+[profile.release]
+opt-level = "s"
+
+[profile.dev]
+debug = true
+opt-level = "z"
