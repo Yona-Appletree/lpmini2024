@@ -1,7 +1,24 @@
 import { createCanvas } from "@/frontend/util/create-canvas.ts";
 import { glsl } from "@/frontend/util/glsl.ts";
+import { Gl2dFramebuffer } from "./gl2d-framebuffer.ts";
 
-export function Gl2dContext(canvas = createCanvas()) {
+interface Gl2dContextReturn {
+  gl: WebGL2RenderingContext;
+  width: number;
+  height: number;
+  framebuffers: Gl2dFramebuffer[];
+  copyProgram: WebGLProgram;
+  vertexShader: WebGLShader;
+  copyFragmentShader: WebGLShader;
+  drawToScreen: () => void;
+  rotateFramebuffers: () => {
+    aBuffer: Gl2dFramebuffer;
+    bBuffer: Gl2dFramebuffer;
+  };
+  [Symbol.dispose]: () => void;
+}
+
+export function Gl2dContext(canvas = createCanvas()): Gl2dContextReturn {
   const gl = canvas.getContext("webgl2")!;
   const width = canvas.width;
   const height = canvas.height;
@@ -34,7 +51,7 @@ export function Gl2dContext(canvas = createCanvas()) {
   if (!gl.getShaderParameter(vertexShader, gl.COMPILE_STATUS)) {
     console.error(
       "Vertex shader compilation error:",
-      gl.getShaderInfoLog(vertexShader),
+      gl.getShaderInfoLog(vertexShader)
     );
     gl.deleteShader(vertexShader);
     throw new Error("Failed to compile vertex shader");
@@ -53,7 +70,7 @@ export function Gl2dContext(canvas = createCanvas()) {
       void main() {
         fragColor = texture(uTexture, vUv);
       }
-    `,
+    `
   );
   gl.compileShader(copyFragmentShader);
 
@@ -61,7 +78,7 @@ export function Gl2dContext(canvas = createCanvas()) {
   if (!gl.getShaderParameter(copyFragmentShader, gl.COMPILE_STATUS)) {
     console.error(
       "Fragment shader compilation error:",
-      gl.getShaderInfoLog(copyFragmentShader),
+      gl.getShaderInfoLog(copyFragmentShader)
     );
     gl.deleteShader(copyFragmentShader);
     throw new Error("Failed to compile fragment shader");
@@ -80,41 +97,11 @@ export function Gl2dContext(canvas = createCanvas()) {
     throw new Error("Failed to link program");
   }
 
-  // Create framebuffers for ping-pong
-  const createFramebuffer = () => {
-    const framebuffer = gl.createFramebuffer();
-    const texture = gl.createTexture();
-
-    gl.bindTexture(gl.TEXTURE_2D, texture);
-    gl.texImage2D(
-      gl.TEXTURE_2D,
-      0,
-      gl.RGBA,
-      width,
-      height,
-      0,
-      gl.RGBA,
-      gl.UNSIGNED_BYTE,
-      null,
-    );
-    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
-    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
-    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
-    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
-
-    gl.bindFramebuffer(gl.FRAMEBUFFER, framebuffer);
-    gl.framebufferTexture2D(
-      gl.FRAMEBUFFER,
-      gl.COLOR_ATTACHMENT0,
-      gl.TEXTURE_2D,
-      texture,
-      0,
-    );
-
-    return { framebuffer, texture };
-  };
-
-  const framebuffers = [createFramebuffer(), createFramebuffer()];
+  // Create framebuffers for ping-pong using the new Gl2dFramebuffer class
+  const framebuffers = [
+    Gl2dFramebuffer({ gl, width, height }),
+    Gl2dFramebuffer({ gl, width, height }),
+  ];
   let currentFramebufferIndex = 0;
 
   function drawToScreen() {
@@ -147,8 +134,9 @@ export function Gl2dContext(canvas = createCanvas()) {
       gl.deleteShader(vertexShader);
       gl.deleteShader(copyFragmentShader);
       gl.deleteBuffer(positionBuffer);
+      framebuffers.forEach((fb) => fb[Symbol.dispose]());
     },
   };
 }
 
-export type Gl2dContext = ReturnType<typeof Gl2dContext>;
+export type Gl2dContext = Gl2dContextReturn;
