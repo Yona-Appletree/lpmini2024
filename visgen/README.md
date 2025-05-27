@@ -33,11 +33,13 @@ npm run dev
 
 ## General Features
 
+- [ ] Handle config defaults
 - [ ] Save/load config
 - [ ] Add / delete modules
 - [ ] Config functions / recursive config values
 - [ ] Restrict wiring module output values to only same type
 - [ ] Config error handling
+
 
 ## Bugs
 
@@ -45,7 +47,7 @@ npm run dev
 
 ## Visualizations
 
-- [ ] Perlin noise
+- [x] Perlin noise
 - [ ] MSA Fluid
 - [ ] Color mixing images
 - [ ] Offsetting images using other images

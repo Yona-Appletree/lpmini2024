@@ -4,7 +4,6 @@ import { RecordDef } from "../../data/types/record-def";
 import { Vec4Def } from "../../data/types/vec4-def.tsx";
 import { glsl } from "../../util/glsl";
 import { defineGlModule } from "../define-gl-module.tsx";
-import { IntDef } from "@/data/types/int-def.tsx";
 
 export const GlPerlinModule = defineGlModule(
   "gl-perlin",
@@ -16,7 +15,7 @@ export const GlPerlinModule = defineGlModule(
       timeOffset: FloatDef({ default: 0.0 }),
       octaves: FloatDef({
         default: 4.0,
-        ui: { type: "number", min: 1, max: 10, step: 1 },
+        ui: { type: "number", min: 1, max: 1000, step: 1 },
       }),
       persistence: FloatDef({ default: 0.5 }),
       lacunarity: FloatDef({ default: 2.0 }),
@@ -130,7 +129,7 @@ export const GlPerlinModule = defineGlModule(
         float frequency = 1.0;
         
         // Add multiple layers of noise
-        for(float i = 0.0; i < 8.0; i++) {
+        for(float i = 0.0; i < 30.0; i++) {
             if(i >= uOctaves) break;
             value += amplitude * perlin3d(pos * frequency);
             frequency *= uLacunarity;
@@ -180,5 +179,5 @@ export const GlPerlinModule = defineGlModule(
         // Create the final color by mixing with the uniform color
         fragColor = vec4(vec3(noise), 1.0) * uColor;
     }
-  `
+  `,
 );

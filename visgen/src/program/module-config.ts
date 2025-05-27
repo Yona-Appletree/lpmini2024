@@ -8,6 +8,7 @@ import { OscillatorModule } from "@/program/modules/oscillator-module.tsx";
 import { z } from "zod";
 import { GlPerlinModule } from "./modules/gl-perlin-module";
 import { GlMonoToHueModule } from "./modules/gl-mono-to-hue-module";
+import { GlGameOfLifeNode } from "./modules/gl-game-of-life-module";
 
 // -----------------------------------------------------------------------------
 // nodeDefs
@@ -22,6 +23,7 @@ const moduleDefs = [
   GlBlurModule,
   GlPerlinModule,
   GlMonoToHueModule,
+  GlGameOfLifeNode,
 ] as const;
 
 // -----------------------------------------------------------------------------
@@ -29,7 +31,7 @@ const moduleDefs = [
 //
 
 export const moduleDefByType = Object.fromEntries(
-  moduleDefs.map((nodeDef) => [nodeDef.type, nodeDef])
+  moduleDefs.map((nodeDef) => [nodeDef.type, nodeDef]),
 ) as {
   [I in keyof typeof moduleDefs as (typeof moduleDefs)[I] extends {
     type: string;
@@ -47,8 +49,8 @@ export type ModuleDef = (typeof moduleDefByType)[keyof typeof moduleDefByType];
 export const ModuleConfig = UnionDef(
   "type",
   moduleDefs.map(
-    (nodeDef) => nodeDef.Config.schema
-  ) as unknown as MapModuleDefsToSchemas<typeof moduleDefs>
+    (nodeDef) => nodeDef.Config.schema,
+  ) as unknown as MapModuleDefsToSchemas<typeof moduleDefs>,
 );
 export type ModuleConfig = z.output<
   (typeof moduleDefByType)[keyof typeof moduleDefByType]["Config"]["schema"]

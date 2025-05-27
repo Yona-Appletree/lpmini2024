@@ -1,4 +1,5 @@
 import { GlCheckerboardModule } from "@/program/modules/gl-checkerboard-module.tsx";
+import { GlGameOfLifeNode } from "@/program/modules/gl-game-of-life-module";
 import { GlMonoToHueModule } from "@/program/modules/gl-mono-to-hue-module";
 import { GlPerlinModule } from "@/program/modules/gl-perlin-module";
 import { GlPolarScrollNode } from "@/program/modules/gl-polar-scroll-module.tsx";
@@ -44,10 +45,10 @@ export const demoConfig = ProgramConfig({
     lfo3: OscillatorModule.Config({
       input: {
         value: {
-          period: { value: 30 },
+          period: { value: 300 },
           easing: { value: "triangle" },
           min: { value: 0 },
-          max: { value: 5 },
+          max: { value: 50 },
         },
       },
     }),
@@ -99,6 +100,33 @@ export const demoConfig = ProgramConfig({
                   moduleId: "lfo",
                 },
                 activeExpr: "$moduleOutput",
+              },
+              compressionFactor: { value: 0.2 },
+              compressionFeather: { value: 0.15 },
+            },
+          },
+        },
+      },
+    }),
+
+    gameOfLife: GlGameOfLifeNode.Config({
+      input: {
+        value: {
+          image: {
+            $moduleOutput: {
+              moduleId: "monoToHue",
+            },
+            activeExpr: "$moduleOutput",
+          },
+          args: {
+            value: {
+              aliveColor: {
+                $hexColor: "#FFFFFF",
+                activeExpr: "$hexColor",
+              },
+              deadColor: {
+                $hexColor: "#000000",
+                activeExpr: "$hexColor",
               },
             },
           },

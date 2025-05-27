@@ -12,6 +12,8 @@ export const GlMonoToHueModule = defineGlModule(
       saturation: FloatDef({ default: 0.8 }),
       luminance: FloatDef({ default: 0.5 }),
       hueShift: FloatDef({ default: 0.0 }),
+      compressionFactor: FloatDef({ default: 0.2 }),
+      compressionFeather: FloatDef({ default: 0.1 }),
     }),
     output: ImageDef(),
   },
@@ -24,6 +26,8 @@ export const GlMonoToHueModule = defineGlModule(
     uniform float uSaturation;
     uniform float uLuminance;
     uniform float uHueShift;
+    uniform float uCompressionFactor;
+    uniform float uCompressionFeather;
 
     float hue2rgb(float p, float q, float t) {
       if (t < 0.0) t += 1.0;
@@ -56,8 +60,17 @@ export const GlMonoToHueModule = defineGlModule(
       // Convert to monochrome by taking the average
       float mono = (color.r + color.g + color.b) / 3.0;
       
+      // Calculate the compression blend factor with feathering
+      float blendFactor = smoothstep(uCompressionFactor - uCompressionFeather, 
+                                   uCompressionFactor + uCompressionFeather, 
+                                   mono);
+      
+      // Remap the mono value to the compressed range
+      float compressedMono = (mono - uCompressionFactor) / (1.0 - uCompressionFactor);
+      compressedMono = max(0.0, compressedMono);
+      
       // Apply sine function to smooth the result and normalize to [0,1]
-      float smoothedHue = (sin(mono * 6.28318530718) + 1.0) * 0.5;
+      float smoothedHue = (sin(compressedMono * 6.28318530718) + 1.0) * 0.5;
       
       // Add the hue shift and wrap around to [0,1]
       smoothedHue = fract(smoothedHue + uHueShift);
@@ -65,6 +78,9 @@ export const GlMonoToHueModule = defineGlModule(
       // Create HSL color using the smoothed monochrome value as hue
       vec3 hsl = vec3(smoothedHue, uSaturation, uLuminance);
       vec3 rgb = hsl2rgb(hsl);
+      
+      // Blend between black and the hue color based on the blend factor
+      rgb = mix(vec3(0.0), rgb, blendFactor);
       
       fragColor = vec4(rgb, color.a);
     }
