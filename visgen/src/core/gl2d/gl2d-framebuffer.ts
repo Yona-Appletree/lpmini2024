@@ -1,63 +1,19 @@
-export type Gl2dFramebufferOptions = {
-  format?: "rgba" | "float32";
-  filter?: "linear" | "nearest";
-};
+import { Gl2dTexture, type Gl2dTextureOptions } from "./gl2d-texture";
+
+export type Gl2dFramebufferOptions = Gl2dTextureOptions;
 
 type Gl2dFramebufferParams = {
   gl: WebGL2RenderingContext;
-  width: number;
-  height: number;
+  texture: Gl2dTexture;
   options?: Gl2dFramebufferOptions;
 };
 
-export function Gl2dFramebuffer({
-  gl,
-  width,
-  height,
-  options = {},
-}: Gl2dFramebufferParams) {
-  const format = options.format ?? "rgba";
-  const filter = options.filter ?? "linear";
-
-  // Create framebuffer and texture
+export function Gl2dFramebuffer({ gl, texture }: Gl2dFramebufferParams) {
+  // Create framebuffer
   const framebuffer = gl.createFramebuffer();
-  const texture = gl.createTexture();
-
-  gl.bindTexture(gl.TEXTURE_2D, texture);
-
-  // Configure texture based on format
-  if (format === "float32") {
-    gl.texImage2D(
-      gl.TEXTURE_2D,
-      0,
-      gl.RGBA32F,
-      width,
-      height,
-      0,
-      gl.RGBA,
-      gl.FLOAT,
-      null
-    );
-  } else {
-    gl.texImage2D(
-      gl.TEXTURE_2D,
-      0,
-      gl.RGBA,
-      width,
-      height,
-      0,
-      gl.RGBA,
-      gl.UNSIGNED_BYTE,
-      null
-    );
+  if (!framebuffer) {
+    throw new Error("Failed to create framebuffer");
   }
-
-  // Configure texture filtering
-  const filterMode = filter === "linear" ? gl.LINEAR : gl.NEAREST;
-  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, filterMode);
-  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, filterMode);
-  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
-  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
 
   // Attach texture to framebuffer
   gl.bindFramebuffer(gl.FRAMEBUFFER, framebuffer);
@@ -65,8 +21,8 @@ export function Gl2dFramebuffer({
     gl.FRAMEBUFFER,
     gl.COLOR_ATTACHMENT0,
     gl.TEXTURE_2D,
-    texture,
-    0
+    texture.texture,
+    0,
   );
 
   // Check framebuffer status
@@ -77,10 +33,7 @@ export function Gl2dFramebuffer({
 
   return {
     framebuffer,
-    texture,
-    width,
-    height,
-    format,
+    texture: texture.texture,
 
     bind() {
       gl.bindFramebuffer(gl.FRAMEBUFFER, framebuffer);
@@ -91,13 +44,12 @@ export function Gl2dFramebuffer({
     },
 
     bindTexture(unit = 0) {
-      gl.activeTexture(gl.TEXTURE0 + unit);
-      gl.bindTexture(gl.TEXTURE_2D, texture);
+      texture.bind(unit);
     },
 
     [Symbol.dispose]() {
       gl.deleteFramebuffer(framebuffer);
-      gl.deleteTexture(texture);
+      texture[Symbol.dispose]();
     },
   };
 }

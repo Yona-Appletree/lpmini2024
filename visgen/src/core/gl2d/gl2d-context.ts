@@ -1,6 +1,7 @@
 import { createCanvas } from "@/frontend/util/create-canvas.ts";
 import { glsl } from "@/frontend/util/glsl.ts";
 import { Gl2dFramebuffer } from "./gl2d-framebuffer.ts";
+import { Gl2dTexture } from "@/core/gl2d/gl2d-texture.ts";
 
 interface Gl2dContextReturn {
   gl: WebGL2RenderingContext;
@@ -51,7 +52,7 @@ export function Gl2dContext(canvas = createCanvas()): Gl2dContextReturn {
   if (!gl.getShaderParameter(vertexShader, gl.COMPILE_STATUS)) {
     console.error(
       "Vertex shader compilation error:",
-      gl.getShaderInfoLog(vertexShader)
+      gl.getShaderInfoLog(vertexShader),
     );
     gl.deleteShader(vertexShader);
     throw new Error("Failed to compile vertex shader");
@@ -70,7 +71,7 @@ export function Gl2dContext(canvas = createCanvas()): Gl2dContextReturn {
       void main() {
         fragColor = texture(uTexture, vUv);
       }
-    `
+    `,
   );
   gl.compileShader(copyFragmentShader);
 
@@ -78,7 +79,7 @@ export function Gl2dContext(canvas = createCanvas()): Gl2dContextReturn {
   if (!gl.getShaderParameter(copyFragmentShader, gl.COMPILE_STATUS)) {
     console.error(
       "Fragment shader compilation error:",
-      gl.getShaderInfoLog(copyFragmentShader)
+      gl.getShaderInfoLog(copyFragmentShader),
     );
     gl.deleteShader(copyFragmentShader);
     throw new Error("Failed to compile fragment shader");
@@ -99,8 +100,8 @@ export function Gl2dContext(canvas = createCanvas()): Gl2dContextReturn {
 
   // Create framebuffers for ping-pong using the new Gl2dFramebuffer class
   const framebuffers = [
-    Gl2dFramebuffer({ gl, width, height }),
-    Gl2dFramebuffer({ gl, width, height }),
+    Gl2dFramebuffer({ gl, texture: Gl2dTexture({ gl, width, height }) }),
+    Gl2dFramebuffer({ gl, texture: Gl2dTexture({ gl, width, height }) }),
   ];
   let currentFramebufferIndex = 0;
 
