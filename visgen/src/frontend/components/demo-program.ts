@@ -1,5 +1,4 @@
 import { GlCheckerboardModule } from "@/core/program/modules/gl-checkerboard-module.tsx";
-import { GlGameOfLifeNode } from "@/core/program/modules/gl-game-of-life-module.tsx";
 import { GlMonoToHueModule } from "@/core/program/modules/gl-mono-to-hue-module.tsx";
 import { GlPerlinModule } from "@/core/program/modules/gl-perlin-module.tsx";
 import { GlPolarScrollNode } from "@/core/program/modules/gl-polar-scroll-module.tsx";
@@ -103,31 +102,6 @@ export const demoConfig = ProgramConfig({
               },
               compressionFactor: { value: 0.2 },
               compressionFeather: { value: 0.15 },
-            },
-          },
-        },
-      },
-    }),
-
-    gameOfLife: GlGameOfLifeNode.Config({
-      input: {
-        value: {
-          image: {
-            $moduleOutput: {
-              moduleId: "monoToHue",
-            },
-            activeExpr: "$moduleOutput",
-          },
-          args: {
-            value: {
-              aliveColor: {
-                $hexColor: "#FFFFFF",
-                activeExpr: "$hexColor",
-              },
-              deadColor: {
-                $hexColor: "#000000",
-                activeExpr: "$hexColor",
-              },
             },
           },
         },

@@ -1,14 +1,12 @@
 import { UnionDef } from "@/frontend/util/zod/union-def.ts";
 import { GlBlurModule } from "@/core/program/modules/gl-blur-module.tsx";
 import { GlCheckerboardModule } from "@/core/program/modules/gl-checkerboard-module.tsx";
-import { GlHslShiftModule } from "@/core/program/modules/gl-hsl-shift-module.tsx";
 import { GlPolarScrollNode } from "@/core/program/modules/gl-polar-scroll-module.tsx";
 import { GlRotateNode } from "@/core/program/modules/gl-rotate-module.tsx";
 import { OscillatorModule } from "@/core/program/modules/oscillator-module.tsx";
 import { z } from "zod";
 import { GlPerlinModule } from "./modules/gl-perlin-module.tsx";
 import { GlMonoToHueModule } from "./modules/gl-mono-to-hue-module.tsx";
-import { GlGameOfLifeNode } from "./modules/gl-game-of-life-module.tsx";
 
 // -----------------------------------------------------------------------------
 // nodeDefs
@@ -19,11 +17,9 @@ const moduleDefs = [
   OscillatorModule,
   GlRotateNode,
   GlPolarScrollNode,
-  GlHslShiftModule,
   GlBlurModule,
   GlPerlinModule,
   GlMonoToHueModule,
-  GlGameOfLifeNode,
 ] as const;
 
 // -----------------------------------------------------------------------------
