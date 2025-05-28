@@ -1,14 +1,15 @@
-import { Gl2dTexture, type Gl2dTextureOptions } from "./gl2d-texture";
+import { Gl2dTexture, type Gl2dTextureParams } from "./gl2d-texture";
+import type { Gl2dContext } from "@/core/gl2d/gl2d-context.ts";
 
-export type Gl2dFramebufferOptions = Gl2dTextureOptions;
+export function Gl2dFramebuffer(
+  context: Gl2dContext,
+  options: Gl2dTextureParams = {},
+) {
+  const { gl } = context;
 
-type Gl2dFramebufferParams = {
-  gl: WebGL2RenderingContext;
-  texture: Gl2dTexture;
-  options?: Gl2dFramebufferOptions;
-};
+  // Create texture
+  const texture = Gl2dTexture(context, options);
 
-export function Gl2dFramebuffer({ gl, texture }: Gl2dFramebufferParams) {
   // Create framebuffer
   const framebuffer = gl.createFramebuffer();
   if (!framebuffer) {
@@ -31,21 +32,27 @@ export function Gl2dFramebuffer({ gl, texture }: Gl2dFramebufferParams) {
     throw new Error(`Framebuffer is not complete: ${status}`);
   }
 
+  function bind() {
+    gl.bindFramebuffer(gl.FRAMEBUFFER, framebuffer);
+  }
+
+  function unbind() {
+    gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+  }
+
+  function clear() {
+    bind();
+    gl.clearColor(0, 0, 0, 1);
+    gl.clear(gl.COLOR_BUFFER_BIT);
+  }
+
   return {
     framebuffer,
-    texture: texture.texture,
+    texture,
 
-    bind() {
-      gl.bindFramebuffer(gl.FRAMEBUFFER, framebuffer);
-    },
-
-    unbind() {
-      gl.bindFramebuffer(gl.FRAMEBUFFER, null);
-    },
-
-    bindTexture(unit = 0) {
-      texture.bind(unit);
-    },
+    bind,
+    unbind,
+    clear,
 
     [Symbol.dispose]() {
       gl.deleteFramebuffer(framebuffer);

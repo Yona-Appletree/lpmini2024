@@ -1,4 +1,4 @@
-import { ImageDef } from "@/core/data/types/image-def.tsx";
+import { TextureDef } from "@/core/data/types/texture-def.tsx";
 import { FloatDef } from "@/core/data/types/float-def.tsx";
 import { RecordDef } from "@/core/data/types/record-def.tsx";
 import { glsl } from "@/frontend/util/glsl.ts";
@@ -9,13 +9,14 @@ export const GlMonoToHueModule = defineGlModule(
   {
     label: "Mono to Hue",
     params: RecordDef({
+      inputTexture: TextureDef(),
       saturation: FloatDef({ default: 0.8 }),
       luminance: FloatDef({ default: 0.5 }),
       hueShift: FloatDef({ default: 0.0 }),
       compressionFactor: FloatDef({ default: 0.2 }),
       compressionFeather: FloatDef({ default: 0.1 }),
     }),
-    output: ImageDef(),
+    output: TextureDef(),
   },
   glsl`#version 300 es
     precision highp float;

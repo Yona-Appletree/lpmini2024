@@ -2,8 +2,8 @@ import { createCanvas } from "@/frontend/util/create-canvas.ts";
 import { Gl2dContext } from "./gl2d-context.ts";
 import { curry } from "@/frontend/util/curry.ts";
 import { Gl2dFragmentShader } from "./gl2d-fragment-shader.ts";
-import { gl2dClear } from "./gl2d-clear.ts";
-import { gl2dDrawImage } from "./gl2d-draw-image.ts";
+import { Gl2dTexture } from "@/core/gl2d/gl2d-texture.ts";
+import { Gl2dFramebuffer } from "@/core/gl2d/gl2d-framebuffer.ts";
 
 export function Gl2d(canvas = createCanvas()) {
   const context = Gl2dContext(canvas);
@@ -12,8 +12,8 @@ export function Gl2d(canvas = createCanvas()) {
     canvas,
     context,
     fragmentShader: curry(Gl2dFragmentShader, context),
-    clear: curry(gl2dClear, context),
-    drawImage: curry(gl2dDrawImage, context),
+    texture: curry(Gl2dTexture, context),
+    framebuffer: curry(Gl2dFramebuffer, context),
   };
 }
 

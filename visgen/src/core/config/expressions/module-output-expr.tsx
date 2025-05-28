@@ -26,8 +26,6 @@ export const ModuleOutputExpr = defineConfigExpr(
       : undefined;
   },
   (props) => {
-    console.info(props.exprValue?.moduleId);
-
     return (
       <Select
         value={props.exprValue?.moduleId as string}

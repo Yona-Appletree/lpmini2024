@@ -1,4 +1,4 @@
-import { ImageDef } from "@/core/data/types/image-def.tsx";
+import { TextureDef } from "@/core/data/types/texture-def.tsx";
 import { FloatDef } from "@/core/data/types/float-def.tsx";
 import { RecordDef } from "@/core/data/types/record-def.tsx";
 import { glsl } from "@/frontend/util/glsl.ts";
@@ -9,10 +9,11 @@ export const GlRotateNode = defineGlModule(
   {
     label: "Rotate",
     params: RecordDef({
+      inputTexture: TextureDef(),
       angle: FloatDef({ default: 0 }),
       swirl: FloatDef({ default: 2.0 }),
     }),
-    output: ImageDef(),
+    output: TextureDef(),
   },
   glsl`
     #version 300 es

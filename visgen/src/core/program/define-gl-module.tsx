@@ -1,11 +1,10 @@
 import type { ShaderUniformsRecord } from "../gl2d/gl2d-fragment-shader.ts";
 import { Gl2dFragmentShader } from "../gl2d/gl2d-fragment-shader.ts";
 import { useEffect, useRef } from "react";
-import { Gl2d } from "../gl2d/gl2d.ts";
-import { ImageDef } from "@/core/data/types/image-def.tsx";
+import { TextureDef } from "@/core/data/types/texture-def.tsx";
 
 import { defineModule } from "./define-module.ts";
-import { RecordDef, type RecordSpec } from "@/core/data/types/record-def.tsx";
+import { type RecordSpec } from "@/core/data/types/record-def.tsx";
 import type { RuntimeContext } from "@/core/program/program-runtime.ts";
 
 export function defineGlModule<
@@ -35,15 +34,12 @@ export function defineGlModule<
     type,
     {
       label: metadata.label,
-      input: RecordDef({
-        image: ImageDef(),
-        args: metadata.params,
-      }),
-      output: ImageDef(),
+      input: metadata.params,
+      output: TextureDef(),
     },
-    () => {
-      const gl2d = Gl2d();
+    ({ gl2d }) => {
       const shader = Gl2dFragmentShader(gl2d.context, glsl.trim());
+      const framebuffer = gl2d.framebuffer();
 
       function Component(props: { context: RuntimeContext }) {
         const canvasRef = useRef<HTMLCanvasElement | null>(null);
@@ -52,6 +48,7 @@ export function defineGlModule<
           return props.context.addTickHandler(() => {
             const ctx = canvasRef.current?.getContext("2d");
             if (ctx) {
+              framebuffer.texture.drawToScreen();
               ctx.drawImage(gl2d.canvas, 0, 0);
             }
           });
@@ -70,10 +67,6 @@ export function defineGlModule<
 
       return {
         update: ({ input }) => {
-          if (input.image) {
-            gl2d.drawImage(input.image);
-          }
-
           const paramsShape = metadata.params.info.meta.shape;
 
           const args = Object.fromEntries(
@@ -82,16 +75,16 @@ export function defineGlModule<
                 uniformName,
                 {
                   type: paramsShape[paramName].info.meta.glType,
-                  value: input.args?.[paramName as keyof typeof input.args],
+                  value: input?.[paramName as keyof typeof input],
                 },
               ],
             ),
           ) as ShaderUniformsRecord;
-          shader.draw(args);
-          gl2d.context.drawToScreen();
-          gl2d.context.rotateFramebuffers();
 
-          return gl2d.canvas;
+          framebuffer.bind();
+          shader.draw(args);
+
+          return framebuffer.texture;
         },
         component: Component,
       };

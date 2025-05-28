@@ -1,24 +1,28 @@
+import type { Gl2dContext } from "@/core/gl2d/gl2d-context.ts";
+
 export type Gl2dTextureOptions = {
   format?: "uint8" | "float32";
   filter?: "linear" | "nearest";
   wrap?: "clamp" | "repeat";
 };
 
-type Gl2dTextureParams = {
-  gl: WebGL2RenderingContext;
-  width: number;
-  height: number;
+export type Gl2dTextureParams = {
+  width?: number;
+  height?: number;
   data?: Uint8Array | Float32Array | null;
   options?: Gl2dTextureOptions;
 };
 
-export function Gl2dTexture({
-  gl,
-  width,
-  height,
-  data = null,
-  options = {},
-}: Gl2dTextureParams) {
+export function Gl2dTexture(
+  context: Gl2dContext,
+  {
+    width = context.gl.canvas.width,
+    height = context.gl.canvas.height,
+    data = null,
+    options = {},
+  }: Gl2dTextureParams = {},
+) {
+  const { gl } = context;
   const format = options.format ?? "uint8";
   const filter = options.filter ?? "linear";
   const wrap = options.wrap ?? "clamp";
@@ -67,15 +71,29 @@ export function Gl2dTexture({
   gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, wrapMode);
   gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, wrapMode);
 
+  function bind(unit = 0) {
+    gl.activeTexture(gl.TEXTURE0 + unit);
+    gl.bindTexture(gl.TEXTURE_2D, texture);
+  }
+
   return {
+    $type: "Gl2dTexture",
     texture,
     width,
     height,
     format,
 
-    bind(unit = 0) {
-      gl.activeTexture(gl.TEXTURE0 + unit);
-      gl.bindTexture(gl.TEXTURE_2D, texture);
+    bind,
+
+    updateImage(image: TexImageSource) {
+      gl.texImage2D(
+        gl.TEXTURE_2D,
+        0,
+        gl.RGBA,
+        gl.RGBA,
+        gl.UNSIGNED_BYTE,
+        image as TexImageSource,
+      );
     },
 
     updateData(newData: Uint8Array | Float32Array) {
@@ -105,6 +123,15 @@ export function Gl2dTexture({
           newData,
         );
       }
+    },
+
+    drawToScreen() {
+      bind();
+      gl.useProgram(context.copyProgram);
+      gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+      gl.clearColor(0, 0, 0, 1);
+      gl.clear(gl.COLOR_BUFFER_BIT);
+      gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
     },
 
     [Symbol.dispose]() {

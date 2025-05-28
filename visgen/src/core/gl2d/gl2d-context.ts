@@ -1,21 +1,13 @@
 import { createCanvas } from "@/frontend/util/create-canvas.ts";
 import { glsl } from "@/frontend/util/glsl.ts";
-import { Gl2dFramebuffer } from "./gl2d-framebuffer.ts";
-import { Gl2dTexture } from "@/core/gl2d/gl2d-texture.ts";
 
 interface Gl2dContextReturn {
   gl: WebGL2RenderingContext;
   width: number;
   height: number;
-  framebuffers: Gl2dFramebuffer[];
   copyProgram: WebGLProgram;
   vertexShader: WebGLShader;
   copyFragmentShader: WebGLShader;
-  drawToScreen: () => void;
-  rotateFramebuffers: () => {
-    aBuffer: Gl2dFramebuffer;
-    bBuffer: Gl2dFramebuffer;
-  };
   [Symbol.dispose]: () => void;
 }
 
@@ -98,44 +90,19 @@ export function Gl2dContext(canvas = createCanvas()): Gl2dContextReturn {
     throw new Error("Failed to link program");
   }
 
-  // Create framebuffers for ping-pong using the new Gl2dFramebuffer class
-  const framebuffers = [
-    Gl2dFramebuffer({ gl, texture: Gl2dTexture({ gl, width, height }) }),
-    Gl2dFramebuffer({ gl, texture: Gl2dTexture({ gl, width, height }) }),
-  ];
-  let currentFramebufferIndex = 0;
-
-  function drawToScreen() {
-    gl.bindFramebuffer(gl.FRAMEBUFFER, null);
-    gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
-  }
-
   return {
     gl,
     width,
     height,
-    framebuffers,
     copyProgram,
     vertexShader,
     copyFragmentShader,
-    drawToScreen,
-
-    rotateFramebuffers() {
-      const aBuffer = framebuffers[currentFramebufferIndex];
-      currentFramebufferIndex = (currentFramebufferIndex + 1) % 2;
-      const bBuffer = framebuffers[currentFramebufferIndex];
-      return {
-        aBuffer,
-        bBuffer,
-      };
-    },
 
     [Symbol.dispose]() {
       gl.deleteProgram(copyProgram);
       gl.deleteShader(vertexShader);
       gl.deleteShader(copyFragmentShader);
       gl.deleteBuffer(positionBuffer);
-      framebuffers.forEach((fb) => fb[Symbol.dispose]());
     },
   };
 }

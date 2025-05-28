@@ -1,4 +1,4 @@
-import { ImageDef } from "@/core/data/types/image-def.tsx";
+import { TextureDef } from "@/core/data/types/texture-def.tsx";
 import { IntDef } from "@/core/data/types/int-def.tsx";
 import { RecordDef } from "@/core/data/types/record-def.tsx";
 import { Vec4Def } from "@/core/data/types/vec4-def.tsx";
@@ -15,7 +15,7 @@ export const GlCheckerboardModule = defineGlModule(
       rows: IntDef({ default: 8 }),
       columns: IntDef({ default: 8 }),
     }),
-    output: ImageDef(),
+    output: TextureDef(),
   },
   glsl`
     #version 300 es

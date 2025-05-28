@@ -1,4 +1,5 @@
 import type { Gl2dContext } from "./gl2d-context.ts";
+import type { Gl2dTexture } from "@/core/gl2d/gl2d-texture.ts";
 
 export function Gl2dFragmentShader(canvas: Gl2dContext, shaderGlsl: string) {
   const { gl, vertexShader, width, height } = canvas;
@@ -46,6 +47,7 @@ export function Gl2dFragmentShader(canvas: Gl2dContext, shaderGlsl: string) {
       gl.uniform2f(resolutionLocation, width, height);
     }
 
+    let textureUnit = 0;
     for (const [uniformName, uniformValue] of Object.entries(uniforms)) {
       const uniformLocation = gl.getUniformLocation(program, uniformName);
       if (uniformLocation !== null) {
@@ -81,27 +83,19 @@ export function Gl2dFragmentShader(canvas: Gl2dContext, shaderGlsl: string) {
               uniformValue.value[3],
             );
             break;
+          case "texture":
+            gl.uniform1i(uniformLocation, textureUnit);
+            gl.activeTexture(gl.TEXTURE0 + textureUnit);
+            textureUnit++;
+            gl.bindTexture(gl.TEXTURE_2D, uniformValue.value?.texture ?? null);
+            break;
           default:
             throw new Error(`Unsupported uniform type: ${valueType}`);
         }
       }
     }
 
-    const { aBuffer, bBuffer } = canvas.rotateFramebuffers();
-
-    // Set input texture uniform
-    const inputTextureLocation = gl.getUniformLocation(
-      program,
-      "uInputTexture",
-    );
-    if (inputTextureLocation !== null) {
-      gl.uniform1i(inputTextureLocation, 0);
-      gl.activeTexture(gl.TEXTURE0);
-      gl.bindTexture(gl.TEXTURE_2D, aBuffer.texture);
-    }
-
     // Draw to the other framebuffer
-    gl.bindFramebuffer(gl.FRAMEBUFFER, bBuffer.framebuffer);
     gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
   }
 
@@ -119,6 +113,7 @@ export type Gl2dFragmentShader = ReturnType<typeof Gl2dFragmentShader>;
 export type ShaderUniformsRecord = Record<string, ShaderUniformValue>;
 
 export type ShaderUniformValue =
+  | { type: "texture"; value: Gl2dTexture | null }
   | { type: "int32"; value: number }
   | { type: "float32"; value: number }
   | { type: "vec2"; value: [number, number] }
