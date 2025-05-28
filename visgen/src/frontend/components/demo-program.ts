@@ -71,6 +71,30 @@ export const demoConfig = ProgramConfig({
       },
     }),
 
+    perlin2: GlPerlinModule.Config({
+      input: {
+        value: {
+          color: {
+            $hexColor: "#FFFFFF",
+            activeExpr: "$hexColor",
+          },
+          scale: { value: 1.5 },
+          timeOffset: {
+            $moduleOutput: {
+              moduleId: "lfo3",
+            },
+            activeExpr: "$moduleOutput",
+          },
+          octaves: { value: 2 },
+          persistence: { value: 0.4 },
+          lacunarity: { value: 2 },
+          contrast: { value: 1.1 },
+          brightness: { value: 0.1 },
+          sharpness: { value: 2.8 },
+        },
+      },
+    }),
+
     monoToHue: GlMonoToHueModule.Config({
       input: {
         value: {

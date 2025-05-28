@@ -3,17 +3,17 @@ import { z } from "zod";
 import type { Gl2dTexture } from "@/core/gl2d/gl2d-texture.ts";
 
 export const TextureDef = defineType(
-  "image",
+  "texture",
   (meta: TypeMeta<Gl2dTexture | null> = { default: null }) =>
     TypeSpec(
-      "image",
+      "texture",
       {
         glType: "texture",
         ...meta,
       },
       Gl2dTextureSchema.nullable(),
       () => {
-        return <div>(null image)</div>;
+        return <div>(null texture)</div>;
       },
     ),
 );
