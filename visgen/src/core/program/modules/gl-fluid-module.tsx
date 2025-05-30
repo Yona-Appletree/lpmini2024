@@ -7,6 +7,8 @@ import { Gl2dFragmentShader } from "@/core/gl2d/gl2d-fragment-shader.ts";
 import type { RuntimeContext } from "@/core/program/program-runtime.ts";
 import { useEffect, useRef } from "react";
 import { Vec2Def } from "@/core/data/types/vec2-def.tsx";
+import { Vec3Def } from "@/core/data/types/vec3-def.tsx";
+import { Gl2dFramebuffer } from "@/core/gl2d/gl2d-framebuffer.ts";
 
 export const GlFluidModule = defineModule(
   "gl-fluid",
@@ -21,7 +23,7 @@ export const GlFluidModule = defineModule(
       emitterLocation: Vec2Def({ default: [0.5, 0.5] }),
       emitterDirection: Vec2Def({ default: [0.0, 1.0] }),
       emitterStrength: FloatDef({ default: 0.1 }),
-      emitterDensity: FloatDef({ default: 0.5 }),
+      emitterColor: Vec3Def({ default: [1.0, 0.5, 0.2] }), // RGB color
     }),
     output: TextureDef(),
   },
@@ -32,15 +34,27 @@ export const GlFluidModule = defineModule(
     // Create shader for rendering
     const renderShader = Gl2dFragmentShader(gl2d.context, renderGlsl.trim());
 
-    // Create framebuffers for double buffering simulation state
-    const fluidBuffer1 = gl2d.framebuffer({
+    // Create framebuffers for double buffering simulation state for each color
+    const redBuffer1 = gl2d.framebuffer({
       options: { format: "float32", filter: "nearest" },
     });
-    const fluidBuffer2 = gl2d.framebuffer({
+    const redBuffer2 = gl2d.framebuffer({
+      options: { format: "float32", filter: "nearest" },
+    });
+    const greenBuffer1 = gl2d.framebuffer({
+      options: { format: "float32", filter: "nearest" },
+    });
+    const greenBuffer2 = gl2d.framebuffer({
+      options: { format: "float32", filter: "nearest" },
+    });
+    const blueBuffer1 = gl2d.framebuffer({
+      options: { format: "float32", filter: "nearest" },
+    });
+    const blueBuffer2 = gl2d.framebuffer({
       options: { format: "float32", filter: "nearest" },
     });
 
-    // Create framebuffer for rendering
+    // Create framebuffer for final rendering
     const renderBuffer = gl2d.framebuffer({
       options: { filter: "linear" },
     });
@@ -71,34 +85,77 @@ export const GlFluidModule = defineModule(
 
     let frame = 0;
 
+    // Helper function to update a single color channel
+    function updateColorChannel(
+      readBuffer: Gl2dFramebuffer,
+      writeBuffer: Gl2dFramebuffer,
+      emitterDensity: number,
+      input: {
+        deltaTime: number;
+        viscosity: number;
+        diffusion: number;
+        velocityDissipation: number;
+        densityDissipation: number;
+        emitterLocation: [number, number];
+        emitterDirection: [number, number];
+        emitterStrength: number;
+      }
+    ) {
+      writeBuffer.bind();
+      fluidShader.draw({
+        u_fluid: { type: "texture", value: readBuffer.texture },
+        u_deltaTime: { type: "float32", value: input.deltaTime },
+        u_viscosity: { type: "float32", value: input.viscosity },
+        u_diffusion: { type: "float32", value: input.diffusion },
+        u_dissipation: { type: "float32", value: input.velocityDissipation },
+        u_densityDissipation: {
+          type: "float32",
+          value: input.densityDissipation,
+        },
+        u_emitterPos: { type: "vec2", value: input.emitterLocation },
+        u_emitterDir: { type: "vec2", value: input.emitterDirection },
+        u_emitterStrength: { type: "float32", value: input.emitterStrength },
+        u_emitterDensity: { type: "float32", value: emitterDensity },
+      });
+      return writeBuffer.texture;
+    }
+
     return {
       update: ({ input }) => {
-        // Swap buffers
-        const readBuffer = frame % 2 === 0 ? fluidBuffer1 : fluidBuffer2;
-        const writeBuffer = frame % 2 === 0 ? fluidBuffer2 : fluidBuffer1;
+        // Update each color channel
+        const redRead = frame % 2 === 0 ? redBuffer1 : redBuffer2;
+        const redWrite = frame % 2 === 0 ? redBuffer2 : redBuffer1;
+        const redTexture = updateColorChannel(
+          redRead,
+          redWrite,
+          input.emitterColor[0],
+          input
+        );
 
-        // Update fluid state
-        writeBuffer.bind();
-        fluidShader.draw({
-          u_fluid: { type: "texture", value: readBuffer.texture },
-          u_deltaTime: { type: "float32", value: input.deltaTime },
-          u_viscosity: { type: "float32", value: input.viscosity },
-          u_diffusion: { type: "float32", value: input.diffusion },
-          u_dissipation: { type: "float32", value: input.velocityDissipation },
-          u_densityDissipation: {
-            type: "float32",
-            value: input.densityDissipation,
-          },
-          u_emitterPos: { type: "vec2", value: input.emitterLocation },
-          u_emitterDir: { type: "vec2", value: input.emitterDirection },
-          u_emitterStrength: { type: "float32", value: input.emitterStrength },
-          u_emitterDensity: { type: "float32", value: input.emitterDensity },
-        });
+        const greenRead = frame % 2 === 0 ? greenBuffer1 : greenBuffer2;
+        const greenWrite = frame % 2 === 0 ? greenBuffer2 : greenBuffer1;
+        const greenTexture = updateColorChannel(
+          greenRead,
+          greenWrite,
+          input.emitterColor[1],
+          input
+        );
 
-        // Render the density visualization
+        const blueRead = frame % 2 === 0 ? blueBuffer1 : blueBuffer2;
+        const blueWrite = frame % 2 === 0 ? blueBuffer2 : blueBuffer1;
+        const blueTexture = updateColorChannel(
+          blueRead,
+          blueWrite,
+          input.emitterColor[2],
+          input
+        );
+
+        // Combine color channels in the render buffer
         renderBuffer.bind();
         renderShader.draw({
-          u_fluid: { type: "texture", value: writeBuffer.texture },
+          u_fluidR: { type: "texture", value: redTexture },
+          u_fluidG: { type: "texture", value: greenTexture },
+          u_fluidB: { type: "texture", value: blueTexture },
         });
 
         frame++;
@@ -241,13 +298,18 @@ const renderGlsl = glsl`
 #version 300 es
 precision highp float;
 
-uniform sampler2D u_fluid;
+uniform sampler2D u_fluidR;
+uniform sampler2D u_fluidG;
+uniform sampler2D u_fluidB;
 in vec2 vUv;
 out vec4 fragColor;
 
 void main() {
-    vec4 fluid = texture(u_fluid, vUv);
-    float density = clamp(fluid.z, 0.0, 1.0); // ensure density is in valid range
-    fragColor = vec4(density, 0.0, 0.0, 1.0);
+    // Sample density from each color channel
+    float r = clamp(texture(u_fluidR, vUv).z, 0.0, 1.0);
+    float g = clamp(texture(u_fluidG, vUv).z, 0.0, 1.0);
+    float b = clamp(texture(u_fluidB, vUv).z, 0.0, 1.0);
+    
+    fragColor = vec4(r, g, b, 1.0);
 }
 `;

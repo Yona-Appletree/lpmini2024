@@ -21,6 +21,9 @@ export const demoConfig = ProgramConfig({
           emitterDirection: { value: [{ value: 0.0 }, { value: 1.0 }] },
           emitterStrength: { value: 0.3 },
           emitterDensity: { value: 1.0 },
+          emitterColor: {
+            value: [{ value: 0.0 }, { value: 0.5 }, { value: 0.7 }],
+          },
         },
       },
     }),
