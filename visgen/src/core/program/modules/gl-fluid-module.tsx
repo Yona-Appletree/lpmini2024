@@ -170,10 +170,6 @@ const fluidStepGlsl = glsl`
 #version 300 es
 precision highp float;
 
-// Fluid state texture:
-// R,G: velocity (x,y)
-// B: density
-// A: pressure
 uniform sampler2D u_fluid;
 uniform float u_deltaTime;
 uniform float u_viscosity;
@@ -187,19 +183,27 @@ uniform float u_emitterDensity;
 
 out vec4 fragColor;
 
+// Helper function to get fluid cell index
+ivec2 fluidIX(ivec2 pos) {
+    return clamp(pos, ivec2(0), textureSize(u_fluid, 0) - 1);
+}
+
+// Improved bilinear sampling with boundary handling
 vec4 sampleBilinear(sampler2D tex, vec2 uv) {
-    uv = clamp(uv, 0.0, 1.0); // Ensure we don't sample outside
     vec2 texSize = vec2(textureSize(tex, 0));
     vec2 texelSize = 1.0 / texSize;
+    
+    // Clamp to edge
+    uv = clamp(uv, texelSize, 1.0 - texelSize);
     
     vec2 texelCoord = uv * texSize - 0.5;
     vec2 f = fract(texelCoord);
     texelCoord = (floor(texelCoord) + 0.5) / texSize;
     
-    vec4 tl = texture(tex, texelCoord + texelSize * vec2(0.0, 0.0));
-    vec4 tr = texture(tex, texelCoord + texelSize * vec2(1.0, 0.0));
-    vec4 bl = texture(tex, texelCoord + texelSize * vec2(0.0, 1.0));
-    vec4 br = texture(tex, texelCoord + texelSize * vec2(1.0, 1.0));
+    vec4 tl = texture(tex, texelCoord);
+    vec4 tr = texture(tex, texelCoord + vec2(texelSize.x, 0.0));
+    vec4 bl = texture(tex, texelCoord + vec2(0.0, texelSize.y));
+    vec4 br = texture(tex, texelCoord + vec2(texelSize.x, texelSize.y));
     
     return mix(
         mix(tl, tr, f.x),
@@ -208,89 +212,96 @@ vec4 sampleBilinear(sampler2D tex, vec2 uv) {
     );
 }
 
-void main() {
-    vec2 coord = gl_FragCoord.xy / vec2(textureSize(u_fluid, 0));
-    vec2 texelSize = 1.0 / vec2(textureSize(u_fluid, 0));
+// Improved advection based on MSA Fluid
+vec4 advect(vec2 pos, vec2 vel) {
+    vec2 dt = u_deltaTime * vec2(textureSize(u_fluid, 0));
+    vec2 prevPos = pos - vel * dt;
+    return sampleBilinear(u_fluid, prevPos);
+}
+
+// Jacobi iteration for diffusion
+vec4 diffuse(vec2 pos) {
+    ivec2 texSize = textureSize(u_fluid, 0);
+    vec2 texelSize = 1.0 / vec2(texSize);
     
-    // Sample current state
-    vec4 state = texture(u_fluid, coord);
-    vec2 v = state.xy;    // velocity
-    float d = state.z;    // density
-    float p = state.w;    // pressure
+    vec4 center = texture(u_fluid, pos);
+    vec4 left = texture(u_fluid, pos + vec2(-texelSize.x, 0.0));
+    vec4 right = texture(u_fluid, pos + vec2(texelSize.x, 0.0));
+    vec4 top = texture(u_fluid, pos + vec2(0.0, texelSize.y));
+    vec4 bottom = texture(u_fluid, pos + vec2(0.0, -texelSize.y));
     
-    // Sample neighbors for Jacobi iteration
-    vec4 left = texture(u_fluid, coord + vec2(-texelSize.x, 0.0));
-    vec4 right = texture(u_fluid, coord + vec2(texelSize.x, 0.0));
-    vec4 top = texture(u_fluid, coord + vec2(0.0, texelSize.y));
-    vec4 bottom = texture(u_fluid, coord + vec2(0.0, -texelSize.y));
-    
-    // Jacobi iteration for velocity diffusion (scaled down)
-    vec2 vLaplacian = left.xy + right.xy + top.xy + bottom.xy;
-    float alpha = 0.1 * texelSize.x * texelSize.x / (u_viscosity * u_deltaTime + 1e-6);
+    float alpha = texelSize.x * texelSize.x / (u_viscosity * u_deltaTime + 1e-6);
     float rBeta = 1.0 / (4.0 + alpha);
-    v = (vLaplacian + alpha * v) * rBeta;
     
-    // Apply velocity dissipation
-    v *= max(1.0 - u_deltaTime, u_dissipation);
+    return (left + right + top + bottom + alpha * center) * rBeta;
+}
+
+// Project step to enforce incompressibility
+vec2 project(vec2 pos) {
+    ivec2 texSize = textureSize(u_fluid, 0);
+    vec2 texelSize = 1.0 / vec2(texSize);
     
-    // Semi-Lagrangian advection for velocity
-    vec2 prevCoord = coord - v * u_deltaTime;
-    v = sampleBilinear(u_fluid, prevCoord).xy;
+    vec4 center = texture(u_fluid, pos);
+    vec4 left = texture(u_fluid, pos + vec2(-texelSize.x, 0.0));
+    vec4 right = texture(u_fluid, pos + vec2(texelSize.x, 0.0));
+    vec4 top = texture(u_fluid, pos + vec2(0.0, texelSize.y));
+    vec4 bottom = texture(u_fluid, pos + vec2(0.0, -texelSize.y));
     
-    // Clamp velocity to prevent explosion
-    v = clamp(v, vec2(-1.0), vec2(1.0));
-    
-    // Jacobi iteration for density diffusion (scaled down)
-    float dLaplacian = left.z + right.z + top.z + bottom.z;
-    alpha = 0.1 * texelSize.x * texelSize.x / (u_diffusion * u_deltaTime + 1e-6);
-    rBeta = 1.0 / (4.0 + alpha);
-    d = (dLaplacian + alpha * d) * rBeta;
-    
-    // Semi-Lagrangian advection for density
-    prevCoord = coord - v * u_deltaTime;
-    d = sampleBilinear(u_fluid, prevCoord).z;
-    
-    // Apply density dissipation
-    d *= max(1.0 - u_deltaTime, u_densityDissipation);
-    
-    // Clamp density
-    d = clamp(d, 0.0, 1.0);
-    
-    // Compute divergence (scaled down)
-    float divergence = 0.1 * (
+    float divergence = -0.5 * (
         right.x - left.x +
         top.y - bottom.y
     ) / texelSize.x;
     
-    // Jacobi iteration for pressure
-    float pLaplacian = left.w + right.w + top.w + bottom.w;
-    p = (pLaplacian - divergence) * 0.25;
+    float pressure = (left.w + right.w + top.w + bottom.w - divergence) * 0.25;
     
-    // Clamp pressure
-    p = clamp(p, -1.0, 1.0);
-    
-    // Apply pressure gradient to velocity (scaled down)
-    vec2 pressureGradient = 0.1 * vec2(
+    vec2 gradient = 0.5 * vec2(
         right.w - left.w,
         top.w - bottom.w
     ) / texelSize.x;
-    v -= pressureGradient;
     
-    // Add emitter with controlled strength
+    return center.xy - gradient;
+}
+
+void main() {
+    vec2 pos = gl_FragCoord.xy / vec2(textureSize(u_fluid, 0));
+    vec4 state = texture(u_fluid, pos);
+    
+    // Extract current state
+    vec2 vel = state.xy;    // velocity
+    float density = state.z; // density
+    float pressure = state.w; // pressure
+    
+    // Apply diffusion
+    vec4 diffused = diffuse(pos);
+    vel = diffused.xy;
+    density = diffused.z;
+    
+    // Apply advection
+    vec4 advected = advect(pos, vel);
+    vel = advected.xy;
+    density = advected.z;
+    
+    // Project to enforce incompressibility
+    vel = project(pos);
+    
+    // Apply dissipation
+    vel *= u_dissipation;
+    density *= u_densityDissipation;
+    
+    // Add emitter influence
     float emitterRadius = 0.05;
-    float dist = distance(coord, u_emitterPos);
+    float dist = distance(pos, u_emitterPos);
     if (dist < emitterRadius) {
         float influence = smoothstep(emitterRadius, 0.0, dist);
-        v += u_emitterDir * min(u_emitterStrength, 0.5) * influence;
-        d += min(u_emitterDensity, 1.0) * influence;
+        vel += u_emitterDir * u_emitterStrength * influence;
+        density += u_emitterDensity * influence;
     }
     
-    // Final value clamping
-    v = clamp(v, vec2(-1.0), vec2(1.0));
-    d = clamp(d, 0.0, 1.0);
-    p = clamp(p, -1.0, 1.0);
+    // Clamp final values
+    vel = clamp(vel, vec2(-1.0), vec2(1.0));
+    density = clamp(density, 0.0, 1.0);
     
-    fragColor = vec4(v, d, p);
+    fragColor = vec4(vel, density, pressure);
 }
 `;
 
