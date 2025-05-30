@@ -10,17 +10,6 @@ import { Vec2Def } from "@/core/data/types/vec2-def.tsx";
 import { Vec3Def } from "@/core/data/types/vec3-def.tsx";
 import { Gl2dFramebuffer } from "@/core/gl2d/gl2d-framebuffer.ts";
 
-const initShaderGlsl = glsl`
-#version 300 es
-precision highp float;
-out vec4 fragColor;
-
-void main() {
-    // Initialize with zero velocity, zero density, and zero pressure
-    fragColor = vec4(0.1, 0.1, 0.1, 0.1);
-}
-`;
-
 export const GlFluidModule = defineModule(
   "gl-fluid",
   {
@@ -193,6 +182,17 @@ export const GlFluidModule = defineModule(
   }
 );
 
+const initShaderGlsl = glsl`
+#version 300 es
+precision highp float;
+out vec4 fragColor;
+
+void main() {
+    // Initialize with zero velocity, zero density, and zero pressure
+    fragColor = vec4(0.00, 0.00, 0.0, 0.0);
+}
+`;
+
 const fluidStepGlsl = glsl`
 #version 300 es
 precision highp float;
@@ -210,134 +210,140 @@ uniform float u_emitterDensity;
 
 out vec4 fragColor;
 
-// Helper function to get fluid cell index
-ivec2 fluidIX(ivec2 pos) {
-    return clamp(pos, ivec2(1), textureSize(u_fluid, 0) - 2); // Leave 1-pixel border
+// Helper function to get fluid cell index with proper boundary handling
+vec4 sampleFluid(sampler2D tex, ivec2 pos) {
+    ivec2 texSize = textureSize(tex, 0);
+    
+    // Handle boundaries like MSA implementation
+    if (pos.x <= 0) pos.x = 1;
+    if (pos.x >= texSize.x - 1) pos.x = texSize.x - 2;
+    if (pos.y <= 0) pos.y = 1;
+    if (pos.y >= texSize.y - 1) pos.y = texSize.y - 2;
+    
+    return texelFetch(tex, pos, 0);
 }
 
-// Improved bilinear sampling with boundary handling
-vec4 sampleBilinear(sampler2D tex, vec2 uv) {
-    vec2 texSize = vec2(textureSize(tex, 0));
-    vec2 texelSize = 1.0 / texSize;
+// Jacobi iteration for diffusion (similar to MSA linearSolver)
+vec4 diffuse(ivec2 pos) {
+    float a = u_deltaTime * u_viscosity * float(textureSize(u_fluid, 0).x * textureSize(u_fluid, 0).y);
+    float c = 1.0 + 4.0 * a;
     
-    // Use mirror boundary conditions
-    uv = clamp(uv, texelSize, 1.0 - texelSize);
+    vec4 center = sampleFluid(u_fluid, pos);
+    vec4 left = sampleFluid(u_fluid, pos + ivec2(-1, 0));
+    vec4 right = sampleFluid(u_fluid, pos + ivec2(1, 0));
+    vec4 top = sampleFluid(u_fluid, pos + ivec2(0, -1));
+    vec4 bottom = sampleFluid(u_fluid, pos + ivec2(0, 1));
     
-    vec2 texelCoord = uv * texSize - 0.5;
-    vec2 f = fract(texelCoord);
-    texelCoord = (floor(texelCoord) + 0.5) / texSize;
-    
-    vec4 tl = texture(tex, texelCoord);
-    vec4 tr = texture(tex, texelCoord + vec2(texelSize.x, 0.0));
-    vec4 bl = texture(tex, texelCoord + vec2(0.0, texelSize.y));
-    vec4 br = texture(tex, texelCoord + vec2(texelSize.x, texelSize.y));
-    
-    // Ensure velocity components at boundaries point inward
-    if (uv.x < 2.0 * texelSize.x) {
-        tl.x = max(0.0, tl.x);
-        bl.x = max(0.0, bl.x);
-    } else if (uv.x > 1.0 - 2.0 * texelSize.x) {
-        tr.x = min(0.0, tr.x);
-        br.x = min(0.0, br.x);
-    }
-    if (uv.y < 2.0 * texelSize.y) {
-        tl.y = max(0.0, tl.y);
-        tr.y = max(0.0, tr.y);
-    } else if (uv.y > 1.0 - 2.0 * texelSize.y) {
-        bl.y = min(0.0, bl.y);
-        br.y = min(0.0, br.y);
-    }
-    
-    return mix(
-        mix(tl, tr, f.x),
-        mix(bl, br, f.x),
-        f.y
-    );
+    return (a * (left + right + top + bottom) + center) / c;
 }
 
-// Improved advection based on MSA Fluid
-vec4 advect(vec2 pos, vec2 vel) {
-    vec2 prevPos = pos - vel * u_deltaTime;
-    return sampleBilinear(u_fluid, prevPos);
-}
-
-// Jacobi iteration for diffusion
-vec4 diffuse(vec2 pos) {
+// Project step to enforce incompressibility (similar to MSA project)
+vec2 project(ivec2 pos) {
     ivec2 texSize = textureSize(u_fluid, 0);
-    vec2 texelSize = 1.0 / vec2(texSize);
+    float h = 1.0 / float(texSize.x);
     
-    vec4 center = texture(u_fluid, pos);
-    vec4 left = texture(u_fluid, pos + vec2(-texelSize.x, 0.0));
-    vec4 right = texture(u_fluid, pos + vec2(texelSize.x, 0.0));
-    vec4 top = texture(u_fluid, pos + vec2(0.0, texelSize.y));
-    vec4 bottom = texture(u_fluid, pos + vec2(0.0, -texelSize.y));
+    vec4 center = sampleFluid(u_fluid, pos);
+    vec4 left = sampleFluid(u_fluid, pos + ivec2(-1, 0));
+    vec4 right = sampleFluid(u_fluid, pos + ivec2(1, 0));
+    vec4 top = sampleFluid(u_fluid, pos + ivec2(0, -1));
+    vec4 bottom = sampleFluid(u_fluid, pos + ivec2(0, 1));
     
-    float alpha = texelSize.x * texelSize.x / (u_viscosity * u_deltaTime + 1e-6);
-    float rBeta = 1.0 / (4.0 + alpha);
-    
-    return (left + right + top + bottom + alpha * center) * rBeta;
-}
-
-// Project step to enforce incompressibility
-vec2 project(vec2 pos) {
-    ivec2 texSize = textureSize(u_fluid, 0);
-    vec2 texelSize = 1.0 / vec2(texSize);
-    
-    vec4 center = texture(u_fluid, pos);
-    vec4 left = texture(u_fluid, pos + vec2(-texelSize.x, 0.0));
-    vec4 right = texture(u_fluid, pos + vec2(texelSize.x, 0.0));
-    vec4 top = texture(u_fluid, pos + vec2(0.0, texelSize.y));
-    vec4 bottom = texture(u_fluid, pos + vec2(0.0, -texelSize.y));
-    
-    float divergence = -0.5 * (
+    float divergence = -0.5 * h * (
         right.x - left.x +
-        top.y - bottom.y
-    ) / texelSize.x;
-    
+        bottom.y - top.y
+    );
     float pressure = (left.w + right.w + top.w + bottom.w - divergence) * 0.25;
     
     vec2 gradient = 0.5 * vec2(
         right.w - left.w,
-        top.w - bottom.w
-    ) / texelSize.x;
+        bottom.w - top.w
+    ) / h;
     
     return center.xy - gradient;
 }
 
-void main() {
-    vec2 pos = gl_FragCoord.xy / vec2(textureSize(u_fluid, 0));
-    vec4 state = texture(u_fluid, pos);
+// Advection with proper boundary handling (similar to MSA advect)
+vec4 advect(ivec2 pos) {
+    ivec2 texSize = textureSize(u_fluid, 0);
+    float dt0 = u_deltaTime * float(texSize.x);
     
-    // Extract current state
+    // Get current velocity at this position
+    vec4 current = sampleFluid(u_fluid, pos);
+    
+    // Calculate previous position
+    float x = float(pos.x) - dt0 * current.x;
+    float y = float(pos.y) - dt0 * current.y;
+    
+    // Clamp to boundaries like MSA
+    x = clamp(x, 0.5, float(texSize.x) + 0.5);
+    y = clamp(y, 0.5, float(texSize.y) + 0.5);
+    
+    // Get integer coordinates
+    int i0 = int(x);
+    int j0 = int(y);
+    int i1 = i0 + 1;
+    int j1 = j0 + 1;
+    
+    // Get fractional parts
+    float s1 = x - float(i0);
+    float s0 = 1.0 - s1;
+    float t1 = y - float(j0);
+    float t0 = 1.0 - t1;
+    
+    // Sample using bilinear interpolation
+    vec4 i0j0 = sampleFluid(u_fluid, ivec2(i0, j0));
+    vec4 i1j0 = sampleFluid(u_fluid, ivec2(i1, j0));
+    vec4 i0j1 = sampleFluid(u_fluid, ivec2(i0, j1));
+    vec4 i1j1 = sampleFluid(u_fluid, ivec2(i1, j1));
+    
+    return s0 * (t0 * i0j0 + t1 * i0j1) +
+           s1 * (t0 * i1j0 + t1 * i1j1);
+}
+
+void main() {
+    ivec2 pos = ivec2(gl_FragCoord.xy);
+    ivec2 texSize = textureSize(u_fluid, 0);
+    
+    // Skip boundary cells
+    if (pos.x <= 0 || pos.x >= texSize.x-1 || pos.y <= 0 || pos.y >= texSize.y-1) {
+        fragColor = vec4(0.0);
+        return;
+    }
+    
+    vec4 state = sampleFluid(u_fluid, pos);
     vec2 vel = state.xy;    // velocity
     float density = state.z; // density
     float pressure = state.w; // pressure
     
-    // Apply diffusion
-    vec4 diffused = diffuse(pos);
-    vel = diffused.xy;
-    density = diffused.z;
-    
-    // Apply advection
-    vec4 advected = advect(pos, vel);
-    vel = advected.xy;
-    density = advected.z;
-    
-    // Project to enforce incompressibility
-    vel = project(pos);
-    
-    // Apply dissipation
-    vel *= u_dissipation;
-    density *= u_densityDissipation;
-    
-    // Add emitter influence
-    float emitterRadius = 0.1;
-    float dist = distance(pos, u_emitterPos);
+    // Following MSA sequence:
+    // 1. Add source (emitter)
+    float emitterRadius = float(texSize.x) * 0.1;
+    vec2 emitterPosPixels = u_emitterPos * vec2(texSize);
+    float dist = distance(vec2(pos), emitterPosPixels);
     if (dist < emitterRadius) {
         float influence = smoothstep(emitterRadius, 0.0, dist);
         vel += u_emitterDir * u_emitterStrength * influence * 2.0;
         density += u_emitterDensity * influence * 1.5;
     }
+    
+    // 2. Diffuse
+    vec4 diffused = diffuse(pos);
+    vel = diffused.xy;
+    
+    // 3. Project
+    vel = project(pos);
+    
+    // 4. Advect
+    vec4 advected = advect(pos);
+    vel = advected.xy;
+    density = advected.z;
+    
+    // 5. Project again
+    vel = project(pos);
+    
+    // Apply dissipation
+    vel *= u_dissipation;
+    density *= u_densityDissipation;
     
     // Clamp final values
     vel = clamp(vel, vec2(-1.0), vec2(1.0));

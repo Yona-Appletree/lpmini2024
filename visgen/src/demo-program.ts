@@ -13,16 +13,16 @@ export const demoConfig = ProgramConfig({
       input: {
         value: {
           viscosity: { value: 0.0001 },
-          diffusion: { value: 0.00001 },
-          velocityDissipation: { value: 1 },
-          densityDissipation: { value: 1 },
+          diffusion: { value: 0.001 },
+          velocityDissipation: { value: 0.99 },
+          densityDissipation: { value: 0.99 },
           deltaTime: { value: 0.016 },
           emitterLocation: { value: [{ value: 0.5 }, { value: 0.5 }] },
-          emitterDirection: { value: [{ value: 0.0 }, { value: 1.0 }] },
+          emitterDirection: { value: [{ value: 1.0 }, { value: 1.0 }] },
           emitterStrength: { value: 0.3 },
-          emitterDensity: { value: 1.0 },
+          emitterDensity: { value: 0.1 },
           emitterColor: {
-            value: [{ value: 0.0 }, { value: 0.5 }, { value: 0.7 }],
+            value: [{ value: 0.0 }, { value: 0.1 }, { value: 0.2 }],
           },
         },
       },
