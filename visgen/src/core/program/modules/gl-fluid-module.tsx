@@ -10,6 +10,17 @@ import { Vec2Def } from "@/core/data/types/vec2-def.tsx";
 import { Vec3Def } from "@/core/data/types/vec3-def.tsx";
 import { Gl2dFramebuffer } from "@/core/gl2d/gl2d-framebuffer.ts";
 
+const initShaderGlsl = glsl`
+#version 300 es
+precision highp float;
+out vec4 fragColor;
+
+void main() {
+    // Initialize with zero velocity, zero density, and zero pressure
+    fragColor = vec4(0.1, 0.1, 0.1, 0.1);
+}
+`;
+
 export const GlFluidModule = defineModule(
   "gl-fluid",
   {
@@ -34,6 +45,9 @@ export const GlFluidModule = defineModule(
     // Create shader for rendering
     const renderShader = Gl2dFragmentShader(gl2d.context, renderGlsl.trim());
 
+    // Create shader for initialization
+    const initShader = Gl2dFragmentShader(gl2d.context, initShaderGlsl.trim());
+
     // Create framebuffers for double buffering simulation state for each color
     const redBuffer1 = gl2d.framebuffer({
       options: { format: "float32", filter: "nearest" },
@@ -52,6 +66,19 @@ export const GlFluidModule = defineModule(
     });
     const blueBuffer2 = gl2d.framebuffer({
       options: { format: "float32", filter: "nearest" },
+    });
+
+    // Initialize all framebuffers
+    [
+      redBuffer1,
+      redBuffer2,
+      greenBuffer1,
+      greenBuffer2,
+      blueBuffer1,
+      blueBuffer2,
+    ].forEach((buffer) => {
+      buffer.bind();
+      initShader.draw({});
     });
 
     // Create framebuffer for final rendering
@@ -185,7 +212,7 @@ out vec4 fragColor;
 
 // Helper function to get fluid cell index
 ivec2 fluidIX(ivec2 pos) {
-    return clamp(pos, ivec2(0), textureSize(u_fluid, 0) - 1);
+    return clamp(pos, ivec2(1), textureSize(u_fluid, 0) - 2); // Leave 1-pixel border
 }
 
 // Improved bilinear sampling with boundary handling
@@ -193,7 +220,7 @@ vec4 sampleBilinear(sampler2D tex, vec2 uv) {
     vec2 texSize = vec2(textureSize(tex, 0));
     vec2 texelSize = 1.0 / texSize;
     
-    // Clamp to edge
+    // Use mirror boundary conditions
     uv = clamp(uv, texelSize, 1.0 - texelSize);
     
     vec2 texelCoord = uv * texSize - 0.5;
@@ -204,6 +231,22 @@ vec4 sampleBilinear(sampler2D tex, vec2 uv) {
     vec4 tr = texture(tex, texelCoord + vec2(texelSize.x, 0.0));
     vec4 bl = texture(tex, texelCoord + vec2(0.0, texelSize.y));
     vec4 br = texture(tex, texelCoord + vec2(texelSize.x, texelSize.y));
+    
+    // Ensure velocity components at boundaries point inward
+    if (uv.x < 2.0 * texelSize.x) {
+        tl.x = max(0.0, tl.x);
+        bl.x = max(0.0, bl.x);
+    } else if (uv.x > 1.0 - 2.0 * texelSize.x) {
+        tr.x = min(0.0, tr.x);
+        br.x = min(0.0, br.x);
+    }
+    if (uv.y < 2.0 * texelSize.y) {
+        tl.y = max(0.0, tl.y);
+        tr.y = max(0.0, tr.y);
+    } else if (uv.y > 1.0 - 2.0 * texelSize.y) {
+        bl.y = min(0.0, bl.y);
+        br.y = min(0.0, br.y);
+    }
     
     return mix(
         mix(tl, tr, f.x),
