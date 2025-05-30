@@ -5,11 +5,12 @@ import { GlPolarScrollNode } from "@/core/program/modules/gl-polar-scroll-module
 import { GlRotateNode } from "@/core/program/modules/gl-rotate-module.tsx";
 import { OscillatorModule } from "@/core/program/modules/oscillator-module.tsx";
 import { z } from "zod";
-import { GlPerlinModule } from "./modules/gl-perlin-module.tsx";
-import { GlMonoToHueModule } from "./modules/gl-mono-to-hue-module.tsx";
+import { GlPerlinModule } from "./gl-perlin-module.tsx";
+import { GlMonoToHueModule } from "./gl-mono-to-hue-module.tsx";
+import { GlFluidModule } from "@/core/program/modules/gl-fluid-module.tsx";
 
 // -----------------------------------------------------------------------------
-// nodeDefs
+// Module definitions
 //
 
 const moduleDefs = [
@@ -20,10 +21,11 @@ const moduleDefs = [
   GlBlurModule,
   GlPerlinModule,
   GlMonoToHueModule,
+  GlFluidModule,
 ] as const;
 
 // -----------------------------------------------------------------------------
-// nodeDefByType
+// Modules by type id
 //
 
 export const moduleDefByType = Object.fromEntries(
@@ -42,7 +44,7 @@ export type ModuleDef = (typeof moduleDefByType)[keyof typeof moduleDefByType];
 // NodeConfig
 //
 
-export const ModuleConfig = UnionDef(
+export const _index = UnionDef(
   "type",
   moduleDefs.map(
     (nodeDef) => nodeDef.Config.schema,

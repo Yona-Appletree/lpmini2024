@@ -5,9 +5,26 @@ import { GlPolarScrollNode } from "@/core/program/modules/gl-polar-scroll-module
 import { GlRotateNode } from "@/core/program/modules/gl-rotate-module.tsx";
 import { OscillatorModule } from "@/core/program/modules/oscillator-module.tsx";
 import { ProgramConfig } from "@/core/program/program-config.ts";
+import { GlFluidModule } from "@/core/program/modules/gl-fluid-module.tsx";
 
 export const demoConfig = ProgramConfig({
   nodes: {
+    fluid: GlFluidModule.Config({
+      input: {
+        value: {
+          viscosity: { value: 0.0001 },
+          diffusion: { value: 0.00001 },
+          velocityDissipation: { value: 0.99 },
+          densityDissipation: { value: 0.99 },
+          deltaTime: { value: 0.016 },
+          emitterLocation: { value: [{ value: 0.5 }, { value: 0.5 }] },
+          emitterDirection: { value: [{ value: 0.0 }, { value: 1.0 }] },
+          emitterStrength: { value: 0.3 },
+          emitterDensity: { value: 1.0 },
+        },
+      },
+    }),
+
     lfo2: OscillatorModule.Config({
       input: {
         value: {

@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { ProgramRuntime } from "@/core/program/program-runtime.ts";
-import { demoConfig } from "./demo-program.ts";
+import { demoConfig } from "../../demo-program.ts";
 import { ModuleComponent } from "./module-component.tsx";
 
 export function Demo() {

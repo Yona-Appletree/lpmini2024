@@ -8,7 +8,7 @@ import { ConfigExprKey, ConfigNodeExpr } from "./config-node.ts";
 import type { TupleItems, TupleMeta } from "@/core/data/types/tuple-def.tsx";
 
 export function configSchemaFor<TSpec extends TypeSpec<TypeName>>(
-  spec: TSpec,
+  spec: TSpec
 ): z.Schema<ConfigValueFor<TSpec>> {
   const valueSchema = (() => {
     switch (spec.info.name) {
@@ -18,15 +18,15 @@ export function configSchemaFor<TSpec extends TypeSpec<TypeName>>(
       case "tuple":
         return z.tuple(
           (spec.info.meta as TupleMeta).itemTypes.map((it: unknown) =>
-            configSchemaFor(it as TypeSpec<TypeName>),
-          ),
+            configSchemaFor(it as TypeSpec<TypeName>)
+          )
         );
 
       case "record":
         return z.object(
           mapValues((spec.info.meta as RecordMeta).shape, (type) =>
-            configSchemaFor(type),
-          ),
+            configSchemaFor(type)
+          )
         );
 
       default:

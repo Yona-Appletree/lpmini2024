@@ -64,7 +64,7 @@ types to approximate how they on a GPU.
 
 At runtime, a `LightProgram` is the core unit of execution for the
 visualization. It consists of a number of `LightModules` which have
-a `ModuleConfig` that defines how they get their `input` values,
+a `_index` that defines how they get their `input` values,
 which are either `literal` or an `expression`.
 
 ## Modules

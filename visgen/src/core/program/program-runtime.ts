@@ -1,9 +1,5 @@
 import { ProgramConfig } from "./program-config.ts";
-import {
-  ModuleConfig,
-  type ModuleDef,
-  moduleDefByType,
-} from "./module-config.ts";
+import { _index, type ModuleDef, moduleDefByType } from "./modules/_index.ts";
 import type { NodeInstance } from "./module-def.ts";
 import { evaluateConfig } from "../config/evaluate-config.ts";
 import { Gl2d } from "@/core/gl2d/gl2d.ts";
@@ -91,7 +87,7 @@ export type ProgramRuntime = ReturnType<typeof ProgramRuntime>;
 
 export interface ModuleInstance {
   id: string;
-  nodeConfig: ModuleConfig;
+  nodeConfig: _index;
   nodeDef: ModuleDef;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   instance: NodeInstance<any>;

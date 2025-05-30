@@ -16,6 +16,12 @@ export function Gl2dContext(canvas = createCanvas()): Gl2dContextReturn {
   const width = canvas.width;
   const height = canvas.height;
 
+  // Enable floating point texture support
+  const ext = gl.getExtension("EXT_color_buffer_float");
+  if (!ext) {
+    throw new Error("Floating point textures not supported on this device");
+  }
+
   // Create vertex shader
   const vertexShaderSource = `
     #version 300 es
@@ -44,7 +50,7 @@ export function Gl2dContext(canvas = createCanvas()): Gl2dContextReturn {
   if (!gl.getShaderParameter(vertexShader, gl.COMPILE_STATUS)) {
     console.error(
       "Vertex shader compilation error:",
-      gl.getShaderInfoLog(vertexShader),
+      gl.getShaderInfoLog(vertexShader)
     );
     gl.deleteShader(vertexShader);
     throw new Error("Failed to compile vertex shader");
@@ -63,7 +69,7 @@ export function Gl2dContext(canvas = createCanvas()): Gl2dContextReturn {
       void main() {
         fragColor = texture(uTexture, vUv);
       }
-    `,
+    `
   );
   gl.compileShader(copyFragmentShader);
 
@@ -71,7 +77,7 @@ export function Gl2dContext(canvas = createCanvas()): Gl2dContextReturn {
   if (!gl.getShaderParameter(copyFragmentShader, gl.COMPILE_STATUS)) {
     console.error(
       "Fragment shader compilation error:",
-      gl.getShaderInfoLog(copyFragmentShader),
+      gl.getShaderInfoLog(copyFragmentShader)
     );
     gl.deleteShader(copyFragmentShader);
     throw new Error("Failed to compile fragment shader");
