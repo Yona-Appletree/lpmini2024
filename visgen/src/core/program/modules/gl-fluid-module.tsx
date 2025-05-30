@@ -15,14 +15,14 @@ export const GlFluidModule = defineModule(
   {
     label: "Fluid Simulation",
     input: RecordDef({
-      viscosity: FloatDef({ default: 0.001 }),
-      diffusion: FloatDef({ default: 0.0001 }),
-      velocityDissipation: FloatDef({ default: 0.995 }),
-      densityDissipation: FloatDef({ default: 0.995 }),
+      viscosity: FloatDef({ default: 0.0005 }),
+      diffusion: FloatDef({ default: 0.0002 }),
+      velocityDissipation: FloatDef({ default: 0.98 }),
+      densityDissipation: FloatDef({ default: 0.98 }),
       deltaTime: FloatDef({ default: 0.016 }),
       emitterLocation: Vec2Def({ default: [0.5, 0.5] }),
       emitterDirection: Vec2Def({ default: [0.0, 1.0] }),
-      emitterStrength: FloatDef({ default: 0.1 }),
+      emitterStrength: FloatDef({ default: 0.2 }),
       emitterColor: Vec3Def({ default: [1.0, 0.5, 0.2] }), // RGB color
     }),
     output: TextureDef(),
@@ -214,8 +214,7 @@ vec4 sampleBilinear(sampler2D tex, vec2 uv) {
 
 // Improved advection based on MSA Fluid
 vec4 advect(vec2 pos, vec2 vel) {
-    vec2 dt = u_deltaTime * vec2(textureSize(u_fluid, 0));
-    vec2 prevPos = pos - vel * dt;
+    vec2 prevPos = pos - vel * u_deltaTime;
     return sampleBilinear(u_fluid, prevPos);
 }
 
@@ -289,12 +288,12 @@ void main() {
     density *= u_densityDissipation;
     
     // Add emitter influence
-    float emitterRadius = 0.05;
+    float emitterRadius = 0.1;
     float dist = distance(pos, u_emitterPos);
     if (dist < emitterRadius) {
         float influence = smoothstep(emitterRadius, 0.0, dist);
-        vel += u_emitterDir * u_emitterStrength * influence;
-        density += u_emitterDensity * influence;
+        vel += u_emitterDir * u_emitterStrength * influence * 2.0;
+        density += u_emitterDensity * influence * 1.5;
     }
     
     // Clamp final values

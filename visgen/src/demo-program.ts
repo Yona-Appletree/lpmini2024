@@ -14,8 +14,8 @@ export const demoConfig = ProgramConfig({
         value: {
           viscosity: { value: 0.0001 },
           diffusion: { value: 0.00001 },
-          velocityDissipation: { value: 0.99 },
-          densityDissipation: { value: 0.99 },
+          velocityDissipation: { value: 1 },
+          densityDissipation: { value: 1 },
           deltaTime: { value: 0.016 },
           emitterLocation: { value: [{ value: 0.5 }, { value: 0.5 }] },
           emitterDirection: { value: [{ value: 0.0 }, { value: 1.0 }] },
