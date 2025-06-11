@@ -19,7 +19,7 @@ export const demoConfig = ProgramConfig({
           deltaTime: { value: 0.016 },
           emitterLocation: { value: [{ value: 0.5 }, { value: 0.5 }] },
           emitterDirection: { value: [{ value: 1.0 }, { value: 1.0 }] },
-          emitterStrength: { value: 0.3 },
+          emitterStrength: { value: 0.13 },
           emitterDensity: { value: 0.1 },
           emitterColor: {
             value: [{ value: 0.0 }, { value: 0.1 }, { value: 0.2 }],

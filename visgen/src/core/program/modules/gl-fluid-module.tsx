@@ -240,7 +240,7 @@ vec4 diffuse(ivec2 pos) {
 // Project step to enforce incompressibility (similar to MSA project)
 vec2 project(ivec2 pos) {
     ivec2 texSize = textureSize(u_fluid, 0);
-    float h = 1.0 / float(texSize.x);
+    float h = -0.5 / float(texSize.x);
     
     vec4 center = sampleFluid(u_fluid, pos);
     vec4 left = sampleFluid(u_fluid, pos + ivec2(-1, 0));
@@ -248,16 +248,19 @@ vec2 project(ivec2 pos) {
     vec4 top = sampleFluid(u_fluid, pos + ivec2(0, -1));
     vec4 bottom = sampleFluid(u_fluid, pos + ivec2(0, 1));
     
-    float divergence = -0.5 * h * (
-        right.x - left.x +
-        bottom.y - top.y
-    );
-    float pressure = (left.w + right.w + top.w + bottom.w - divergence) * 0.25;
+    // First compute divergence (like MSA)
+    float divergence = h * (right.x - left.x + bottom.y - top.y);
     
-    vec2 gradient = 0.5 * vec2(
-        right.w - left.w,
-        bottom.w - top.w
-    ) / h;
+    // Solve pressure (Gauss-Seidel relaxation)
+    float pressure = 0.25 * (left.w + right.w + top.w + bottom.w - divergence);
+    
+    // Subtract gradient with proper scaling
+    float fx = 0.5 * float(texSize.x);
+    float fy = 0.5 * float(texSize.y);
+    vec2 gradient = vec2(
+        fx * (right.w - left.w),
+        fy * (bottom.w - top.w)
+    );
     
     return center.xy - gradient;
 }
@@ -265,14 +268,15 @@ vec2 project(ivec2 pos) {
 // Advection with proper boundary handling (similar to MSA advect)
 vec4 advect(ivec2 pos) {
     ivec2 texSize = textureSize(u_fluid, 0);
-    float dt0 = u_deltaTime * float(texSize.x);
+    float dt0x = u_deltaTime * float(texSize.x);
+    float dt0y = u_deltaTime * float(texSize.y);
     
     // Get current velocity at this position
     vec4 current = sampleFluid(u_fluid, pos);
     
-    // Calculate previous position
-    float x = float(pos.x) - dt0 * current.x;
-    float y = float(pos.y) - dt0 * current.y;
+    // Calculate previous position with proper scaling
+    float x = float(pos.x) - dt0x * current.x;
+    float y = float(pos.y) - dt0y * current.y;
     
     // Clamp to boundaries like MSA
     x = clamp(x, 0.5, float(texSize.x) + 0.5);
@@ -290,13 +294,14 @@ vec4 advect(ivec2 pos) {
     float t1 = y - float(j0);
     float t0 = 1.0 - t1;
     
-    // Sample using bilinear interpolation
+    // Sample using bilinear interpolation with proper boundary handling
     vec4 i0j0 = sampleFluid(u_fluid, ivec2(i0, j0));
     vec4 i1j0 = sampleFluid(u_fluid, ivec2(i1, j0));
     vec4 i0j1 = sampleFluid(u_fluid, ivec2(i0, j1));
     vec4 i1j1 = sampleFluid(u_fluid, ivec2(i1, j1));
     
-    return s0 * (t0 * i0j0 + t1 * i0j1) +
+    // Bilinear interpolation
+    return s0 * (t0 * i0j0 + t1 * i0j1) + 
            s1 * (t0 * i1j0 + t1 * i1j1);
 }
 
@@ -326,11 +331,11 @@ void main() {
         density += u_emitterDensity * influence * 1.5;
     }
     
-    // 2. Diffuse
+    // 2. Diffuse velocity
     vec4 diffused = diffuse(pos);
     vel = diffused.xy;
     
-    // 3. Project
+    // 3. Project to enforce incompressibility
     vel = project(pos);
     
     // 4. Advect
@@ -344,6 +349,11 @@ void main() {
     // Apply dissipation
     vel *= u_dissipation;
     density *= u_densityDissipation;
+    
+    // Zero out very small velocities to prevent denormal numbers
+    const float ZERO_THRESH = 1e-9;
+    if (abs(vel.x) < ZERO_THRESH) vel.x = 0.0;
+    if (abs(vel.y) < ZERO_THRESH) vel.y = 0.0;
     
     // Clamp final values
     vel = clamp(vel, vec2(-1.0), vec2(1.0));
