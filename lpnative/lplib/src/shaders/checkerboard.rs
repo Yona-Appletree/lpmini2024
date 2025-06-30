@@ -1,3 +1,4 @@
+#![allow(non_snake_case)]
 
 use super::super::glsl::Vec4;
 use super::super::glsl::Vec2;

@@ -1,0 +1,64 @@
+#
+# Config for the layout of the esp32s3 camera-in-a-circle screen
+#
+
+[meta]
+name = ""
+
+[output]
+type = "output:gpio"
+protocol = "ws2811"
+channels = [{ pin = 4, fixtures = ["led-rings-fixture"] }]
+
+[camera]
+type = "input:camera"
+
+# ==============================================================================
+# Visualization
+#
+
+[scene1.pipeline]
+type = "2d:pipeline"
+image = "camera::image"
+stages = [
+    { type = "grayscale" },
+    { type = "cutoff", value = 0.5 },
+    { type = "brightness-to-hue" },
+]
+
+[scene1.renderer]
+type = "2d:renderer"
+fixture = "led-ring.fixture"
+image = ".pipeline::image"
+
+# ==============================================================================
+# LED Ring
+#
+
+[led-ring.meta]
+name = "LED Ring"
+
+[led-ring.fixture]
+type = "fixture:led-string"
+color-type = "rgb"
+channel-order = "grb"
+led-count = 150
+mapping = ".mapping"
+
+[led-ring.mapping]
+type = "mapping:2d-geometry"
+
+[[led-ring.mapping.elements]]
+type = "repeat:radial"
+count = 8
+radius = 1
+direction = "clockwise"
+element = { type = "circle", radius = 1 }
+
+[[led-ring.mapping.elements]]
+type = "repeat:radial"
+count = 12
+radius = 2
+direction = "clockwise"
+element = { type = "circle", radius = 1 }
+
