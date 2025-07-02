@@ -1,5 +1,6 @@
-use crate::dynval::schema::SchemaNode;
+use schemars::{schema_for, JsonSchema};
 
+#[derive(JsonSchema)]
 enum LfoWaveform {
     Sine,
     Square,
@@ -12,6 +13,4 @@ struct LfoInput {
     waveform: LfoWaveform,
 }
 
-trait Dynval<T> {
-    
-}
+
