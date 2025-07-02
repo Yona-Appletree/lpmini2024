@@ -1,6 +1,6 @@
 [workspace]
 members = [
-    "lplib",
+    "lpcore",
     "lpcli",
     "lpfirmware",
     "lpfirmware-esp32c3",
