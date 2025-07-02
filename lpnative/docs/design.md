@@ -1,4 +1,4 @@
-# Design
+# Enities
 
 Lightplayer programs are defined by a hierarchy of **entities** each of which have **inputs** and
 **outputs** that can be wired together to form a directed acyclic graph.
@@ -19,7 +19,10 @@ There are three kinds of entities:
 Entities may have internal state available from frame to frame. State must be serializable to
 allow synchronization between instances of a program.
 
-Lightplayer runs in either a **leader** or **follower** role.
-**Follower** instances across multiple devices can stay in sync with the
-**leader**. This is primarily used to keep multiple user interface instances in
-sync with a headless leader.
+# Dynval
+
+Dynnamic values, `dynval` for short, are the core of lightplayers data system,
+allowing entities to define their inputs, state, and output, and wire those
+value together.
+
+They are essentially a reactive value system, like
