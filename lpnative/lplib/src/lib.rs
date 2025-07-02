@@ -3,6 +3,9 @@
 
 extern crate core;
 
+mod data;
+mod dynval;
+mod entity;
 pub mod glsl;
 pub mod shaders;
 

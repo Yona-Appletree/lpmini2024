@@ -13,27 +13,30 @@ channels = [{ pin = 4, fixtures = ["led-rings-fixture"] }]
 [camera]
 type = "input:camera"
 
-# ==============================================================================
-# Visualization
-#
+# Scene1
 
-[scene1.pipeline]
-type = "2d:pipeline"
-image = "camera::image"
-stages = [
-    { type = "grayscale" },
-    { type = "cutoff", value = 0.5 },
-    { type = "brightness-to-hue" },
-]
+[scene1.lfo]
+type = "oscillator"
+curve = "sine"
+period = 10_000
+
+[scene1.step1]
+type = "2d:cutoff"
+image = { _entity = ".camera", output = "image" }
+cutoff = 0.5
+
+[scene1.step2]
+type = "2d:brightness-to-hue"
+image = { _entity = ".step1", output = "image" }
+hue_offset = { _entity = ".lfo", output = "value" }
 
 [scene1.renderer]
 type = "2d:renderer"
 fixture = "led-ring.fixture"
 image = ".pipeline::image"
 
-# ==============================================================================
+
 # LED Ring
-#
 
 [led-ring.meta]
 name = "LED Ring"
@@ -44,6 +47,7 @@ color-type = "rgb"
 channel-order = "grb"
 led-count = 150
 mapping = ".mapping"
+gamma_curve = "typical-ws2812"
 
 [led-ring.mapping]
 type = "mapping:2d-geometry"
