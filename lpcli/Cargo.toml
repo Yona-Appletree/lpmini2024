@@ -3,4 +3,6 @@ name = "lpcli"
 edition = "2021"
 
 [dependencies]
-lplib = { path = "../lpcore", features = ["std"] }
+lpcore = { path = "../lpcore", features = ["std"] }
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"

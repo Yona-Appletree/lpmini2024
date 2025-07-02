@@ -2,13 +2,11 @@
 members = [
     "lpcore",
     "lpcli",
-    "lpfirmware",
-    "lpfirmware-esp32c3",
 ]
 resolver = "2"
 
 [workspace.package]
-name = "lpnative"
+name = "lpmini2024"
 version = "0.1.0"
 edition = "2021"
 

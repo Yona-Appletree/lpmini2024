@@ -3,11 +3,7 @@
 
 extern crate core;
 
-mod dynval;
+pub mod data;
+pub mod entities;
 mod entity;
-pub mod glsl;
-pub mod shaders;
-
-pub fn compute(value: u32) -> u32 {
-    value * 2
-}
+mod scene;
