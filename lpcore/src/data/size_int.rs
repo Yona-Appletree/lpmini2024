@@ -1,4 +1,4 @@
-use schemars::{schema_for, JsonSchema, Schema};
+use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 
 #[derive(Serialize, Deserialize, JsonSchema, Debug)]

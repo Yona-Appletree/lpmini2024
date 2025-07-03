@@ -1,6 +1,7 @@
 pub mod frame_entity;
 pub mod frame_store;
 pub mod scene;
+pub mod scene_def;
 pub mod scene_entity;
 pub mod scene_store;
 

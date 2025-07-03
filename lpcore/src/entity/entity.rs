@@ -3,7 +3,7 @@ use serde_json::Value as JsonValue;
 use std::error::Error;
 
 pub trait Entity {
-    fn update(&mut self, context: &dyn Context) -> Result<(JsonValue), Box<dyn Error>>;
+    fn update(&mut self, context: &dyn Context) -> Result<JsonValue, Box<dyn Error>>;
 
     fn get_output(&self) -> Option<JsonValue> {
         None
@@ -12,7 +12,7 @@ pub trait Entity {
     fn get_state(&self) -> Option<JsonValue> {
         None
     }
-    fn set_state(&mut self, state: JsonValue) -> Result<(), Box<dyn Error>> {
+    fn set_state(&mut self, _state: JsonValue) -> Result<(), Box<dyn Error>> {
         Ok(())
     }
 }
