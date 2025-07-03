@@ -7,4 +7,5 @@ mod config;
 pub mod data;
 pub mod entities;
 pub mod entity;
+pub mod module;
 pub mod scene;

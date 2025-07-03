@@ -1,1 +1,1 @@
-mod module_config;
+pub mod config_node;
