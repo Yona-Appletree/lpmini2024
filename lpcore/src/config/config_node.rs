@@ -2,17 +2,20 @@ use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 
 #[derive(Serialize, Deserialize, Debug)]
-
 pub enum ConfigNode {
     EntityNode {
-        kind: String,
+        _kind: String,
+
+        #[serde(flatten)]
         input: HashMap<String, serde_json::Value>,
     },
 
     ModuleNode {
-        name: Option<String>,
-        inputs: Option<HashMap<String, InputConfig>>,
-        outputs: Option<HashMap<String, OutputConfig>>,
+        _name: Option<String>,
+        _inputs: Option<HashMap<String, InputConfig>>,
+        _outputs: Option<HashMap<String, OutputConfig>>,
+
+        #[serde(flatten)]
         entities: HashMap<String, ConfigNode>,
     },
 }
