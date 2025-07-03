@@ -1,13 +1,11 @@
-use crate::entity::context::Context;
+use crate::{entities::EntityKind, entity::context::Context};
 use serde_json::Value as JsonValue;
 use std::error::Error;
 
 pub trait Entity {
-    fn update(&mut self, context: &dyn Context) -> Result<JsonValue, Box<dyn Error>>;
+    fn kind() -> EntityKind;
 
-    fn get_output(&self) -> Option<JsonValue> {
-        None
-    }
+    fn update(&mut self, context: &dyn Context) -> Result<JsonValue, Box<dyn Error>>;
 
     fn get_state(&self) -> Option<JsonValue> {
         None

@@ -1,8 +1,11 @@
-use serde_json::Value as JsonValue;
+use core::error::Error;
+
+use serde::Serialize;
+use serde_json::{Serializer, Value as JsonValue};
 
 pub struct FrameInfo {
     pub frame_counter: u64,
-    pub now_ms: f64,
+    pub now_ms: i64,
 }
 
 pub trait Context {
@@ -12,6 +15,6 @@ pub trait Context {
     fn entity_output(&self, entity_id: &str) -> Option<JsonValue>;
 
     /// Compute input for this entity at the given path.
-    fn input(&self) -> Option<JsonValue>;
-    fn input_path(&self, path: &str) -> Option<JsonValue>;
+    fn input(&self) -> JsonValue;
+    fn input_at_path(&self, path: &str) -> Option<JsonValue>;
 }
