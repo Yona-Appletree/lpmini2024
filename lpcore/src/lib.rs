@@ -3,7 +3,8 @@
 
 extern crate core;
 
+mod config;
 pub mod data;
 pub mod entities;
-mod entity;
-mod scene;
+pub mod entity;
+pub mod scene;
