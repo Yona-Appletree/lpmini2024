@@ -16,7 +16,7 @@ impl CircleEntity {
 }
 
 impl Entity for CircleEntity {
-    fn kind() -> EntityKind {
+    fn kind(&self) -> EntityKind {
         EntityKind::Circle
     }
 

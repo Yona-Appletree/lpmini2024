@@ -22,7 +22,7 @@ impl LfoEntity {
 }
 
 impl Entity for LfoEntity {
-    fn kind() -> EntityKind {
+    fn kind(&self) -> EntityKind {
         EntityKind::Lfo
     }
 
