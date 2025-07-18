@@ -1,12 +1,13 @@
 use crate::entities::circle::CircleEntity;
 use crate::entities::lfo::LfoEntity;
 use crate::entity::node_instance::NodeInstance;
+use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 
 pub mod circle;
 pub mod lfo;
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, JsonSchema, Debug)]
 pub enum EntityKind {
     Circle,
     Lfo,

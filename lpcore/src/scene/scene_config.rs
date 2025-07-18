@@ -1,19 +1,17 @@
 use crate::entities::EntityKind;
 use crate::expr::Expr;
+use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 use serde_json::Value as JsonValue;
 use std::collections::HashMap;
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, JsonSchema, Debug)]
 pub struct SceneConfig {
-    /// Map of node id to node config
-    pub nodes: HashMap<String, NodeConfig>,
-
-    /// Map of module id to module config
-    pub modules: HashMap<String, ModuleConfig>,
+    pub name: String,
+    pub module: ModuleConfig,
 }
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, JsonSchema, Debug)]
 pub struct NodeConfig {
     pub kind: NodeKind,
 
@@ -25,13 +23,13 @@ pub struct NodeConfig {
 }
 
 /// Specification of the kind of node
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, JsonSchema, Debug)]
 pub enum NodeKind {
     Entity(EntityKind),
     Module(String),
 }
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, JsonSchema, Debug)]
 pub struct ModuleConfig {
     pub name: Option<String>,
 
@@ -42,21 +40,21 @@ pub struct ModuleConfig {
     pub modules: HashMap<String, ModuleConfig>,
 }
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, JsonSchema, Debug)]
 pub struct ModuleInput {
     pub name: String,
     pub entity_id: String,
     pub input_path: String,
 }
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, JsonSchema, Debug)]
 pub struct ModuleOutput {
     pub name: String,
     pub entity_id: String,
     pub output_path: String,
 }
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, JsonSchema, Debug)]
 pub struct EntityConnection {
     pub output_entity_id: String,
     pub output_path: String,
