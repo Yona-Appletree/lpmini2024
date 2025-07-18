@@ -1,5 +1,5 @@
 use lpcore::entities::{lfo, EntityKind};
-use lpcore::scene::scene_config::{KindSpec, NodeConfig, SceneConfig};
+use lpcore::scene::scene_config::{NodeConfig, NodeKind, SceneConfig};
 use serde_json;
 use std::collections::HashMap;
 
@@ -14,7 +14,7 @@ fn example_scene() {
             (
                 "lfo".to_string(),
                 NodeConfig {
-                    kind: KindSpec::Entity(EntityKind::Lfo),
+                    kind: NodeKind::Entity(EntityKind::Lfo),
                     input: serde_json::Value::Null,
                     bindings: HashMap::new(),
                 },
@@ -22,13 +22,13 @@ fn example_scene() {
             (
                 "circle".to_string(),
                 NodeConfig {
-                    kind: KindSpec::Entity(EntityKind::Circle),
+                    kind: NodeKind::Entity(EntityKind::Circle),
                     input: serde_json::Value::Null,
                     bindings: HashMap::from([(
                         "radius".to_string(),
                         Expr::Output {
                             entity_id: "lfo".to_string(),
-                            path: "value".to_string(),
+                            path: "values".to_string(),
                         },
                     )]),
                 },

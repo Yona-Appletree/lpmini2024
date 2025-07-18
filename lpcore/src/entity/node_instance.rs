@@ -2,7 +2,7 @@ use crate::{entities::EntityKind, entity::context::Context};
 use serde_json::Value as JsonValue;
 use std::error::Error;
 
-pub trait Entity {
+pub trait NodeInstance {
     fn kind(&self) -> EntityKind;
 
     fn update(&mut self, context: &dyn Context) -> Result<JsonValue, Box<dyn Error>>;

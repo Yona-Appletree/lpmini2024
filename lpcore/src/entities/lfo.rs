@@ -4,16 +4,17 @@ use serde_json::Value as JsonValue;
 use std::error::Error;
 
 use crate::entities::EntityKind;
-use crate::entity::{context::Context, entity::Entity};
+use crate::entity::context::Context;
+use crate::entity::node_instance::NodeInstance;
 
 #[derive(Serialize, Deserialize, JsonSchema, Debug)]
-struct LfoEntity {
+pub struct LfoEntity {
     offset_ms: i64,
     prev_period_ms: i64,
 }
 
 impl LfoEntity {
-    fn new() -> Self {
+    pub fn new() -> Self {
         Self {
             offset_ms: 0,
             prev_period_ms: 0,
@@ -21,7 +22,7 @@ impl LfoEntity {
     }
 }
 
-impl Entity for LfoEntity {
+impl NodeInstance for LfoEntity {
     fn kind(&self) -> EntityKind {
         EntityKind::Lfo
     }
@@ -112,7 +113,7 @@ fn calc_phase_t(adjusted_ms: i64, period_ms: i64) -> f64 {
 }
 
 ///
-/// Calculates the wave value for a given phase and waveform.
+/// Calculates the wave values for a given phase and waveform.
 ///
 fn calc_wave_t(phase_unit: f64, waveform: LfoWaveform) -> f64 {
     match waveform {
@@ -136,7 +137,7 @@ fn calc_wave_t(phase_unit: f64, waveform: LfoWaveform) -> f64 {
 }
 
 ///
-/// Scales a value from the range [0, 1) to a value in the range [min, max).
+/// Scales a values from the range [0, 1) to a values in the range [min, max).
 ///
 fn range_from_t(unit: f64, min: f64, max: f64) -> f64 {
     unit * (max - min) + min

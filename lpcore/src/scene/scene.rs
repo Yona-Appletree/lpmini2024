@@ -1,14 +1,17 @@
-use crate::scene::{SceneConfig, SceneEntity};
+use crate::scene::scene_node::SceneNode;
+use crate::scene::SceneConfig;
 use indexmap::IndexMap;
 
 pub struct Scene {
-    pub entities: IndexMap<String, Box<SceneEntity>>,
+    pub frame_counter: u64,
+    pub nodes: IndexMap<String, SceneNode>,
 }
 
 impl Scene {
     pub fn new() -> Scene {
         Self {
-            entities: IndexMap::new(),
+            frame_counter: 0,
+            nodes: IndexMap::new(),
         }
     }
 

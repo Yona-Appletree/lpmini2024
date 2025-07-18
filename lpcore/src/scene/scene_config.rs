@@ -15,9 +15,9 @@ pub struct SceneConfig {
 
 #[derive(Serialize, Deserialize, Debug)]
 pub struct NodeConfig {
-    pub kind: KindSpec,
+    pub kind: NodeKind,
 
-    /// Raw input data for the node
+    /// Raw input values for the node
     pub input: JsonValue,
 
     /// Map of input path "x.y.z" to expression to evaluate
@@ -26,7 +26,7 @@ pub struct NodeConfig {
 
 /// Specification of the kind of node
 #[derive(Serialize, Deserialize, Debug)]
-pub enum KindSpec {
+pub enum NodeKind {
     Entity(EntityKind),
     Module(String),
 }

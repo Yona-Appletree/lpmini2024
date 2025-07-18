@@ -1,3 +1,6 @@
+use crate::entities::circle::CircleEntity;
+use crate::entities::lfo::LfoEntity;
+use crate::entity::node_instance::NodeInstance;
 use serde::{Deserialize, Serialize};
 
 pub mod circle;
@@ -9,7 +12,7 @@ pub enum EntityKind {
     Lfo,
 }
 
-pub fn create_entity(kind: EntityKind) -> Box<dyn Entity> {
+pub fn create_entity(kind: EntityKind) -> Box<dyn NodeInstance> {
     match kind {
         EntityKind::Circle => Box::new(CircleEntity::new()),
         EntityKind::Lfo => Box::new(LfoEntity::new()),

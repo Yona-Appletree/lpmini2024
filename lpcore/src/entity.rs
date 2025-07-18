@@ -1,2 +1,2 @@
 pub mod context;
-pub mod entity;
+pub mod node_instance;

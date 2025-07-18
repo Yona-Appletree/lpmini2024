@@ -1,21 +1,22 @@
-use crate::data::texture_ref::TextureRef;
 use crate::entities::EntityKind;
 use crate::entity::context::Context;
-use crate::{data::size_int::SizeInt, entity::entity::Entity};
+use crate::entity::node_instance::NodeInstance;
+use crate::values::size_int::SizeInt;
+use crate::values::texture_ref::TextureRef;
 use schemars::{schema_for, JsonSchema, Schema};
 use serde::{Deserialize, Serialize};
 use serde_json::{json, Value as JsonValue};
 use std::error::Error;
 
-struct CircleEntity {}
+pub struct CircleEntity {}
 
 impl CircleEntity {
-    fn new() -> Self {
+    pub fn new() -> Self {
         Self {}
     }
 }
 
-impl Entity for CircleEntity {
+impl NodeInstance for CircleEntity {
     fn kind(&self) -> EntityKind {
         EntityKind::Circle
     }
