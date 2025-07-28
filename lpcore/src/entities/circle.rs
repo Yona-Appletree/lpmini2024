@@ -1,4 +1,4 @@
-use crate::entity::node_instance::{EntityInstance, UpdateContext};
+use crate::entity::entity_instance::{EntityInstance, UpdateContext};
 use crate::values::size_int::SizeInt;
 use crate::values::texture_ref::TextureRef;
 use schemars::{schema_for, JsonSchema, Schema};

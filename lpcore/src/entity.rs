@@ -1,1 +1,1 @@
-pub mod node_instance;
+pub mod entity_instance;

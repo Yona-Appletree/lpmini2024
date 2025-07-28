@@ -1,6 +1,6 @@
 use crate::entities::circle::CircleEntity;
 use crate::entities::lfo::LfoEntity;
-use crate::entity::node_instance::EntityInstance;
+use crate::entity::entity_instance::EntityInstance;
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 

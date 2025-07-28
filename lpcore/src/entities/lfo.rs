@@ -3,7 +3,7 @@ use serde::{Deserialize, Serialize};
 use serde_json::Value as JsonValue;
 use std::error::Error;
 
-use crate::entity::node_instance::{EntityInstance, UpdateContext};
+use crate::entity::entity_instance::{EntityInstance, UpdateContext};
 
 #[derive(Serialize, Deserialize, JsonSchema, Debug)]
 pub struct LfoEntity {

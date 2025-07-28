@@ -1,3 +1,4 @@
+use crate::expr::Expr;
 use crate::scene::context::FrameInfo;
 use serde_json::Value as JsonValue;
 use std::error::Error;
@@ -40,4 +41,9 @@ pub trait UpdateContext {
     /// Evaluate input at the given path.
     ///
     fn eval_input(&self, path: &str) -> Result<JsonValue, Box<dyn Error>>;
+
+    ///
+    /// Evaluate expression in the input context
+    ///
+    fn eval_expr(&self, expr: Expr) -> Result<JsonValue, Box<dyn Error>>;
 }

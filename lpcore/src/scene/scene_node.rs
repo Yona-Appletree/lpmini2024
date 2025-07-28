@@ -1,4 +1,4 @@
-use crate::entity::node_instance::EntityInstance;
+use crate::entity::entity_instance::EntityInstance;
 use crate::expr::Expr;
 use crate::scene::NodeConfig;
 use std::collections::HashMap;
