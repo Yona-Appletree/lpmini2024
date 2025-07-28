@@ -8,6 +8,4 @@ mod scene_value;
 pub use self::frame_entity::FrameEntity;
 pub use self::frame_store::FrameStore;
 pub use self::scene::Scene;
-pub use self::scene_config::{
-    EntityConnection, ModuleConfig, ModuleInput, ModuleOutput, NodeConfig, NodeKind, SceneConfig,
-};
+pub use self::scene_config::{NodeConfig, SceneConfig};

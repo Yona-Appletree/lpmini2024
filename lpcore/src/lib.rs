@@ -6,6 +6,5 @@ extern crate core;
 mod entities;
 mod entity;
 pub mod expr;
-pub mod module;
 pub mod scene;
 pub mod values;

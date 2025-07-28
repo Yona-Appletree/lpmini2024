@@ -1,7 +1,4 @@
-use core::error::Error;
-
-use serde::Serialize;
-use serde_json::{Serializer, Value as JsonValue};
+use serde_json::Value as JsonValue;
 
 pub struct FrameInfo {
     pub frame_counter: u64,

@@ -9,15 +9,15 @@ component of their work with a simple but powerful interface.
 It consists of a server component that runs headlessly on a device and
 an interactive web interface for designing the visualizations.
 
-# Program
+# Scene
 
-A program is the top-level concept in Lightplayer, and provides the main
+A scene is the top-level concept in Lightplayer, and provides the main
 context for execution and user interface.
 
-Programs consist of a graph of entities, where the inputs of entites are
+Scenes consist of a graph of entities, where the inputs of entites are
 based on the outputs of others.
 
-Programs execute in steps called frames. In each frame, all entites which
+Scenes execute in steps called frames. In each frame, all entites which
 produce side-effcets are **updated**. The upstream entities connected
 to the inputs of effect entities are updated first.
 
@@ -28,9 +28,12 @@ moment.
 
 # Enities
 
-An entity is the basic building block of a Lightplayer program. Enities contain logic
-that relates input and state to some output. They can be wired together to form
-complex systems.
+Entities are the small programs that make up a scene. An instance of an entity
+in a scene is called a node.
+
+# Node
+
+A node is an instance of an entity in a scene.
 
 ## Input
 
