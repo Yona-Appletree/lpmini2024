@@ -1,6 +1,4 @@
-use crate::entities::EntityKind;
-use crate::entity::context::Context;
-use crate::entity::node_instance::NodeInstance;
+use crate::entity::node_instance::{EntityInstance, UpdateContext};
 use crate::values::size_int::SizeInt;
 use crate::values::texture_ref::TextureRef;
 use schemars::{schema_for, JsonSchema, Schema};
@@ -16,12 +14,8 @@ impl CircleEntity {
     }
 }
 
-impl NodeInstance for CircleEntity {
-    fn kind(&self) -> EntityKind {
-        EntityKind::Circle
-    }
-
-    fn update(&mut self, context: &dyn Context) -> Result<JsonValue, Box<dyn Error>> {
+impl EntityInstance for CircleEntity {
+    fn update(&mut self, context: &dyn UpdateContext) -> Result<JsonValue, Box<dyn Error>> {
         Ok(json!({
             "texture": TextureRef::new(0)
         }))

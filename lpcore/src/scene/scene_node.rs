@@ -1,4 +1,4 @@
-use crate::entity::node_instance::NodeInstance;
+use crate::entity::node_instance::EntityInstance;
 use crate::expr::Expr;
 use crate::scene::NodeConfig;
 use std::collections::HashMap;
@@ -12,7 +12,7 @@ pub struct SceneNode {
     pub last_updated_frame: Option<u64>,
 
     pub config: NodeConfig,
-    pub instance: Box<dyn NodeInstance>,
+    pub instance: Box<dyn EntityInstance>,
 
     pub current_input: JsonValue,
     pub current_output: JsonValue,

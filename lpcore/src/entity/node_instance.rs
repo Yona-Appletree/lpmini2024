@@ -1,16 +1,43 @@
-use crate::{entities::EntityKind, entity::context::Context};
+use crate::scene::context::FrameInfo;
 use serde_json::Value as JsonValue;
 use std::error::Error;
 
-pub trait NodeInstance {
-    fn kind(&self) -> EntityKind;
+//
+// Trait for runtime instances of entities.
+//
+// This interface defines how an entity interacts with its consumers, like a Scene.
+//
+pub trait EntityInstance {
+    fn update(&mut self, context: &dyn UpdateContext) -> Result<JsonValue, Box<dyn Error>>;
 
-    fn update(&mut self, context: &dyn Context) -> Result<JsonValue, Box<dyn Error>>;
-
-    fn get_state(&self) -> Option<JsonValue> {
+    ///
+    /// Save the state of this instance to a JSON value
+    ///
+    fn save_state(&self) -> Option<JsonValue> {
         None
     }
-    fn set_state(&mut self, _state: JsonValue) -> Result<(), Box<dyn Error>> {
+
+    ///
+    /// Load the state of this instance from a JSON value
+    ///
+    fn load_state(&mut self, _state: JsonValue) -> Result<(), Box<dyn Error>> {
         Ok(())
     }
+}
+
+pub trait UpdateContext {
+    ///
+    /// Get current frame information
+    ///
+    fn frame_info(&self) -> FrameInfo;
+
+    ///
+    /// Get the output of a node by its ID, if available.
+    ///
+    fn get_node_output(&self, node_id: &str) -> Option<JsonValue>;
+
+    ///
+    /// Evaluate input at the given path.
+    ///
+    fn eval_input(&self, path: &str) -> Result<JsonValue, Box<dyn Error>>;
 }

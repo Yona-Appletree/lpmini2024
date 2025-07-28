@@ -1,14 +1,20 @@
 use crate::expr::Expr;
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
+use serde_json::Value as JsonValue;
 use std::collections::HashMap;
 
 #[derive(Serialize, Deserialize, JsonSchema, Debug)]
 pub struct SceneConfig {
-    pub name: String,
+    pub meta: SceneMeta,
     pub nodes: HashMap<String, NodeConfig>,
     // future: add support for scene-defined entities
     //pub entity_defs: HashMap<String, EntityDef>,
+}
+
+#[derive(Serialize, Deserialize, JsonSchema, Debug)]
+pub struct SceneMeta {
+    pub name: Option<String>,
 }
 
 #[derive(Serialize, Deserialize, JsonSchema, Debug)]
@@ -23,7 +29,7 @@ pub struct NodeConfig {
     pub entity_id: String,
 
     /// Raw input values for the node
-    //    pub input: JsonValue,
+    pub input: JsonValue,
 
     /// Map of input path "x.y.z" to expression to evaluate
     pub bindings: HashMap<String, Expr>,

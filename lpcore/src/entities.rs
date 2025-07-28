@@ -1,6 +1,6 @@
 use crate::entities::circle::CircleEntity;
 use crate::entities::lfo::LfoEntity;
-use crate::entity::node_instance::NodeInstance;
+use crate::entity::node_instance::EntityInstance;
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 
@@ -13,7 +13,7 @@ pub enum EntityKind {
     Lfo,
 }
 
-pub fn create_entity(kind: EntityKind) -> Box<dyn NodeInstance> {
+pub fn create_entity(kind: EntityKind) -> Box<dyn EntityInstance> {
     match kind {
         EntityKind::Circle => Box::new(CircleEntity::new()),
         EntityKind::Lfo => Box::new(LfoEntity::new()),

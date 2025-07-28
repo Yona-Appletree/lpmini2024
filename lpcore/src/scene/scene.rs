@@ -16,8 +16,8 @@ impl Scene {
     }
 
     pub fn apply_config(&mut self, config: &SceneConfig) {
-        // remove old entities
-        // add new entities
+        // remove old nodes
+        // add new nodes
         // apply inputs
         // apply bindings
     }

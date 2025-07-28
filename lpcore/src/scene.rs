@@ -1,3 +1,4 @@
+pub mod context;
 pub mod frame_entity;
 pub mod frame_store;
 pub mod scene;

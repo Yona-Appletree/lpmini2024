@@ -9,5 +9,5 @@ pub enum Expr {
     ///
     /// Evaluates to the value of an entity output path.
     ///
-    NodeOutput { id: String, path: String },
+    NodeOutput { node_id: String, path: String },
 }

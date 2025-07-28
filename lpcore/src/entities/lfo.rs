@@ -3,9 +3,7 @@ use serde::{Deserialize, Serialize};
 use serde_json::Value as JsonValue;
 use std::error::Error;
 
-use crate::entities::EntityKind;
-use crate::entity::context::Context;
-use crate::entity::node_instance::NodeInstance;
+use crate::entity::node_instance::{EntityInstance, UpdateContext};
 
 #[derive(Serialize, Deserialize, JsonSchema, Debug)]
 pub struct LfoEntity {
@@ -22,13 +20,9 @@ impl LfoEntity {
     }
 }
 
-impl NodeInstance for LfoEntity {
-    fn kind(&self) -> EntityKind {
-        EntityKind::Lfo
-    }
-
-    fn update(&mut self, context: &dyn Context) -> Result<JsonValue, Box<dyn Error>> {
-        let input: Input = serde_json::from_value(context.input())?;
+impl EntityInstance for LfoEntity {
+    fn update(&mut self, context: &dyn UpdateContext) -> Result<JsonValue, Box<dyn Error>> {
+        let input: Input = serde_json::from_value(context.eval_input("")?)?;
 
         let now_ms = context.frame_info().now_ms;
 
@@ -44,7 +38,7 @@ impl NodeInstance for LfoEntity {
         }
 
         let phase_unit = calc_phase_t(now_ms + self.offset_ms, input.period_ms);
-        let output_unit = calc_wave_t(phase_unit, input.waveform);
+        let output_unit = calc_wave_t(phase_unit, input.shape);
         let output_scaled = range_from_t(output_unit, input.min, input.max);
 
         serde_json::to_value(output_scaled).map_err(Into::into)
@@ -52,19 +46,23 @@ impl NodeInstance for LfoEntity {
 }
 
 #[derive(Serialize, Deserialize, JsonSchema, Debug)]
-struct Input {
+pub struct Input {
     #[schemars(description = "Period of oscillation")]
     #[schemars(extend("ui" = "123"))]
-    period_ms: i64,
+    pub period_ms: i64,
 
     #[serde(default)]
-    waveform: LfoWaveform,
+    pub shape: Shape,
 
     #[serde(default)]
-    min: f64,
+    pub min: f64,
 
     #[serde(default = "default_max")]
-    max: f64,
+    pub max: f64,
+}
+
+pub fn schema() -> Schema {
+    schema_for!(Input)
 }
 
 fn default_max() -> f64 {
@@ -75,14 +73,14 @@ fn default_max() -> f64 {
 /// Waveforms for low frequency oscillators.
 ///
 #[derive(Serialize, Deserialize, JsonSchema, Debug)]
-enum LfoWaveform {
+pub enum Shape {
     Sine,
     Square,
     Triangle,
     Sawtooth,
 }
 
-impl Default for LfoWaveform {
+impl Default for Shape {
     fn default() -> Self {
         Self::Sine
     }
@@ -115,24 +113,24 @@ fn calc_phase_t(adjusted_ms: i64, period_ms: i64) -> f64 {
 ///
 /// Calculates the wave values for a given phase and waveform.
 ///
-fn calc_wave_t(phase_unit: f64, waveform: LfoWaveform) -> f64 {
+fn calc_wave_t(phase_unit: f64, waveform: Shape) -> f64 {
     match waveform {
-        LfoWaveform::Sine => (phase_unit * 2.0 * std::f64::consts::PI).sin(),
-        LfoWaveform::Square => {
+        Shape::Sine => (phase_unit * 2.0 * std::f64::consts::PI).sin(),
+        Shape::Square => {
             if phase_unit < 0.5 {
                 1.0
             } else {
                 -1.0
             }
         }
-        LfoWaveform::Triangle => {
+        Shape::Triangle => {
             if phase_unit < 0.5 {
                 phase_unit * 2.0
             } else {
                 2.0 - phase_unit * 2.0
             }
         }
-        LfoWaveform::Sawtooth => phase_unit * 2.0 - 1.0,
+        Shape::Sawtooth => phase_unit * 2.0 - 1.0,
     }
 }
 
@@ -189,44 +187,44 @@ mod tests {
     #[test]
     fn test_calc_wave_t_sine() {
         // Sine at phase 0.0 should be 0.0
-        assert_close_to(calc_wave_t(0.0, LfoWaveform::Sine), 0.0);
+        assert_close_to(calc_wave_t(0.0, Shape::Sine), 0.0);
         // Sine at phase 0.25 should be 1.0
-        assert_close_to(calc_wave_t(0.25, LfoWaveform::Sine), 1.0);
+        assert_close_to(calc_wave_t(0.25, Shape::Sine), 1.0);
         // Sine at phase 0.5 should be 0.0
-        assert_close_to(calc_wave_t(0.5, LfoWaveform::Sine), 0.0);
+        assert_close_to(calc_wave_t(0.5, Shape::Sine), 0.0);
         // Sine at phase 0.75 should be -1.0
-        assert_close_to(calc_wave_t(0.75, LfoWaveform::Sine), -1.0);
+        assert_close_to(calc_wave_t(0.75, Shape::Sine), -1.0);
     }
 
     #[test]
     fn test_calc_wave_t_square() {
         // Square: <0.5 is 1.0, >=0.5 is -1.0
-        assert_eq!(calc_wave_t(0.0, LfoWaveform::Square), 1.0);
-        assert_eq!(calc_wave_t(0.49, LfoWaveform::Square), 1.0);
-        assert_eq!(calc_wave_t(0.5, LfoWaveform::Square), -1.0);
-        assert_eq!(calc_wave_t(0.99, LfoWaveform::Square), -1.0);
+        assert_eq!(calc_wave_t(0.0, Shape::Square), 1.0);
+        assert_eq!(calc_wave_t(0.49, Shape::Square), 1.0);
+        assert_eq!(calc_wave_t(0.5, Shape::Square), -1.0);
+        assert_eq!(calc_wave_t(0.99, Shape::Square), -1.0);
     }
 
     #[test]
     fn test_calc_wave_t_triangle() {
         // Triangle: at 0.0, should be 0.0
-        assert_close_to(calc_wave_t(0.0, LfoWaveform::Triangle), 0.0);
+        assert_close_to(calc_wave_t(0.0, Shape::Triangle), 0.0);
         // At 0.25, should be 0.5
-        assert_close_to(calc_wave_t(0.25, LfoWaveform::Triangle), 0.5);
+        assert_close_to(calc_wave_t(0.25, Shape::Triangle), 0.5);
         // At 0.5, should be 1.0
-        assert_close_to(calc_wave_t(0.5, LfoWaveform::Triangle), 1.0);
+        assert_close_to(calc_wave_t(0.5, Shape::Triangle), 1.0);
         // At 0.75, should be 0.5
-        assert_close_to(calc_wave_t(0.75, LfoWaveform::Triangle), 0.5);
+        assert_close_to(calc_wave_t(0.75, Shape::Triangle), 0.5);
         // At 1.0, should be 0.0
-        assert_close_to(calc_wave_t(1.0, LfoWaveform::Triangle), 0.0);
+        assert_close_to(calc_wave_t(1.0, Shape::Triangle), 0.0);
     }
 
     #[test]
     fn test_calc_wave_t_sawtooth() {
         // Sawtooth: 0.0 -> -1.0, 0.5 -> 0.0, 1.0 -> 1.0
-        assert_close_to(calc_wave_t(0.0, LfoWaveform::Sawtooth), -1.0);
-        assert_close_to(calc_wave_t(0.5, LfoWaveform::Sawtooth), 0.0);
-        assert_close_to(calc_wave_t(1.0, LfoWaveform::Sawtooth), 1.0);
+        assert_close_to(calc_wave_t(0.0, Shape::Sawtooth), -1.0);
+        assert_close_to(calc_wave_t(0.5, Shape::Sawtooth), 0.0);
+        assert_close_to(calc_wave_t(1.0, Shape::Sawtooth), 1.0);
     }
 
     #[test]
