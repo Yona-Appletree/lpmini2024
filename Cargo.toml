@@ -2,6 +2,7 @@
 members = [
     "lpcore",
     "lpcli",
+    "fw-esp32c3",
 ]
 resolver = "2"
 
