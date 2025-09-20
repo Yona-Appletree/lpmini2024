@@ -7,16 +7,20 @@
 )]
 
 extern crate alloc;
-use bt_hci::controller::ExternalController;
 // use esp_wifi::ble::controller::BleConnector;
+use core::slice::from_ref;
+
+use bt_hci::controller::ExternalController;
 use defmt::info;
 use embassy_executor::Spawner;
 use embassy_time::{Duration, Timer};
 use esp_hal::clock::CpuClock;
 use esp_hal::rmt::Rmt;
+use esp_hal::spi::master::Spi;
 use esp_hal::time::Rate;
 use esp_hal::timer::systimer::SystemTimer;
 use esp_hal::timer::timg::TimerGroup;
+use esp_hal::{spi, Blocking};
 use esp_hal_smartled::{buffer_size_async, SmartLedsAdapterAsync};
 use panic_rtt_target as _;
 use smart_leds::hsv::{hsv2rgb, Hsv};
@@ -26,7 +30,7 @@ use smart_leds::{brightness, gamma, SmartLedsWriteAsync, RGB8};
 // For more information see: <https://docs.espressif.com/projects/esp-idf/en/stable/esp32/api-reference/system/app_image_format.html#application-description>
 esp_bootloader_esp_idf::esp_app_desc!();
 
-const NUM_LEDS: usize = 64;
+const NUM_LEDS: usize = 240;
 
 #[esp_hal_embassy::main]
 async fn main(spawner: Spawner) {
@@ -49,30 +53,14 @@ async fn main(spawner: Spawner) {
     let rng = esp_hal::rng::Rng::new(peripherals.RNG);
     let timer1 = TimerGroup::new(peripherals.TIMG0);
 
-    // Configure RMT (Remote Control Transceiver) peripheral globally
-    // <https://docs.espressif.com/projects/esp-idf/en/stable/esp32/api-reference/peripherals/rmt.html>
-    let rmt: Rmt<'_, esp_hal::Async> = {
-        let frequency: Rate = Rate::from_mhz(80);
-        Rmt::new(peripherals.RMT, frequency)
-    }
-    .expect("Failed to initialize RMT")
-    .into_async();
-
-    // We use one of the RMT channels to instantiate a `SmartLedsAdapterAsync` which can
-    // be used directly with all `smart_led` implementations
-    let rmt_channel = rmt.channel0;
-    let rmt_buffer = [0_u32; buffer_size_async(NUM_LEDS)];
-
-    let mut led = SmartLedsAdapterAsync::new(rmt_channel, peripherals.GPIO4, rmt_buffer);
-
-    // let wifi_init = esp_wifi::init(timer1.timer0, rng)
-    //     .expect("Failed to initialize WIFI/BLE controller");
-    // let (mut _wifi_controller, _interfaces) = esp_wifi::wifi::new(&wifi_init, peripherals.WIFI)
-    //     .expect("Failed to initialize WIFI controller");
-    //
-    // // find more examples https://github.com/embassy-rs/trouble/tree/main/examples/esp32
-    // let transport = BleConnector::new(&wifi_init, peripherals.BT);
-    // let _ble_controller = ExternalController::<_, 20>::new(transport);
+    let mut spi = Spi::new(
+        peripherals.SPI2,
+        spi::master::Config::default().with_frequency(Rate::from_khz(3_800)),
+    )
+    .unwrap()
+    .with_sck(peripherals.GPIO0)
+    .with_mosi(peripherals.GPIO4)
+    .with_miso(peripherals.GPIO2);
 
     let mut color = Hsv {
         hue: 0,
@@ -102,10 +90,42 @@ async fn main(spawner: Spawner) {
         // When sending to the LEDs, we do a gamma correction first (see smart_leds
         // documentation for details) and then limit the brightness to 10 out of 255 so
         // that the output is not too bright.
-        led.write(data.iter().cloned()).await.unwrap();
+        spi_write_rgb(&mut spi, &data).unwrap();
 
-        //Timer::after(Duration::from_millis(1000)).await;
+        Timer::after(Duration::from_millis(10)).await;
     }
 
     // for inspiration have a look at the examples at https://github.com/esp-rs/esp-hal/tree/esp-hal-v1.0.0-rc.0/examples/src/bin
+}
+
+/// Inspired by https://github.com/smart-leds-rs/ws2812-spi-rs
+fn spi_write_rgb(spi: &mut Spi<Blocking>, data: &[RGB8]) -> Result<(), spi::Error> {
+    for pixel in data {
+        spi_write_byte(spi, pixel.r)?;
+        spi_write_byte(spi, pixel.g)?;
+        spi_write_byte(spi, pixel.b)?;
+    }
+    Ok(())
+}
+
+/// Write a single byte for ws2812 devices
+fn spi_write_byte(spi: &mut Spi<Blocking>, mut data: u8) -> Result<(), spi::Error> {
+    // Send two bits in one spi byte. High time first, then the low time
+    // The maximum for T0H is 500ns, the minimum for one bit 1063 ns.
+    // These result in the upper and lower spi frequency limits
+    let patterns = [0b1000_1000, 0b1000_1110, 0b11101000, 0b11101110];
+    for _ in 0..4 {
+        let bits = (data & 0b1100_0000) >> 6;
+        spi.write(from_ref(&patterns[bits as usize]))?;
+        data = data << 2;
+    }
+    Ok(())
+}
+
+fn spi_end_frame(spi: &mut Spi<Blocking>) -> Result<(), spi::Error> {
+    // Should be > 300μs, so for an SPI Freq. of 3.8MHz, we have to send at least 1140 low bits or 140 low bytes
+    for _ in 0..140 {
+        spi.write(from_ref(&0))?;
+    }
+    Ok(())
 }
