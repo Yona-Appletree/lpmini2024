@@ -4,7 +4,7 @@ use serde::{Deserialize, Serialize};
 use serde_json::Value as JsonValue;
 use std::collections::HashMap;
 
-#[derive(Serialize, Deserialize, JsonSchema, Debug)]
+#[derive(Serialize, Deserialize, JsonSchema, Debug, Clone)]
 pub struct SceneConfig {
     pub meta: SceneMeta,
     pub nodes: HashMap<String, NodeConfig>,
@@ -12,12 +12,12 @@ pub struct SceneConfig {
     //pub entity_defs: HashMap<String, EntityDef>,
 }
 
-#[derive(Serialize, Deserialize, JsonSchema, Debug)]
+#[derive(Serialize, Deserialize, JsonSchema, Debug, Clone)]
 pub struct SceneMeta {
     pub name: Option<String>,
 }
 
-#[derive(Serialize, Deserialize, JsonSchema, Debug)]
+#[derive(Serialize, Deserialize, JsonSchema, Debug, Clone)]
 pub struct NodeConfig {
     ///
     /// ID of the entity to be used for this node

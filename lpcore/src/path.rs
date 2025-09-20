@@ -1,7 +1,8 @@
-use std::error::Error;
+use std::{error::Error, hash::Hash};
 
-use serde_json;
+use serde_json::{self, Value};
 
+#[derive(Clone, Eq, PartialEq, Hash)]
 pub struct JsonPath {
     elems: Vec<PathElem>,
 }
@@ -21,6 +22,7 @@ impl JsonPath {
     pub fn parse(path: &str) -> Result<Self, Box<dyn Error>> {
         let elems = path
             .split('.')
+            .filter(|s| !s.is_empty())
             .map(|s| {
                 if let Ok(index) = s.parse::<usize>() {
                     PathElem::Index(index)
@@ -37,7 +39,7 @@ impl JsonPath {
     ///
     /// Returns the value at the end of the path.
     ///
-    pub fn get_from(&self, obj: &serde_json::Value) -> Result<serde_json::Value, Box<dyn Error>> {
+    pub fn get_from(&self, obj: &Value) -> Result<Value, Box<dyn Error>> {
         let mut current = obj;
 
         for elem in &self.elems {
@@ -60,14 +62,9 @@ impl JsonPath {
 
     ///
     /// Set the value at the end of the path in the given object.
+    /// Creates intermediate objects and arrays as needed.
     ///
-    /// Returns the value at the end of the path.
-    ///
-    pub fn set_in(
-        &self,
-        obj: &mut serde_json::Value,
-        value: serde_json::Value,
-    ) -> Result<(), Box<dyn Error>> {
+    pub fn set_in(&self, obj: &mut Value, value: Value) -> Result<(), Box<dyn Error>> {
         if self.elems.is_empty() {
             *obj = value;
             return Ok(());
@@ -76,28 +73,29 @@ impl JsonPath {
         let mut current = obj;
         let last_idx = self.elems.len() - 1;
 
-        // Navigate to the parent of the target location
+        // Navigate to the parent of the target location, creating intermediate objects as needed
         for (i, elem) in self.elems[..last_idx].iter().enumerate() {
             current = match elem {
                 PathElem::Prop(ref prop) => {
                     if !current.is_object() {
-                        return Err(format!("Expected object at position {}", i).into());
+                        *current = Value::Object(serde_json::Map::new());
                     }
-                    current
-                        .as_object_mut()
-                        .unwrap()
-                        .get_mut(prop)
-                        .ok_or(format!("Property '{}' not found at position {}", prop, i))?
+                    let obj = current.as_object_mut().unwrap();
+                    if !obj.contains_key(prop) {
+                        obj.insert(prop.clone(), Value::Null);
+                    }
+                    obj.get_mut(prop).unwrap()
                 }
                 PathElem::Index(idx) => {
                     if !current.is_array() {
-                        return Err(format!("Expected array at position {}", i).into());
+                        *current = Value::Array(vec![Value::Null; idx + 1]);
+                    } else {
+                        let arr = current.as_array_mut().unwrap();
+                        if *idx >= arr.len() {
+                            arr.resize(*idx + 1, Value::Null);
+                        }
                     }
-                    current
-                        .as_array_mut()
-                        .unwrap()
-                        .get_mut(*idx)
-                        .ok_or(format!("Index {} not found at position {}", idx, i))?
+                    current.as_array_mut().unwrap().get_mut(*idx).unwrap()
                 }
             };
         }
@@ -106,19 +104,20 @@ impl JsonPath {
         match self.elems.last().unwrap() {
             PathElem::Prop(prop) => {
                 if !current.is_object() {
-                    return Err("Expected object at final position".into());
+                    *current = Value::Object(serde_json::Map::new());
                 }
                 current.as_object_mut().unwrap().insert(prop.clone(), value);
             }
             PathElem::Index(idx) => {
                 if !current.is_array() {
-                    return Err("Expected array at final position".into());
+                    *current = Value::Array(vec![Value::Null; idx + 1]);
+                } else {
+                    let arr = current.as_array_mut().unwrap();
+                    if *idx >= arr.len() {
+                        arr.resize(*idx + 1, Value::Null);
+                    }
                 }
-                let arr = current.as_array_mut().unwrap();
-                if *idx >= arr.len() {
-                    return Err(format!("Index {} out of bounds", idx).into());
-                }
-                arr[*idx] = value;
+                current.as_array_mut().unwrap()[*idx] = value;
             }
         }
 
@@ -161,7 +160,7 @@ impl JsonPath {
 ///
 /// A path element is either a property name or an index.
 ///
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 enum PathElem {
     Prop(String),
     Index(usize),
@@ -232,19 +231,57 @@ mod tests {
         path.set_in(&mut data, json!(5)).unwrap();
         assert_eq!(path.get_from(&data).unwrap(), json!(5));
 
-        // Test error cases
-        let mut data = json!({ "x": 1 });
+        // Test creating new properties
+        let mut data = json!({});
+        let path = JsonPath::parse("users.0.name").unwrap();
+        path.set_in(&mut data, json!("Alice")).unwrap();
+        assert_eq!(
+            data,
+            json!({
+                "users": [
+                    {
+                        "name": "Alice"
+                    }
+                ]
+            })
+        );
 
-        // Invalid type
-        let path = JsonPath::parse("x.y").unwrap();
-        assert!(path.set_in(&mut data, json!(2)).is_err());
+        // Test creating array with gaps
+        let mut data = json!({});
+        let path = JsonPath::parse("values.2").unwrap();
+        path.set_in(&mut data, json!(42)).unwrap();
+        assert_eq!(
+            data,
+            json!({
+                "values": [null, null, 42]
+            })
+        );
 
-        // Out of bounds
-        let mut data = json!([1, 2, 3]);
-        let path = JsonPath::parse("5").unwrap();
-        assert!(path.set_in(&mut data, json!(4)).is_err());
+        // Test creating deep nested structure
+        let mut data = json!({});
+        let path = JsonPath::parse("a.b.c.0.d.1.e").unwrap();
+        path.set_in(&mut data, json!("value")).unwrap();
+        assert_eq!(
+            data,
+            json!({
+                "a": {
+                    "b": {
+                        "c": [
+                            {
+                                "d": [
+                                    null,
+                                    {
+                                        "e": "value"
+                                    }
+                                ]
+                            }
+                        ]
+                    }
+                }
+            })
+        );
 
-        // Empty path
+        // Test empty path
         let mut data = json!({"x": 1});
         let path = JsonPath::parse("").unwrap();
         path.set_in(&mut data, json!({"y": 2})).unwrap();

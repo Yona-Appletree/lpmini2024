@@ -1,39 +1,35 @@
-use std::error::Error;
+use std::{collections::HashMap, error::Error};
 
-use crate::{
-    expr::Expr,
-    path::JsonPath,
-    scene::{scene_config::NodeConfig, scene_node::SceneNode},
-};
+use crate::expr::ExprEvaluator;
+use crate::{expr::Expr, path::JsonPath};
 
 ///
 /// Evaluate the input of a node at the given path.
 ///
-/// - Starts by getting the base value from the node's config.
+/// - Starts by getting the base value from the initial value.
 /// - Then applies any input bindings relevant to the path.
 /// - Then returns the final value.
 ///
 pub fn eval_input(
-    node: SceneNode,
-    context: &dyn EvalContext,
-    path: &str,
+    initial_value: serde_json::Value,
+    bindings: &HashMap<JsonPath, Expr>,
+    context: &dyn ExprEvaluator,
+    path: &JsonPath,
 ) -> Result<serde_json::Value, Box<dyn Error>> {
-    let requested_path = JsonPath::parse(path)?;
-    let requested_value = requested_path.get_from(&node.config.input)?;
+    let requested_value = path.get_from(&initial_value)?;
 
-    let result = node.config.bindings.iter().try_fold(
+    let result = bindings.iter().try_fold(
         requested_value,
-        |mut acc, binding| -> Result<serde_json::Value, Box<dyn Error>> {
-            let binding_full_path = JsonPath::parse(binding.0)?;
+        |mut acc, (binding_path, expr)| -> Result<serde_json::Value, Box<dyn Error>> {
+            if let Some(binding_sub_path) = binding_path.without_prefix(path) {
+                // Apply the binding
+                let computed_value = context.eval_expr(expr)?;
 
-            let binding_sub_path = binding_full_path
-                .without_prefix(&requested_path)
-                .ok_or_else(|| -> Box<dyn Error> { "Invalid binding path".to_string().into() })?;
+                binding_sub_path
+                    .set_in(&mut acc, computed_value)
+                    .map_err(|e| -> Box<dyn Error> { e })?;
+            }
 
-            let computed_value = context.eval_expr(binding.1.clone())?;
-            binding_sub_path
-                .set_in(&mut acc, computed_value)
-                .map_err(|e| -> Box<dyn Error> { e })?;
             Ok(acc)
         },
     )?;
@@ -41,33 +37,52 @@ pub fn eval_input(
     Ok(result)
 }
 
-pub trait EvalContext {
-    fn eval_expr(&self, expr: Expr) -> Result<serde_json::Value, Box<dyn Error>>;
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::entity::entity_instance::EntityInstance;
     use std::collections::HashMap;
 
-    struct MockEntityInstance;
-
-    impl EntityInstance for MockEntityInstance {
-        fn update(
-            &mut self,
-            _context: &dyn crate::entity::entity_instance::UpdateContext,
-        ) -> Result<serde_json::Value, Box<dyn Error>> {
-            Ok(serde_json::json!(null))
-        }
+    /// Helper function to create a binding from input path to a node's output
+    fn bind(input_path: &str, node_id: &str, output_path: &str) -> (JsonPath, Expr) {
+        (
+            JsonPath::parse(input_path).unwrap(),
+            Expr::NodeOutput {
+                node_id: node_id.to_string(),
+                path: output_path.to_string(),
+            },
+        )
     }
 
     struct MockEvalContext {
         values: HashMap<String, serde_json::Value>,
+        eval_count: std::cell::RefCell<usize>,
     }
 
-    impl EvalContext for MockEvalContext {
-        fn eval_expr(&self, expr: Expr) -> Result<serde_json::Value, Box<dyn Error>> {
+    impl MockEvalContext {
+        fn new() -> Self {
+            Self {
+                values: HashMap::new(),
+                eval_count: std::cell::RefCell::new(0),
+            }
+        }
+
+        fn with_value(node_id: &str, path: &str, value: serde_json::Value) -> Self {
+            let mut values = HashMap::new();
+            values.insert(format!("{}/{}", node_id, path), value);
+            Self {
+                values,
+                eval_count: std::cell::RefCell::new(0),
+            }
+        }
+
+        fn get_eval_count(&self) -> usize {
+            *self.eval_count.borrow()
+        }
+    }
+
+    impl ExprEvaluator for MockEvalContext {
+        fn eval_expr(&self, expr: &Expr) -> Result<serde_json::Value, Box<dyn Error>> {
+            *self.eval_count.borrow_mut() += 1;
             match expr {
                 Expr::NodeOutput { node_id, path } => {
                     let key = format!("{}/{}", node_id, path);
@@ -82,137 +97,105 @@ mod tests {
 
     #[test]
     fn test_eval_input_basic() -> Result<(), Box<dyn Error>> {
-        let mut bindings = HashMap::new();
-        bindings.insert(
-            "position.x".to_string(),
-            Expr::NodeOutput {
-                node_id: "lfo1".to_string(),
-                path: "value".to_string(),
-            },
-        );
+        let path = JsonPath::parse("position.x")?;
+        let bindings = HashMap::from([bind("position.x", "lfo1", "value")]);
 
-        let node = SceneNode {
-            last_updated_frame: None,
-            config: NodeConfig {
-                entity_id: "builtin:circle".to_string(),
-                input: serde_json::json!({
-                    "position": {
-                        "x": 0.0,
-                        "y": 0.0
-                    }
-                }),
-                bindings,
-            },
-            instance: Box::new(MockEntityInstance),
-            current_input: serde_json::json!(null),
-            current_output: serde_json::json!(null),
-            input_bindings: HashMap::new(),
-        };
+        let initial_value = serde_json::json!({
+            "position": {
+                "x": 0.0,
+                "y": 0.0
+            }
+        });
 
-        let mut context_values = HashMap::new();
-        context_values.insert("lfo1/value".to_string(), serde_json::json!(10.0));
-        let context = MockEvalContext {
-            values: context_values,
-        };
+        let context = MockEvalContext::with_value("lfo1", "value", serde_json::json!(10.0));
 
-        let result = eval_input(node, &context, "position.x")?;
+        let result = eval_input(initial_value, &bindings, &context, &path)?;
         assert_eq!(result, serde_json::json!(10.0));
+        assert_eq!(context.get_eval_count(), 1);
         Ok(())
     }
 
     #[test]
     fn test_eval_input_no_binding() -> Result<(), Box<dyn Error>> {
-        let node = SceneNode {
-            last_updated_frame: None,
-            config: NodeConfig {
-                entity_id: "builtin:circle".to_string(),
-                input: serde_json::json!({
-                    "position": {
-                        "x": 5.0,
-                        "y": 0.0
-                    }
-                }),
-                bindings: HashMap::new(),
-            },
-            instance: Box::new(MockEntityInstance),
-            current_input: serde_json::json!(null),
-            current_output: serde_json::json!(null),
-            input_bindings: HashMap::new(),
-        };
+        let bindings = HashMap::new();
+        let path = JsonPath::parse("position.x")?;
 
-        let context = MockEvalContext {
-            values: HashMap::new(),
-        };
+        let initial_value = serde_json::json!({
+            "position": {
+                "x": 5.0,
+                "y": 0.0
+            }
+        });
 
-        let result = eval_input(node, &context, "position.x")?;
+        let context = MockEvalContext::new();
+
+        let result = eval_input(initial_value, &bindings, &context, &path)?;
         assert_eq!(result, serde_json::json!(5.0));
+        assert_eq!(context.get_eval_count(), 0);
         Ok(())
     }
 
     #[test]
     fn test_eval_input_invalid_path() -> Result<(), Box<dyn Error>> {
-        let node = SceneNode {
-            last_updated_frame: None,
-            config: NodeConfig {
-                entity_id: "builtin:circle".to_string(),
-                input: serde_json::json!({
-                    "position": {
-                        "x": 5.0,
-                        "y": 0.0
-                    }
-                }),
-                bindings: HashMap::new(),
-            },
-            instance: Box::new(MockEntityInstance),
-            current_input: serde_json::json!(null),
-            current_output: serde_json::json!(null),
-            input_bindings: HashMap::new(),
-        };
+        let bindings = HashMap::new();
+        let path = JsonPath::parse("position.z")?;
 
-        let context = MockEvalContext {
-            values: HashMap::new(),
-        };
+        let initial_value = serde_json::json!({
+            "position": {
+                "x": 5.0,
+                "y": 0.0
+            }
+        });
 
-        let result = eval_input(node, &context, "position.z");
+        let context = MockEvalContext::new();
+
+        let result = eval_input(initial_value, &bindings, &context, &path);
         assert!(result.is_err());
+        assert_eq!(context.get_eval_count(), 0);
         Ok(())
     }
 
     #[test]
-    fn test_eval_input_invalid_binding() -> Result<(), Box<dyn Error>> {
-        let mut bindings = HashMap::new();
-        bindings.insert(
-            "position.x.invalid".to_string(),
-            Expr::NodeOutput {
-                node_id: "lfo1".to_string(),
-                path: "value".to_string(),
+    fn test_eval_input_creates_path() -> Result<(), Box<dyn Error>> {
+        let path = JsonPath::parse("position")?;
+        let bindings = HashMap::from([bind("position.x", "lfo1", "value")]);
+
+        let initial_value = serde_json::json!({});
+
+        let context = MockEvalContext::new();
+
+        let result = eval_input(initial_value, &bindings, &context, &path)?;
+        assert_eq!(result, serde_json::json!({ "x": 10.0 }));
+        Ok(())
+    }
+
+    #[test]
+    fn test_eval_input_ignores_unrelated_bindings() -> Result<(), Box<dyn Error>> {
+        let path = JsonPath::parse("position.x")?;
+        let bindings = HashMap::from([
+            bind("position.x", "lfo1", "value"),
+            bind("position.y", "lfo2", "value"),
+            bind("rotation", "lfo3", "value"),
+        ]);
+
+        let initial_value = serde_json::json!({
+            "position": {
+                "x": 0.0,
+                "y": 0.0
             },
-        );
+            "rotation": 0.0
+        });
 
-        let node = SceneNode {
-            last_updated_frame: None,
-            config: NodeConfig {
-                entity_id: "builtin:circle".to_string(),
-                input: serde_json::json!({
-                    "position": {
-                        "x": 0.0,
-                        "y": 0.0
-                    }
-                }),
-                bindings,
-            },
-            instance: Box::new(MockEntityInstance),
-            current_input: serde_json::json!(null),
-            current_output: serde_json::json!(null),
-            input_bindings: HashMap::new(),
-        };
+        let context = MockEvalContext::with_value("lfo1", "value", serde_json::json!(10.0));
 
-        let context = MockEvalContext {
-            values: HashMap::new(),
-        };
+        let result = eval_input(initial_value, &bindings, &context, &path)?;
 
-        let result = eval_input(node, &context, "position.x");
-        assert!(result.is_err());
+        // Verify that:
+        // 1. The correct value was computed
+        assert_eq!(result, serde_json::json!(10.0));
+        // 2. Only one expression was evaluated (the one for position.x)
+        assert_eq!(context.get_eval_count(), 1);
+
         Ok(())
     }
 }
