@@ -26,6 +26,8 @@ use smart_leds::{brightness, gamma, SmartLedsWriteAsync, RGB8};
 // For more information see: <https://docs.espressif.com/projects/esp-idf/en/stable/esp32/api-reference/system/app_image_format.html#application-description>
 esp_bootloader_esp_idf::esp_app_desc!();
 
+const NUM_LEDS: usize = 64;
+
 #[esp_hal_embassy::main]
 async fn main(spawner: Spawner) {
     // generator version: 0.5.0
@@ -58,12 +60,9 @@ async fn main(spawner: Spawner) {
 
     // We use one of the RMT channels to instantiate a `SmartLedsAdapterAsync` which can
     // be used directly with all `smart_led` implementations
-    const num_leds: usize = 100;
     let rmt_channel = rmt.channel0;
-    let rmt_buffer = [0_u32; buffer_size_async(num_leds)];
+    let rmt_buffer = [0_u32; buffer_size_async(NUM_LEDS)];
 
-    // Each devkit uses a unique GPIO for the RGB LED, so in order to support
-    // all chips we must unfortunately use `#[cfg]`s:
     let mut led = SmartLedsAdapterAsync::new(rmt_channel, peripherals.GPIO4, rmt_buffer);
 
     // let wifi_init = esp_wifi::init(timer1.timer0, rng)
@@ -78,30 +77,34 @@ async fn main(spawner: Spawner) {
     let mut color = Hsv {
         hue: 0,
         sat: 255,
-        val: 255,
+        val: 127,
     };
-    let mut data: RGB8;
-    let level = 10;
+    let mut data = [RGB8::new(255, 0, 0); NUM_LEDS];
+    let level = 100;
 
     // TODO: Spawn some tasks
     let _ = spawner;
 
+    let mut counter = 0u8;
+
     loop {
-        for hue in 0..=255 {
-            color.hue = hue;
+        counter = counter.wrapping_add(1);
+
+        // Fill all LEDs with a rainbow pattern
+        for (i, led_data) in data.iter_mut().enumerate() {
+            color.hue = counter.wrapping_add(i as u8);
+
             // Convert from the HSV color space (where we can easily transition from one
             // color to the other) to the RGB color space that we can then send to the LED
-            data = hsv2rgb(color);
-
-            // When sending to the LED, we do a gamma correction first (see smart_leds
-            // documentation for details) and then limit the brightness to 10 out of 255 so
-            // that the output is not too bright.
-            led.write(brightness(gamma([data].into_iter()), level))
-                .await
-                .unwrap();
-
-            Timer::after(Duration::from_millis(10)).await;
+            *led_data = hsv2rgb(color);
         }
+
+        // When sending to the LEDs, we do a gamma correction first (see smart_leds
+        // documentation for details) and then limit the brightness to 10 out of 255 so
+        // that the output is not too bright.
+        led.write(data.iter().cloned()).await.unwrap();
+
+        //Timer::after(Duration::from_millis(1000)).await;
     }
 
     // for inspiration have a look at the examples at https://github.com/esp-rs/esp-hal/tree/esp-hal-v1.0.0-rc.0/examples/src/bin
