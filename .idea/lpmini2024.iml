@@ -7,6 +7,8 @@
       <sourceFolder url="file://$MODULE_DIR$/lpcore/src" isTestSource="false" />
       <sourceFolder url="file://$MODULE_DIR$/lpfirmware-esp32c3/src" isTestSource="false" />
       <sourceFolder url="file://$MODULE_DIR$/lpfirmware/src" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/fw-esp32c3/src" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/fw-esp32c3/tests" isTestSource="true" />
       <excludeFolder url="file://$MODULE_DIR$/node_modules" />
       <excludeFolder url="file://$MODULE_DIR$/target" />
     </content>
