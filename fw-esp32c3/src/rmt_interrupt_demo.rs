@@ -89,6 +89,7 @@ fn create_rmt_config() -> TxChannelConfig {
 }
 
 // Convert a single RGB color to RMT pulse codes
+#[inline(always)]
 fn rgb_to_pulses(
     r: u8,
     g: u8,
@@ -119,8 +120,9 @@ fn rgb_to_pulses(
 }
 
 // Generate animated RGB values
+#[inline(always)]
 fn generate_animated_rgb(led_index: usize, frame_counter: usize) -> (u8, u8, u8) {
-    let r = (led_index % 127) as u8;
+    let r = if led_index == 0 { 255 } else { 0 };
     let g = 0;
     let b = 0;
     (r, g, b)
@@ -128,6 +130,7 @@ fn generate_animated_rgb(led_index: usize, frame_counter: usize) -> (u8, u8, u8)
 
 // Fill half of the buffer with animated LED data or latch signals
 // Returns the updated LED counter after filling
+#[inline(always)]
 fn fill_half_buffer(
     buffer: &mut [u32],
     half_start: usize,
@@ -146,14 +149,14 @@ fn fill_half_buffer(
             *led_counter = 0;
         } else {
             // Normal LED data
-            let (r, g, b) = generate_animated_rgb(*led_counter, frame_counter);
-            rgb_to_pulses(r, g, b, buffer, led_buffer_offset, pulses);
+            rgb_to_pulses(127, 0, 0, buffer, led_buffer_offset, pulses);
             *led_counter += 1;
         }
     }
 }
 
 // Fill half buffer directly to RMT hardware memory (optimized for ISR)
+#[inline(always)]
 unsafe fn fill_half_buffer_direct(
     ram_ptr: *mut u32,
     frame_counter: usize,
@@ -164,48 +167,123 @@ unsafe fn fill_half_buffer_direct(
     for led_idx in 0..leds_per_half {
         if *led_counter >= NUM_LEDS {
             // Insert latch signal - fill this LED slot with latch
-            for i in 0..RMT_RAM_ONE_LED {
-                ram_ptr
-                    .add(led_idx * RMT_RAM_ONE_LED + i)
-                    .write_volatile(pulses.2);
-            }
+            // Manual unrolling for maximum performance
+            let base_offset = led_idx * RMT_RAM_ONE_LED;
+            let latch = pulses.2;
+            ram_ptr.add(base_offset + 0).write_volatile(latch);
+            ram_ptr.add(base_offset + 1).write_volatile(latch);
+            ram_ptr.add(base_offset + 2).write_volatile(latch);
+            ram_ptr.add(base_offset + 3).write_volatile(latch);
+            ram_ptr.add(base_offset + 4).write_volatile(latch);
+            ram_ptr.add(base_offset + 5).write_volatile(latch);
+            ram_ptr.add(base_offset + 6).write_volatile(latch);
+            ram_ptr.add(base_offset + 7).write_volatile(latch);
+            ram_ptr.add(base_offset + 8).write_volatile(latch);
+            ram_ptr.add(base_offset + 9).write_volatile(latch);
+            ram_ptr.add(base_offset + 10).write_volatile(latch);
+            ram_ptr.add(base_offset + 11).write_volatile(latch);
+            ram_ptr.add(base_offset + 12).write_volatile(latch);
+            ram_ptr.add(base_offset + 13).write_volatile(latch);
+            ram_ptr.add(base_offset + 14).write_volatile(latch);
+            ram_ptr.add(base_offset + 15).write_volatile(latch);
+            ram_ptr.add(base_offset + 16).write_volatile(latch);
+            ram_ptr.add(base_offset + 17).write_volatile(latch);
+            ram_ptr.add(base_offset + 18).write_volatile(latch);
+            ram_ptr.add(base_offset + 19).write_volatile(latch);
+            ram_ptr.add(base_offset + 20).write_volatile(latch);
+            ram_ptr.add(base_offset + 21).write_volatile(latch);
+            ram_ptr.add(base_offset + 22).write_volatile(latch);
+            ram_ptr.add(base_offset + 23).write_volatile(latch);
             *led_counter = 0;
         } else {
             // Normal LED data - write directly to RMT memory
-            let (r, g, b) = generate_animated_rgb(*led_counter, frame_counter);
-            rgb_to_pulses_direct(r, g, b, ram_ptr.add(led_idx * RMT_RAM_ONE_LED), pulses);
+            rgb_to_pulses_direct(16, 0, 0, ram_ptr.add(led_idx * RMT_RAM_ONE_LED), pulses);
             *led_counter += 1;
         }
     }
 }
 
 // Convert RGB to RMT pulses and write directly to memory pointer
+// Optimized with manual loop unrolling for maximum ISR performance
+#[inline(always)]
 unsafe fn rgb_to_pulses_direct(r: u8, g: u8, b: u8, ram_ptr: *mut u32, pulses: (u32, u32, u32)) {
-    let mut idx = 0;
+    // Manual unrolling for Green (GRB order for WS2812)
+    ram_ptr
+        .add(0)
+        .write_volatile(if g & 128 != 0 { pulses.1 } else { pulses.0 });
+    ram_ptr
+        .add(1)
+        .write_volatile(if g & 64 != 0 { pulses.1 } else { pulses.0 });
+    ram_ptr
+        .add(2)
+        .write_volatile(if g & 32 != 0 { pulses.1 } else { pulses.0 });
+    ram_ptr
+        .add(3)
+        .write_volatile(if g & 16 != 0 { pulses.1 } else { pulses.0 });
+    ram_ptr
+        .add(4)
+        .write_volatile(if g & 8 != 0 { pulses.1 } else { pulses.0 });
+    ram_ptr
+        .add(5)
+        .write_volatile(if g & 4 != 0 { pulses.1 } else { pulses.0 });
+    ram_ptr
+        .add(6)
+        .write_volatile(if g & 2 != 0 { pulses.1 } else { pulses.0 });
+    ram_ptr
+        .add(7)
+        .write_volatile(if g & 1 != 0 { pulses.1 } else { pulses.0 });
 
-    // Green (WS2812 expects GRB, not RGB)
-    for bit_pos in [128, 64, 32, 16, 8, 4, 2, 1] {
-        ram_ptr
-            .add(idx)
-            .write_volatile(if g & bit_pos != 0 { pulses.1 } else { pulses.0 });
-        idx += 1;
-    }
+    // Manual unrolling for Red
+    ram_ptr
+        .add(8)
+        .write_volatile(if r & 128 != 0 { pulses.1 } else { pulses.0 });
+    ram_ptr
+        .add(9)
+        .write_volatile(if r & 64 != 0 { pulses.1 } else { pulses.0 });
+    ram_ptr
+        .add(10)
+        .write_volatile(if r & 32 != 0 { pulses.1 } else { pulses.0 });
+    ram_ptr
+        .add(11)
+        .write_volatile(if r & 16 != 0 { pulses.1 } else { pulses.0 });
+    ram_ptr
+        .add(12)
+        .write_volatile(if r & 8 != 0 { pulses.1 } else { pulses.0 });
+    ram_ptr
+        .add(13)
+        .write_volatile(if r & 4 != 0 { pulses.1 } else { pulses.0 });
+    ram_ptr
+        .add(14)
+        .write_volatile(if r & 2 != 0 { pulses.1 } else { pulses.0 });
+    ram_ptr
+        .add(15)
+        .write_volatile(if r & 1 != 0 { pulses.1 } else { pulses.0 });
 
-    // Red
-    for bit_pos in [128, 64, 32, 16, 8, 4, 2, 1] {
-        ram_ptr
-            .add(idx)
-            .write_volatile(if r & bit_pos != 0 { pulses.1 } else { pulses.0 });
-        idx += 1;
-    }
-
-    // Blue
-    for bit_pos in [128, 64, 32, 16, 8, 4, 2, 1] {
-        ram_ptr
-            .add(idx)
-            .write_volatile(if b & bit_pos != 0 { pulses.1 } else { pulses.0 });
-        idx += 1;
-    }
+    // Manual unrolling for Blue
+    ram_ptr
+        .add(16)
+        .write_volatile(if b & 128 != 0 { pulses.1 } else { pulses.0 });
+    ram_ptr
+        .add(17)
+        .write_volatile(if b & 64 != 0 { pulses.1 } else { pulses.0 });
+    ram_ptr
+        .add(18)
+        .write_volatile(if b & 32 != 0 { pulses.1 } else { pulses.0 });
+    ram_ptr
+        .add(19)
+        .write_volatile(if b & 16 != 0 { pulses.1 } else { pulses.0 });
+    ram_ptr
+        .add(20)
+        .write_volatile(if b & 8 != 0 { pulses.1 } else { pulses.0 });
+    ram_ptr
+        .add(21)
+        .write_volatile(if b & 4 != 0 { pulses.1 } else { pulses.0 });
+    ram_ptr
+        .add(22)
+        .write_volatile(if b & 2 != 0 { pulses.1 } else { pulses.0 });
+    ram_ptr
+        .add(23)
+        .write_volatile(if b & 1 != 0 { pulses.1 } else { pulses.0 });
 }
 
 // RMT interrupt handler - this is where the magic happens
@@ -332,6 +410,7 @@ where
     // Start continuous transmission with interrupts properly enabled!
     // The RMT hardware will now automatically call rmt_interrupt_handler
     // when threshold and end events occur
+
     let _transaction = channel.transmit_continuously(unsafe { &RMT_BUFFER })?;
 
     // Now the system runs entirely on hardware interrupts!
