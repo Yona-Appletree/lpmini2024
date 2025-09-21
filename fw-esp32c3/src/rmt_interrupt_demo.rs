@@ -8,7 +8,7 @@
 //! 1. **Double Buffering**: Split RMT buffer into two halves for seamless streaming
 //! 2. **Threshold Interrupts**: Refill buffer when hardware reaches 50% transmission
 //! 3. **Continuous Transmission**: Hardware never stops - prevents LED latching
-//! 4. **Memory Efficiency**: Fixed 200-word buffer handles unlimited LEDs via streaming
+//! 4. **Memory Efficiency**: Minimal 48-word buffer (1 block) handles unlimited LEDs via streaming
 //! 5. **Zero-Copy Updates**: Direct RMT memory updates during transmission
 //!
 //! ## Production Implementation Notes:
@@ -32,11 +32,12 @@ use esp_hal::rmt::{
 };
 use esp_hal::Blocking;
 
-// Buffer size for 8 LEDs worth of data (double buffered)
-const BUFFER_LEDS: usize = 8;
+// Buffer size for 2 LEDs worth of data (double buffered)
+// Using memsize(1) = 48 words. 2 LEDs = 48 words exactly, 1 LED per half
+const BUFFER_LEDS: usize = 2;
 const RMT_RAM_ONE_LED: usize = 3 * 8; // RGB * 8 bits
 const HALF_BUFFER_SIZE: usize = (BUFFER_LEDS * RMT_RAM_ONE_LED) / 2; // Half buffer for double buffering
-const FULL_BUFFER_SIZE: usize = BUFFER_LEDS * RMT_RAM_ONE_LED + 1; // +1 for end marker
+const FULL_BUFFER_SIZE: usize = BUFFER_LEDS * RMT_RAM_ONE_LED; // 48 words total
 
 // Global state for interrupt handling
 static mut RMT_BUFFER: [u32; FULL_BUFFER_SIZE] = [0; FULL_BUFFER_SIZE];
@@ -74,6 +75,7 @@ fn create_rmt_config() -> TxChannelConfig {
         .with_idle_output_level(Level::Low)
         .with_carrier_modulation(false)
         .with_idle_output(true)
+        .with_memsize(1) // Use minimum memory block size - 48 words
 }
 
 // Convert a single RGB color to RMT pulse codes
@@ -154,7 +156,7 @@ extern "C" fn rmt_interrupt_handler() {
                 &mut *addr_of_mut!(RMT_BUFFER),
                 0, // First half starts at 0
                 frame,
-                frame * 4, // LED offset - stream next 4 LEDs
+                frame, // LED offset - stream next LED
                 pulses,
             );
 
@@ -181,7 +183,7 @@ extern "C" fn rmt_interrupt_handler() {
                 &mut *addr_of_mut!(RMT_BUFFER),
                 HALF_BUFFER_SIZE, // Second half starts here
                 frame,
-                frame * 4 + 4, // LED offset - stream next 4 LEDs after threshold batch
+                frame + 1, // LED offset - stream next LED after threshold
                 PULSE_CODES,
             );
 
@@ -229,24 +231,33 @@ where
 
     // Fill initial buffer with both halves for streaming start
     unsafe {
-        // Fill first half (will show LEDs 0-3 initially)
+        // Fill first half (will show LED 0 initially)
         fill_half_buffer(&mut RMT_BUFFER, 0, 0, 0, pulses);
-        // Fill second half (will show LEDs 4-7 initially)
+        // Fill second half (will show LED 1 initially)
         fill_half_buffer(
             &mut RMT_BUFFER,
             HALF_BUFFER_SIZE,
             0,
-            4, // Start with LED 4 for second half
+            1, // Start with LED 1 for second half
             pulses,
         );
-        // Add end marker
-        RMT_BUFFER[FULL_BUFFER_SIZE - 1] = 0;
+        // Note: Using full 48-word buffer, no end marker needed
     }
 
     // Enable interrupts BEFORE starting transmission
     unsafe {
         INTERRUPT_ACTIVE = true;
     }
+
+    // We need to explicitly enable threshold and end interrupts on the channel
+    // The set_interrupt_handler only registers our handler, but doesn't enable events
+
+    // Enable threshold and end interrupts directly on the RMT registers
+    let rmt_regs = esp_hal::peripherals::RMT::regs();
+    rmt_regs.int_ena().modify(|_, w| {
+        w.ch_tx_thr_event(0).set_bit(); // Enable threshold interrupt for channel 0
+        w.ch_tx_end(0).set_bit() // Enable end interrupt for channel 0
+    });
 
     // Start continuous transmission with interrupts properly enabled!
     // The RMT hardware will now automatically call rmt_interrupt_handler
@@ -270,11 +281,7 @@ where
 
         // Optional: Check frame counter to show it's working
         unsafe {
-            let current_frame = FRAME_COUNTER;
-            if current_frame % 100 == 0 {
-                // Could log this via defmt or other logging mechanism
-                defmt::info!("Frame: {}", current_frame);
-            }
+            defmt::info!("Frame: {}", FRAME_COUNTER);
         }
     }
 }
