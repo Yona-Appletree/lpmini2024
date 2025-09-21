@@ -18,6 +18,7 @@ use esp_hal::rmt::{PulseCode, Rmt};
 use esp_hal::time::Rate;
 use esp_hal::timer::systimer::SystemTimer;
 use esp_hal::timer::timg::TimerGroup;
+use fw_esp32c3::rmt_interrupt_demo;
 use fw_esp32c3::rmt_ws2811::{buffer_size, buffer_size_async, RmtWs2811};
 use panic_rtt_target as _;
 use smart_leds::hsv::{hsv2rgb, Hsv};
@@ -59,54 +60,13 @@ async fn main(spawner: Spawner) {
     }
     .expect("Failed to initialize RMT");
 
-    // We use one of the RMT channels to instantiate a `SmartLedsAdapterAsync` which can
-    // be used directly with all `smart_led` implementations
-    let rmt_channel = rmt.channel0;
+    // Demo: Use interrupt-driven continuous RMT transmission
+    info!("Starting RMT interrupt demo...");
+    rmt_interrupt_demo::rmt_interrupt_demo(rmt, peripherals.GPIO4)
+        .expect("Failed to start RMT interrupt demo");
 
-    let rmt_buffer = [0_u32; buffer_size(NUM_LEDS)];
-    let mut rmt_ws2811 = RmtWs2811::new(rmt_channel, peripherals.GPIO4, rmt_buffer);
-
-    // let wifi_init = esp_wifi::init(timer1.timer0, rng)
-    //     .expect("Failed to initialize WIFI/BLE controller");
-    // let (mut _wifi_controller, _interfaces) = esp_wifi::wifi::new(&wifi_init, peripherals.WIFI)
-    //     .expect("Failed to initialize WIFI controller");
-    //
-    // // find more examples https://github.com/embassy-rs/trouble/tree/main/examples/esp32
-    // let transport = BleConnector::new(&wifi_init, peripherals.BT);
-    // let _ble_controller = ExternalController::<_, 20>::new(transport);
-
-    let mut color = Hsv {
-        hue: 0,
-        sat: 255,
-        val: 127,
-    };
-    let mut data = [RGB8::new(255, 0, 0); NUM_LEDS];
-    let level = 100;
-
-    // TODO: Spawn some tasks
-    let _ = spawner;
-
-    let mut counter = 0u8;
-
-    loop {
-        counter = counter.wrapping_add(1);
-
-        // Fill all LEDs with a rainbow pattern
-        for (i, led_data) in data.iter_mut().enumerate() {
-            color.hue = counter.wrapping_add(i as u8);
-
-            // Convert from the HSV color space (where we can easily transition from one
-            // color to the other) to the RGB color space that we can then send to the LED
-            *led_data = hsv2rgb(color);
-        }
-
-        // When sending to the LEDs, we do a gamma correction first (see smart_leds
-        // documentation for details) and then limit the brightness to 10 out of 255 so
-        // that the output is not too bright.
-        rmt_ws2811.write(data.iter().cloned()).unwrap();
-
-        Timer::after(Duration::from_millis(10)).await;
-    }
+    // The demo function runs in an infinite loop, so this should never be reached
+    info!("RMT demo ended unexpectedly");
 
     // for inspiration have a look at the examples at https://github.com/esp-rs/esp-hal/tree/esp-hal-v1.0.0-rc.0/examples/src/bin
 }
