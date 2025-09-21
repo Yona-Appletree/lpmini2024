@@ -47,7 +47,39 @@ static mut RMT_BUFFER: [u32; FULL_BUFFER_SIZE] = [0; FULL_BUFFER_SIZE];
 static mut FRAME_COUNTER: usize = 0;
 static mut LED_COUNTER: usize = 0; // Track current LED position in the strip
 static mut INTERRUPT_ACTIVE: bool = false;
-static mut PULSE_CODES: (u32, u32, u32) = (0, 0, 0);
+
+const SRC_CLOCK_MHZ: u32 = 80;
+const PULSE_ZERO: u32 = // Zero
+    pulseCode(
+        Level::High,
+        ((SK68XX_T0H_NS * SRC_CLOCK_MHZ) / 1000) as u16,
+        Level::Low,
+        ((SK68XX_T0L_NS * SRC_CLOCK_MHZ) / 1000) as u16,
+    );
+
+// One
+const PULSE_ONE: u32 = pulseCode(
+    Level::High,
+    ((SK68XX_T1H_NS * SRC_CLOCK_MHZ) / 1000) as u16,
+    Level::Low,
+    ((SK68XX_T1L_NS * SRC_CLOCK_MHZ) / 1000) as u16,
+);
+
+// Latch
+const PULSE_LATCH: u32 = pulseCode(Level::Low, 3000u16, Level::Low, 3000u16);
+
+const fn pulseCode(level1: Level, length1: u16, level2: Level, length2: u16) -> u32 {
+    let level1 = (level_bit(level1)) | (length1 as u32 & 0b111_1111_1111_1111);
+    let level2 = (level_bit(level2)) | (length2 as u32 & 0b111_1111_1111_1111);
+    level1 | (level2 << 16)
+}
+
+const fn level_bit(level: Level) -> u32 {
+    match level {
+        Level::Low => 0u32,
+        Level::High => 1u32 << 15,
+    }
+}
 
 // LED timing constants for WS2812/SK6812
 const SK68XX_CODE_PERIOD: u32 = 1250; // 800kHz
@@ -57,27 +89,6 @@ const SK68XX_T1H_NS: u32 = 850;
 const SK68XX_T1L_NS: u32 = SK68XX_CODE_PERIOD - SK68XX_T1H_NS;
 
 const SK68XX_LATCH_NS: u32 = 50_000;
-
-fn generate_pulse_codes(src_clock: u32) -> (u32, u32, u32) {
-    (
-        // Zero
-        PulseCode::new(
-            Level::High,
-            ((SK68XX_T0H_NS * src_clock) / 1000) as u16,
-            Level::Low,
-            ((SK68XX_T0L_NS * src_clock) / 1000) as u16,
-        ),
-        // One
-        PulseCode::new(
-            Level::High,
-            ((SK68XX_T1H_NS * src_clock) / 1000) as u16,
-            Level::Low,
-            ((SK68XX_T1L_NS * src_clock) / 1000) as u16,
-        ),
-        // Latch
-        PulseCode::new(Level::Low, 3000u16, Level::Low, 3000u16),
-    )
-}
 
 fn create_rmt_config() -> TxChannelConfig {
     TxChannelConfig::default()
@@ -90,31 +101,36 @@ fn create_rmt_config() -> TxChannelConfig {
 
 // Convert a single RGB color to RMT pulse codes
 #[inline(always)]
-fn rgb_to_pulses(
-    r: u8,
-    g: u8,
-    b: u8,
-    buffer: &mut [u32],
-    start_idx: usize,
-    pulses: (u32, u32, u32),
-) {
+fn rgb_to_pulses(r: u8, g: u8, b: u8, buffer: &mut [u32], start_idx: usize) {
     let mut idx = start_idx;
 
     // Green first (WS2812 order is GRB)
     for bit_pos in [128, 64, 32, 16, 8, 4, 2, 1] {
-        buffer[idx] = if g & bit_pos != 0 { pulses.1 } else { pulses.0 };
+        buffer[idx] = if g & bit_pos != 0 {
+            PULSE_ONE
+        } else {
+            PULSE_ZERO
+        };
         idx += 1;
     }
 
     // Red
     for bit_pos in [128, 64, 32, 16, 8, 4, 2, 1] {
-        buffer[idx] = if r & bit_pos != 0 { pulses.1 } else { pulses.0 };
+        buffer[idx] = if r & bit_pos != 0 {
+            PULSE_ONE
+        } else {
+            PULSE_ZERO
+        };
         idx += 1;
     }
 
     // Blue
     for bit_pos in [128, 64, 32, 16, 8, 4, 2, 1] {
-        buffer[idx] = if b & bit_pos != 0 { pulses.1 } else { pulses.0 };
+        buffer[idx] = if b & bit_pos != 0 {
+            PULSE_ONE
+        } else {
+            PULSE_ZERO
+        };
         idx += 1;
     }
 }
@@ -136,7 +152,6 @@ fn fill_half_buffer(
     half_start: usize,
     frame_counter: usize,
     led_counter: &mut usize,
-    pulses: (u32, u32, u32),
 ) {
     let leds_per_half = BUFFER_LEDS / 2;
     for led_idx in 0..leds_per_half {
@@ -144,12 +159,12 @@ fn fill_half_buffer(
 
         if *led_counter >= NUM_LEDS {
             for i in 0..RMT_RAM_ONE_LED {
-                buffer[led_buffer_offset + i] = pulses.2;
+                buffer[led_buffer_offset + i] = PULSE_LATCH;
             }
             *led_counter = 0;
         } else {
             // Normal LED data
-            rgb_to_pulses(127, 0, 0, buffer, led_buffer_offset, pulses);
+            rgb_to_pulses(127, 0, 0, buffer, led_buffer_offset);
             *led_counter += 1;
         }
     }
@@ -161,7 +176,6 @@ unsafe fn fill_half_buffer_direct(
     ram_ptr: *mut u32,
     frame_counter: usize,
     led_counter: &mut usize,
-    pulses: (u32, u32, u32),
 ) {
     let leds_per_half = BUFFER_LEDS / 2;
     for led_idx in 0..leds_per_half {
@@ -169,35 +183,34 @@ unsafe fn fill_half_buffer_direct(
             // Insert latch signal - fill this LED slot with latch
             // Manual unrolling for maximum performance
             let base_offset = led_idx * RMT_RAM_ONE_LED;
-            let latch = pulses.2;
-            ram_ptr.add(base_offset + 0).write_volatile(latch);
-            ram_ptr.add(base_offset + 1).write_volatile(latch);
-            ram_ptr.add(base_offset + 2).write_volatile(latch);
-            ram_ptr.add(base_offset + 3).write_volatile(latch);
-            ram_ptr.add(base_offset + 4).write_volatile(latch);
-            ram_ptr.add(base_offset + 5).write_volatile(latch);
-            ram_ptr.add(base_offset + 6).write_volatile(latch);
-            ram_ptr.add(base_offset + 7).write_volatile(latch);
-            ram_ptr.add(base_offset + 8).write_volatile(latch);
-            ram_ptr.add(base_offset + 9).write_volatile(latch);
-            ram_ptr.add(base_offset + 10).write_volatile(latch);
-            ram_ptr.add(base_offset + 11).write_volatile(latch);
-            ram_ptr.add(base_offset + 12).write_volatile(latch);
-            ram_ptr.add(base_offset + 13).write_volatile(latch);
-            ram_ptr.add(base_offset + 14).write_volatile(latch);
-            ram_ptr.add(base_offset + 15).write_volatile(latch);
-            ram_ptr.add(base_offset + 16).write_volatile(latch);
-            ram_ptr.add(base_offset + 17).write_volatile(latch);
-            ram_ptr.add(base_offset + 18).write_volatile(latch);
-            ram_ptr.add(base_offset + 19).write_volatile(latch);
-            ram_ptr.add(base_offset + 20).write_volatile(latch);
-            ram_ptr.add(base_offset + 21).write_volatile(latch);
-            ram_ptr.add(base_offset + 22).write_volatile(latch);
-            ram_ptr.add(base_offset + 23).write_volatile(latch);
+            ram_ptr.add(base_offset + 0).write_volatile(PULSE_LATCH);
+            ram_ptr.add(base_offset + 1).write_volatile(PULSE_LATCH);
+            ram_ptr.add(base_offset + 2).write_volatile(PULSE_LATCH);
+            ram_ptr.add(base_offset + 3).write_volatile(PULSE_LATCH);
+            ram_ptr.add(base_offset + 4).write_volatile(PULSE_LATCH);
+            ram_ptr.add(base_offset + 5).write_volatile(PULSE_LATCH);
+            ram_ptr.add(base_offset + 6).write_volatile(PULSE_LATCH);
+            ram_ptr.add(base_offset + 7).write_volatile(PULSE_LATCH);
+            ram_ptr.add(base_offset + 8).write_volatile(PULSE_LATCH);
+            ram_ptr.add(base_offset + 9).write_volatile(PULSE_LATCH);
+            ram_ptr.add(base_offset + 10).write_volatile(PULSE_LATCH);
+            ram_ptr.add(base_offset + 11).write_volatile(PULSE_LATCH);
+            ram_ptr.add(base_offset + 12).write_volatile(PULSE_LATCH);
+            ram_ptr.add(base_offset + 13).write_volatile(PULSE_LATCH);
+            ram_ptr.add(base_offset + 14).write_volatile(PULSE_LATCH);
+            ram_ptr.add(base_offset + 15).write_volatile(PULSE_LATCH);
+            ram_ptr.add(base_offset + 16).write_volatile(PULSE_LATCH);
+            ram_ptr.add(base_offset + 17).write_volatile(PULSE_LATCH);
+            ram_ptr.add(base_offset + 18).write_volatile(PULSE_LATCH);
+            ram_ptr.add(base_offset + 19).write_volatile(PULSE_LATCH);
+            ram_ptr.add(base_offset + 20).write_volatile(PULSE_LATCH);
+            ram_ptr.add(base_offset + 21).write_volatile(PULSE_LATCH);
+            ram_ptr.add(base_offset + 22).write_volatile(PULSE_LATCH);
+            ram_ptr.add(base_offset + 23).write_volatile(PULSE_LATCH);
             *led_counter = 0;
         } else {
             // Normal LED data - write directly to RMT memory
-            rgb_to_pulses_direct(16, 0, 0, ram_ptr.add(led_idx * RMT_RAM_ONE_LED), pulses);
+            rgb_to_pulses_direct(16, 0, 0, ram_ptr.add(led_idx * RMT_RAM_ONE_LED));
             *led_counter += 1;
         }
     }
@@ -206,84 +219,84 @@ unsafe fn fill_half_buffer_direct(
 // Convert RGB to RMT pulses and write directly to memory pointer
 // Optimized with manual loop unrolling for maximum ISR performance
 #[inline(always)]
-unsafe fn rgb_to_pulses_direct(r: u8, g: u8, b: u8, ram_ptr: *mut u32, pulses: (u32, u32, u32)) {
+unsafe fn rgb_to_pulses_direct(r: u8, g: u8, b: u8, ram_ptr: *mut u32) {
     // Manual unrolling for Green (GRB order for WS2812)
     ram_ptr
         .add(0)
-        .write_volatile(if g & 128 != 0 { pulses.1 } else { pulses.0 });
+        .write_volatile(if g & 128 != 0 { PULSE_ONE } else { PULSE_ZERO });
     ram_ptr
         .add(1)
-        .write_volatile(if g & 64 != 0 { pulses.1 } else { pulses.0 });
+        .write_volatile(if g & 64 != 0 { PULSE_ONE } else { PULSE_ZERO });
     ram_ptr
         .add(2)
-        .write_volatile(if g & 32 != 0 { pulses.1 } else { pulses.0 });
+        .write_volatile(if g & 32 != 0 { PULSE_ONE } else { PULSE_ZERO });
     ram_ptr
         .add(3)
-        .write_volatile(if g & 16 != 0 { pulses.1 } else { pulses.0 });
+        .write_volatile(if g & 16 != 0 { PULSE_ONE } else { PULSE_ZERO });
     ram_ptr
         .add(4)
-        .write_volatile(if g & 8 != 0 { pulses.1 } else { pulses.0 });
+        .write_volatile(if g & 8 != 0 { PULSE_ONE } else { PULSE_ZERO });
     ram_ptr
         .add(5)
-        .write_volatile(if g & 4 != 0 { pulses.1 } else { pulses.0 });
+        .write_volatile(if g & 4 != 0 { PULSE_ONE } else { PULSE_ZERO });
     ram_ptr
         .add(6)
-        .write_volatile(if g & 2 != 0 { pulses.1 } else { pulses.0 });
+        .write_volatile(if g & 2 != 0 { PULSE_ONE } else { PULSE_ZERO });
     ram_ptr
         .add(7)
-        .write_volatile(if g & 1 != 0 { pulses.1 } else { pulses.0 });
+        .write_volatile(if g & 1 != 0 { PULSE_ONE } else { PULSE_ZERO });
 
     // Manual unrolling for Red
     ram_ptr
         .add(8)
-        .write_volatile(if r & 128 != 0 { pulses.1 } else { pulses.0 });
+        .write_volatile(if r & 128 != 0 { PULSE_ONE } else { PULSE_ZERO });
     ram_ptr
         .add(9)
-        .write_volatile(if r & 64 != 0 { pulses.1 } else { pulses.0 });
+        .write_volatile(if r & 64 != 0 { PULSE_ONE } else { PULSE_ZERO });
     ram_ptr
         .add(10)
-        .write_volatile(if r & 32 != 0 { pulses.1 } else { pulses.0 });
+        .write_volatile(if r & 32 != 0 { PULSE_ONE } else { PULSE_ZERO });
     ram_ptr
         .add(11)
-        .write_volatile(if r & 16 != 0 { pulses.1 } else { pulses.0 });
+        .write_volatile(if r & 16 != 0 { PULSE_ONE } else { PULSE_ZERO });
     ram_ptr
         .add(12)
-        .write_volatile(if r & 8 != 0 { pulses.1 } else { pulses.0 });
+        .write_volatile(if r & 8 != 0 { PULSE_ONE } else { PULSE_ZERO });
     ram_ptr
         .add(13)
-        .write_volatile(if r & 4 != 0 { pulses.1 } else { pulses.0 });
+        .write_volatile(if r & 4 != 0 { PULSE_ONE } else { PULSE_ZERO });
     ram_ptr
         .add(14)
-        .write_volatile(if r & 2 != 0 { pulses.1 } else { pulses.0 });
+        .write_volatile(if r & 2 != 0 { PULSE_ONE } else { PULSE_ZERO });
     ram_ptr
         .add(15)
-        .write_volatile(if r & 1 != 0 { pulses.1 } else { pulses.0 });
+        .write_volatile(if r & 1 != 0 { PULSE_ONE } else { PULSE_ZERO });
 
     // Manual unrolling for Blue
     ram_ptr
         .add(16)
-        .write_volatile(if b & 128 != 0 { pulses.1 } else { pulses.0 });
+        .write_volatile(if b & 128 != 0 { PULSE_ONE } else { PULSE_ZERO });
     ram_ptr
         .add(17)
-        .write_volatile(if b & 64 != 0 { pulses.1 } else { pulses.0 });
+        .write_volatile(if b & 64 != 0 { PULSE_ONE } else { PULSE_ZERO });
     ram_ptr
         .add(18)
-        .write_volatile(if b & 32 != 0 { pulses.1 } else { pulses.0 });
+        .write_volatile(if b & 32 != 0 { PULSE_ONE } else { PULSE_ZERO });
     ram_ptr
         .add(19)
-        .write_volatile(if b & 16 != 0 { pulses.1 } else { pulses.0 });
+        .write_volatile(if b & 16 != 0 { PULSE_ONE } else { PULSE_ZERO });
     ram_ptr
         .add(20)
-        .write_volatile(if b & 8 != 0 { pulses.1 } else { pulses.0 });
+        .write_volatile(if b & 8 != 0 { PULSE_ONE } else { PULSE_ZERO });
     ram_ptr
         .add(21)
-        .write_volatile(if b & 4 != 0 { pulses.1 } else { pulses.0 });
+        .write_volatile(if b & 4 != 0 { PULSE_ONE } else { PULSE_ZERO });
     ram_ptr
         .add(22)
-        .write_volatile(if b & 2 != 0 { pulses.1 } else { pulses.0 });
+        .write_volatile(if b & 2 != 0 { PULSE_ONE } else { PULSE_ZERO });
     ram_ptr
         .add(23)
-        .write_volatile(if b & 1 != 0 { pulses.1 } else { pulses.0 });
+        .write_volatile(if b & 1 != 0 { PULSE_ONE } else { PULSE_ZERO });
 }
 
 // RMT interrupt handler - this is where the magic happens
@@ -304,10 +317,6 @@ extern "C" fn rmt_interrupt_handler() {
             FRAME_COUNTER = FRAME_COUNTER.wrapping_add(1);
             let frame = FRAME_COUNTER;
 
-            // Determine which half of the buffer was just transmitted
-            // and needs to be refilled
-            let pulses = PULSE_CODES;
-
             // The threshold interrupt fires when we've transmitted the first half
             // Hardware is now transmitting the second half, so we can safely
             // refill the first half that was just transmitted
@@ -318,7 +327,6 @@ extern "C" fn rmt_interrupt_handler() {
                 ram_base, // Write directly to first half of RMT memory
                 frame,
                 &mut LED_COUNTER,
-                pulses,
             );
         }
 
@@ -339,7 +347,6 @@ extern "C" fn rmt_interrupt_handler() {
                 second_half_start, // Write directly to second half of RMT memory
                 frame,
                 &mut LED_COUNTER,
-                PULSE_CODES,
             );
         }
 
@@ -367,26 +374,14 @@ where
 
     // Get timing parameters
     let src_clock = Clocks::get().apb_clock.as_mhz();
-    let pulses = generate_pulse_codes(src_clock);
-
-    // Store pulse codes globally for interrupt handler
-    unsafe {
-        PULSE_CODES = pulses;
-    }
 
     // Initialize LED counter and fill initial buffer with both halves for streaming start
     unsafe {
         // Fill first half (will show LEDs 0-3 initially)
         LED_COUNTER = 0;
-        fill_half_buffer(&mut RMT_BUFFER, 0, 0, &mut LED_COUNTER, pulses);
+        fill_half_buffer(&mut RMT_BUFFER, 0, 0, &mut LED_COUNTER);
         // Fill second half (will show LEDs 4-7 initially)
-        fill_half_buffer(
-            &mut RMT_BUFFER,
-            HALF_BUFFER_SIZE,
-            0,
-            &mut LED_COUNTER,
-            pulses,
-        );
+        fill_half_buffer(&mut RMT_BUFFER, HALF_BUFFER_SIZE, 0, &mut LED_COUNTER);
 
         // LED_COUNTER is now automatically set to the correct next position
         // Note: Using full 192-word buffer, no end marker needed
