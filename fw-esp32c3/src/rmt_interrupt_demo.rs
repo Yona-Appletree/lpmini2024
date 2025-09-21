@@ -23,6 +23,7 @@
 
 use core::ptr::addr_of_mut;
 
+use defmt::info;
 use esp_hal::clock::Clocks;
 use esp_hal::gpio::interconnect::PeripheralOutput;
 use esp_hal::gpio::Level;
@@ -164,7 +165,7 @@ fn fill_half_buffer(
             *led_counter = 0;
         } else {
             // Normal LED data
-            rgb_to_pulses(127, 0, 0, buffer, led_buffer_offset);
+            rgb_to_pulses(0, 0, 0, buffer, led_buffer_offset);
             *led_counter += 1;
         }
     }
@@ -178,43 +179,62 @@ unsafe fn fill_half_buffer_direct(
     led_counter: &mut usize,
 ) {
     let leds_per_half = BUFFER_LEDS / 2;
-    for led_idx in 0..leds_per_half {
+    for i in 0..leds_per_half {
         if *led_counter >= NUM_LEDS {
             // Insert latch signal - fill this LED slot with latch
             // Manual unrolling for maximum performance
-            let base_offset = led_idx * RMT_RAM_ONE_LED;
-            ram_ptr.add(base_offset + 0).write_volatile(PULSE_LATCH);
-            ram_ptr.add(base_offset + 1).write_volatile(PULSE_LATCH);
-            ram_ptr.add(base_offset + 2).write_volatile(PULSE_LATCH);
-            ram_ptr.add(base_offset + 3).write_volatile(PULSE_LATCH);
-            ram_ptr.add(base_offset + 4).write_volatile(PULSE_LATCH);
-            ram_ptr.add(base_offset + 5).write_volatile(PULSE_LATCH);
-            ram_ptr.add(base_offset + 6).write_volatile(PULSE_LATCH);
-            ram_ptr.add(base_offset + 7).write_volatile(PULSE_LATCH);
-            ram_ptr.add(base_offset + 8).write_volatile(PULSE_LATCH);
-            ram_ptr.add(base_offset + 9).write_volatile(PULSE_LATCH);
-            ram_ptr.add(base_offset + 10).write_volatile(PULSE_LATCH);
-            ram_ptr.add(base_offset + 11).write_volatile(PULSE_LATCH);
-            ram_ptr.add(base_offset + 12).write_volatile(PULSE_LATCH);
-            ram_ptr.add(base_offset + 13).write_volatile(PULSE_LATCH);
-            ram_ptr.add(base_offset + 14).write_volatile(PULSE_LATCH);
-            ram_ptr.add(base_offset + 15).write_volatile(PULSE_LATCH);
-            ram_ptr.add(base_offset + 16).write_volatile(PULSE_LATCH);
-            ram_ptr.add(base_offset + 17).write_volatile(PULSE_LATCH);
-            ram_ptr.add(base_offset + 18).write_volatile(PULSE_LATCH);
-            ram_ptr.add(base_offset + 19).write_volatile(PULSE_LATCH);
-            ram_ptr.add(base_offset + 20).write_volatile(PULSE_LATCH);
-            ram_ptr.add(base_offset + 21).write_volatile(PULSE_LATCH);
-            ram_ptr.add(base_offset + 22).write_volatile(PULSE_LATCH);
-            ram_ptr.add(base_offset + 23).write_volatile(PULSE_LATCH);
+            let base = ram_ptr.add(i * RMT_RAM_ONE_LED);
+            base.add(0).write_volatile(PULSE_LATCH);
+            base.add(1).write_volatile(PULSE_LATCH);
+            base.add(2).write_volatile(PULSE_LATCH);
+            base.add(3).write_volatile(PULSE_LATCH);
+            base.add(4).write_volatile(PULSE_LATCH);
+            base.add(5).write_volatile(PULSE_LATCH);
+            base.add(6).write_volatile(PULSE_LATCH);
+            base.add(7).write_volatile(PULSE_LATCH);
+            base.add(8).write_volatile(PULSE_LATCH);
+            base.add(9).write_volatile(PULSE_LATCH);
+            base.add(10).write_volatile(PULSE_LATCH);
+            base.add(11).write_volatile(PULSE_LATCH);
+            base.add(12).write_volatile(PULSE_LATCH);
+            base.add(13).write_volatile(PULSE_LATCH);
+            base.add(14).write_volatile(PULSE_LATCH);
+            base.add(15).write_volatile(PULSE_LATCH);
+            base.add(16).write_volatile(PULSE_LATCH);
+            base.add(17).write_volatile(PULSE_LATCH);
+            base.add(18).write_volatile(PULSE_LATCH);
+            base.add(19).write_volatile(PULSE_LATCH);
+            base.add(20).write_volatile(PULSE_LATCH);
+            base.add(21).write_volatile(PULSE_LATCH);
+            base.add(22).write_volatile(PULSE_LATCH);
+            base.add(23).write_volatile(PULSE_LATCH);
             *led_counter = 0;
         } else {
-            // green
-            write_ws2811_byte(0, ram_ptr.add(led_idx * RMT_RAM_ONE_LED));
-            // red
-            write_ws2811_byte(255, ram_ptr.add(led_idx * RMT_RAM_ONE_LED + 8));
-            // blue
-            write_ws2811_byte(0, ram_ptr.add(led_idx * RMT_RAM_ONE_LED + 16));
+            let base = ram_ptr.add(i * RMT_RAM_ONE_LED);
+            base.add(0).write_volatile(PULSE_ONE);
+            base.add(1).write_volatile(PULSE_ZERO);
+            base.add(2).write_volatile(PULSE_ZERO);
+            base.add(3).write_volatile(PULSE_ZERO);
+            base.add(4).write_volatile(PULSE_ZERO);
+            base.add(5).write_volatile(PULSE_ZERO);
+            base.add(6).write_volatile(PULSE_ZERO);
+            base.add(7).write_volatile(PULSE_ZERO);
+            base.add(8).write_volatile(PULSE_ZERO);
+            base.add(9).write_volatile(PULSE_ZERO);
+            base.add(10).write_volatile(PULSE_ZERO);
+            base.add(11).write_volatile(PULSE_ZERO);
+            base.add(12).write_volatile(PULSE_ZERO);
+            base.add(13).write_volatile(PULSE_ZERO);
+            base.add(14).write_volatile(PULSE_ZERO);
+            base.add(15).write_volatile(PULSE_ZERO);
+            base.add(16).write_volatile(PULSE_ZERO);
+            base.add(17).write_volatile(PULSE_ZERO);
+            base.add(18).write_volatile(PULSE_ZERO);
+            base.add(19).write_volatile(PULSE_ZERO);
+            base.add(20).write_volatile(PULSE_ZERO);
+            base.add(21).write_volatile(PULSE_ZERO);
+            base.add(22).write_volatile(PULSE_ZERO);
+            base.add(23).write_volatile(PULSE_ZERO);
             *led_counter += 1;
         }
     }
@@ -224,9 +244,7 @@ unsafe fn fill_half_buffer_direct(
 // Optimized with manual loop unrolling for maximum ISR performance
 #[inline(always)]
 unsafe fn write_ws2811_byte(b: u8, mut ram_ptr: *mut u32) {
-    ram_ptr
-        .add(0)
-        .write_volatile(if b & 128 != 0 { PULSE_ONE } else { PULSE_ZERO });
+    ram_ptr.add(0).write_volatile(PULSE_ZERO);
     ram_ptr
         .add(1)
         .write_volatile(if b & 64 != 0 { PULSE_ONE } else { PULSE_ZERO });
