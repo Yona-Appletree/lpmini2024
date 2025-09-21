@@ -1,18 +1,17 @@
-//
 // Adapted from https://github.com/esp-rs/esp-hal-community/blob/main/esp-hal-smartled/src/lib.rs
 //
 
-use core::{fmt::Debug, slice::IterMut};
+use core::fmt::Debug;
+use core::slice::IterMut;
 
-use esp_hal::{
-    clock::Clocks,
-    gpio::{interconnect::PeripheralOutput, Level},
-    rmt::{
-        Channel, Error as RmtError, PulseCode, RawChannelAccess, TxChannel, TxChannelAsync,
-        TxChannelConfig, TxChannelCreator, TxChannelInternal,
-    },
-    Async, Blocking,
+use esp_hal::clock::Clocks;
+use esp_hal::gpio::interconnect::PeripheralOutput;
+use esp_hal::gpio::Level;
+use esp_hal::rmt::{
+    Channel, Error as RmtError, PulseCode, RawChannelAccess, TxChannel, TxChannelAsync,
+    TxChannelConfig, TxChannelCreator, TxChannelInternal,
 };
+use esp_hal::{Async, Blocking};
 use smart_leds_trait::{SmartLedsWrite, SmartLedsWriteAsync, RGB8};
 
 // Required RMT RAM to drive one LED.
@@ -167,42 +166,38 @@ impl<TX, const BUFFER_SIZE: usize> SmartLedsWrite for RmtWs2811<TX, BUFFER_SIZE>
 where
     TX: RawChannelAccess + TxChannelInternal + 'static,
 {
-    type Error = LedAdapterError;
     type Color = RGB8;
+    type Error = LedAdapterError;
 
-    /// Convert all RGB8 items of the iterator to the RMT format and
-    /// add them to internal buffer, then start a singular RMT operation
-    /// based on that buffer.
+    /// Send out all RGB8 items of the iterator to the RMT buffer.
     fn write<T, I>(&mut self, iterator: T) -> Result<(), Self::Error>
     where
         T: IntoIterator<Item = I>,
         I: Into<Self::Color>,
     {
-        // We always start from the beginning of the buffer
-        let mut seq_iter = self.rmt_buffer.iter_mut();
+        // We send out each led as a separate RMT operation.
+
+        let mut buffer = [0_u32; RMT_RAM_ONE_LED + 1];
+        buffer[RMT_RAM_ONE_LED] = 0;
 
         // Add all converted iterator items to the buffer.
         // This will result in an `BufferSizeExceeded` error in case
         // the iterator provides more elements than the buffer can take.
         for item in iterator {
-            convert_rgb_to_pulses(item.into(), &mut seq_iter, self.pulses)?;
-        }
+            convert_rgb_to_pulses(item.into(), &mut buffer.iter_mut(), self.pulses)?;
 
-        // Finally, add an end element.
-        *seq_iter.next().ok_or(LedAdapterError::BufferSizeExceeded)? = 0;
+            let channel = self.channel.take().unwrap();
 
-        // Perform the actual RMT operation. We use the u32 values here right away.
-        let channel = self.channel.take().unwrap();
-        match channel.transmit(&self.rmt_buffer)?.wait() {
-            Ok(chan) => {
-                self.channel = Some(chan);
-                Ok(())
-            }
-            Err((e, chan)) => {
-                self.channel = Some(chan);
-                Err(LedAdapterError::TransmissionError(e))
+            match channel.transmit(&buffer)?.wait() {
+                Ok(chan) => self.channel = Some(chan),
+                Err((e, chan)) => {
+                    self.channel = Some(chan);
+                    return Err(LedAdapterError::TransmissionError(e));
+                }
             }
         }
+
+        Ok(())
     }
 }
 
@@ -286,8 +281,8 @@ impl<Tx, const BUFFER_SIZE: usize> SmartLedsWriteAsync for RmtWs2811Async<Tx, BU
 where
     Tx: RawChannelAccess + TxChannelInternal + 'static,
 {
-    type Error = LedAdapterError;
     type Color = RGB8;
+    type Error = LedAdapterError;
 
     /// Convert all RGB8 items of the iterator to the RMT format and
     /// add them to internal buffer, then start perform all asynchronous operations based on
