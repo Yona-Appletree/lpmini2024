@@ -13,14 +13,16 @@ use defmt::info;
 use embassy_executor::Spawner;
 use embassy_time::{Duration, Timer};
 use esp_hal::clock::CpuClock;
-use esp_hal::rmt::Rmt;
+use esp_hal::gpio::Level;
+use esp_hal::rmt::{PulseCode, Rmt};
 use esp_hal::time::Rate;
 use esp_hal::timer::systimer::SystemTimer;
 use esp_hal::timer::timg::TimerGroup;
-use esp_hal_smartled::{buffer_size_async, SmartLedsAdapterAsync};
+use fw_esp32c3::rmt_ws2811::{buffer_size, buffer_size_async, RmtWs2811};
 use panic_rtt_target as _;
 use smart_leds::hsv::{hsv2rgb, Hsv};
 use smart_leds::{brightness, gamma, SmartLedsWriteAsync, RGB8};
+use smart_leds_trait::SmartLedsWrite;
 
 // This creates a default app-descriptor required by the esp-idf bootloader.
 // For more information see: <https://docs.espressif.com/projects/esp-idf/en/stable/esp32/api-reference/system/app_image_format.html#application-description>
@@ -51,19 +53,18 @@ async fn main(spawner: Spawner) {
 
     // Configure RMT (Remote Control Transceiver) peripheral globally
     // <https://docs.espressif.com/projects/esp-idf/en/stable/esp32/api-reference/peripherals/rmt.html>
-    let rmt: Rmt<'_, esp_hal::Async> = {
+    let rmt: Rmt<'_, esp_hal::Blocking> = {
         let frequency: Rate = Rate::from_mhz(80);
         Rmt::new(peripherals.RMT, frequency)
     }
-    .expect("Failed to initialize RMT")
-    .into_async();
+    .expect("Failed to initialize RMT");
 
     // We use one of the RMT channels to instantiate a `SmartLedsAdapterAsync` which can
     // be used directly with all `smart_led` implementations
     let rmt_channel = rmt.channel0;
-    let rmt_buffer = [0_u32; buffer_size_async(NUM_LEDS)];
 
-    let mut led = SmartLedsAdapterAsync::new(rmt_channel, peripherals.GPIO4, rmt_buffer);
+    let rmt_buffer = [0_u32; buffer_size(NUM_LEDS)];
+    let mut rmt_ws2811 = RmtWs2811::new(rmt_channel, peripherals.GPIO4, rmt_buffer);
 
     // let wifi_init = esp_wifi::init(timer1.timer0, rng)
     //     .expect("Failed to initialize WIFI/BLE controller");
@@ -102,9 +103,9 @@ async fn main(spawner: Spawner) {
         // When sending to the LEDs, we do a gamma correction first (see smart_leds
         // documentation for details) and then limit the brightness to 10 out of 255 so
         // that the output is not too bright.
-        led.write(data.iter().cloned()).await.unwrap();
+        rmt_ws2811.write(data.iter().cloned()).unwrap();
 
-        //Timer::after(Duration::from_millis(1000)).await;
+        Timer::after(Duration::from_millis(10)).await;
     }
 
     // for inspiration have a look at the examples at https://github.com/esp-rs/esp-hal/tree/esp-hal-v1.0.0-rc.0/examples/src/bin

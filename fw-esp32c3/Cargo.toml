@@ -76,7 +76,8 @@ smart-leds = "0.4.0"
 
 # Need 0.16.0 which isn't released yet, which support esp-hal rc0
 # See https://github.com/esp-rs/esp-hal-community/pull/34
-esp-hal-smartled = { git = "https://github.com/esp-rs/esp-hal-community", rev = "bbe8484" }
+# esp-hal-smartled = { git = "https://github.com/esp-rs/esp-hal-community", rev = "bbe8484" }
+smart-leds-trait = "0.3.1"
 
 [dev-dependencies]
 embedded-test = { version = "0.6.0", features = [

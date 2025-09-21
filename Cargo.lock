@@ -758,16 +758,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "esp-hal-smartled"
-version = "0.16.0"
-source = "git+https://github.com/esp-rs/esp-hal-community?rev=bbe8484#bbe8484a013267132cd3fb4693606de2c8317a53"
-dependencies = [
- "document-features",
- "esp-hal",
- "smart-leds-trait",
-]
-
-[[package]]
 name = "esp-metadata"
 version = "0.8.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1040,11 +1030,11 @@ dependencies = [
  "esp-bootloader-esp-idf",
  "esp-hal",
  "esp-hal-embassy",
- "esp-hal-smartled",
  "esp-wifi",
  "panic-rtt-target",
  "rtt-target",
  "smart-leds",
+ "smart-leds-trait",
  "smoltcp",
  "static_cell",
  "trouble-host",
