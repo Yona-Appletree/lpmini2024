@@ -32,6 +32,9 @@ use esp_hal::rmt::{
 };
 use esp_hal::Blocking;
 
+// Configuration constants
+const NUM_LEDS: usize = 64; // Total number of LEDs in the strip
+
 // Buffer size for 2 LEDs worth of data (double buffered)
 // Using memsize(1) = 48 words. 2 LEDs = 48 words exactly, 1 LED per half
 const BUFFER_LEDS: usize = 2;
@@ -42,6 +45,7 @@ const FULL_BUFFER_SIZE: usize = BUFFER_LEDS * RMT_RAM_ONE_LED; // 48 words total
 // Global state for interrupt handling
 static mut RMT_BUFFER: [u32; FULL_BUFFER_SIZE] = [0; FULL_BUFFER_SIZE];
 static mut FRAME_COUNTER: usize = 0;
+static mut LED_COUNTER: usize = 0; // Track current LED position in the strip
 static mut INTERRUPT_ACTIVE: bool = false;
 static mut PULSE_CODES: (u32, u32) = (0, 0);
 
@@ -103,14 +107,26 @@ fn rgb_to_pulses(r: u8, g: u8, b: u8, buffer: &mut [u32], start_idx: usize, puls
 
 // Generate animated RGB values
 fn generate_animated_rgb(led_index: usize, frame_counter: usize) -> (u8, u8, u8) {
-    let offset = (led_index * 85 + frame_counter * 17) % 255;
-    let r = ((offset) % 255) as u8;
-    let g = ((offset + 85) % 255) as u8;
-    let b = ((offset + 170) % 255) as u8;
+    let ch_idx = led_index % 3;
+    let ch_brightness = 127u8;
+    let r = if ch_idx == 0 { ch_brightness } else { 0 };
+    let g = if ch_idx == 1 { ch_brightness } else { 0 };
+    let b = if ch_idx == 2 { ch_brightness } else { 0 };
     (r, g, b)
 }
 
-// Fill half of the buffer with animated LED data
+// Generate latch signal: 50µs low pulse
+// At 80MHz clock with 1µs period, 50µs = 50 clock cycles
+fn generate_latch_signal() -> u32 {
+    // Create a long low pulse (50µs at 80MHz = 4000 clock cycles)
+    // RMT can handle up to 32767 clock cycles per pulse
+    use esp_hal::gpio::Level;
+    use esp_hal::rmt::PulseCode;
+
+    u32::new(Level::Low, 2000, Level::Low, 2000) // 50µs low pulse
+}
+
+// Fill half of the buffer with animated LED data or latch signals
 fn fill_half_buffer(
     buffer: &mut [u32],
     half_start: usize,
@@ -120,10 +136,21 @@ fn fill_half_buffer(
 ) {
     let leds_per_half = BUFFER_LEDS / 2;
     for led_idx in 0..leds_per_half {
-        let global_led_idx = led_offset + led_idx;
-        let (r, g, b) = generate_animated_rgb(global_led_idx, frame_counter);
-        let buffer_start = half_start + (led_idx * RMT_RAM_ONE_LED);
-        rgb_to_pulses(r, g, b, buffer, buffer_start, pulses);
+        let global_led_idx = (led_offset + led_idx) % (NUM_LEDS + 1); // +1 for latch position
+
+        if global_led_idx == NUM_LEDS {
+            // Insert latch signal - fill entire half with latch signal
+            let latch_signal = generate_latch_signal();
+            for i in 0..HALF_BUFFER_SIZE {
+                buffer[half_start + i] = latch_signal;
+            }
+            return;
+        } else {
+            // Normal LED data
+            let (r, g, b) = generate_animated_rgb(global_led_idx, frame_counter);
+            let buffer_start = half_start + (led_idx * RMT_RAM_ONE_LED);
+            rgb_to_pulses(r, g, b, buffer, buffer_start, pulses);
+        }
     }
 }
 
@@ -156,9 +183,12 @@ extern "C" fn rmt_interrupt_handler() {
                 &mut *addr_of_mut!(RMT_BUFFER),
                 0, // First half starts at 0
                 frame,
-                frame, // LED offset - stream next LED
+                LED_COUNTER, // Current LED position in strip
                 pulses,
             );
+
+            // Advance LED counter by the number of LEDs in half buffer
+            LED_COUNTER = (LED_COUNTER + (BUFFER_LEDS / 2)) % (NUM_LEDS + 1);
 
             // Update the RMT hardware memory with the new first half
             // This is safe because hardware is currently transmitting from second half
@@ -183,9 +213,12 @@ extern "C" fn rmt_interrupt_handler() {
                 &mut *addr_of_mut!(RMT_BUFFER),
                 HALF_BUFFER_SIZE, // Second half starts here
                 frame,
-                frame + 1, // LED offset - stream next LED after threshold
+                LED_COUNTER, // Current LED position in strip
                 PULSE_CODES,
             );
+
+            // Advance LED counter by the number of LEDs in half buffer
+            LED_COUNTER = (LED_COUNTER + (BUFFER_LEDS / 2)) % (NUM_LEDS + 1);
 
             // Update the RMT hardware memory with the new second half
             let ram_base = (esp_hal::peripherals::RMT::ptr() as usize + 0x400) as *mut u32;
@@ -229,8 +262,10 @@ where
         PULSE_CODES = pulses;
     }
 
-    // Fill initial buffer with both halves for streaming start
+    // Initialize LED counter and fill initial buffer with both halves for streaming start
     unsafe {
+        LED_COUNTER = 0; // Start at beginning of LED strip
+
         // Fill first half (will show LED 0 initially)
         fill_half_buffer(&mut RMT_BUFFER, 0, 0, 0, pulses);
         // Fill second half (will show LED 1 initially)
@@ -241,6 +276,9 @@ where
             1, // Start with LED 1 for second half
             pulses,
         );
+
+        // Set LED counter to track that we've filled positions 0 and 1
+        LED_COUNTER = 2;
         // Note: Using full 48-word buffer, no end marker needed
     }
 
@@ -281,7 +319,7 @@ where
 
         // Optional: Check frame counter to show it's working
         unsafe {
-            defmt::info!("Frame: {}", FRAME_COUNTER);
+            defmt::info!("Frame: {}; LED: {}", FRAME_COUNTER, LED_COUNTER);
         }
     }
 }
