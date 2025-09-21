@@ -75,7 +75,7 @@ fn generate_pulse_codes(src_clock: u32) -> (u32, u32, u32) {
             ((SK68XX_T1L_NS * src_clock) / 1000) as u16,
         ),
         // Latch
-        PulseCode::new(Level::Low, 2000u16, Level::Low, 2000u16),
+        PulseCode::new(Level::Low, 3000u16, Level::Low, 3000u16),
     )
 }
 
@@ -153,6 +153,61 @@ fn fill_half_buffer(
     }
 }
 
+// Fill half buffer directly to RMT hardware memory (optimized for ISR)
+unsafe fn fill_half_buffer_direct(
+    ram_ptr: *mut u32,
+    frame_counter: usize,
+    led_counter: &mut usize,
+    pulses: (u32, u32, u32),
+) {
+    let leds_per_half = BUFFER_LEDS / 2;
+    for led_idx in 0..leds_per_half {
+        if *led_counter >= NUM_LEDS {
+            // Insert latch signal - fill this LED slot with latch
+            for i in 0..RMT_RAM_ONE_LED {
+                ram_ptr
+                    .add(led_idx * RMT_RAM_ONE_LED + i)
+                    .write_volatile(pulses.2);
+            }
+            *led_counter = 0;
+        } else {
+            // Normal LED data - write directly to RMT memory
+            let (r, g, b) = generate_animated_rgb(*led_counter, frame_counter);
+            rgb_to_pulses_direct(r, g, b, ram_ptr.add(led_idx * RMT_RAM_ONE_LED), pulses);
+            *led_counter += 1;
+        }
+    }
+}
+
+// Convert RGB to RMT pulses and write directly to memory pointer
+unsafe fn rgb_to_pulses_direct(r: u8, g: u8, b: u8, ram_ptr: *mut u32, pulses: (u32, u32, u32)) {
+    let mut idx = 0;
+
+    // Green (WS2812 expects GRB, not RGB)
+    for bit_pos in [128, 64, 32, 16, 8, 4, 2, 1] {
+        ram_ptr
+            .add(idx)
+            .write_volatile(if g & bit_pos != 0 { pulses.1 } else { pulses.0 });
+        idx += 1;
+    }
+
+    // Red
+    for bit_pos in [128, 64, 32, 16, 8, 4, 2, 1] {
+        ram_ptr
+            .add(idx)
+            .write_volatile(if r & bit_pos != 0 { pulses.1 } else { pulses.0 });
+        idx += 1;
+    }
+
+    // Blue
+    for bit_pos in [128, 64, 32, 16, 8, 4, 2, 1] {
+        ram_ptr
+            .add(idx)
+            .write_volatile(if b & bit_pos != 0 { pulses.1 } else { pulses.0 });
+        idx += 1;
+    }
+}
+
 // RMT interrupt handler - this is where the magic happens
 extern "C" fn rmt_interrupt_handler() {
     unsafe {
@@ -178,21 +233,15 @@ extern "C" fn rmt_interrupt_handler() {
             // The threshold interrupt fires when we've transmitted the first half
             // Hardware is now transmitting the second half, so we can safely
             // refill the first half that was just transmitted
-            fill_half_buffer(
-                &mut *addr_of_mut!(RMT_BUFFER),
-                0, // First half starts at 0
+
+            // Write directly to RMT hardware memory - NO double buffering!
+            let ram_base = (esp_hal::peripherals::RMT::ptr() as usize + 0x400) as *mut u32;
+            fill_half_buffer_direct(
+                ram_base, // Write directly to first half of RMT memory
                 frame,
-                &mut LED_COUNTER, // Current LED position in strip
+                &mut LED_COUNTER,
                 pulses,
             );
-
-            // Update the RMT hardware memory with the new first half
-            // This is safe because hardware is currently transmitting from second half
-            let ram_base = (esp_hal::peripherals::RMT::ptr() as usize + 0x400) as *mut u32;
-
-            for i in 0..HALF_BUFFER_SIZE {
-                ram_base.add(i).write_volatile(RMT_BUFFER[i]);
-            }
         }
 
         // Handle end interrupt (transmission completed one full cycle)
@@ -205,23 +254,15 @@ extern "C" fn rmt_interrupt_handler() {
             // So we need to refill the second half that was just transmitted
             let frame = FRAME_COUNTER;
 
-            fill_half_buffer(
-                &mut *addr_of_mut!(RMT_BUFFER),
-                HALF_BUFFER_SIZE, // Second half starts here
-                frame,
-                &mut LED_COUNTER, // Current LED position in strip
-                PULSE_CODES,
-            );
-
-            // Update the RMT hardware memory with the new second half
+            // Write directly to RMT hardware memory - NO double buffering!
             let ram_base = (esp_hal::peripherals::RMT::ptr() as usize + 0x400) as *mut u32;
             let second_half_start = ram_base.add(HALF_BUFFER_SIZE);
-
-            for i in 0..HALF_BUFFER_SIZE {
-                second_half_start
-                    .add(i)
-                    .write_volatile(RMT_BUFFER[HALF_BUFFER_SIZE + i]);
-            }
+            fill_half_buffer_direct(
+                second_half_start, // Write directly to second half of RMT memory
+                frame,
+                &mut LED_COUNTER,
+                PULSE_CODES,
+            );
         }
 
         // Clear any error interrupts
