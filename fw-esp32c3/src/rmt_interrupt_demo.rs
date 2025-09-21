@@ -209,8 +209,12 @@ unsafe fn fill_half_buffer_direct(
             ram_ptr.add(base_offset + 23).write_volatile(PULSE_LATCH);
             *led_counter = 0;
         } else {
-            // Normal LED data - write directly to RMT memory
-            rgb_to_pulses_direct(16, 0, 0, ram_ptr.add(led_idx * RMT_RAM_ONE_LED));
+            // green
+            write_ws2811_byte(0, ram_ptr.add(led_idx * RMT_RAM_ONE_LED));
+            // red
+            write_ws2811_byte(255, ram_ptr.add(led_idx * RMT_RAM_ONE_LED + 8));
+            // blue
+            write_ws2811_byte(0, ram_ptr.add(led_idx * RMT_RAM_ONE_LED + 16));
             *led_counter += 1;
         }
     }
@@ -219,83 +223,30 @@ unsafe fn fill_half_buffer_direct(
 // Convert RGB to RMT pulses and write directly to memory pointer
 // Optimized with manual loop unrolling for maximum ISR performance
 #[inline(always)]
-unsafe fn rgb_to_pulses_direct(r: u8, g: u8, b: u8, ram_ptr: *mut u32) {
-    // Manual unrolling for Green (GRB order for WS2812)
+unsafe fn write_ws2811_byte(b: u8, mut ram_ptr: *mut u32) {
     ram_ptr
         .add(0)
-        .write_volatile(if g & 128 != 0 { PULSE_ONE } else { PULSE_ZERO });
-    ram_ptr
-        .add(1)
-        .write_volatile(if g & 64 != 0 { PULSE_ONE } else { PULSE_ZERO });
-    ram_ptr
-        .add(2)
-        .write_volatile(if g & 32 != 0 { PULSE_ONE } else { PULSE_ZERO });
-    ram_ptr
-        .add(3)
-        .write_volatile(if g & 16 != 0 { PULSE_ONE } else { PULSE_ZERO });
-    ram_ptr
-        .add(4)
-        .write_volatile(if g & 8 != 0 { PULSE_ONE } else { PULSE_ZERO });
-    ram_ptr
-        .add(5)
-        .write_volatile(if g & 4 != 0 { PULSE_ONE } else { PULSE_ZERO });
-    ram_ptr
-        .add(6)
-        .write_volatile(if g & 2 != 0 { PULSE_ONE } else { PULSE_ZERO });
-    ram_ptr
-        .add(7)
-        .write_volatile(if g & 1 != 0 { PULSE_ONE } else { PULSE_ZERO });
-
-    // Manual unrolling for Red
-    ram_ptr
-        .add(8)
-        .write_volatile(if r & 128 != 0 { PULSE_ONE } else { PULSE_ZERO });
-    ram_ptr
-        .add(9)
-        .write_volatile(if r & 64 != 0 { PULSE_ONE } else { PULSE_ZERO });
-    ram_ptr
-        .add(10)
-        .write_volatile(if r & 32 != 0 { PULSE_ONE } else { PULSE_ZERO });
-    ram_ptr
-        .add(11)
-        .write_volatile(if r & 16 != 0 { PULSE_ONE } else { PULSE_ZERO });
-    ram_ptr
-        .add(12)
-        .write_volatile(if r & 8 != 0 { PULSE_ONE } else { PULSE_ZERO });
-    ram_ptr
-        .add(13)
-        .write_volatile(if r & 4 != 0 { PULSE_ONE } else { PULSE_ZERO });
-    ram_ptr
-        .add(14)
-        .write_volatile(if r & 2 != 0 { PULSE_ONE } else { PULSE_ZERO });
-    ram_ptr
-        .add(15)
-        .write_volatile(if r & 1 != 0 { PULSE_ONE } else { PULSE_ZERO });
-
-    // Manual unrolling for Blue
-    ram_ptr
-        .add(16)
         .write_volatile(if b & 128 != 0 { PULSE_ONE } else { PULSE_ZERO });
     ram_ptr
-        .add(17)
+        .add(1)
         .write_volatile(if b & 64 != 0 { PULSE_ONE } else { PULSE_ZERO });
     ram_ptr
-        .add(18)
+        .add(2)
         .write_volatile(if b & 32 != 0 { PULSE_ONE } else { PULSE_ZERO });
     ram_ptr
-        .add(19)
+        .add(3)
         .write_volatile(if b & 16 != 0 { PULSE_ONE } else { PULSE_ZERO });
     ram_ptr
-        .add(20)
+        .add(4)
         .write_volatile(if b & 8 != 0 { PULSE_ONE } else { PULSE_ZERO });
     ram_ptr
-        .add(21)
+        .add(5)
         .write_volatile(if b & 4 != 0 { PULSE_ONE } else { PULSE_ZERO });
     ram_ptr
-        .add(22)
+        .add(6)
         .write_volatile(if b & 2 != 0 { PULSE_ONE } else { PULSE_ZERO });
     ram_ptr
-        .add(23)
+        .add(7)
         .write_volatile(if b & 1 != 0 { PULSE_ONE } else { PULSE_ZERO });
 }
 
