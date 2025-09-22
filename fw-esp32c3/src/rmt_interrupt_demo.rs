@@ -93,14 +93,53 @@ const fn level_bit(level: Level) -> u32 {
 }
 
 // Write a single byte as WS2812 pulses directly to RMT buffer
-#[inline]
+// MAXIMUM SPEED OPTIMIZED - this is the critical path!
+#[inline(always)]
 unsafe fn write_ws2811_byte(base_ptr: *mut u32, byte_value: u8, byte_offset: usize) {
-    for bit_idx in 0..8 {
-        let pulse_idx = byte_offset * 8 + bit_idx;
-        let bit_set = (byte_value & (0x80 >> bit_idx)) != 0;
-        let pulse = if bit_set { PULSE_ONE } else { PULSE_ZERO };
-        base_ptr.add(pulse_idx).write_volatile(pulse);
-    }
+    let ptr = base_ptr.add(byte_offset * 8);
+
+    // Unroll the entire loop for maximum speed - no branches, no loops
+    // Each bit check becomes a single conditional move instruction
+    ptr.add(0).write_volatile(if byte_value & 0x80 != 0 {
+        PULSE_ONE
+    } else {
+        PULSE_ZERO
+    });
+    ptr.add(1).write_volatile(if byte_value & 0x40 != 0 {
+        PULSE_ONE
+    } else {
+        PULSE_ZERO
+    });
+    ptr.add(2).write_volatile(if byte_value & 0x20 != 0 {
+        PULSE_ONE
+    } else {
+        PULSE_ZERO
+    });
+    ptr.add(3).write_volatile(if byte_value & 0x10 != 0 {
+        PULSE_ONE
+    } else {
+        PULSE_ZERO
+    });
+    ptr.add(4).write_volatile(if byte_value & 0x08 != 0 {
+        PULSE_ONE
+    } else {
+        PULSE_ZERO
+    });
+    ptr.add(5).write_volatile(if byte_value & 0x04 != 0 {
+        PULSE_ONE
+    } else {
+        PULSE_ZERO
+    });
+    ptr.add(6).write_volatile(if byte_value & 0x02 != 0 {
+        PULSE_ONE
+    } else {
+        PULSE_ZERO
+    });
+    ptr.add(7).write_volatile(if byte_value & 0x01 != 0 {
+        PULSE_ONE
+    } else {
+        PULSE_ZERO
+    });
 }
 
 // Generate rainbow pattern for LED buffer
@@ -169,7 +208,7 @@ extern "C" fn rmt_interrupt_handler() {
 
         let is_halfway = hw_pos_start >= HALF_BUFFER_SIZE as u16;
 
-        //let is_threshold = rmt.int_raw().read().ch_tx_thr_event(0).bit();
+        // let is_threshold = rmt.int_raw().read().ch_tx_thr_event(0).bit();
 
         // Clear the threshold interrupt
         rmt.int_clr().write(|w| w.ch_tx_thr_event(0).set_bit());
@@ -248,7 +287,8 @@ extern "C" fn rmt_interrupt_handler() {
                 // Get RGB color from LED data buffer and write directly to RMT buffer
                 let color = LED_DATA_BUFFER[LED_COUNTER];
 
-                // Write WS2812 GRB bytes directly to RMT buffer
+                // SPEED CRITICAL: Inline all three byte writes to minimize overhead
+                // WS2812 uses GRB order
                 write_ws2811_byte(led_base, color.g, 0); // Green first
                 write_ws2811_byte(led_base, color.r, 1); // Red second
                 write_ws2811_byte(led_base, color.b, 2); // Blue third
@@ -335,22 +375,22 @@ where
             start_transmission();
 
             // Optional: Print frame statistics
-            // if FRAME_COUNTER % 20 == 0 {
-            // Every 20 frames (1 second at 20 FPS)
-            let avg_bytes_per_frame = if RMT_STATS_COUNT > 0 {
-                RMT_STATS_SUM / RMT_STATS_COUNT
-            } else {
-                0
-            };
-            RMT_STATS_SUM = 0;
-            RMT_STATS_COUNT = 0;
+            if FRAME_COUNTER % 20 == 0 {
+                // Every 20 frames (1 second at 20 FPS)
+                let avg_bytes_per_frame = if RMT_STATS_COUNT > 0 {
+                    RMT_STATS_SUM / RMT_STATS_COUNT
+                } else {
+                    0
+                };
+                RMT_STATS_SUM = 0;
+                RMT_STATS_COUNT = 0;
 
-            defmt::info!(
-                "Frame: {}; avg_bytes_per_frame: {}",
-                FRAME_COUNTER,
-                avg_bytes_per_frame
-            );
-            //}
+                defmt::info!(
+                    "Frame: {}; avg_bytes_per_frame: {}",
+                    FRAME_COUNTER,
+                    avg_bytes_per_frame
+                );
+            }
         }
     }
 }
