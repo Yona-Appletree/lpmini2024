@@ -52,7 +52,7 @@ static mut RMT_BUFFER: [u32; BUFFER_SIZE] = [0; BUFFER_SIZE];
 static mut LED_DATA_BUFFER: [RGB8; NUM_LEDS] = [RGB8 { r: 0, g: 0, b: 0 }; NUM_LEDS];
 static mut FRAME_COUNTER: usize = 0;
 static mut LED_COUNTER: usize = 0; // Track current LED position in the strip
-static mut INTERRUPT_ACTIVE: bool = false;
+static mut INTERRUPT_ENABLED: bool = false;
 static mut RMT_PTR: *mut u32 = 0 as *mut u32;
 
 static mut RMT_STATS_COUNT: i32 = 0;
@@ -194,9 +194,12 @@ fn create_rmt_config() -> TxChannelConfig {
 }
 
 // RMT interrupt handler - this is where the magic happens
+// CRITICAL: Keep this as fast as possible to prevent timing disruption
+#[no_mangle]
+#[inline(never)] // Don't inline to keep stack usage minimal
 extern "C" fn rmt_interrupt_handler() {
     unsafe {
-        if !INTERRUPT_ACTIVE {
+        if !INTERRUPT_ENABLED {
             return;
         }
 
@@ -227,38 +230,18 @@ extern "C" fn rmt_interrupt_handler() {
 
         // Determine what happened based on our expectation and reconfigure for next interrupt
         if is_halfway {
-            // We were expecting halfway, so this threshold interrupt = halfway
-            // defmt::info!("HALFWAY interrupt fired! HW read pos: {}", hw_read_pos);
             // Reconfigure for end-of-buffer detection
             rmt.ch_tx_lim(0)
                 .modify(|_, w| unsafe { w.tx_lim().bits(0) });
         } else {
-            // We were expecting end-of-buffer, so this threshold interrupt = end of buffer
-            // defmt::info!("BUFFER END interrupt fired! HW read pos: {}", hw_read_pos);
             // Reconfigure for halfway detection
             rmt.ch_tx_lim(0)
                 .modify(|_, w| unsafe { w.tx_lim().bits(HALF_BUFFER_SIZE as u16) });
         };
         // Clear any error interrupts
-        if rmt.int_raw().read().ch_tx_err(0).bit() {
-            rmt.int_clr().write(|w| w.ch_tx_err(0).set_bit());
-        }
-
-        // rmt_start.write_volatile(PULSE_ONE);
-        // for i in 1..(RMT_BUFFER.len() - BITS_PER_LED) {
-        //     rmt_start.add(i).write_volatile(PULSE_ZERO);
+        // if rmt.int_raw().read().ch_tx_err(0).bit() {
+        //     rmt.int_clr().write(|w| w.ch_tx_err(0).set_bit());
         // }
-        // if (FRAME_COUNTER < 100) {
-        //     for i in (RMT_BUFFER.len() - BITS_PER_LED)..RMT_BUFFER.len() {
-        //         rmt_start.add(i).write_volatile(PULSE_ONE)
-        //     }
-        // } else {
-        //     for i in (RMT_BUFFER.len() - BITS_PER_LED)..RMT_BUFFER.len() {
-        //         rmt_start.add(i).write_volatile(PULSE_LATCH)
-        //     }
-        //     FRAME_COUNTER = 0;
-        // }
-        // FRAME_COUNTER += 1;
 
         let buffer_base = if is_halfway {
             // Fill the first half while hardware transmits second half
@@ -312,8 +295,8 @@ pub fn rmt_interrupt_demo<'d, O>(
 where
     O: PeripheralOutput<'d>,
 {
-    // Set up the interrupt handler FIRST
-    let handler = InterruptHandler::new(rmt_interrupt_handler, Priority::Priority1);
+    // Set up the interrupt handler with MAXIMUM priority for critical timing
+    let handler = InterruptHandler::new(rmt_interrupt_handler, Priority::max());
     rmt.set_interrupt_handler(handler);
 
     // Configure the RMT channel
@@ -323,7 +306,7 @@ where
     // Get timing parameters
     let src_clock = Clocks::get().apb_clock.as_mhz();
 
-    // We need to explicitly enable threshold and end interrupts on the channel
+    // We need to explicitly enable threshold interrupts on the channel
     // The set_interrupt_handler only registers our handler, but doesn't enable events
 
     // Enable threshold and end interrupts directly on the RMT registers
@@ -347,7 +330,7 @@ where
             RMT_BUFFER[i] = PULSE_LATCH;
         }
 
-        INTERRUPT_ACTIVE = true;
+        INTERRUPT_ENABLED = true;
     }
 
     // Start the initial transmission
