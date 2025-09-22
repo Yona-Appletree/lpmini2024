@@ -14,7 +14,7 @@
 //! ## Production Implementation Notes:
 //!
 //! In a production system, you would:
-//! - Bind `rmt_interrupt_handler` to the actual RMT interrupt vector  
+//! - Bind `rmt_interrupt_handler` to the actual RMT interrupt vector
 //! - Enable hardware threshold and end interrupts
 //! - Let hardware automatically call interrupts (no manual polling)
 //! - Stream from larger LED arrays by chunking through the small buffer
@@ -57,6 +57,7 @@ static mut RMT_PTR: *mut u32 = 0 as *mut u32;
 
 static mut RMT_STATS_COUNT: i32 = 0;
 static mut RMT_STATS_SUM: i32 = 0;
+static mut FRAME_COMPLETE: bool = false; // Signal when frame transmission is complete
 
 const SRC_CLOCK_MHZ: u32 = 80;
 const PULSE_ZERO: u32 = // Zero
@@ -119,6 +120,23 @@ fn generate_rainbow_pattern(buffer: &mut [RGB8; NUM_LEDS], frame_offset: u8) {
         hsv.hue = (((i as u32 * 255 / NUM_LEDS as u32) + frame_offset as u32) % 255) as u8;
         *led = hsv2rgb(hsv);
     }
+}
+
+// Start transmission of current LED buffer
+unsafe fn start_transmission() {
+    FRAME_COMPLETE = false;
+    LED_COUNTER = 0;
+
+    // Set threshold for halfway point
+    let rmt_regs = esp_hal::peripherals::RMT::regs();
+    rmt_regs
+        .ch_tx_lim(0)
+        .modify(|_, w| w.tx_lim().bits(HALF_BUFFER_SIZE as u16));
+}
+
+// Check if current frame transmission is complete
+unsafe fn is_frame_complete() -> bool {
+    FRAME_COMPLETE
 }
 
 // LED timing constants for WS2812/SK6812
@@ -211,15 +229,18 @@ extern "C" fn rmt_interrupt_handler() {
             let led_base = buffer_base.add(i * BITS_PER_LED);
 
             if LED_COUNTER >= NUM_LEDS {
-                // End of LED strip - fill with latch/reset pulses
-                for j in 0..BITS_PER_LED {
+                // End of LED strip - fill with latch/reset pulses and signal completion
+                for j in 0..BITS_PER_LED * (HALF_BUFFER_LEDS - i) {
                     led_base.add(j).write_volatile(PULSE_LATCH);
                 }
+
+                // Signal that we've reached the end of the frame
+                FRAME_COMPLETE = true;
                 LED_COUNTER = 0;
                 FRAME_COUNTER += 1;
 
-                // Generate new rainbow pattern for next frame
-                generate_rainbow_pattern(&mut LED_DATA_BUFFER, FRAME_COUNTER as u8);
+                // Stop further processing until main loop restarts transmission
+                return;
             } else {
                 // Get RGB color from LED data buffer
                 let color = LED_DATA_BUFFER[LED_COUNTER];
@@ -265,8 +286,6 @@ where
     // Enable threshold and end interrupts directly on the RMT registers
     let rmt_regs = esp_hal::peripherals::RMT::regs();
 
-    // CRITICAL: Set the transmission limit to half buffer size for threshold interrupt
-    // This tells the hardware when to fire the threshold interrupt
     rmt_regs
         .ch_tx_lim(0)
         .modify(|_, w| unsafe { w.tx_lim().bits(HALF_BUFFER_SIZE as u16) });
@@ -288,37 +307,47 @@ where
         INTERRUPT_ACTIVE = true;
     }
 
+    // Start the initial transmission
+    unsafe {
+        // Initialize LED data buffer with rainbow pattern
+        generate_rainbow_pattern(&mut LED_DATA_BUFFER, 0);
+        start_transmission();
+    }
+
     let _transaction = channel.transmit_continuously(unsafe { &RMT_BUFFER })?;
 
-    // Now the system runs entirely on hardware interrupts!
-    // The RMT hardware continuously transmits while interrupts
-    // seamlessly update the buffer halves with new animation data.
-    // There are NO gaps in transmission - LEDs will never latch.
-
+    // Frame-based transmission loop
     loop {
-        // In a real application, you could:
-        // - Handle other tasks
-        // - Check for errors
-        // - Implement graceful shutdown
-        // - Update animation parameters
-
-        // For this demo, just sleep and let interrupts handle everything
-        esp_hal::delay::Delay::new().delay_millis(1000);
-
-        // Optional: Check frame counter and hardware read position to show it's working
+        // Wait for current frame to complete
         unsafe {
-            let rmt_regs = esp_hal::peripherals::RMT::regs();
+            while !is_frame_complete() {
+                // Small delay to avoid busy waiting
+                esp_hal::delay::Delay::new().delay_micros(10);
+            }
 
-            let avg_bytes_per_frame = RMT_STATS_SUM / RMT_STATS_COUNT;
-            RMT_STATS_SUM = 0;
-            RMT_STATS_COUNT = 0;
+            // Frame is complete - update LED data for next frame
+            generate_rainbow_pattern(&mut LED_DATA_BUFFER, FRAME_COUNTER as u8);
 
-            defmt::info!(
-                "Frame: {}; LED: {}; avg_bytes_per_frame: {}",
-                FRAME_COUNTER,
-                LED_COUNTER,
-                avg_bytes_per_frame
-            );
+            // Start transmission of the new frame
+            start_transmission();
+
+            // Optional: Print frame statistics
+            if FRAME_COUNTER % 20 == 0 {
+                // Every 20 frames (1 second at 20 FPS)
+                let avg_bytes_per_frame = if RMT_STATS_COUNT > 0 {
+                    RMT_STATS_SUM / RMT_STATS_COUNT
+                } else {
+                    0
+                };
+                RMT_STATS_SUM = 0;
+                RMT_STATS_COUNT = 0;
+
+                defmt::info!(
+                    "Frame: {}; avg_bytes_per_frame: {}",
+                    FRAME_COUNTER,
+                    avg_bytes_per_frame
+                );
+            }
         }
     }
 }
