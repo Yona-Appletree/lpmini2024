@@ -45,10 +45,10 @@ const BUFFER_LEDS: usize = 8;
 const HALF_BUFFER_LEDS: usize = BUFFER_LEDS / 2;
 const BITS_PER_LED: usize = 3 * 8;
 const HALF_BUFFER_SIZE: usize = (BUFFER_LEDS * BITS_PER_LED) / 2;
-const FULL_BUFFER_SIZE: usize = BUFFER_LEDS * BITS_PER_LED;
+const BUFFER_SIZE: usize = BUFFER_LEDS * BITS_PER_LED;
 
 // Global state for interrupt handling
-static mut RMT_BUFFER: [u32; FULL_BUFFER_SIZE] = [0; FULL_BUFFER_SIZE];
+static mut RMT_BUFFER: [u32; BUFFER_SIZE] = [0; BUFFER_SIZE];
 static mut LED_DATA_BUFFER: [RGB8; NUM_LEDS] = [RGB8 { r: 0, g: 0, b: 0 }; NUM_LEDS];
 static mut FRAME_COUNTER: usize = 0;
 static mut LED_COUNTER: usize = 0; // Track current LED position in the strip
@@ -92,20 +92,15 @@ const fn level_bit(level: Level) -> u32 {
     }
 }
 
-// Convert RGB8 color to RMT pulse codes (24 pulses: G-R-B order)
-fn rgb_to_rmt_pulses(color: RGB8) -> [u32; BITS_PER_LED] {
-    let mut pulses = [0u32; BITS_PER_LED];
-    let bytes = [color.g, color.r, color.b]; // WS2812 uses GRB order
-
-    for (byte_idx, &byte_val) in bytes.iter().enumerate() {
-        for bit_idx in 0..8 {
-            let pulse_idx = byte_idx * 8 + bit_idx;
-            let bit_set = (byte_val & (0x80 >> bit_idx)) != 0;
-            pulses[pulse_idx] = if bit_set { PULSE_ONE } else { PULSE_ZERO };
-        }
+// Write a single byte as WS2812 pulses directly to RMT buffer
+#[inline]
+unsafe fn write_ws2811_byte(base_ptr: *mut u32, byte_value: u8, byte_offset: usize) {
+    for bit_idx in 0..8 {
+        let pulse_idx = byte_offset * 8 + bit_idx;
+        let bit_set = (byte_value & (0x80 >> bit_idx)) != 0;
+        let pulse = if bit_set { PULSE_ONE } else { PULSE_ZERO };
+        base_ptr.add(pulse_idx).write_volatile(pulse);
     }
-
-    pulses
 }
 
 // Generate rainbow pattern for LED buffer
@@ -127,11 +122,13 @@ unsafe fn start_transmission() {
     FRAME_COMPLETE = false;
     LED_COUNTER = 0;
 
-    // Set threshold for halfway point
+    // Set threshold for zero
     let rmt_regs = esp_hal::peripherals::RMT::regs();
-    rmt_regs
-        .ch_tx_lim(0)
-        .modify(|_, w| w.tx_lim().bits(HALF_BUFFER_SIZE as u16));
+    rmt_regs.ch_tx_lim(0).modify(|_, w| w.tx_lim().bits(0));
+
+    // Start transmission
+    let rmt = esp_hal::peripherals::RMT::regs();
+    rmt.ch_tx_conf0(0).modify(|_, w| w.tx_start().set_bit());
 }
 
 // Check if current frame transmission is complete
@@ -166,21 +163,28 @@ extern "C" fn rmt_interrupt_handler() {
 
         let rmt = esp_hal::peripherals::RMT::regs();
         let rmt_start = (esp_hal::peripherals::RMT::ptr() as usize + 0x400) as *mut u32;
-        // Read the current hardware read position for debugging
+
+        // Current position of the buffer
         let hw_pos_start = rmt.ch_tx_status(0).read().mem_raddr_ex().bits();
 
-        let is_halfway = hw_pos_start > HALF_BUFFER_SIZE as u16;
+        let is_halfway = hw_pos_start >= HALF_BUFFER_SIZE as u16;
 
-        let is_threshold = rmt.int_raw().read().ch_tx_thr_event(0).bit();
-
-        // We only expect threshold interrupts in this approach
-        if !is_threshold {
-            defmt::info!("Unexpected interrupt - no threshold event!");
-            return;
-        }
+        //let is_threshold = rmt.int_raw().read().ch_tx_thr_event(0).bit();
 
         // Clear the threshold interrupt
         rmt.int_clr().write(|w| w.ch_tx_thr_event(0).set_bit());
+
+        if FRAME_COMPLETE {
+            // Stop transmission when frame is complete
+            rmt.ch_tx_conf0(0).modify(|_, w| w.tx_start().clear_bit());
+
+            // Fill the buffer with latch pulses to prevent sending any more data
+            for i in 0..BUFFER_SIZE {
+                rmt_start.add(i).write_volatile(PULSE_LATCH);
+            }
+
+            return;
+        }
 
         // Determine what happened based on our expectation and reconfigure for next interrupt
         if is_halfway {
@@ -236,20 +240,18 @@ extern "C" fn rmt_interrupt_handler() {
 
                 // Signal that we've reached the end of the frame
                 FRAME_COMPLETE = true;
-                LED_COUNTER = 0;
                 FRAME_COUNTER += 1;
 
                 // Stop further processing until main loop restarts transmission
                 return;
             } else {
-                // Get RGB color from LED data buffer
+                // Get RGB color from LED data buffer and write directly to RMT buffer
                 let color = LED_DATA_BUFFER[LED_COUNTER];
-                let pulses = rgb_to_rmt_pulses(color);
 
-                // Write the pulses to RMT buffer
-                for j in 0..BITS_PER_LED {
-                    led_base.add(j).write_volatile(pulses[j]);
-                }
+                // Write WS2812 GRB bytes directly to RMT buffer
+                write_ws2811_byte(led_base, color.g, 0); // Green first
+                write_ws2811_byte(led_base, color.r, 1); // Red second
+                write_ws2811_byte(led_base, color.b, 2); // Blue third
 
                 LED_COUNTER += 1;
             }
@@ -257,7 +259,8 @@ extern "C" fn rmt_interrupt_handler() {
 
         let hw_pos_end = rmt.ch_tx_status(0).read().mem_raddr_ex().bits();
 
-        RMT_STATS_SUM += (hw_pos_end as i32) - (hw_pos_start as i32);
+        let bytes_elapsed = (hw_pos_end as i32) - (hw_pos_start as i32);
+        RMT_STATS_SUM += bytes_elapsed;
         RMT_STATS_COUNT += 1;
     }
 }
@@ -332,22 +335,22 @@ where
             start_transmission();
 
             // Optional: Print frame statistics
-            if FRAME_COUNTER % 20 == 0 {
-                // Every 20 frames (1 second at 20 FPS)
-                let avg_bytes_per_frame = if RMT_STATS_COUNT > 0 {
-                    RMT_STATS_SUM / RMT_STATS_COUNT
-                } else {
-                    0
-                };
-                RMT_STATS_SUM = 0;
-                RMT_STATS_COUNT = 0;
+            // if FRAME_COUNTER % 20 == 0 {
+            // Every 20 frames (1 second at 20 FPS)
+            let avg_bytes_per_frame = if RMT_STATS_COUNT > 0 {
+                RMT_STATS_SUM / RMT_STATS_COUNT
+            } else {
+                0
+            };
+            RMT_STATS_SUM = 0;
+            RMT_STATS_COUNT = 0;
 
-                defmt::info!(
-                    "Frame: {}; avg_bytes_per_frame: {}",
-                    FRAME_COUNTER,
-                    avg_bytes_per_frame
-                );
-            }
+            defmt::info!(
+                "Frame: {}; avg_bytes_per_frame: {}",
+                FRAME_COUNTER,
+                avg_bytes_per_frame
+            );
+            //}
         }
     }
 }
