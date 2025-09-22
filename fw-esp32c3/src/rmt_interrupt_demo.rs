@@ -35,15 +35,15 @@ use esp_hal::rmt::{
 use esp_hal::Blocking;
 
 // Configuration constants
-const NUM_LEDS: usize = 200; // Total number of LEDs in the strip
+const NUM_LEDS: usize = 250; // Total number of LEDs in the strip
 
 // Buffer size for 8 LEDs worth of data (double buffered)
 // Using memsize(4) = 192 words. 8 LEDs = 192 words exactly, 4 LEDs per half
 const BUFFER_LEDS: usize = 8;
 const HALF_BUFFER_LEDS: usize = BUFFER_LEDS / 2;
-const NUM_LED_BITS: usize = 3 * 8;
-const HALF_BUFFER_SIZE: usize = (BUFFER_LEDS * NUM_LED_BITS) / 2;
-const FULL_BUFFER_SIZE: usize = BUFFER_LEDS * NUM_LED_BITS;
+const BITS_PER_LED: usize = 3 * 8;
+const HALF_BUFFER_SIZE: usize = (BUFFER_LEDS * BITS_PER_LED) / 2;
+const FULL_BUFFER_SIZE: usize = BUFFER_LEDS * BITS_PER_LED;
 
 // Global state for interrupt handling
 static mut RMT_BUFFER: [u32; FULL_BUFFER_SIZE] = [0; FULL_BUFFER_SIZE];
@@ -51,6 +51,9 @@ static mut FRAME_COUNTER: usize = 0;
 static mut LED_COUNTER: usize = 0; // Track current LED position in the strip
 static mut INTERRUPT_ACTIVE: bool = false;
 static mut RMT_PTR: *mut u32 = 0 as *mut u32;
+
+static mut RMT_STATS_COUNT: i32 = 0;
+static mut RMT_STATS_SUM: i32 = 0;
 
 const SRC_CLOCK_MHZ: u32 = 80;
 const PULSE_ZERO: u32 = // Zero
@@ -112,32 +115,70 @@ extern "C" fn rmt_interrupt_handler() {
 
         let rmt = esp_hal::peripherals::RMT::regs();
         let rmt_start = (esp_hal::peripherals::RMT::ptr() as usize + 0x400) as *mut u32;
+        // Read the current hardware read position for debugging
+        let hw_pos_start = rmt.ch_tx_status(0).read().mem_raddr_ex().bits();
 
-        let is_halfway = rmt.int_raw().read().ch_tx_thr_event(0).bit();
-        if (is_halfway) {
-            rmt.int_clr().write(|w| w.ch_tx_thr_event(0).set_bit());
+        let is_halfway = hw_pos_start > HALF_BUFFER_SIZE as u16;
+
+        let is_threshold = rmt.int_raw().read().ch_tx_thr_event(0).bit();
+
+        // We only expect threshold interrupts in this approach
+        if !is_threshold {
+            defmt::info!("Unexpected interrupt - no threshold event!");
+            return;
         }
 
-        let is_end = rmt.int_raw().read().ch_tx_end(0).bit();
-        if (is_end) {
-            rmt.int_clr().write(|w| w.ch_tx_end(0).set_bit());
-        }
+        // Clear the threshold interrupt
+        rmt.int_clr().write(|w| w.ch_tx_thr_event(0).set_bit());
+
+        // Determine what happened based on our expectation and reconfigure for next interrupt
+        if is_halfway {
+            // We were expecting halfway, so this threshold interrupt = halfway
+            // defmt::info!("HALFWAY interrupt fired! HW read pos: {}", hw_read_pos);
+            // Reconfigure for end-of-buffer detection
+            rmt.ch_tx_lim(0)
+                .modify(|_, w| unsafe { w.tx_lim().bits(0) });
+        } else {
+            // We were expecting end-of-buffer, so this threshold interrupt = end of buffer
+            // defmt::info!("BUFFER END interrupt fired! HW read pos: {}", hw_read_pos);
+            // Reconfigure for halfway detection
+            rmt.ch_tx_lim(0)
+                .modify(|_, w| unsafe { w.tx_lim().bits(HALF_BUFFER_SIZE as u16) });
+        };
         // Clear any error interrupts
         if rmt.int_raw().read().ch_tx_err(0).bit() {
             rmt.int_clr().write(|w| w.ch_tx_err(0).set_bit());
         }
 
+        // rmt_start.write_volatile(PULSE_ONE);
+        // for i in 1..(RMT_BUFFER.len() - BITS_PER_LED) {
+        //     rmt_start.add(i).write_volatile(PULSE_ZERO);
+        // }
+        // if (FRAME_COUNTER < 100) {
+        //     for i in (RMT_BUFFER.len() - BITS_PER_LED)..RMT_BUFFER.len() {
+        //         rmt_start.add(i).write_volatile(PULSE_ONE)
+        //     }
+        // } else {
+        //     for i in (RMT_BUFFER.len() - BITS_PER_LED)..RMT_BUFFER.len() {
+        //         rmt_start.add(i).write_volatile(PULSE_LATCH)
+        //     }
+        //     FRAME_COUNTER = 0;
+        // }
+        // FRAME_COUNTER += 1;
+
         let buffer_base = if is_halfway {
-            rmt_start.add(HALF_BUFFER_SIZE)
-        } else {
+            // Fill the first half while hardware transmits second half
             rmt_start
+        } else {
+            // Fill the second half while hardware transmits first half
+            rmt_start.add(HALF_BUFFER_SIZE)
         };
 
         for i in 0..HALF_BUFFER_LEDS {
-            let led_base = buffer_base.add(i * NUM_LED_BITS);
+            let led_base = buffer_base.add(i * BITS_PER_LED);
 
             if (LED_COUNTER >= NUM_LEDS) {
-                for j in 0..NUM_LED_BITS * (HALF_BUFFER_LEDS - i) {
+                for j in 0..BITS_PER_LED {
                     led_base.add(j).write_volatile(PULSE_LATCH);
                 }
                 LED_COUNTER = 0;
@@ -145,7 +186,7 @@ extern "C" fn rmt_interrupt_handler() {
 
                 return;
             } else {
-                for j in 0..NUM_LED_BITS {
+                for j in 0..BITS_PER_LED {
                     led_base.add(j).write_volatile(PULSE_ZERO);
                 }
 
@@ -155,6 +196,11 @@ extern "C" fn rmt_interrupt_handler() {
                 LED_COUNTER += 1;
             }
         }
+
+        let hw_pos_end = rmt.ch_tx_status(0).read().mem_raddr_ex().bits();
+
+        RMT_STATS_SUM += (hw_pos_end as i32) - (hw_pos_start as i32);
+        RMT_STATS_COUNT += 1;
     }
 }
 
@@ -176,37 +222,41 @@ where
     // Get timing parameters
     let src_clock = Clocks::get().apb_clock.as_mhz();
 
-    // Initialize LED counter and fill initial buffer with both halves for streaming start
-    unsafe {
-        // fill buffer with latch
-        for i in 0..RMT_BUFFER.len() {
-            RMT_BUFFER[i] = PULSE_LATCH;
-        }
-    }
-
     // We need to explicitly enable threshold and end interrupts on the channel
     // The set_interrupt_handler only registers our handler, but doesn't enable events
 
     // Enable threshold and end interrupts directly on the RMT registers
     let rmt_regs = esp_hal::peripherals::RMT::regs();
+
+    // CRITICAL: Set the transmission limit to half buffer size for threshold interrupt
+    // This tells the hardware when to fire the threshold interrupt
+    rmt_regs
+        .ch_tx_lim(0)
+        .modify(|_, w| unsafe { w.tx_lim().bits(HALF_BUFFER_SIZE as u16) });
+
     rmt_regs.int_ena().modify(|_, w| {
-        w.ch_tx_thr_event(0).set_bit(); // Enable threshold interrupt for channel 0
-        w.ch_tx_end(0).set_bit() // Enable end interrupt for channel 0
+        w.ch_tx_thr_event(0).set_bit() // Enable threshold interrupt for channel 0
     });
 
     // Start continuous transmission with interrupts properly enabled!
     // The RMT hardware will now automatically call rmt_interrupt_handler
-    // when threshold and end events occur
+    // when threshold events occur (we dynamically change the threshold)
 
     unsafe {
-        RMT_BUFFER[0] = PULSE_ONE;
-        for i in 1..(RMT_BUFFER.len() - 24) {
-            RMT_BUFFER[i] = PULSE_ZERO;
-        }
-        for i in (RMT_BUFFER.len() - 24)..RMT_BUFFER.len() {
+        // RMT_BUFFER[0] = PULSE_ONE;
+        // for i in 1..(RMT_BUFFER.len() - 24) {
+        //     RMT_BUFFER[i] = PULSE_ZERO;
+        // }
+        // for i in (RMT_BUFFER.len() - 24)..RMT_BUFFER.len() {
+        //     RMT_BUFFER[i] = PULSE_LATCH;
+        // }
+
+        // fill buffer with latch
+        for i in 0..RMT_BUFFER.len() {
             RMT_BUFFER[i] = PULSE_LATCH;
         }
-        RMT_PTR = channel.raw.channel_ram_start();
+
+        // RMT_PTR = channel.raw.channel_ram_start();
         INTERRUPT_ACTIVE = true;
     }
 
@@ -227,9 +277,20 @@ where
         // For this demo, just sleep and let interrupts handle everything
         esp_hal::delay::Delay::new().delay_millis(1000);
 
-        // Optional: Check frame counter to show it's working
+        // Optional: Check frame counter and hardware read position to show it's working
         unsafe {
-            defmt::info!("Frame: {}; LED: {}", FRAME_COUNTER, LED_COUNTER);
+            let rmt_regs = esp_hal::peripherals::RMT::regs();
+
+            let avg_bytes_per_frame = RMT_STATS_SUM / RMT_STATS_COUNT;
+            RMT_STATS_SUM = 0;
+            RMT_STATS_COUNT = 0;
+
+            defmt::info!(
+                "Frame: {}; LED: {}; avg_bytes_per_frame: {}",
+                FRAME_COUNTER,
+                LED_COUNTER,
+                avg_bytes_per_frame
+            );
         }
     }
 }
