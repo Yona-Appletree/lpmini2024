@@ -33,6 +33,8 @@ use esp_hal::rmt::{
     TxChannelCreator, TxChannelInternal,
 };
 use esp_hal::Blocking;
+use smart_leds::hsv::{hsv2rgb, Hsv};
+use smart_leds::RGB8;
 
 // Configuration constants
 const NUM_LEDS: usize = 250; // Total number of LEDs in the strip
@@ -47,6 +49,7 @@ const FULL_BUFFER_SIZE: usize = BUFFER_LEDS * BITS_PER_LED;
 
 // Global state for interrupt handling
 static mut RMT_BUFFER: [u32; FULL_BUFFER_SIZE] = [0; FULL_BUFFER_SIZE];
+static mut LED_DATA_BUFFER: [RGB8; NUM_LEDS] = [RGB8 { r: 0, g: 0, b: 0 }; NUM_LEDS];
 static mut FRAME_COUNTER: usize = 0;
 static mut LED_COUNTER: usize = 0; // Track current LED position in the strip
 static mut INTERRUPT_ACTIVE: bool = false;
@@ -85,6 +88,36 @@ const fn level_bit(level: Level) -> u32 {
     match level {
         Level::Low => 0u32,
         Level::High => 1u32 << 15,
+    }
+}
+
+// Convert RGB8 color to RMT pulse codes (24 pulses: G-R-B order)
+fn rgb_to_rmt_pulses(color: RGB8) -> [u32; BITS_PER_LED] {
+    let mut pulses = [0u32; BITS_PER_LED];
+    let bytes = [color.g, color.r, color.b]; // WS2812 uses GRB order
+
+    for (byte_idx, &byte_val) in bytes.iter().enumerate() {
+        for bit_idx in 0..8 {
+            let pulse_idx = byte_idx * 8 + bit_idx;
+            let bit_set = (byte_val & (0x80 >> bit_idx)) != 0;
+            pulses[pulse_idx] = if bit_set { PULSE_ONE } else { PULSE_ZERO };
+        }
+    }
+
+    pulses
+}
+
+// Generate rainbow pattern for LED buffer
+fn generate_rainbow_pattern(buffer: &mut [RGB8; NUM_LEDS], frame_offset: u8) {
+    let mut hsv = smart_leds::hsv::Hsv {
+        hue: 0,
+        sat: 255,
+        val: 32,
+    };
+
+    for (i, led) in buffer.iter_mut().enumerate() {
+        hsv.hue = (((i as u32 * 255 / NUM_LEDS as u32) + frame_offset as u32) % 255) as u8;
+        *led = hsv2rgb(hsv);
     }
 }
 
@@ -177,21 +210,25 @@ extern "C" fn rmt_interrupt_handler() {
         for i in 0..HALF_BUFFER_LEDS {
             let led_base = buffer_base.add(i * BITS_PER_LED);
 
-            if (LED_COUNTER >= NUM_LEDS) {
+            if LED_COUNTER >= NUM_LEDS {
+                // End of LED strip - fill with latch/reset pulses
                 for j in 0..BITS_PER_LED {
                     led_base.add(j).write_volatile(PULSE_LATCH);
                 }
                 LED_COUNTER = 0;
                 FRAME_COUNTER += 1;
 
-                return;
+                // Generate new rainbow pattern for next frame
+                generate_rainbow_pattern(&mut LED_DATA_BUFFER, FRAME_COUNTER as u8);
             } else {
-                for j in 0..BITS_PER_LED {
-                    led_base.add(j).write_volatile(PULSE_ZERO);
-                }
+                // Get RGB color from LED data buffer
+                let color = LED_DATA_BUFFER[LED_COUNTER];
+                let pulses = rgb_to_rmt_pulses(color);
 
-                let which = (LED_COUNTER + FRAME_COUNTER / 100) % 3;
-                led_base.add(3 + which * 8).write_volatile(PULSE_ONE);
+                // Write the pulses to RMT buffer
+                for j in 0..BITS_PER_LED {
+                    led_base.add(j).write_volatile(pulses[j]);
+                }
 
                 LED_COUNTER += 1;
             }
@@ -243,20 +280,11 @@ where
     // when threshold events occur (we dynamically change the threshold)
 
     unsafe {
-        // RMT_BUFFER[0] = PULSE_ONE;
-        // for i in 1..(RMT_BUFFER.len() - 24) {
-        //     RMT_BUFFER[i] = PULSE_ZERO;
-        // }
-        // for i in (RMT_BUFFER.len() - 24)..RMT_BUFFER.len() {
-        //     RMT_BUFFER[i] = PULSE_LATCH;
-        // }
-
-        // fill buffer with latch
+        // Fill RMT buffer with initial latch pulses
         for i in 0..RMT_BUFFER.len() {
             RMT_BUFFER[i] = PULSE_LATCH;
         }
 
-        // RMT_PTR = channel.raw.channel_ram_start();
         INTERRUPT_ACTIVE = true;
     }
 
