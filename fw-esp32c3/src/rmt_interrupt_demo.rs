@@ -1,39 +1,13 @@
-//! # RMT Interrupt-Driven Streaming Demo
-//!
-//! This demonstrates the proper approach for streaming large numbers of LEDs
-//! using the ESP32-C3 RMT peripheral with interrupt-based buffer management.
-//!
-//! ## Key Concepts Demonstrated:
-//!
-//! 1. **Double Buffering**: Split RMT buffer into two halves for seamless streaming
-//! 2. **Threshold Interrupts**: Refill buffer when hardware reaches 50% transmission
-//! 3. **Continuous Transmission**: Hardware never stops - prevents LED latching
-//! 4. **Memory Efficiency**: Minimal 48-word buffer (1 block) handles unlimited LEDs via streaming
-//! 5. **Zero-Copy Updates**: Direct RMT memory updates during transmission
-//!
-//! ## Production Implementation Notes:
-//!
-//! In a production system, you would:
-//! - Bind `rmt_interrupt_handler` to the actual RMT interrupt vector
-//! - Enable hardware threshold and end interrupts
-//! - Let hardware automatically call interrupts (no manual polling)
-//! - Stream from larger LED arrays by chunking through the small buffer
-//!
-//! This demo simulates the interrupt behavior for demonstration purposes.
-
-use core::ptr::addr_of_mut;
-
 use defmt::info;
 use esp_hal::clock::Clocks;
 use esp_hal::gpio::interconnect::PeripheralOutput;
 use esp_hal::gpio::Level;
-use esp_hal::interrupt::{self, InterruptHandler, Priority};
-use esp_hal::rmt::{
-    Channel, Error as RmtError, PulseCode, RawChannelAccess, TxChannel, TxChannelConfig,
-    TxChannelCreator, TxChannelInternal,
-};
+use esp_hal::interrupt::{InterruptHandler, Priority};
+use esp_hal::peripherals::Interrupt;
+use esp_hal::rmt::{Error as RmtError, TxChannel, TxChannelConfig, TxChannelCreator};
+use esp_hal::system::Cpu;
 use esp_hal::Blocking;
-use smart_leds::hsv::{hsv2rgb, Hsv};
+use smart_leds::hsv::hsv2rgb;
 use smart_leds::RGB8;
 
 // Configuration constants
@@ -92,19 +66,22 @@ const fn level_bit(level: Level) -> u32 {
     }
 }
 
-// Write a single byte as WS2812 pulses directly to RMT buffer
-// MAXIMUM SPEED OPTIMIZED - this is the critical path!
+/// Write a byte as RMT pulse-codes for a WS2812/SK6812 LED
 #[inline(always)]
 unsafe fn write_ws2811_byte(base_ptr: *mut u32, byte_value: u8, byte_offset: usize) {
     let ptr = base_ptr.add(byte_offset * 8);
 
-    // Unroll the entire loop for maximum speed - no branches, no loops
-    // Each bit check becomes a single conditional move instruction
-    ptr.add(0).write_volatile(if byte_value & 0x80 != 0 {
-        PULSE_ONE
-    } else {
-        PULSE_ZERO
-    });
+    // Loop unrolled for performance
+
+    let bit_pulse = |mask: u8| -> u32 {
+        if byte_value & mask != 0 {
+            PULSE_ONE
+        } else {
+            PULSE_ZERO
+        }
+    };
+
+    ptr.add(0).write_volatile(bit_pulse(byte_value, 0x80));
     ptr.add(1).write_volatile(if byte_value & 0x40 != 0 {
         PULSE_ONE
     } else {
@@ -160,14 +137,62 @@ fn generate_rainbow_pattern(buffer: &mut [RGB8; NUM_LEDS], frame_offset: u8) {
 unsafe fn start_transmission() {
     FRAME_COMPLETE = false;
     LED_COUNTER = 0;
-
-    // Set threshold for zero
-    let rmt_regs = esp_hal::peripherals::RMT::regs();
-    rmt_regs.ch_tx_lim(0).modify(|_, w| w.tx_lim().bits(0));
-
-    // Start transmission
     let rmt = esp_hal::peripherals::RMT::regs();
-    rmt.ch_tx_conf0(0).modify(|_, w| w.tx_start().set_bit());
+
+    // Stop current transmission
+    rmt.ch_tx_conf0(0)
+        .modify(|_, w| w.tx_conti_mode().clear_bit());
+    let rmt_base = (esp_hal::peripherals::RMT::ptr() as usize + 0x400) as *mut u32;
+    for j in 0..BUFFER_LEDS {
+        rmt_base.add(j).write_volatile(0);
+    }
+
+    // Init the buffer
+    write_half_buffer(true);
+    write_half_buffer(false);
+
+    // Clear interrupts
+    rmt.int_clr().write(|w| {
+        w.ch_tx_end(0).set_bit();
+        w.ch_tx_err(0).set_bit();
+        w.ch_tx_loop(0).set_bit();
+        w.ch_tx_thr_event(0).set_bit()
+    });
+
+    // Enable interrupts
+    rmt.int_ena().modify(|_, w| {
+        w.ch_tx_thr_event(0).set_bit();
+        w.ch_tx_end(0).set_bit();
+        w.ch_tx_err(0).set_bit();
+        w.ch_tx_loop(0).clear_bit()
+    });
+
+    // Set the threshold for halfway
+    rmt.ch_tx_lim(0).modify(|_, w| {
+        w.loop_count_reset().set_bit();
+        w.tx_loop_cnt_en().set_bit();
+        w.tx_loop_num().bits(0);
+
+        w.tx_lim().bits(HALF_BUFFER_SIZE as u16)
+    });
+
+    // Configure
+    rmt.ch_tx_conf0(0).modify(|_, w| {
+        w.tx_conti_mode().clear_bit(); // single-shot
+        w.mem_tx_wrap_en().set_bit(); // wrap
+        w.conf_update().set_bit() // update
+    });
+
+    // Start
+    rmt.ch_tx_conf0(0).modify(|_, w| {
+        w.mem_rd_rst().set_bit();
+        w.apb_mem_rst().set_bit();
+        w.tx_start().set_bit()
+    });
+
+    rmt.ch_tx_conf0(0).modify(|_, w| w.conf_update().set_bit());
+
+    // info!("transmission started");
 }
 
 // Check if current frame transmission is complete
@@ -199,93 +224,96 @@ fn create_rmt_config() -> TxChannelConfig {
 #[inline(never)] // Don't inline to keep stack usage minimal
 extern "C" fn rmt_interrupt_handler() {
     unsafe {
-        if !INTERRUPT_ENABLED {
-            return;
-        }
-
         let rmt = esp_hal::peripherals::RMT::regs();
-        let rmt_start = (esp_hal::peripherals::RMT::ptr() as usize + 0x400) as *mut u32;
 
-        // Current position of the buffer
-        let hw_pos_start = rmt.ch_tx_status(0).read().mem_raddr_ex().bits();
+        let int_reg = rmt.int_raw().read();
+        let is_end_int = int_reg.ch_tx_end(0).bit();
+        let is_thresh_int = int_reg.ch_tx_thr_event(0).bit();
+        let is_loop_int = int_reg.ch_tx_loop(0).bit();
+        let is_err_int = int_reg.ch_tx_err(0).bit();
 
-        let is_halfway = hw_pos_start >= HALF_BUFFER_SIZE as u16;
+        // Clear interrupts
+        rmt.int_clr().write(|w| {
+            w.ch_tx_end(0).set_bit();
+            w.ch_tx_err(0).set_bit();
+            w.ch_tx_loop(0).set_bit();
+            w.ch_tx_thr_event(0).set_bit()
+        });
 
-        // let is_threshold = rmt.int_raw().read().ch_tx_thr_event(0).bit();
-
-        // Clear the threshold interrupt
-        rmt.int_clr().write(|w| w.ch_tx_thr_event(0).set_bit());
-
-        if FRAME_COMPLETE {
-            // Stop transmission when frame is complete
-            rmt.ch_tx_conf0(0).modify(|_, w| w.tx_start().clear_bit());
-
-            // Fill the buffer with latch pulses to prevent sending any more data
-            for i in 0..BUFFER_SIZE {
-                rmt_start.add(i).write_volatile(PULSE_LATCH);
-            }
-
-            return;
+        if is_err_int {
+            // info!("error interrupt");
         }
+        // End interrupt
+        else if is_end_int {
+            // info!("end interrupt");
 
-        // Determine what happened based on our expectation and reconfigure for next interrupt
-        if is_halfway {
-            // Reconfigure for end-of-buffer detection
-            rmt.ch_tx_lim(0)
-                .modify(|_, w| unsafe { w.tx_lim().bits(0) });
-        } else {
-            // Reconfigure for halfway detection
-            rmt.ch_tx_lim(0)
-                .modify(|_, w| unsafe { w.tx_lim().bits(HALF_BUFFER_SIZE as u16) });
-        };
-        // Clear any error interrupts
-        // if rmt.int_raw().read().ch_tx_err(0).bit() {
-        //     rmt.int_clr().write(|w| w.ch_tx_err(0).set_bit());
-        // }
+            // Signal that we've reached the end of the frame
+            // On the next interrupt, this will stop the transmission
+            FRAME_COMPLETE = true;
+            FRAME_COUNTER += 1;
+        } else if is_thresh_int {
+            // info!("loop: {}, threshold: {}", is_loop_int, is_thresh_int);
 
-        let buffer_base = if is_halfway {
-            // Fill the first half while hardware transmits second half
-            rmt_start
-        } else {
-            // Fill the second half while hardware transmits first half
-            rmt_start.add(HALF_BUFFER_SIZE)
-        };
+            // Current position of the buffer
+            let hw_pos_start = rmt.ch_tx_status(0).read().mem_raddr_ex().bits();
 
-        for i in 0..HALF_BUFFER_LEDS {
-            let led_base = buffer_base.add(i * BITS_PER_LED);
+            let is_halfway = hw_pos_start >= HALF_BUFFER_SIZE as u16;
+            // info!("pos: {}", hw_pos_start);
 
-            if LED_COUNTER >= NUM_LEDS {
-                // End of LED strip - fill with latch/reset pulses and signal completion
-                for j in 0..BITS_PER_LED * (HALF_BUFFER_LEDS - i) {
-                    led_base.add(j).write_volatile(PULSE_LATCH);
-                }
-
-                // Signal that we've reached the end of the frame
-                FRAME_COMPLETE = true;
-                FRAME_COUNTER += 1;
-
-                // Stop further processing until main loop restarts transmission
-                return;
+            if is_halfway {
+                // Set the threshold for end
+                rmt.ch_tx_lim(0)
+                    .modify(|_, w| w.tx_lim().bits(BUFFER_SIZE as u16));
             } else {
-                // Get RGB color from LED data buffer and write directly to RMT buffer
-                let color = LED_DATA_BUFFER[LED_COUNTER];
-
-                // SPEED CRITICAL: Inline all three byte writes to minimize overhead
-                // WS2812 uses GRB order
-                write_ws2811_byte(led_base, color.g, 0); // Green first
-                write_ws2811_byte(led_base, color.r, 1); // Red second
-                write_ws2811_byte(led_base, color.b, 2); // Blue third
-
-                LED_COUNTER += 1;
+                // Set the threshold for halfway
+                rmt.ch_tx_lim(0)
+                    .modify(|_, w| w.tx_lim().bits(HALF_BUFFER_SIZE as u16));
             }
+
+            if (write_half_buffer(is_halfway)) {
+                // info!("end reached");
+            }
+
+            let hw_pos_end = rmt.ch_tx_status(0).read().mem_raddr_ex().bits();
+
+            let bytes_elapsed = (hw_pos_end as i32) - (hw_pos_start as i32);
+            RMT_STATS_SUM += bytes_elapsed;
+            RMT_STATS_COUNT += 1;
         }
-
-        let hw_pos_end = rmt.ch_tx_status(0).read().mem_raddr_ex().bits();
-
-        let bytes_elapsed = (hw_pos_end as i32) - (hw_pos_start as i32);
-        RMT_STATS_SUM += bytes_elapsed;
-        RMT_STATS_COUNT += 1;
     }
+}
+
+unsafe fn write_half_buffer(is_first_half: bool) -> bool {
+    let rmt = esp_hal::peripherals::RMT::regs();
+    let base_ptr = (esp_hal::peripherals::RMT::ptr() as usize + 0x400) as *mut u32;
+
+    let half_ptr = base_ptr.add(if is_first_half { 0 } else { HALF_BUFFER_SIZE });
+
+    for i in 0..HALF_BUFFER_LEDS {
+        let led_ptr = half_ptr.add(i * BITS_PER_LED);
+
+        if LED_COUNTER >= NUM_LEDS {
+            // Fill the rest of the buffer segment with zero
+            for j in 0..BITS_PER_LED * (HALF_BUFFER_LEDS - i) {
+                led_ptr.add(j).write_volatile(0);
+            }
+
+            return true;
+        } else {
+            // Get RGB color from LED data buffer and write directly to RMT buffer
+            let color = LED_DATA_BUFFER[LED_COUNTER];
+
+            // WS2812 uses GRB order
+            write_ws2811_byte(led_ptr, color.g, 0); // Green first
+            write_ws2811_byte(led_ptr, color.r, 1); // Red second
+            write_ws2811_byte(led_ptr, color.b, 2); // Blue third
+
+            LED_COUNTER += 1;
+            // info!("led {}", LED_COUNTER);
+        }
+    }
+
+    return false;
 }
 
 pub fn rmt_interrupt_demo<'d, O>(
@@ -303,35 +331,20 @@ where
     let config = create_rmt_config();
     let channel = rmt.channel0.configure_tx(pin, config)?;
 
-    // Get timing parameters
-    let src_clock = Clocks::get().apb_clock.as_mhz();
-
     // We need to explicitly enable threshold interrupts on the channel
     // The set_interrupt_handler only registers our handler, but doesn't enable events
 
     // Enable threshold and end interrupts directly on the RMT registers
     let rmt_regs = esp_hal::peripherals::RMT::regs();
 
-    rmt_regs
-        .ch_tx_lim(0)
-        .modify(|_, w| unsafe { w.tx_lim().bits(HALF_BUFFER_SIZE as u16) });
-
-    rmt_regs.int_ena().modify(|_, w| {
-        w.ch_tx_thr_event(0).set_bit() // Enable threshold interrupt for channel 0
-    });
-
-    // Start continuous transmission with interrupts properly enabled!
-    // The RMT hardware will now automatically call rmt_interrupt_handler
-    // when threshold events occur (we dynamically change the threshold)
-
     unsafe {
-        // Fill RMT buffer with initial latch pulses
+        // Fill RMT buffer with dummy data
         for i in 0..RMT_BUFFER.len() {
-            RMT_BUFFER[i] = PULSE_LATCH;
+            RMT_BUFFER[i] = pulseCode(Level::Low, 1u16, Level::Low, 1u16)
         }
-
-        INTERRUPT_ENABLED = true;
     }
+
+    let _transaction = channel.transmit_continuously(unsafe { &RMT_BUFFER })?;
 
     // Start the initial transmission
     unsafe {
@@ -339,8 +352,6 @@ where
         generate_rainbow_pattern(&mut LED_DATA_BUFFER, 0);
         start_transmission();
     }
-
-    let _transaction = channel.transmit_continuously(unsafe { &RMT_BUFFER })?;
 
     // Frame-based transmission loop
     loop {
@@ -357,23 +368,21 @@ where
             // Start transmission of the new frame
             start_transmission();
 
-            // Optional: Print frame statistics
-            if FRAME_COUNTER % 20 == 0 {
-                // Every 20 frames (1 second at 20 FPS)
-                let avg_bytes_per_frame = if RMT_STATS_COUNT > 0 {
-                    RMT_STATS_SUM / RMT_STATS_COUNT
-                } else {
-                    0
-                };
-                RMT_STATS_SUM = 0;
-                RMT_STATS_COUNT = 0;
+            // if FRAME_COUNTER % 20 == 0 {
+            // Every 20 frames (1 second at 20 FPS)
+            let avg_bytes_per_frame = if RMT_STATS_COUNT > 0 {
+                RMT_STATS_SUM / RMT_STATS_COUNT
+            } else {
+                0
+            };
+            RMT_STATS_SUM = 0;
+            RMT_STATS_COUNT = 0;
 
-                defmt::info!(
-                    "Frame: {}; avg_bytes_per_frame: {}",
-                    FRAME_COUNTER,
-                    avg_bytes_per_frame
-                );
-            }
+            info!(
+                "Frame: {}; avg_bytes_per_frame: {}",
+                FRAME_COUNTER, avg_bytes_per_frame
+            );
+            // }
         }
     }
 }
