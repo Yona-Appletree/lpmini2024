@@ -81,42 +81,14 @@ unsafe fn write_ws2811_byte(base_ptr: *mut u32, byte_value: u8, byte_offset: usi
         }
     };
 
-    ptr.add(0).write_volatile(bit_pulse(byte_value, 0x80));
-    ptr.add(1).write_volatile(if byte_value & 0x40 != 0 {
-        PULSE_ONE
-    } else {
-        PULSE_ZERO
-    });
-    ptr.add(2).write_volatile(if byte_value & 0x20 != 0 {
-        PULSE_ONE
-    } else {
-        PULSE_ZERO
-    });
-    ptr.add(3).write_volatile(if byte_value & 0x10 != 0 {
-        PULSE_ONE
-    } else {
-        PULSE_ZERO
-    });
-    ptr.add(4).write_volatile(if byte_value & 0x08 != 0 {
-        PULSE_ONE
-    } else {
-        PULSE_ZERO
-    });
-    ptr.add(5).write_volatile(if byte_value & 0x04 != 0 {
-        PULSE_ONE
-    } else {
-        PULSE_ZERO
-    });
-    ptr.add(6).write_volatile(if byte_value & 0x02 != 0 {
-        PULSE_ONE
-    } else {
-        PULSE_ZERO
-    });
-    ptr.add(7).write_volatile(if byte_value & 0x01 != 0 {
-        PULSE_ONE
-    } else {
-        PULSE_ZERO
-    });
+    ptr.add(0).write_volatile(bit_pulse(0x80));
+    ptr.add(1).write_volatile(bit_pulse(0x40));
+    ptr.add(2).write_volatile(bit_pulse(0x20));
+    ptr.add(3).write_volatile(bit_pulse(0x10));
+    ptr.add(4).write_volatile(bit_pulse(0x08));
+    ptr.add(5).write_volatile(bit_pulse(0x04));
+    ptr.add(6).write_volatile(bit_pulse(0x02));
+    ptr.add(7).write_volatile(bit_pulse(0x01));
 }
 
 // Generate rainbow pattern for LED buffer
@@ -229,7 +201,6 @@ extern "C" fn rmt_interrupt_handler() {
         let int_reg = rmt.int_raw().read();
         let is_end_int = int_reg.ch_tx_end(0).bit();
         let is_thresh_int = int_reg.ch_tx_thr_event(0).bit();
-        let is_loop_int = int_reg.ch_tx_loop(0).bit();
         let is_err_int = int_reg.ch_tx_err(0).bit();
 
         // Clear interrupts
@@ -284,7 +255,6 @@ extern "C" fn rmt_interrupt_handler() {
 }
 
 unsafe fn write_half_buffer(is_first_half: bool) -> bool {
-    let rmt = esp_hal::peripherals::RMT::regs();
     let base_ptr = (esp_hal::peripherals::RMT::ptr() as usize + 0x400) as *mut u32;
 
     let half_ptr = base_ptr.add(if is_first_half { 0 } else { HALF_BUFFER_SIZE });
@@ -335,7 +305,7 @@ where
     // The set_interrupt_handler only registers our handler, but doesn't enable events
 
     // Enable threshold and end interrupts directly on the RMT registers
-    let rmt_regs = esp_hal::peripherals::RMT::regs();
+    // let rmt_regs = esp_hal::peripherals::RMT::regs();
 
     unsafe {
         // Fill RMT buffer with dummy data
@@ -368,21 +338,21 @@ where
             // Start transmission of the new frame
             start_transmission();
 
-            // if FRAME_COUNTER % 20 == 0 {
-            // Every 20 frames (1 second at 20 FPS)
-            let avg_bytes_per_frame = if RMT_STATS_COUNT > 0 {
-                RMT_STATS_SUM / RMT_STATS_COUNT
-            } else {
-                0
-            };
-            RMT_STATS_SUM = 0;
-            RMT_STATS_COUNT = 0;
+            if FRAME_COUNTER % 20 == 0 {
+                // Every 20 frames (1 second at 20 FPS)
+                let avg_bytes_per_frame = if RMT_STATS_COUNT > 0 {
+                    RMT_STATS_SUM / RMT_STATS_COUNT
+                } else {
+                    0
+                };
+                RMT_STATS_SUM = 0;
+                RMT_STATS_COUNT = 0;
 
-            info!(
-                "Frame: {}; avg_bytes_per_frame: {}",
-                FRAME_COUNTER, avg_bytes_per_frame
-            );
-            // }
+                info!(
+                    "Frame: {}; avg_bytes_per_frame: {}",
+                    FRAME_COUNTER, avg_bytes_per_frame
+                );
+            }
         }
     }
 }
