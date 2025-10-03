@@ -193,7 +193,6 @@ fn create_rmt_config() -> TxChannelConfig {
 // RMT interrupt handler - this is where the magic happens
 // CRITICAL: Keep this as fast as possible to prevent timing disruption
 #[no_mangle]
-#[inline(never)] // Don't inline to keep stack usage minimal
 extern "C" fn rmt_interrupt_handler() {
     unsafe {
         let rmt = esp_hal::peripherals::RMT::regs();
@@ -293,7 +292,7 @@ pub fn rmt_interrupt_demo<'d, O>(
 where
     O: PeripheralOutput<'d>,
 {
-    // Set up the interrupt handler with MAXIMUM priority for critical timing
+    // Set up the interrupt handler with max priority
     let handler = InterruptHandler::new(rmt_interrupt_handler, Priority::max());
     rmt.set_interrupt_handler(handler);
 
@@ -301,20 +300,12 @@ where
     let config = create_rmt_config();
     let channel = rmt.channel0.configure_tx(pin, config)?;
 
-    // We need to explicitly enable threshold interrupts on the channel
-    // The set_interrupt_handler only registers our handler, but doesn't enable events
-
-    // Enable threshold and end interrupts directly on the RMT registers
-    // let rmt_regs = esp_hal::peripherals::RMT::regs();
-
-    unsafe {
-        // Fill RMT buffer with dummy data
-        for i in 0..RMT_BUFFER.len() {
-            RMT_BUFFER[i] = pulseCode(Level::Low, 1u16, Level::Low, 1u16)
-        }
-    }
-
-    let _transaction = channel.transmit_continuously(unsafe { &RMT_BUFFER })?;
+    //
+    // HACK: If we don't call transmit_continuously, things work, but the debug output stops
+    //       working.
+    //
+    let dummy_buffer = [pulseCode(Level::Low, 1, Level::Low, 1)];
+    let _transaction = channel.transmit_continuously(&dummy_buffer)?;
 
     // Start the initial transmission
     unsafe {
