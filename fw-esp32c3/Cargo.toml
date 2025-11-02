@@ -9,6 +9,11 @@ name = "fw-esp32c3"
 path = "src/bin/main.rs"
 test = false
 
+[[bin]]
+name = "rust-bench"
+path = "src/bin/rust_bench.rs"
+test = false
+
 [[test]]
 harness = false
 name = "hello_test"
@@ -78,6 +83,9 @@ smart-leds = "0.4.0"
 # See https://github.com/esp-rs/esp-hal-community/pull/34
 # esp-hal-smartled = { git = "https://github.com/esp-rs/esp-hal-community", rev = "bbe8484" }
 smart-leds-trait = "0.3.1"
+
+# Math library for no_std
+libm = "0.2"
 
 [dev-dependencies]
 embedded-test = { version = "0.6.0", features = [
