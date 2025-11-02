@@ -1,0 +1,4 @@
+[build]
+# Override workspace default - this runs on host, not ESP32
+target = "aarch64-apple-darwin"
+

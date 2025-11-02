@@ -2,7 +2,7 @@
 members = [
     "lpcore",
     "lpcli",
-    "fw-esp32c3",
+    "fw-esp32c3", "perf-test-validator", "perf-tests-common",
 ]
 resolver = "2"
 
@@ -12,7 +12,19 @@ edition = "2021"
 
 [profile.release]
 opt-level = "s"
+debug = 2  # Keep debug symbols for RTT/defmt logging
 
 [profile.dev]
 debug = true
 opt-level = "z"
+
+# Compile dependencies with release optimizations even in debug mode
+# This gives us fast perf-tests-common while keeping RTT output working
+[profile.dev.package."*"]
+opt-level = 3
+debug = false
+
+# But keep our own code optimized for size in debug
+[profile.dev.package.fw-esp32c3]
+opt-level = "z"
+debug = true
