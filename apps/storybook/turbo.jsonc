@@ -1,0 +1,13 @@
+{
+  "extends": ["//"],
+  "tasks": {
+    "test": {
+      "dependsOn": ["test:storybook"]
+    },
+    "test:storybook": {
+      "dependsOn": ["//#install-playwright"],
+      "inputs": ["src/**", ".storybook/**", "../../control/src/**", "../../../packages/*/src/**"],
+      "cache": true
+    }
+  }
+}

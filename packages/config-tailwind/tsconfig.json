@@ -1,0 +1,7 @@
+{
+  "compilerOptions": {
+    "outDir": "dist"
+  },
+  "include": ["./*.ts", "./*.mjs"],
+  "exclude": ["./node_modules/**", "./dist/**"]
+}
