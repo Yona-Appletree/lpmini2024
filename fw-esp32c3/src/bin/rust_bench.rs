@@ -66,10 +66,15 @@ async fn main(_spawner: embassy_executor::Spawner) {
 
     let mut buffer = [0u8; BUFFER_SIZE];
 
-    run_test("perlin3_float_libm", perf_tests_common::perlin3_float_libm::render_frame, &mut buffer).await;
-    run_test("perlin3_float_approx", perf_tests_common::perlin3_float_approx::render_frame, &mut buffer).await;
+    // Test one at a time to debug RTT issues
+    info!("Starting tests...");
+    
     run_test("perlin3_fixed", perf_tests_common::perlin3_fixed::render_frame, &mut buffer).await;
-    run_test("perlin3_fixed_crate", perf_tests_common::perlin3_fixed_crate::render_frame, &mut buffer).await;
+    
+    info!("Test 1 complete, waiting...");
+    embassy_time::Timer::after(embassy_time::Duration::from_millis(500)).await;
+    
+    run_test("perlin3_decimal", perf_tests_common::perlin3_decimal::render_frame, &mut buffer).await;
 
     info!("");
 

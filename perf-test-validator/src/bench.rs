@@ -34,6 +34,7 @@ fn main() {
     benchmark("perlin3_float_libm", perf_tests_common::perlin3_float_libm::render_frame);
     benchmark("perlin3_float_approx", perf_tests_common::perlin3_float_approx::render_frame);
     benchmark("perlin3_fixed", perf_tests_common::perlin3_fixed::render_frame);
+    benchmark("perlin3_decimal", perf_tests_common::perlin3_decimal::render_frame);
     benchmark("perlin3_fixed_crate", perf_tests_common::perlin3_fixed_crate::render_frame);
     
     println!("\nNote: ESP32-C3 will be ~10-50x slower than these numbers");

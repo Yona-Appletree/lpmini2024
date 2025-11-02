@@ -1,7 +1,7 @@
 /// Perlin3 noise using the `fixed` crate
 /// This uses the standard fixed-point library with optimized operations
 
-use crate::sin_table::{SIN_TABLE_I16F16 as SIN_TABLE, SIN_TABLE_SIZE};
+use crate::sin_table::SIN_TABLE_I16F16 as SIN_TABLE;
 use fixed::types::I16F16;
 
 /// Fast sine using lookup table

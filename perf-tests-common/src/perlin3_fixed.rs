@@ -1,7 +1,7 @@
 /// Perlin3 noise using fixed-point arithmetic with lookup table
 /// This should be the fastest method on ESP32-C3 (no hardware FPU)
+use crate::sin_table::SIN_TABLE_I32 as SIN_TABLE;
 
-use crate::sin_table::{SIN_TABLE_I32 as SIN_TABLE, SIN_TABLE_SIZE};
 
 // Fixed-point format: 16.16 (16 bits integer, 16 bits fractional)
 type Fixed = i32;
@@ -31,10 +31,10 @@ fn sin_fixed(x: Fixed) -> Fixed {
     // The table covers 0 to 2π mapped to indices 0-255
     // 2π in fixed point ≈ 6.28318 * 65536 ≈ 411775
     const TWO_PI_FIXED: i64 = 411775;
-    
+
     // Normalize to 0 to 2π range (with wrapping)
     let normalized = ((x as i64).rem_euclid(TWO_PI_FIXED)) as Fixed;
-    
+
     // Map 0..TWO_PI to 0..255
     let index = ((normalized as i64 * 256) / TWO_PI_FIXED) as usize & 0xFF;
     SIN_TABLE[index]
@@ -82,13 +82,13 @@ pub fn render_frame(buffer: &mut [u8], time: f32, width: usize, height: usize) {
         for x in 0..width {
             let x_fixed = fixed_from_f32(x as f32);
             let y_fixed = fixed_from_f32(y as f32);
-            
+
             let nx = fixed_div(x_fixed * 4, width_fixed);
             let ny = fixed_div(y_fixed * 4, height_fixed);
             let nz = time_fixed;
 
             let noise = perlin3_fixed(nx, ny, nz);
-            
+
             // Convert from fixed-point -1.0 to 1.0 range to 0-255
             let shifted = noise + FIXED_ONE;
             let scaled = (shifted * 255) / (2 * FIXED_ONE);
@@ -101,4 +101,3 @@ pub fn render_frame(buffer: &mut [u8], time: f32, width: usize, height: usize) {
         }
     }
 }
-

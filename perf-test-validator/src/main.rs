@@ -70,11 +70,17 @@ fn main() {
     perf_tests_common::perlin3_float_libm::render_frame(&mut buffer_libm, time, WIDTH, HEIGHT);
     perf_tests_common::perlin3_float_approx::render_frame(&mut buffer_approx, time, WIDTH, HEIGHT);
     perf_tests_common::perlin3_fixed::render_frame(&mut buffer_fixed, time, WIDTH, HEIGHT);
+    
+    // Test the new Decimal wrapper
+    let mut buffer_decimal = [0u8; BUFFER_SIZE];
+    perf_tests_common::perlin3_decimal::render_frame(&mut buffer_decimal, time, WIDTH, HEIGHT);
+    
     perf_tests_common::perlin3_fixed_crate::render_frame(&mut buffer_fixed_crate, time, WIDTH, HEIGHT);
     
     print_buffer("float_libm (baseline)", &buffer_libm);
     print_buffer("float_approx", &buffer_approx);
     print_buffer("fixed (DIY)", &buffer_fixed);
+    print_buffer("decimal (wrapper)", &buffer_decimal);
     print_buffer("fixed_crate", &buffer_fixed_crate);
     
     println!("\n================================================");
@@ -83,18 +89,20 @@ fn main() {
     
     let approx_pass = compare_buffers("float_libm", &buffer_libm, "float_approx", &buffer_approx);
     let fixed_pass = compare_buffers("float_libm", &buffer_libm, "fixed (DIY)", &buffer_fixed);
+    let decimal_pass = compare_buffers("float_libm", &buffer_libm, "decimal", &buffer_decimal);
     let crate_pass = compare_buffers("float_libm", &buffer_libm, "fixed_crate", &buffer_fixed_crate);
-    let fixed_vs_crate = compare_buffers("fixed (DIY)", &buffer_fixed, "fixed_crate", &buffer_fixed_crate);
+    let _fixed_vs_crate = compare_buffers("fixed (DIY)", &buffer_fixed, "fixed_crate", &buffer_fixed_crate);
     
     println!("\n================================================");
     println!("SUMMARY:");
     println!("================================================");
     println!("float_approx:   {}", if approx_pass { "✓ PASS" } else { "✗ FAIL" });
     println!("fixed (DIY):    {}", if fixed_pass { "✓ PASS" } else { "✗ FAIL" });
+    println!("decimal:        {}", if decimal_pass { "✓ PASS" } else { "✗ FAIL" });
     println!("fixed_crate:    {}", if crate_pass { "✓ PASS" } else { "✗ FAIL" });
     println!("================================================");
     
-    if !approx_pass || !fixed_pass || !crate_pass {
+    if !approx_pass || !fixed_pass || !decimal_pass || !crate_pass {
         std::process::exit(1);
     }
 }
