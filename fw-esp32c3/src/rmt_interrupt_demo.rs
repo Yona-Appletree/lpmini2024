@@ -96,7 +96,7 @@ fn generate_rainbow_pattern(buffer: &mut [RGB8; NUM_LEDS], frame_offset: u8) {
     let mut hsv = smart_leds::hsv::Hsv {
         hue: 0,
         sat: 255,
-        val: 32,
+        val: 5,
     };
 
     for (i, led) in buffer.iter_mut().enumerate() {

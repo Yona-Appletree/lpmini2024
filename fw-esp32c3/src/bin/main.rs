@@ -19,7 +19,6 @@ use esp_hal::time::Rate;
 use esp_hal::timer::systimer::SystemTimer;
 use esp_hal::timer::timg::TimerGroup;
 use fw_esp32c3::rmt_interrupt_demo;
-use fw_esp32c3::rmt_ws2811::{buffer_size, buffer_size_async, RmtWs2811};
 use panic_rtt_target as _;
 use smart_leds::hsv::{hsv2rgb, Hsv};
 use smart_leds::{brightness, gamma, SmartLedsWriteAsync, RGB8};
