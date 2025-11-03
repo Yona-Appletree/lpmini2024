@@ -13,10 +13,11 @@ use engine_core::test_engine::{fixed_from_f32, LedMapping};
 use minifb::{Key, Window, WindowOptions};
 
 const SCALE: usize = 20; // Pixels per cell
+const STATS_BAR_HEIGHT: usize = 30; // Black bar at bottom for stats
 
-// Window layout: [Grayscale 16x16] [RGB 16x16] [LEDs 128x1]
+// Window layout: [Grayscale 16x16] [RGB 16x16] [LEDs 128x1] [Stats Bar]
 const WINDOW_WIDTH: usize = (WIDTH * SCALE) + (WIDTH * SCALE) + (LED_COUNT * SCALE / 8);
-const WINDOW_HEIGHT: usize = HEIGHT * SCALE;
+const WINDOW_HEIGHT: usize = (HEIGHT * SCALE) + STATS_BAR_HEIGHT;
 
 fn main() {
     let mut window = Window::new(
@@ -30,15 +31,68 @@ fn main() {
     });
 
     window.set_target_fps(60);
-
+    
     let mut scene = SceneData::new();
     let mut frame_count = 0u32;
     let mut buffer: Vec<u32> = vec![0; WINDOW_WIDTH * WINDOW_HEIGHT];
+    
+    // Performance tracking
+    let mut total_engine_us = 0u64;
+    let mut total_ui_us = 0u64;
+    let mut frames_for_avg = 0u32;
+    let mut engine_us_avg = 0.0;
+    let mut ui_us_avg = 0.0;
+    let mut scene_time = 0.0f32;
+    
+    // ESP32 benchmark data: (pixels, esp32_us)
+    const ESP32_BENCHMARKS: [(usize, f32); 5] = [
+        (64, 2211.0),      // 8x8
+        (144, 4616.0),     // 12x12
+        (256, 7968.0),     // 16x16
+        (400, 12287.0),    // 20x20
+        (576, 17568.0),    // 24x24
+    ];
+    
+    // Compute linear regression: esp32_us = slope * pixels + intercept
+    fn compute_esp32_model() -> (f32, f32) {
+        let n = ESP32_BENCHMARKS.len() as f32;
+        let sum_x: f32 = ESP32_BENCHMARKS.iter().map(|(p, _)| *p as f32).sum();
+        let sum_y: f32 = ESP32_BENCHMARKS.iter().map(|(_, us)| *us).sum();
+        let sum_xy: f32 = ESP32_BENCHMARKS.iter().map(|(p, us)| *p as f32 * us).sum();
+        let sum_x2: f32 = ESP32_BENCHMARKS.iter().map(|(p, _)| (*p as f32) * (*p as f32)).sum();
+        
+        let slope = (n * sum_xy - sum_x * sum_y) / (n * sum_x2 - sum_x * sum_x);
+        let intercept = (sum_y - slope * sum_x) / n;
+        (slope, intercept)
+    }
+    
+    let (esp32_us_per_pixel, esp32_base_us) = compute_esp32_model();
+
+    let mut last_frame_time = std::time::Instant::now();
 
     while window.is_open() && !window.is_key_down(Key::Escape) {
-        // Slower time progression to avoid integer boundary issues
-        let time = fixed_from_f32(frame_count as f32 * 0.003);
+        let frame_start = std::time::Instant::now();
+        let delta = frame_start.duration_since(last_frame_time).as_secs_f32();
+        last_frame_time = frame_start;
+        
+        scene_time += delta * 0.5;
+        let time = fixed_from_f32(scene_time);
+        
+        // Time just the engine render
+        let engine_start = std::time::Instant::now();
         render_test_scene(&mut scene, time);
+        let engine_us = engine_start.elapsed().as_micros() as u64;
+        
+        // Track performance
+        total_engine_us += engine_us;
+        frames_for_avg += 1;
+        if frames_for_avg >= 60 {
+            engine_us_avg = total_engine_us as f32 / frames_for_avg as f32;
+            ui_us_avg = total_ui_us as f32 / frames_for_avg as f32;
+            total_engine_us = 0;
+            total_ui_us = 0;
+            frames_for_avg = 0;
+        }
 
         buffer.fill(0xFF000000);
 
@@ -47,15 +101,16 @@ fn main() {
         draw_leds(&scene.led_output, &mut buffer, (WIDTH * SCALE) + (WIDTH * SCALE), 0, SCALE);
         draw_led_debug_overlay(&mut buffer, &scene.mapping, WIDTH * SCALE, (WIDTH * SCALE) + (WIDTH * SCALE), 0, SCALE);
         
-        // Draw time value for debugging
-        draw_time_debug(&mut buffer, time, frame_count);
+        // Predict ESP32 performance for current canvas size
+        let pixels = WIDTH * HEIGHT;
+        let esp32_predicted_us = esp32_us_per_pixel * pixels as f32 + esp32_base_us;
+        draw_stats_bar(&mut buffer, engine_us_avg, ui_us_avg, esp32_predicted_us);
 
-        // Update window
-        window
-            .update_with_buffer(&buffer, WINDOW_WIDTH, WINDOW_HEIGHT)
-            .unwrap();
+        window.update_with_buffer(&buffer, WINDOW_WIDTH, WINDOW_HEIGHT).unwrap();
 
         frame_count += 1;
+        let full_frame_us = frame_start.elapsed().as_micros() as u64;
+        total_ui_us += full_frame_us;
     }
 }
 
@@ -242,13 +297,38 @@ fn draw_led_debug_overlay(
     }
 }
 
-fn draw_time_debug(buffer: &mut [u32], time: i32, frame_count: u32) {
-    let mut fb = Framebuffer::new(buffer, WINDOW_WIDTH, WINDOW_HEIGHT);
-    let text_style = MonoTextStyle::new(&FONT_6X10, Rgb888::new(255, 255, 255));
+fn draw_stats_bar(buffer: &mut [u32], engine_us: f32, ui_us: f32, esp32_predicted_us: f32) {
+    // Fill black bar at bottom
+    let bar_y_start = HEIGHT * SCALE;
+    for y in bar_y_start..(HEIGHT * SCALE + STATS_BAR_HEIGHT) {
+        for x in 0..WINDOW_WIDTH {
+            if y < WINDOW_HEIGHT && x < WINDOW_WIDTH {
+                buffer[y * WINDOW_WIDTH + x] = 0xFF000000;
+            }
+        }
+    }
     
-    let time_f = fixed_to_f32(time);
-    let text = format!("Frame: {}  Time: {:.3}", frame_count, time_f);
-    Text::new(&text, Point::new(10, WINDOW_HEIGHT as i32 - 15), text_style)
+    let mut fb = Framebuffer::new(buffer, WINDOW_WIDTH, WINDOW_HEIGHT);
+    let text_style = MonoTextStyle::new(&FONT_6X10, Rgb888::new(200, 200, 200));
+    let text_style_bright = MonoTextStyle::new(&FONT_6X10, Rgb888::new(255, 255, 255));
+    
+    // Line 1: Canvas info
+    let info_text = format!("Canvas: {}x{}  Output: {} LEDs", WIDTH, HEIGHT, LED_COUNT);
+    Text::new(&info_text, Point::new(10, (HEIGHT * SCALE + 10) as i32), text_style)
+        .draw(&mut fb)
+        .ok();
+    
+    // Line 2: Performance stats
+    let engine_fps = if engine_us > 0.0 { 1_000_000.0 / engine_us } else { 0.0 };
+    let esp32_fps = if esp32_predicted_us > 0.0 { 1_000_000.0 / esp32_predicted_us } else { 0.0 };
+    let ui_fps = if ui_us > 0.0 { 1_000_000.0 / ui_us } else { 0.0 };
+    
+    let perf_text = format!(
+        "Engine: {:.0}us ({:.0} FPS)  ESP32 predicted: {:.0} FPS  UI: {:.0} FPS",
+        engine_us, engine_fps, esp32_fps, ui_fps
+    );
+    
+    Text::new(&perf_text, Point::new(10, (HEIGHT * SCALE + 22) as i32), text_style_bright)
         .draw(&mut fb)
         .ok();
 }

@@ -1,12 +1,11 @@
 /// Test scene - shared between ESP32 and host
 /// This defines the standard test program and scene configuration
-
 extern crate alloc;
 use alloc::vec;
 use alloc::vec::Vec;
 
 use crate::test_engine::{
-    fixed_from_f32, render_frame, LedMapping, LoadSource, OpCode, Palette, Fixed,
+    fixed_from_f32, render_frame, Fixed, LedMapping, LoadSource, OpCode, Palette,
 };
 
 pub const WIDTH: usize = 16;
@@ -30,7 +29,7 @@ impl SceneData {
     pub fn new() -> Self {
         // Create palette and mapping
         let palette = Palette::rainbow();
-        let mapping = LedMapping::spiral_3arm();
+        let mapping = LedMapping::spiral(3, WIDTH, HEIGHT);
 
         // Test program: perlin noise with 3 octaves, zoom, and cosine smoothing
         let program = vec![
@@ -74,4 +73,3 @@ pub fn render_test_scene(scene: &mut SceneData, time: Fixed) {
         time,
     );
 }
-

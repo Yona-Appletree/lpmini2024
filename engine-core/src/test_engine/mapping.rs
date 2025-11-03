@@ -110,7 +110,7 @@ impl LedMapping {
 
     /// Create a 3-arm spiral (convenience function)
     pub fn spiral_3arm() -> Self {
-        Self::spiral(3, 16, 16)
+        Self::spiral(3, 24, 24)
     }
 
     /// Get the mapping for a specific LED index
