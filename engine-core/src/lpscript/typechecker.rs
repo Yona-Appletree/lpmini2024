@@ -1,22 +1,14 @@
 /// Type checker for LightPlayer Script
 /// 
 /// Performs type inference and validation on the AST.
-/// 
-/// Note: This module is currently not in use, but is kept for future type checking implementation.
-#[cfg(test)]
 extern crate alloc;
-#[cfg(test)]
 use alloc::string::ToString;
 
-#[cfg(test)]
 use crate::lpscript::ast::{Expr, ExprKind};
-#[cfg(test)]
 use crate::lpscript::error::{Span, Type, TypeError, TypeErrorKind};
 
-#[cfg(test)]
 pub struct TypeChecker;
 
-#[cfg(test)]
 impl TypeChecker {
     /// Type check an expression, returning a typed AST
     pub fn check(mut expr: Expr) -> Result<Expr, TypeError> {

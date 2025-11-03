@@ -111,7 +111,7 @@ LoadLocalVec3(5)  // expects locals[5] to be Vec3
 
 ## Current Status
 
-**✅ Complete Foundation** (173 tests passing):
+**✅ Production-Ready Foundation** (176 tests passing):
 
 **Core Infrastructure:**
 - ✅ Vec3/Vec4 math types with full operations
@@ -126,7 +126,9 @@ LoadLocalVec3(5)  // expects locals[5] to be Vec3
 - ✅ Lexer with span tracking + GLSL literals (1.0f, 1e-3, 0xFF, int/float)
 - ✅ Parser with vector constructors (vec2, vec3, vec4)
 - ✅ Type checker with validation, inference, and comprehensive error reporting
-- ✅ Public API: `parse_expr() -> LpsProgram`
+- ✅ Type checker integrated into compilation pipeline
+- ✅ Public API: `compile_expr() -> Result<LpsProgram, CompileError>`
+- ✅ Convenience API: `parse_expr() -> LpsProgram` (panics on error)
 
 **VM Implementation:**
 - ✅ Typed LpsOpCode enum (hybrid design)
@@ -137,7 +139,7 @@ LoadLocalVec3(5)  // expects locals[5] to be Vec3
 - ✅ Vec2 opcodes: add, sub, mul_scalar, dot, length, normalize
 - ✅ Stack opcodes: dup, drop, swap
 - ✅ Control opcodes: select, jump_if_zero, jump_if_nonzero
-- ✅ 40+ comprehensive opcode tests
+- ✅ 47 comprehensive opcode tests (success + error cases)
 
 **Documentation:**
 - ✅ Complete README with design rationale
