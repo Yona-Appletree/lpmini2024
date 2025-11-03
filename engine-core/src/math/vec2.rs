@@ -1,39 +1,33 @@
 /// 2D vector for fixed-point coordinates
-use super::dec::{Dec, Fixed, FIXED_SHIFT};
+use super::fixed::{Fixed, SHIFT};
+use super::conversions::ToFixed;
+use core::ops::{Add, Sub};
 
 #[derive(Copy, Clone, Debug, PartialEq)]
 pub struct Vec2 {
-    pub x: Dec,
-    pub y: Dec,
+    pub x: Fixed,
+    pub y: Fixed,
 }
 
 impl Vec2 {
     #[inline(always)]
-    pub const fn new(x: Dec, y: Dec) -> Self {
+    pub const fn new(x: Fixed, y: Fixed) -> Self {
         Vec2 { x, y }
-    }
-
-    #[inline(always)]
-    pub const fn from_fixed(x: Fixed, y: Fixed) -> Self {
-        Vec2 {
-            x: Dec(x),
-            y: Dec(y),
-        }
     }
 
     #[inline(always)]
     pub fn from_f32(x: f32, y: f32) -> Self {
         Vec2 {
-            x: Dec::from_f32(x),
-            y: Dec::from_f32(y),
+            x: x.to_fixed(),
+            y: y.to_fixed(),
         }
     }
 
     #[inline(always)]
-    pub fn from_int(x: i32, y: i32) -> Self {
+    pub fn from_i32(x: i32, y: i32) -> Self {
         Vec2 {
-            x: Dec::from_int(x),
-            y: Dec::from_int(y),
+            x: x.to_fixed(),
+            y: y.to_fixed(),
         }
     }
 
@@ -41,18 +35,19 @@ impl Vec2 {
     #[inline(always)]
     pub const fn from_pixel(x: usize, y: usize) -> Self {
         Vec2 {
-            x: Dec(((x as i32) << FIXED_SHIFT) + (Dec::HALF.0)),
-            y: Dec(((y as i32) << FIXED_SHIFT) + (Dec::HALF.0)),
+            x: Fixed(((x as i32) << SHIFT) + (Fixed::HALF.0)),
+            y: Fixed(((y as i32) << SHIFT) + (Fixed::HALF.0)),
         }
     }
 
     #[inline(always)]
     pub fn to_int_coords(self) -> (usize, usize) {
-        ((self.x.0 >> FIXED_SHIFT) as usize, (self.y.0 >> FIXED_SHIFT) as usize)
+        (
+            (self.x.0 >> SHIFT) as usize,
+            (self.y.0 >> SHIFT) as usize,
+        )
     }
 }
-
-use core::ops::{Add, Sub};
 
 impl Add for Vec2 {
     type Output = Self;
@@ -69,4 +64,3 @@ impl Sub for Vec2 {
         Vec2::new(self.x - rhs.x, self.y - rhs.y)
     }
 }
-

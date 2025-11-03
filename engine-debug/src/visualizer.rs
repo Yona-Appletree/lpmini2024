@@ -7,9 +7,9 @@ use embedded_graphics::{
     primitives::{Circle, PrimitiveStyle},
     text::Text,
 };
-use engine_core::test_engine::fixed_to_f32;
 use engine_core::test_scene::{render_test_scene, SceneData, WIDTH, HEIGHT};
-use engine_core::test_engine::{fixed_from_f32, LedMapping, RuntimeOptions};
+use engine_core::test_engine::{LedMapping, RuntimeOptions};
+use engine_core::math::{Fixed, ToFixed};
 use engine_core::demo_program::create_demo_scene;
 use engine_core::scene::SceneRuntime;
 use minifb::{Key, Window, WindowOptions};
@@ -82,7 +82,7 @@ fn main() {
         last_frame_time = frame_start;
         
         scene_time += delta * 0.5;
-        let time = fixed_from_f32(scene_time);
+        let time = scene_time.to_fixed();
         
         // Time just the engine render
         let engine_start = std::time::Instant::now();
@@ -144,7 +144,7 @@ fn main() {
 }
 
 fn draw_greyscale(
-    greyscale: &[i32],
+    greyscale: &[Fixed],
     buffer: &mut [u32],
     offset_x: usize,
     offset_y: usize,
@@ -153,7 +153,7 @@ fn draw_greyscale(
     for y in 0..HEIGHT {
         for x in 0..WIDTH {
             let grey_val = greyscale[y * WIDTH + x];
-            let grey_f = fixed_to_f32(grey_val).clamp(0.0, 1.0);
+            let grey_f = grey_val.to_f32().clamp(0.0, 1.0);
             let grey_u8 = (grey_f * 255.0) as u8;
             let color = rgb_to_u32(grey_u8, grey_u8, grey_u8);
 
@@ -289,7 +289,6 @@ fn draw_led_debug_overlay(
     offset_y: usize,
     scale: usize,
 ) {
-    use engine_core::math::fixed_to_f32;
     let mut fb = Framebuffer::new(buffer, WINDOW_WIDTH, WINDOW_HEIGHT);
 
     let circle_style_source = PrimitiveStyle::with_stroke(Rgb888::new(0, 255, 0), 2); // Green on source
@@ -298,16 +297,16 @@ fn draw_led_debug_overlay(
     for led_idx in 0..led_count {
         if let Some(map) = mapping.get(led_idx) {
             // Source position on RGB buffer (middle panel) - now with sub-pixel precision
-            let x_pixels = fixed_to_f32(map.pos.x.0);
-            let y_pixels = fixed_to_f32(map.pos.y.0);
+            let x_pixels = map.pos.x.to_f32();
+            let y_pixels = map.pos.y.to_f32();
             let source_x = (rgb_offset_x as f32 + x_pixels * scale as f32) as i32;
             let source_y = (offset_y as f32 + y_pixels * scale as f32) as i32;
 
             // Destination position on LED strip (right panel)
             let dest_x = led_idx % 16;
             let dest_y = led_idx / 16;
-            let dest_center_x = (led_offset_x + dest_x * scale + scale / 2) as i32;
-            let dest_center_y = (offset_y + dest_y * scale + scale / 2) as i32;
+            let _dest_center_x = (led_offset_x + dest_x * scale + scale / 2) as i32;
+            let _dest_center_y = (offset_y + dest_y * scale + scale / 2) as i32;
 
             // Draw circle on source showing sampling area (diameter = scale, radius = scale/2)
             Circle::with_center(Point::new(source_x, source_y), scale as u32)

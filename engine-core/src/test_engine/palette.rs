@@ -65,12 +65,12 @@ impl Palette {
     #[inline(always)]
     pub fn get_color(&self, value: Fixed) -> Rgb {
         // Clamp value to 0..1 range
-        let clamped = if value < 0 { 
+        let clamped = if value.0 < 0 { 
             0 
-        } else if value > FIXED_ONE { 
+        } else if value.0 > FIXED_ONE { 
             FIXED_ONE 
         } else { 
-            value 
+            value.0 
         };
         
         // Map to palette range [0, 15]
@@ -125,20 +125,20 @@ pub fn rgb_buffer_from_greyscale(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use super::super::vm::fixed_from_f32;
+    use crate::math::ToFixed;
 
     #[test]
     fn test_palette_edges() {
         let palette = Palette::rainbow();
         
         // At 0.0, should get first color
-        let c0 = palette.get_color(0);
+        let c0 = palette.get_color(Fixed::ZERO);
         assert_eq!(c0.r, 255);
         assert_eq!(c0.g, 0);
         assert_eq!(c0.b, 0);
         
         // At 1.0, should get last color (or close to it)
-        let c1 = palette.get_color(FIXED_ONE);
+        let c1 = palette.get_color(Fixed::ONE);
         // Should be close to the last color
         assert!(c1.r > 200);
     }
@@ -147,9 +147,9 @@ mod tests {
     fn test_rgb_conversion() {
         let palette = Palette::rainbow();
         let greyscale = vec![
-            0,
-            fixed_from_f32(0.5),
-            FIXED_ONE,
+            Fixed::ZERO,
+            0.5f32.to_fixed(),
+            Fixed::ONE,
         ];
         let mut rgb_buffer = vec![0u8; 9];
         

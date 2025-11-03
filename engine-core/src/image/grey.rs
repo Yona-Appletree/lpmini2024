@@ -15,7 +15,7 @@ impl ImageGrey {
         ImageGrey {
             width,
             height,
-            data: alloc::vec![0; width * height],
+            data: alloc::vec![Fixed::ZERO; width * height],
         }
     }
 
@@ -24,7 +24,7 @@ impl ImageGrey {
         if x < self.width && y < self.height {
             self.data[y * self.width + x]
         } else {
-            0
+            Fixed::ZERO
         }
     }
 

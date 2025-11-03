@@ -26,8 +26,8 @@ pub fn bilinear_interp_channel(
     let c10 = c10 as i64;
     let c01 = c01 as i64;
     let c11 = c11 as i64;
-    let x_frac = x_frac as i64;
-    let y_frac = y_frac as i64;
+    let x_frac = x_frac.0 as i64;
+    let y_frac = y_frac.0 as i64;
 
     // Lerp in x direction
     let top = c00 + ((c10 - c00) * x_frac >> FIXED_SHIFT);
@@ -85,10 +85,10 @@ pub fn sample_rgb_bilinear(
     height: usize,
 ) -> [u8; 3] {
     // Get integer and fractional parts
-    let x_int = (x >> FIXED_SHIFT) as usize;
-    let y_int = (y >> FIXED_SHIFT) as usize;
-    let x_frac = x & (FIXED_ONE - 1);
-    let y_frac = y & (FIXED_ONE - 1);
+    let x_int = (x.0 >> FIXED_SHIFT) as usize;
+    let y_int = (y.0 >> FIXED_SHIFT) as usize;
+    let x_frac = Fixed(x.0 & (FIXED_ONE - 1));
+    let y_frac = Fixed(y.0 & (FIXED_ONE - 1));
 
     // Bounds check - must be within the image
     if x_int >= width || y_int >= height {
@@ -96,7 +96,7 @@ pub fn sample_rgb_bilinear(
     }
 
     // If we're exactly on a pixel (no fractional part), just return that pixel
-    if x_frac == 0 && y_frac == 0 {
+    if x_frac.0 == 0 && y_frac.0 == 0 {
         let idx = (y_int * width + x_int) * 3;
         return [buffer[idx], buffer[idx + 1], buffer[idx + 2]];
     }
@@ -123,31 +123,31 @@ pub fn sample_rgb_bilinear(
 #[cfg(all(test, not(feature = "use-libm")))]
 mod tests {
     use super::*;
-    use crate::math::fixed_from_f32;
+    use crate::math::ToFixed;
 
     #[test]
     fn test_bilinear_interp_channel_corners() {
         // At (0, 0) - should return c00
-        let result = bilinear_interp_channel(100, 200, 50, 150, 0, 0);
+        let result = bilinear_interp_channel(100, 200, 50, 150, Fixed::ZERO, Fixed::ZERO);
         assert_eq!(result, 100);
 
         // At (1, 0) - should return c10
-        let result = bilinear_interp_channel(100, 200, 50, 150, FIXED_ONE, 0);
+        let result = bilinear_interp_channel(100, 200, 50, 150, Fixed::ONE, Fixed::ZERO);
         assert_eq!(result, 200);
 
         // At (0, 1) - should return c01
-        let result = bilinear_interp_channel(100, 200, 50, 150, 0, FIXED_ONE);
+        let result = bilinear_interp_channel(100, 200, 50, 150, Fixed::ZERO, Fixed::ONE);
         assert_eq!(result, 50);
 
         // At (1, 1) - should return c11
-        let result = bilinear_interp_channel(100, 200, 50, 150, FIXED_ONE, FIXED_ONE);
+        let result = bilinear_interp_channel(100, 200, 50, 150, Fixed::ONE, Fixed::ONE);
         assert_eq!(result, 150);
     }
 
     #[test]
     fn test_bilinear_interp_channel_center() {
         // At (0.5, 0.5) - should return average of all four
-        let half = FIXED_ONE / 2;
+        let half = Fixed::HALF;
         let result = bilinear_interp_channel(0, 100, 100, 200, half, half);
         // (0 + 100) / 2 = 50 (top)
         // (100 + 200) / 2 = 150 (bottom)
@@ -159,7 +159,7 @@ mod tests {
     fn test_bilinear_interp_channel_exact_pixel_boundary() {
         // When exactly on a pixel boundary (x_frac = 0, y_frac = 0)
         // Should return the exact pixel value
-        let result = bilinear_interp_channel(255, 0, 0, 0, 0, 0);
+        let result = bilinear_interp_channel(255, 0, 0, 0, Fixed::ZERO, Fixed::ZERO);
         assert_eq!(result, 255);
     }
 
@@ -171,7 +171,7 @@ mod tests {
         let rgb11 = [255, 255, 0];  // Yellow
 
         // At center (0.5, 0.5)
-        let half = FIXED_ONE / 2;
+        let half = Fixed::HALF;
         let result = bilinear_interp_rgb(rgb00, rgb10, rgb01, rgb11, half, half);
         
         // Each channel should be averaged
@@ -192,11 +192,11 @@ mod tests {
         ];
 
         // Sample at pixel (0, 0) - should be red
-        let result = sample_rgb_bilinear(&buffer, 0, 0, 2, 2);
+        let result = sample_rgb_bilinear(&buffer, Fixed::ZERO, Fixed::ZERO, 2, 2);
         assert_eq!(result, [255, 0, 0]);
 
         // Sample at center (0.5, 0.5)
-        let half = FIXED_ONE / 2;
+        let half = Fixed::HALF;
         let result = sample_rgb_bilinear(&buffer, half, half, 2, 2);
         assert_eq!(result[0], 127); // R
         assert_eq!(result[1], 127); // G
@@ -215,32 +215,32 @@ mod tests {
         
         // Sample at exact pixel (2, 0) - rightmost pixel of first row
         // When exactly on a pixel, should return that pixel's value
-        let x = fixed_from_f32(2.0);
-        let y = fixed_from_f32(0.0);
+        let x = 2.0f32.to_fixed();
+        let y = 0.0f32.to_fixed();
         let result = sample_rgb_bilinear(&buffer, x, y, 3, 3);
         assert_eq!(result, [0, 0, 255]); // Blue pixel at (2, 0)
 
         // Sample at exact pixel (0, 2) - bottommost pixel of first column
-        let x = fixed_from_f32(0.0);
-        let y = fixed_from_f32(2.0);
+        let x = 0.0f32.to_fixed();
+        let y = 2.0f32.to_fixed();
         let result = sample_rgb_bilinear(&buffer, x, y, 3, 3);
         assert_eq!(result, [0, 0, 255]); // Blue pixel at (0, 2)
         
         // Sample at exact pixel (1, 1) - center pixel
-        let x = fixed_from_f32(1.0);
-        let y = fixed_from_f32(1.0);
+        let x = 1.0f32.to_fixed();
+        let y = 1.0f32.to_fixed();
         let result = sample_rgb_bilinear(&buffer, x, y, 3, 3);
         assert_eq!(result, [255, 255, 0]); // Yellow pixel at (1, 1)
         
         // Sample at corner (0, 0)
-        let x = fixed_from_f32(0.0);
-        let y = fixed_from_f32(0.0);
+        let x = 0.0f32.to_fixed();
+        let y = 0.0f32.to_fixed();
         let result = sample_rgb_bilinear(&buffer, x, y, 3, 3);
         assert_eq!(result, [255, 0, 0]); // Red pixel at (0, 0)
         
         // Sample at bottom-right corner (2, 2)
-        let x = fixed_from_f32(2.0);
-        let y = fixed_from_f32(2.0);
+        let x = 2.0f32.to_fixed();
+        let y = 2.0f32.to_fixed();
         let result = sample_rgb_bilinear(&buffer, x, y, 3, 3);
         assert_eq!(result, [0, 255, 255]); // Cyan pixel at (2, 2)
     }
@@ -250,11 +250,11 @@ mod tests {
         let buffer = [255, 0, 0, 0, 255, 0];  // 2x1 image
         
         // Sample beyond width
-        let result = sample_rgb_bilinear(&buffer, fixed_from_f32(2.0), 0, 2, 1);
+        let result = sample_rgb_bilinear(&buffer, 2.0f32.to_fixed(), 0i32.to_fixed(), 2, 1);
         assert_eq!(result, [0, 0, 0]);
         
         // Sample beyond height
-        let result = sample_rgb_bilinear(&buffer, 0, fixed_from_f32(1.0), 2, 1);
+        let result = sample_rgb_bilinear(&buffer, 0i32.to_fixed(), 1.0f32.to_fixed(), 2, 1);
         assert_eq!(result, [0, 0, 0]);
     }
 
@@ -315,7 +315,7 @@ mod tests {
             let y_frac = map_81.pos.y.0 & (crate::math::FIXED_ONE - 1);
             
             // Direct sample to verify
-            let direct_sample = sample_rgb_bilinear(&rgb_buffer, map_81.pos.x.0, map_81.pos.y.0, WIDTH, HEIGHT);
+            let direct_sample = sample_rgb_bilinear(&rgb_buffer, map_81.pos.x, map_81.pos.y, WIDTH, HEIGHT);
             assert!(
                 direct_sample[0] > 0 || direct_sample[1] > 0 || direct_sample[2] > 0,
                 "LED 81 at ({}.{}, {}.{}) should not sample black, got {:?}",
@@ -330,7 +330,7 @@ mod tests {
             let y_frac = map_89.pos.y.0 & (crate::math::FIXED_ONE - 1);
             
             // Direct sample to verify
-            let direct_sample = sample_rgb_bilinear(&rgb_buffer, map_89.pos.x.0, map_89.pos.y.0, WIDTH, HEIGHT);
+            let direct_sample = sample_rgb_bilinear(&rgb_buffer, map_89.pos.x, map_89.pos.y, WIDTH, HEIGHT);
             assert!(
                 direct_sample[0] > 0 || direct_sample[1] > 0 || direct_sample[2] > 0,
                 "LED 89 at ({}.{}, {}.{}) should not sample black, got {:?}",

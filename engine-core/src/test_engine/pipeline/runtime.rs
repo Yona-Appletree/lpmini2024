@@ -72,10 +72,10 @@ impl FxPipeline {
         _step_idx: usize,
     ) -> Result<(), PipelineError> {
         // For now, use empty input buffer (params not yet implemented)
-        let input_buffer: Vec<Fixed> = alloc::vec![0; self.width * self.height];
+        let input_buffer: Vec<Fixed> = alloc::vec![Fixed::ZERO; self.width * self.height];
         
         // Execute VM program into a temporary greyscale buffer
-        let mut temp_grey: Vec<Fixed> = alloc::vec![0; self.width * self.height];
+        let mut temp_grey: Vec<Fixed> = alloc::vec![Fixed::ZERO; self.width * self.height];
         execute_program(&input_buffer, &mut temp_grey, program, self.width, self.height, time);
         
         // Write greyscale results to output buffer
@@ -137,7 +137,7 @@ impl FxPipeline {
         // radius is a fraction (e.g., 0.2 = 20% of image dimension)
         // Multiply by average dimension to get absolute pixels
         let avg_dimension = (self.width + self.height) / 2;
-        let radius_pixels_fp = (radius as i64 * avg_dimension as i64) >> 16; // Fixed-point multiply
+        let radius_pixels_fp = (radius.0 as i64 * avg_dimension as i64) >> 16; // Fixed-point multiply
         let radius_pixels = radius_pixels_fp.max(1) as usize; // Clamp to at least 1 pixel
         
         // Box blur (faster than Gaussian for embedded)

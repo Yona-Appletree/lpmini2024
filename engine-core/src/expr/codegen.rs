@@ -1,16 +1,10 @@
 /// Code generator: converts AST to VM opcodes
 extern crate alloc;
 use alloc::vec::Vec;
-use alloc::string::String;
 
 use super::ast::Expr;
 use crate::test_engine::{OpCode, LoadSource};
-
-// Helper to convert f32 to fixed-point
-#[inline]
-fn fixed_from_f32(val: f32) -> i32 {
-    (val * 65536.0) as i32
-}
+use crate::math::ToFixed;
 
 pub struct CodeGenerator;
 
@@ -25,7 +19,7 @@ impl CodeGenerator {
     fn gen_expr(expr: &Expr, code: &mut Vec<OpCode>) {
         match expr {
             Expr::Number(n) => {
-                code.push(OpCode::Push(fixed_from_f32(*n)));
+                code.push(OpCode::Push((*n).to_fixed()));
             }
             
             Expr::Variable(name) => {

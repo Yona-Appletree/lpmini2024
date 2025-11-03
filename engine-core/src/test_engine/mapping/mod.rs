@@ -1,5 +1,5 @@
 /// 2D to 1D LED mapping system
-use crate::math::{Vec2, Fixed, FIXED_SHIFT, FIXED_ONE};
+use crate::math::{Vec2, Fixed, FIXED_SHIFT};
 
 mod grid;
 mod spiral;
@@ -23,9 +23,9 @@ impl LedMap {
         }
     }
     
-    pub fn new_fixed(x: Fixed, y: Fixed) -> Self {
+    pub fn new_fixed(x: i32, y: i32) -> Self {
         LedMap {
-            pos: Vec2::from_fixed(x, y),
+            pos: Vec2::new(Fixed(x), Fixed(y)),
         }
     }
 }
@@ -63,7 +63,7 @@ pub fn apply_2d_mapping(rgb_2d: &[u8], led_output: &mut [u8], mapping: &LedMappi
 
     for led_idx in 0..led_count {
         if let core::option::Option::Some(map) = mapping.get(led_idx) {
-            let rgb = sample_rgb_bilinear(rgb_2d, map.pos.x.0, map.pos.y.0, width, height);
+            let rgb = sample_rgb_bilinear(rgb_2d, map.pos.x, map.pos.y, width, height);
             let dst_idx = led_idx * 3;
             led_output[dst_idx] = rgb[0];
             led_output[dst_idx + 1] = rgb[1];

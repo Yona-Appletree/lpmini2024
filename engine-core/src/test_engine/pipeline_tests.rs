@@ -3,15 +3,15 @@
 mod pipeline_tests {
     use crate::test_engine::{
         FxPipelineConfig, PipelineStep, BufferRef, BufferFormat, 
-        OpCode, LoadSource, Palette, RuntimeOptions, FxPipeline,
-        fixed_from_f32, fixed_to_f32, FIXED_ONE,
+        OpCode, Palette, RuntimeOptions, FxPipeline,
     };
+    use crate::math::{Fixed, ToFixed};
     
     #[test]
     fn test_simple_pipeline() {
         // Create a simple pipeline: generate white everywhere
         let program = vec![
-            OpCode::Push(FIXED_ONE),
+            OpCode::Push(Fixed::ONE),
             OpCode::Return,
         ];
         
@@ -29,12 +29,12 @@ mod pipeline_tests {
         let options = RuntimeOptions::new(4, 4);
         let mut pipeline = FxPipeline::new(config, options).expect("Valid config");
         
-        pipeline.render(0).expect("Render should succeed");
+        pipeline.render(Fixed::ZERO).expect("Render should succeed");
         
         // Check buffer 0 has white values
         let buffer = pipeline.get_buffer(0).expect("Buffer should exist");
         for (i, &val) in buffer.data.iter().enumerate() {
-            let f = fixed_to_f32(val);
+            let f = Fixed(val).to_f32();
             assert!((f - 1.0).abs() < 0.01, 
                    "Pixel {} should be ~1.0, got {}", i, f);
         }
@@ -43,6 +43,7 @@ mod pipeline_tests {
     #[test]
     fn test_palette_step() {
         // Test that palette conversion works
+        use crate::test_engine::vm::LoadSource;
         let program = vec![
             OpCode::Load(LoadSource::XNorm),
             OpCode::Return,
@@ -67,7 +68,7 @@ mod pipeline_tests {
         let options = RuntimeOptions::new(8, 8);
         let mut pipeline = FxPipeline::new(config, options).expect("Valid config");
         
-        pipeline.render(0).expect("Render should succeed");
+        pipeline.render(Fixed::ZERO).expect("Render should succeed");
         
         // Buffer 1 should be RGB format
         let buffer = pipeline.get_buffer(1).expect("Buffer 1 should exist");
@@ -82,7 +83,7 @@ mod pipeline_tests {
     #[test]
     fn test_extract_rgb_bytes() {
         let program = vec![
-            OpCode::Push(fixed_from_f32(0.5)),
+            OpCode::Push(0.5f32.to_fixed()),
             OpCode::Return,
         ];
         
@@ -104,7 +105,7 @@ mod pipeline_tests {
         
         let options = RuntimeOptions::new(4, 4);
         let mut pipeline = FxPipeline::new(config, options).expect("Valid config");
-        pipeline.render(0).expect("Render should succeed");
+        pipeline.render(Fixed::ZERO).expect("Render should succeed");
         
         let mut rgb_bytes = vec![0u8; 4 * 4 * 3];
         pipeline.extract_rgb_bytes(1, &mut rgb_bytes);

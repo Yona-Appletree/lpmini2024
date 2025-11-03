@@ -1,6 +1,6 @@
 /// Spiral LED mappings
 use super::{LedMap, LedMapping};
-use crate::math::{fixed_from_int, Fixed, FIXED_ONE, FIXED_SHIFT};
+use crate::math::{Fixed, FIXED_ONE, FIXED_SHIFT, ToFixed};
 use crate::math::trig::{sin, cos};
 use core::cmp::{max, min};
 
@@ -40,28 +40,25 @@ impl LedMapping {
             let spiral_angle = t_fixed << 2; // t * 4 (4 full rotations along spiral)
             let angle_fixed = arm_angle + spiral_angle;
 
-            // Use fixed-point sin/cos (they return 0..1, we need -1..1)
-            let cos_val = cos(angle_fixed);
-            let sin_val = sin(angle_fixed);
+            // Use fixed-point sin/cos (they return -1..1 in Fixed)
+            let cos_val = cos(Fixed(angle_fixed)).0;
+            let sin_val = sin(Fixed(angle_fixed)).0;
 
-            // Map from 0..1 to -1..1: (val * 2) - 1
-            let cos_centered = (cos_val << 1) - FIXED_ONE;
-            let sin_centered = (sin_val << 1) - FIXED_ONE;
-
+            // sin/cos already return -1..1, use directly
             // x = center_x + radius * cos, y = center_y + radius * sin
             let center_x_fixed = (center_x_px as i32) << FIXED_SHIFT;
             let center_y_fixed = (center_y_px as i32) << FIXED_SHIFT;
 
-            let x_offset = ((radius_fixed as i64 * cos_centered as i64) >> FIXED_SHIFT) as i32;
-            let y_offset = ((radius_fixed as i64 * sin_centered as i64) >> FIXED_SHIFT) as i32;
+            let x_offset = ((radius_fixed as i64 * cos_val as i64) >> FIXED_SHIFT) as i32;
+            let y_offset = ((radius_fixed as i64 * sin_val as i64) >> FIXED_SHIFT) as i32;
 
             let x_fixed = min(
                 max(0, center_x_fixed + x_offset),
-                fixed_from_int(width as i32 - 1) + FIXED_ONE,
+                (width as i32 - 1).to_fixed().0 + FIXED_ONE,
             );
             let y_fixed = min(
                 max(0, center_y_fixed + y_offset),
-                fixed_from_int(height as i32 - 1) + FIXED_ONE,
+                (height as i32 - 1).to_fixed().0 + FIXED_ONE,
             );
 
             maps[i] = LedMap::new_fixed(x_fixed, y_fixed);

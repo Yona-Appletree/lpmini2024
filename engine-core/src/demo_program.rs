@@ -4,7 +4,7 @@ use alloc::vec;
 use crate::expr::parse_expr;
 use crate::scene::SceneConfig;
 use crate::test_engine::{
-    fixed_from_f32, BufferFormat, BufferRef, FxPipelineConfig, LoadSource, MappingConfig, OpCode,
+    BufferFormat, BufferRef, FxPipelineConfig, LoadSource, MappingConfig, OpCode,
     Palette, PipelineStep,
 };
 
@@ -88,24 +88,25 @@ pub fn create_demo_scene(width: usize, height: usize) -> SceneConfig {
 mod tests {
     use super::*;
     use crate::scene::SceneRuntime;
-    use crate::test_engine::{RuntimeOptions, FIXED_ONE};
+    use crate::test_engine::RuntimeOptions;
+    use crate::math::{Fixed, ToFixed};
 
     #[test]
     fn test_simple_white() {
         // First test: just output white for everything
         use crate::test_engine::execute_program;
-        let input = vec![0; 16 * 16];
-        let mut output = vec![0; 16 * 16];
+        let input = vec![Fixed::ZERO; 16 * 16];
+        let mut output = vec![Fixed::ZERO; 16 * 16];
 
-        let program = vec![OpCode::Push(FIXED_ONE), OpCode::Return];
+        let program = vec![OpCode::Push(Fixed::ONE), OpCode::Return];
 
-        execute_program(&input, &mut output, &program, 16, 16, 0);
+        execute_program(&input, &mut output, &program, 16, 16, Fixed::ZERO);
 
         // All pixels should be white
-        assert_eq!(output[0], FIXED_ONE, "First pixel should be white");
+        assert_eq!(output[0], Fixed::ONE, "First pixel should be white");
         assert_eq!(
             output[8 * 16],
-            FIXED_ONE,
+            Fixed::ONE,
             "Row 8 first pixel should be white"
         );
     }
@@ -114,28 +115,28 @@ mod tests {
     fn test_yint_load() {
         // Test that YInt loads correctly
         use crate::test_engine::execute_program;
-        let input = vec![0; 16 * 16];
-        let mut output = vec![0; 16 * 16];
+        let input = vec![Fixed::ZERO; 16 * 16];
+        let mut output = vec![Fixed::ZERO; 16 * 16];
 
         let program = vec![OpCode::Load(LoadSource::YInt), OpCode::Return];
 
-        execute_program(&input, &mut output, &program, 16, 16, 0);
+        execute_program(&input, &mut output, &program, 16, 16, Fixed::ZERO);
 
         // Row 0 should have Y values of 0.5 in fixed-point
         println!(
             "Row 0, pixel 0: {:#x} (expected ~{:#x})",
-            output[0],
+            output[0].0,
             1 << 15
         );
         // Row 8 should have Y values of 8.5 in fixed-point
         println!(
             "Row 8, pixel 0: {:#x} (expected ~{:#x})",
-            output[8 * 16],
+            output[8 * 16].0,
             (8 << 16) + (1 << 15)
         );
 
         // Just verify it's not all zeros
-        assert!(output[8 * 16] != 0, "Row 8 YInt should not be zero");
+        assert!(output[8 * 16].0 != 0, "Row 8 YInt should not be zero");
     }
 
     #[test]
@@ -144,11 +145,11 @@ mod tests {
         use crate::test_engine::execute_program;
 
         // Test with 16x16 - center should be row 8
-        let input = vec![0; 16 * 16];
-        let mut output = vec![0; 16 * 16];
+        let input = vec![Fixed::ZERO; 16 * 16];
+        let mut output = vec![Fixed::ZERO; 16 * 16];
 
-        let center_min = fixed_from_f32(0.48);
-        let center_max = fixed_from_f32(0.52);
+        let center_min = 0.48f32.to_fixed();
+        let center_max = 0.52f32.to_fixed();
 
         let program = vec![
             OpCode::Load(LoadSource::YNorm),
@@ -157,32 +158,32 @@ mod tests {
             OpCode::Load(LoadSource::YNorm),
             OpCode::Push(center_max),
             OpCode::JumpGt(3),
-            OpCode::Push(FIXED_ONE),
+            OpCode::Push(Fixed::ONE),
             OpCode::Return,
-            OpCode::Push(0),
+            OpCode::Push(Fixed::ZERO),
             OpCode::Return,
         ];
 
-        execute_program(&input, &mut output, &program, 16, 16, 0);
+        execute_program(&input, &mut output, &program, 16, 16, Fixed::ZERO);
 
-        // Center row (row 8, Y=0.5) should be white
-        assert_eq!(output[8 * 16], FIXED_ONE, "Center row should be white");
+        // Center row (row 7 with +0.5 offset gives Y=7.5, YNorm=7.5/15=0.5) should be white
+        assert_eq!(output[7 * 16], Fixed::ONE, "Center row (row 7) should be white");
         // Rows far from center should be black
-        assert_eq!(output[0], 0, "Top row should be black");
-        assert_eq!(output[15 * 16], 0, "Bottom row should be black");
+        assert_eq!(output[0], Fixed::ZERO, "Top row should be black");
+        assert_eq!(output[15 * 16], Fixed::ZERO, "Bottom row should be black");
 
         // Test with 8x8 - center should be row 4
-        let input8 = vec![0; 8 * 8];
-        let mut output8 = vec![0; 8 * 8];
-        execute_program(&input8, &mut output8, &program, 8, 8, 0);
+        let input8 = vec![Fixed::ZERO; 8 * 8];
+        let mut output8 = vec![Fixed::ZERO; 8 * 8];
+        execute_program(&input8, &mut output8, &program, 8, 8, Fixed::ZERO);
 
-        // Center row (row 4, Y=0.5) should be white
+        // Center row (row 3 with +0.5 offset gives Y=3.5, YNorm=3.5/7=0.5) should be white
         assert_eq!(
-            output8[4 * 8],
-            FIXED_ONE,
-            "Center row in 8x8 should be white"
+            output8[3 * 8],
+            Fixed::ONE,
+            "Center row in 8x8 (row 3) should be white"
         );
-        assert_eq!(output8[0], 0, "Top row in 8x8 should be black");
+        assert_eq!(output8[0], Fixed::ZERO, "Top row in 8x8 should be black");
     }
 
     #[test]
@@ -192,35 +193,35 @@ mod tests {
         let options = RuntimeOptions::new(16, 16);
         let mut scene = SceneRuntime::new(config, options).expect("Valid config");
 
-        scene.render(0, 1).expect("Render failed");
+        scene.render(Fixed::ZERO, 1).expect("Render failed");
         let grey_buffer = scene.pipeline.get_buffer(0).expect("Buffer 0 should exist");
 
-        // Center row (row 8) should be white, others black
+        // Center row (row 7, Y=7.5, YNorm=0.5) should be white, others black
         assert_eq!(
-            grey_buffer.data[8 * 16],
-            FIXED_ONE,
-            "Center row should be white"
+            grey_buffer.data[7 * 16],
+            Fixed::ONE.0,
+            "Center row (row 7) should be white"
         );
-        assert_eq!(grey_buffer.data[0], 0, "Top row should be black");
-        assert_eq!(grey_buffer.data[15 * 16], 0, "Bottom row should be black");
+        assert_eq!(grey_buffer.data[0], Fixed::ZERO.0, "Top row should be black");
+        assert_eq!(grey_buffer.data[15 * 16], Fixed::ZERO.0, "Bottom row should be black");
 
         // Test with 8x8
         let config8 = create_test_line_scene(8, 8);
         let options8 = RuntimeOptions::new(8, 8);
         let mut scene8 = SceneRuntime::new(config8, options8).expect("Valid config");
 
-        scene8.render(0, 1).expect("Render failed");
+        scene8.render(Fixed::ZERO, 1).expect("Render failed");
         let grey_buffer8 = scene8
             .pipeline
             .get_buffer(0)
             .expect("Buffer 0 should exist");
 
-        // Center row (row 4) should be white
+        // Center row (row 3, Y=3.5, YNorm=0.5) should be white
         assert_eq!(
-            grey_buffer8.data[4 * 8],
-            FIXED_ONE,
-            "Center row in 8x8 should be white"
+            grey_buffer8.data[3 * 8],
+            Fixed::ONE.0,
+            "Center row in 8x8 (row 3) should be white"
         );
-        assert_eq!(grey_buffer8.data[0], 0, "Top row in 8x8 should be black");
+        assert_eq!(grey_buffer8.data[0], Fixed::ZERO.0, "Top row in 8x8 should be black");
     }
 }

@@ -1,153 +1,213 @@
 /// Fixed-point arithmetic (16.16 format)
-/// 
+///
 /// Core type and conversion utilities for fixed-point math.
-
-pub type Fixed = i32;
+use core::ops::{Add, Div, Mul, Neg, Sub};
 
 /// Fixed-point constants
 pub const SHIFT: i32 = 16;
-pub const ONE: Fixed = 1 << SHIFT;
-pub const HALF: Fixed = ONE / 2;
-pub const ZERO: Fixed = 0;
+pub const ONE: i32 = 1 << SHIFT;
+pub const HALF: i32 = ONE / 2;
+pub const ZERO: i32 = 0;
 
-/// Convert integer to fixed-point
-#[inline(always)]
-pub const fn from_int(n: i32) -> Fixed {
-    n << SHIFT
-}
+/// Fixed-point number (16.16 format)
+#[derive(Copy, Clone, Debug, PartialEq, Eq, PartialOrd, Ord)]
+pub struct Fixed(pub i32);
 
-/// Convert fixed-point to integer (truncate)
-#[inline(always)]
-pub const fn to_int(f: Fixed) -> i32 {
-    f >> SHIFT
-}
+impl Fixed {
+    pub const ZERO: Fixed = Fixed(0);
+    pub const ONE: Fixed = Fixed(ONE);
+    pub const HALF: Fixed = Fixed(HALF);
 
-/// Convert f32 to fixed-point
-#[inline]
-pub fn from_f32(f: f32) -> Fixed {
-    (f * 65536.0) as Fixed
-}
-
-/// Convert fixed-point to f32
-#[inline]
-pub fn to_f32(f: Fixed) -> f32 {
-    (f as f32) / 65536.0
-}
-
-/// Fixed-point multiplication
-#[inline(always)]
-pub fn mul(a: Fixed, b: Fixed) -> Fixed {
-    ((a as i64 * b as i64) >> SHIFT) as i32
-}
-
-/// Fixed-point division
-#[inline(always)]
-pub fn div(a: Fixed, b: Fixed) -> Fixed {
-    if b == 0 {
-        return 0;
+    /// Create a Fixed from a raw fixed-point value
+    #[inline(always)]
+    pub const fn from_fixed(f: i32) -> Self {
+        Fixed(f)
     }
-    (((a as i64) << SHIFT) / b as i64) as i32
-}
 
-/// Get fractional part
-#[inline(always)]
-pub fn frac(f: Fixed) -> Fixed {
-    f & (ONE - 1)
-}
+    /// Create a Fixed from an f32
+    #[inline(always)]
+    pub fn from_f32(f: f32) -> Self {
+        Fixed((f * ONE as f32) as i32)
+    }
 
-/// Floor (round down to integer)
-#[inline(always)]
-pub fn floor(f: Fixed) -> Fixed {
-    f & !(ONE - 1)
-}
+    /// Create a Fixed from an i32
+    #[inline(always)]
+    pub const fn from_i32(i: i32) -> Self {
+        Fixed(i << SHIFT)
+    }
 
-/// Ceiling (round up to integer)
-#[inline(always)]
-pub fn ceil(f: Fixed) -> Fixed {
-    let frac_part = frac(f);
-    if frac_part > 0 {
-        floor(f) + ONE
-    } else {
-        f
+    /// Convert to f32
+    #[inline(always)]
+    pub fn to_f32(self) -> f32 {
+        self.0 as f32 / ONE as f32
+    }
+
+    /// Get the raw fixed-point value
+    #[inline(always)]
+    pub const fn to_fixed(self) -> i32 {
+        self.0
+    }
+
+    /// Clamp value between min and max
+    #[inline(always)]
+    pub fn clamp(self, min: Fixed, max: Fixed) -> Fixed {
+        Fixed(self.0.clamp(min.0, max.0))
+    }
+
+    /// Return the maximum of two values
+    #[inline(always)]
+    pub fn max(self, other: Fixed) -> Fixed {
+        Fixed(self.0.max(other.0))
+    }
+
+    /// Return the minimum of two values
+    #[inline(always)]
+    pub fn min(self, other: Fixed) -> Fixed {
+        Fixed(self.0.min(other.0))
+    }
+
+    /// Return the absolute value
+    #[inline(always)]
+    pub fn abs(self) -> Fixed {
+        Fixed(self.0.abs())
     }
 }
 
-/// Clamp value between min and max
-#[inline(always)]
-pub fn clamp(val: Fixed, min: Fixed, max: Fixed) -> Fixed {
-    val.max(min).min(max)
-}
-
-/// Linear interpolation
-/// lerp(a, b, t) = a + (b - a) * t
-#[inline(always)]
-pub fn lerp(a: Fixed, b: Fixed, t: Fixed) -> Fixed {
-    a + mul(b - a, t)
-}
-
-/// Sign function: returns -1, 0, or 1
-#[inline(always)]
-pub fn sign(a: Fixed) -> Fixed {
-    if a > 0 { ONE } else if a < 0 { -ONE } else { ZERO }
-}
-
-/// Saturate: clamp to 0..1
-#[inline(always)]
-pub fn saturate(a: Fixed) -> Fixed {
-    clamp(a, ZERO, ONE)
-}
-
-/// Integer square root for fixed-point
-pub fn sqrt(a: Fixed) -> Fixed {
-    if a <= 0 {
-        return 0;
+impl Add for Fixed {
+    type Output = Self;
+    #[inline(always)]
+    fn add(self, rhs: Self) -> Self {
+        Fixed(self.0 + rhs.0)
     }
-    
-    let mut result = 0i32;
-    let mut bit = 1i32 << 30;
-    
-    while bit > a {
-        bit >>= 2;
+}
+
+impl Sub for Fixed {
+    type Output = Self;
+    #[inline(always)]
+    fn sub(self, rhs: Self) -> Self {
+        Fixed(self.0 - rhs.0)
     }
-    
-    while bit != 0 {
-        if a >= result + bit {
-            result = (result >> 1) + bit;
+}
+
+impl Mul for Fixed {
+    type Output = Self;
+    #[inline(always)]
+    fn mul(self, rhs: Self) -> Self {
+        Fixed(((self.0 as i64 * rhs.0 as i64) >> SHIFT) as i32)
+    }
+}
+
+impl Div for Fixed {
+    type Output = Self;
+    #[inline(always)]
+    fn div(self, rhs: Self) -> Self {
+        if rhs.0 != 0 {
+            Fixed(((self.0 as i64 * ONE as i64) / rhs.0 as i64) as i32)
         } else {
-            result >>= 1;
+            Fixed(0)
         }
-        bit >>= 2;
     }
-    
-    result << (SHIFT / 2)
+}
+
+impl Neg for Fixed {
+    type Output = Self;
+    #[inline(always)]
+    fn neg(self) -> Self {
+        Fixed(-self.0)
+    }
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
-    
+
     #[test]
-    fn test_conversions() {
-        assert_eq!(from_int(5), 5 << 16);
-        assert_eq!(to_int(from_int(5)), 5);
-        
-        let f = from_f32(1.5);
-        assert!((to_f32(f) - 1.5).abs() < 0.001);
+    fn test_constants() {
+        assert_eq!(Fixed::ZERO.to_f32(), 0.0);
+        assert_eq!(Fixed::ONE.to_f32(), 1.0);
+        assert_eq!(Fixed::HALF.to_f32(), 0.5);
     }
-    
+
     #[test]
-    fn test_arithmetic() {
-        let a = from_int(2);
-        let b = from_int(3);
-        assert_eq!(to_int(mul(a, b)), 6);
-        assert_eq!(to_int(div(a, b)), 0);
-        assert_eq!(to_int(div(b, a)), 1);
+    fn test_from_i32() {
+        assert_eq!(Fixed::from_i32(5).to_f32(), 5.0);
+        assert_eq!(Fixed::from_i32(-3).to_f32(), -3.0);
+        assert_eq!(Fixed::from_i32(0).to_f32(), 0.0);
     }
-    
+
     #[test]
-    fn test_frac() {
-        let f = from_f32(1.25);
-        assert_eq!(to_f32(frac(f)), 0.25);
+    fn test_from_f32() {
+        let f = Fixed::from_f32(1.5);
+        assert!((f.to_f32() - 1.5).abs() < 0.001);
+
+        let f2 = Fixed::from_f32(-2.75);
+        assert!((f2.to_f32() - (-2.75)).abs() < 0.001);
+    }
+
+    #[test]
+    fn test_add() {
+        let a = Fixed::from_i32(2);
+        let b = Fixed::from_i32(3);
+        assert_eq!((a + b).to_f32(), 5.0);
+    }
+
+    #[test]
+    fn test_sub() {
+        let a = Fixed::from_i32(5);
+        let b = Fixed::from_i32(3);
+        assert_eq!((a - b).to_f32(), 2.0);
+    }
+
+    #[test]
+    fn test_mul() {
+        let a = Fixed::from_i32(2);
+        let b = Fixed::from_i32(3);
+        assert_eq!((a * b).to_f32(), 6.0);
+
+        let c = Fixed::from_f32(1.5);
+        let d = Fixed::from_f32(2.0);
+        assert!((c * d).to_f32() - 3.0 < 0.01);
+    }
+
+    #[test]
+    fn test_div() {
+        let a = Fixed::from_i32(6);
+        let b = Fixed::from_i32(2);
+        assert_eq!((a / b).to_f32(), 3.0);
+
+        let c = Fixed::from_i32(3);
+        let d = Fixed::from_i32(2);
+        assert!((c / d).to_f32() - 1.5 < 0.01);
+    }
+
+    #[test]
+    fn test_neg() {
+        let a = Fixed::from_i32(5);
+        assert_eq!((-a).to_f32(), -5.0);
+
+        let b = Fixed::from_i32(-3);
+        assert_eq!((-b).to_f32(), 3.0);
+    }
+
+    #[test]
+    fn test_clamp() {
+        let val = Fixed::from_i32(5);
+        let min = Fixed::from_i32(0);
+        let max = Fixed::from_i32(10);
+        assert_eq!(val.clamp(min, max).to_f32(), 5.0);
+
+        let val2 = Fixed::from_i32(-5);
+        assert_eq!(val2.clamp(min, max).to_f32(), 0.0);
+
+        let val3 = Fixed::from_i32(15);
+        assert_eq!(val3.clamp(min, max).to_f32(), 10.0);
+    }
+
+    #[test]
+    fn test_min_max() {
+        let a = Fixed::from_i32(5);
+        let b = Fixed::from_i32(10);
+        assert_eq!(a.min(b).to_f32(), 5.0);
+        assert_eq!(a.max(b).to_f32(), 10.0);
     }
 }
-

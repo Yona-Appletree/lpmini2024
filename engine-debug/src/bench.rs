@@ -1,7 +1,8 @@
 /// Quick benchmark for test scene at multiple resolutions
 use engine_core::demo_program::create_demo_scene;
 use engine_core::scene::SceneRuntime;
-use engine_core::test_engine::{fixed_from_f32, RuntimeOptions};
+use engine_core::test_engine::RuntimeOptions;
+use engine_core::math::ToFixed;
 use std::time::Instant;
 
 const FRAME_COUNT: u32 = 1000;
@@ -15,7 +16,7 @@ fn benchmark_size(width: usize, height: usize) {
     let start = Instant::now();
     
     for i in 0..FRAME_COUNT {
-        let time = fixed_from_f32(i as f32 * 0.01);
+        let time = (i as f32 * 0.01).to_fixed();
         scene.render(time, 1).expect("Render failed");
     }
     
