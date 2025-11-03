@@ -1,4 +1,5 @@
 /// Mapping configuration types
+extern crate alloc;
 use super::LedMapping;
 
 /// Configuration for different mapping types

@@ -6,7 +6,9 @@ use alloc::vec;
 
 use defmt::info;
 use embassy_time::Instant;
-use engine_core::test_engine::{fixed_from_f32, render_frame, LedMapping, LoadSource, OpCode, Palette};
+use engine_core::demo_program::create_demo_scene;
+use engine_core::scene::SceneRuntime;
+use engine_core::test_engine::{fixed_from_f32, RuntimeOptions};
 use esp_hal::clock::CpuClock;
 use esp_hal::timer::systimer::SystemTimer;
 use panic_rtt_target as _;
@@ -14,31 +16,12 @@ use panic_rtt_target as _;
 esp_bootloader_esp_idf::esp_app_desc!();
 
 const TEST_DURATION_MS: u64 = 1000;
-const LED_COUNT: usize = 128;
 
 async fn benchmark_size(width: usize, height: usize) {
-    let buffer_size = width * height;
-    
-    let mut greyscale_buffer = vec![0i32; buffer_size];
-    let input_buffer = vec![0i32; buffer_size];
-    let mut rgb_2d_buffer = vec![0u8; buffer_size * 3];
-    let mut led_output = vec![0u8; LED_COUNT * 3];
-    
-    let palette = Palette::rainbow();
-    let mapping = LedMapping::spiral(3, width, height);
-    
-    let program = vec![
-        OpCode::Load(LoadSource::XNorm),
-        OpCode::Push(fixed_from_f32(0.3)),
-        OpCode::Mul,
-        OpCode::Load(LoadSource::YNorm),
-        OpCode::Push(fixed_from_f32(0.3)),
-        OpCode::Mul,
-        OpCode::Load(LoadSource::Time),
-        OpCode::Perlin3(3),
-        OpCode::Cos,
-        OpCode::Return,
-    ];
+    // Create scene with demo program
+    let config = create_demo_scene(width, height);
+    let options = RuntimeOptions::new(width, height);
+    let mut scene = SceneRuntime::new(config, options).expect("Valid scene");
     
     let mut frame_count = 0u32;
     let mut total_us = 0u64;
@@ -47,18 +30,7 @@ async fn benchmark_size(width: usize, height: usize) {
     while test_start.elapsed().as_millis() < TEST_DURATION_MS {
         let frame_start = Instant::now();
         let time = fixed_from_f32(frame_count as f32 * 0.01);
-        render_frame(
-            &mut greyscale_buffer,
-            &input_buffer,
-            &mut rgb_2d_buffer,
-            &mut led_output,
-            &program,
-            &palette,
-            &mapping,
-            width,
-            height,
-            time,
-        );
+        scene.render(time, 1).expect("Render failed");
         total_us += frame_start.elapsed().as_micros();
         frame_count += 1;
     }
