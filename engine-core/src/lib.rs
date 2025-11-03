@@ -1,6 +1,6 @@
-#![cfg_attr(all(feature = "use-libm", not(test)), no_std)]
+#![cfg_attr(not(test), no_std)]
 
-#[cfg(not(feature = "use-libm"))]
+#[cfg(all(not(test), not(feature = "use-libm")))]
 extern crate alloc;
 
 /// Shared sine lookup table to avoid duplication
@@ -26,3 +26,6 @@ pub mod demo_program;
 
 /// Standard test scene shared between ESP32 and host
 pub mod test_scene;
+
+/// Power limiting and brightness control
+pub mod power_limit;
