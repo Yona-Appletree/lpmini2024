@@ -96,10 +96,32 @@ fn main() {
 
         buffer.fill(0xFF000000);
 
-        draw_greyscale(&scene.greyscale_buffer, &mut buffer, 0, 0, SCALE);
-        draw_rgb_2d(&scene.rgb_2d_buffer, &mut buffer, WIDTH * SCALE, 0, SCALE);
-        draw_leds(&scene.led_output, &mut buffer, (WIDTH * SCALE) + (WIDTH * SCALE), 0, SCALE);
-        draw_led_debug_overlay(&mut buffer, &scene.mapping, WIDTH * SCALE, (WIDTH * SCALE) + (WIDTH * SCALE), 0, SCALE);
+        // Iterate through pipeline buffers and render according to their format
+        let mut x_offset = 0;
+        for i in 0..scene.pipeline.buffers.len() {
+            if let Some(buf) = scene.pipeline.get_buffer(i) {
+                match buf.last_format {
+                    engine_core::test_engine::BufferFormat::ImageGrey => {
+                        let greyscale = scene.pipeline.get_greyscale_fixed(i);
+                        draw_greyscale(&greyscale, &mut buffer, x_offset, 0, SCALE);
+                        x_offset += WIDTH * SCALE;
+                    }
+                    engine_core::test_engine::BufferFormat::ImageRgb => {
+                        let rgb_bytes = scene.pipeline.get_rgb_bytes(i);
+                        draw_rgb_2d(&rgb_bytes, &mut buffer, x_offset, 0, SCALE);
+                        x_offset += WIDTH * SCALE;
+                    }
+                }
+            }
+        }
+        
+        // Draw LED output after all buffers
+        let led_offset_x = x_offset;
+        draw_leds(&scene.led_output, &mut buffer, led_offset_x, 0, SCALE);
+        
+        // Draw debug overlay on RGB buffer (buffer 1)
+        let rgb_buffer_offset = WIDTH * SCALE; // Greyscale is at 0, RGB is at WIDTH*SCALE
+        draw_led_debug_overlay(&mut buffer, &scene.mapping, rgb_buffer_offset, led_offset_x, 0, SCALE);
         
         // Predict ESP32 performance for current canvas size
         let pixels = WIDTH * HEIGHT;

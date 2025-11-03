@@ -16,6 +16,7 @@ impl Rgb {
 }
 
 /// 16-entry palette for color mapping
+#[derive(Clone)]
 pub struct Palette {
     colors: [Rgb; 16],
 }
@@ -52,7 +53,7 @@ impl Palette {
 
     /// Get interpolated color for a value in range [0, 1] (fixed-point)
     #[inline(always)]
-    fn get_color(&self, value: Fixed) -> Rgb {
+    pub fn get_color(&self, value: Fixed) -> Rgb {
         // Clamp value to 0..1 range
         let clamped = value.max(0).min(FIXED_ONE);
         
