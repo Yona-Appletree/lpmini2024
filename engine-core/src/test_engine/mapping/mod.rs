@@ -4,6 +4,9 @@ use crate::math::{Vec2, Fixed, FIXED_SHIFT, FIXED_ONE};
 mod grid;
 mod spiral;
 mod circular;
+mod sample;
+
+pub use sample::{bilinear_interp_channel, bilinear_interp_rgb, sample_rgb_bilinear};
 
 /// Single LED mapping entry with sub-pixel precision
 #[derive(Debug, Clone, Copy)]
@@ -58,38 +61,11 @@ pub fn apply_2d_mapping(rgb_2d: &[u8], led_output: &mut [u8], mapping: &LedMappi
 
     for led_idx in 0..led_count {
         if let core::option::Option::Some(map) = mapping.get(led_idx) {
-            // Get integer and fractional parts
-            let x_int = (map.pos.x.0 >> FIXED_SHIFT) as usize;
-            let y_int = (map.pos.y.0 >> FIXED_SHIFT) as usize;
-            let x_frac = (map.pos.x.0 & (FIXED_ONE - 1)) as i64;
-            let y_frac = (map.pos.y.0 & (FIXED_ONE - 1)) as i64;
-
-            // Bounds check for bilinear sampling
-            if x_int + 1 < width && y_int + 1 < height {
-                // Sample 4 neighboring pixels
-                let idx_00 = (y_int * width + x_int) * 3;
-                let idx_10 = (y_int * width + x_int + 1) * 3;
-                let idx_01 = ((y_int + 1) * width + x_int) * 3;
-                let idx_11 = ((y_int + 1) * width + x_int + 1) * 3;
-
-                // Bilinear interpolation for each channel
-                let dst_idx = led_idx * 3;
-                for c in 0..3 {
-                    let c00 = rgb_2d[idx_00 + c] as i64;
-                    let c10 = rgb_2d[idx_10 + c] as i64;
-                    let c01 = rgb_2d[idx_01 + c] as i64;
-                    let c11 = rgb_2d[idx_11 + c] as i64;
-
-                    // Lerp in x direction
-                    let top = c00 + ((c10 - c00) * x_frac >> FIXED_SHIFT);
-                    let bottom = c01 + ((c11 - c01) * x_frac >> FIXED_SHIFT);
-
-                    // Lerp in y direction
-                    let result = top + ((bottom - top) * y_frac >> FIXED_SHIFT);
-                    use core::cmp::{max, min};
-                    led_output[dst_idx + c] = min(255, max(0, result)) as u8;
-                }
-            }
+            let rgb = sample_rgb_bilinear(rgb_2d, map.pos.x.0, map.pos.y.0, width, height);
+            let dst_idx = led_idx * 3;
+            led_output[dst_idx] = rgb[0];
+            led_output[dst_idx + 1] = rgb[1];
+            led_output[dst_idx + 2] = rgb[2];
         }
     }
 }
