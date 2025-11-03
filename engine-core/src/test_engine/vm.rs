@@ -87,6 +87,122 @@ fn fade(t: Fixed) -> Fixed {
     result
 }
 
+/// Execute a native function call
+fn execute_native_function(func_id: u8, vm: &mut VM) {
+    use crate::math::{fixed_div, fixed_mul};
+    use crate::expr::NativeFunction;
+    
+    match func_id {
+        id if id == NativeFunction::Min as u8 => {
+            let b = vm.pop(); let a = vm.pop(); vm.push(a.min(b));
+        }
+        id if id == NativeFunction::Max as u8 => {
+            let b = vm.pop(); let a = vm.pop(); vm.push(a.max(b));
+        }
+        id if id == NativeFunction::Pow as u8 => {
+            let exp = vm.pop(); let base = vm.pop();
+            let exp_int = exp >> FIXED_SHIFT;
+            let mut result = FIXED_ONE;
+            for _ in 0..exp_int.max(0) {
+                result = fixed_mul(result, base);
+            }
+            vm.push(result);
+        }
+        id if id == NativeFunction::Abs as u8 => {
+            let a = vm.pop(); vm.push(a.abs());
+        }
+        id if id == NativeFunction::Floor as u8 => {
+            let a = vm.pop(); vm.push(a & !((FIXED_ONE - 1)));
+        }
+        id if id == NativeFunction::Ceil as u8 => {
+            let a = vm.pop();
+            let frac = a & (FIXED_ONE - 1);
+            vm.push(if frac > 0 { (a & !((FIXED_ONE - 1))) + FIXED_ONE } else { a });
+        }
+        id if id == NativeFunction::Sqrt as u8 => {
+            let a = vm.pop();
+            // Simple integer sqrt approximation for fixed-point
+            let mut result = 0i32;
+            let mut bit = 1i32 << 30;
+            while bit > a {
+                bit >>= 2;
+            }
+            while bit != 0 {
+                if a >= result + bit {
+                    vm.push(result + bit);
+                    result = (result >> 1) + bit;
+                } else {
+                    result >>= 1;
+                }
+                bit >>= 2;
+            }
+            vm.push(result << (FIXED_SHIFT / 2));
+        }
+        id if id == NativeFunction::Sign as u8 => {
+            let a = vm.pop();
+            vm.push(if a > 0 { FIXED_ONE } else if a < 0 { -FIXED_ONE } else { 0 });
+        }
+        id if id == NativeFunction::Saturate as u8 => {
+            let a = vm.pop(); vm.push(a.max(0).min(FIXED_ONE));
+        }
+        id if id == NativeFunction::Step as u8 => {
+            let x = vm.pop(); let edge = vm.pop();
+            vm.push(if x < edge { 0 } else { FIXED_ONE });
+        }
+        id if id == NativeFunction::Clamp as u8 => {
+            let max = vm.pop(); let min = vm.pop(); let val = vm.pop();
+            vm.push(val.max(min).min(max));
+        }
+        id if id == NativeFunction::Lerp as u8 => {
+            let t = vm.pop(); let b = vm.pop(); let a = vm.pop();
+            vm.push(a + fixed_mul(b - a, t));
+        }
+        id if id == NativeFunction::Smoothstep as u8 => {
+            let x = vm.pop(); let edge1 = vm.pop(); let edge0 = vm.pop();
+            let t = fixed_div(x - edge0, edge1 - edge0).max(0).min(FIXED_ONE);
+            let t_sq = fixed_mul(t, t);
+            vm.push(fixed_mul(t_sq, (FIXED_ONE * 3) - (t << 1)));
+        }
+        id if id == NativeFunction::Less as u8 => {
+            let b = vm.pop(); let a = vm.pop();
+            vm.push(if a < b { FIXED_ONE } else { 0 });
+        }
+        id if id == NativeFunction::Greater as u8 => {
+            let b = vm.pop(); let a = vm.pop();
+            vm.push(if a > b { FIXED_ONE } else { 0 });
+        }
+        id if id == NativeFunction::LessEq as u8 => {
+            let b = vm.pop(); let a = vm.pop();
+            vm.push(if a <= b { FIXED_ONE } else { 0 });
+        }
+        id if id == NativeFunction::GreaterEq as u8 => {
+            let b = vm.pop(); let a = vm.pop();
+            vm.push(if a >= b { FIXED_ONE } else { 0 });
+        }
+        id if id == NativeFunction::Eq as u8 => {
+            let b = vm.pop(); let a = vm.pop();
+            vm.push(if a == b { FIXED_ONE } else { 0 });
+        }
+        id if id == NativeFunction::NotEq as u8 => {
+            let b = vm.pop(); let a = vm.pop();
+            vm.push(if a != b { FIXED_ONE } else { 0 });
+        }
+        id if id == NativeFunction::And as u8 => {
+            let b = vm.pop(); let a = vm.pop();
+            vm.push(if a != 0 && b != 0 { FIXED_ONE } else { 0 });
+        }
+        id if id == NativeFunction::Or as u8 => {
+            let b = vm.pop(); let a = vm.pop();
+            vm.push(if a != 0 || b != 0 { FIXED_ONE } else { 0 });
+        }
+        id if id == NativeFunction::Select as u8 => {
+            let f = vm.pop(); let t = vm.pop(); let c = vm.pop();
+            vm.push(if c != 0 { t } else { f });
+        }
+        _ => {} // Unknown function
+    }
+}
+
 // Linear interpolation
 #[inline(always)]
 fn lerp(t: Fixed, a: Fixed, b: Fixed) -> Fixed {
@@ -234,6 +350,9 @@ pub enum OpCode {
     Cos,
     Frac,        // Get fractional part of a number
     Perlin3(u8), // Perlin noise with N octaves (1-8)
+    
+    // Native function call (ID determines which function)
+    CallNative(u8),
 
     // Load coordinates
     Load(LoadSource),
@@ -395,6 +514,11 @@ impl<'a> VM<'a> {
                 let x = self.pop();
                 self.push(perlin3_fixed(x, y, z, *octaves));
             }
+            
+            OpCode::CallNative(func_id) => {
+                execute_native_function(*func_id, self);
+            }
+            
             OpCode::Load(source) => {
                 let value = match source {
                     LoadSource::XInt => self.x,

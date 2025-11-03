@@ -1,10 +1,11 @@
 extern crate alloc;
 use alloc::vec;
 
+use crate::expr::parse_expr;
 use crate::scene::SceneConfig;
 use crate::test_engine::{
     fixed_from_f32, BufferFormat, BufferRef, FxPipelineConfig, LoadSource, MappingConfig, OpCode,
-    Palette, PipelineStep, FIXED_ONE,
+    Palette, PipelineStep,
 };
 
 /// Create a test pattern with a rotating white line from the center
@@ -45,18 +46,8 @@ pub fn create_test_line_scene(width: usize, height: usize) -> SceneConfig {
 /// Create the standard demo scene configuration
 pub fn create_demo_scene(width: usize, height: usize) -> SceneConfig {
     // Demo program: perlin noise with 3 octaves, zoom, and cosine smoothing
-    let program = vec![
-        OpCode::Load(LoadSource::XNorm),   // Normalized x (0..1)
-        OpCode::Push(fixed_from_f32(0.3)), // Zoom factor
-        OpCode::Mul,                       // Scale x down
-        OpCode::Load(LoadSource::YNorm),   // Normalized y (0..1)
-        OpCode::Push(fixed_from_f32(0.3)), // Zoom factor
-        OpCode::Mul,                       // Scale y down
-        OpCode::Load(LoadSource::Time),    // Time (scrolls the z-axis)
-        OpCode::Perlin3(3),                // Generate perlin noise with 3 octaves
-        OpCode::Cos,                       // Apply cosine (outputs 0..1)
-        OpCode::Return,
-    ];
+    // Using the expression parser instead of manually building opcodes!
+    let program = parse_expr("cos(perlin3(xNorm*0.3, yNorm*0.3, time, 3))");
 
     // Create palette
     let palette = Palette::rainbow();

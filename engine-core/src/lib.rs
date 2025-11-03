@@ -29,3 +29,6 @@ pub mod test_scene;
 
 /// Power limiting and brightness control
 pub mod power_limit;
+
+/// Expression parser for generating VM opcodes
+pub mod expr;
