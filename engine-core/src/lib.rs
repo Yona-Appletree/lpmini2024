@@ -6,6 +6,12 @@ extern crate alloc;
 /// Shared sine lookup table to avoid duplication
 mod sin_table;
 
+/// Math utilities (fixed-point, vectors)
+pub mod math;
+
+/// Image types (grayscale, RGB)
+pub mod image;
+
 /// Stack-based VM for pixel operations (with instruction tests)
 pub mod pixel_vm;
 

@@ -1,24 +1,23 @@
 /// 2D to 1D LED mapping system
-use super::vm::{Fixed, FIXED_SHIFT, FIXED_ONE};
+use crate::math::{Vec2, Fixed, FIXED_SHIFT, FIXED_ONE};
 
 /// Single LED mapping entry with sub-pixel precision
 #[derive(Debug, Clone, Copy)]
 pub struct LedMap {
-    pub x: Fixed, // Fixed-point x coordinate (supports sub-pixel)
-    pub y: Fixed, // Fixed-point y coordinate (supports sub-pixel)
+    pub pos: Vec2,
 }
 
 impl LedMap {
     pub const fn new(x: usize, y: usize) -> Self {
-        // Center of pixel is at (x + 0.5, y + 0.5)
         LedMap {
-            x: ((x as i32) << FIXED_SHIFT) + (FIXED_ONE >> 1),
-            y: ((y as i32) << FIXED_SHIFT) + (FIXED_ONE >> 1),
+            pos: Vec2::from_pixel(x, y),
         }
     }
     
     pub fn new_fixed(x: Fixed, y: Fixed) -> Self {
-        LedMap { x, y }
+        LedMap {
+            pos: Vec2::from_fixed(x, y),
+        }
     }
 }
 
@@ -136,10 +135,10 @@ pub fn apply_2d_mapping(rgb_2d: &[u8], led_output: &mut [u8], mapping: &LedMappi
     for led_idx in 0..led_count {
         if let Some(map) = mapping.get(led_idx) {
             // Get integer and fractional parts
-            let x_int = (map.x >> FIXED_SHIFT) as usize;
-            let y_int = (map.y >> FIXED_SHIFT) as usize;
-            let x_frac = (map.x & (FIXED_ONE - 1)) as i64;
-            let y_frac = (map.y & (FIXED_ONE - 1)) as i64;
+            let x_int = (map.pos.x.0 >> FIXED_SHIFT) as usize;
+            let y_int = (map.pos.y.0 >> FIXED_SHIFT) as usize;
+            let x_frac = (map.pos.x.0 & (FIXED_ONE - 1)) as i64;
+            let y_frac = (map.pos.y.0 & (FIXED_ONE - 1)) as i64;
 
             // Bounds check for bilinear sampling
             if x_int + 1 < width && y_int + 1 < height {
@@ -180,18 +179,18 @@ mod tests {
 
         // First LED should map to (0.5, 0.5) in fixed point
         let first = mapping.get(0).unwrap();
-        assert_eq!(first.x >> FIXED_SHIFT, 0);
-        assert_eq!(first.y >> FIXED_SHIFT, 0);
+        assert_eq!(first.pos.x.0 >> FIXED_SHIFT, 0);
+        assert_eq!(first.pos.y.0 >> FIXED_SHIFT, 0);
 
         // LED 16 should map to (0.5, 1.5) - start of second row
         let row2 = mapping.get(16).unwrap();
-        assert_eq!(row2.x >> FIXED_SHIFT, 0);
-        assert_eq!(row2.y >> FIXED_SHIFT, 1);
+        assert_eq!(row2.pos.x.0 >> FIXED_SHIFT, 0);
+        assert_eq!(row2.pos.y.0 >> FIXED_SHIFT, 1);
 
         // LED 127 should map to (15.5, 7.5) - last position
         let last = mapping.get(127).unwrap();
-        assert_eq!(last.x >> FIXED_SHIFT, 15);
-        assert_eq!(last.y >> FIXED_SHIFT, 7);
+        assert_eq!(last.pos.x.0 >> FIXED_SHIFT, 15);
+        assert_eq!(last.pos.y.0 >> FIXED_SHIFT, 7);
     }
 
     #[test]
@@ -200,21 +199,21 @@ mod tests {
 
         // First row: 0-15 maps to (0.5,0.5) through (15.5,0.5)
         let first = mapping.get(0).unwrap();
-        assert_eq!(first.x >> FIXED_SHIFT, 0);
-        assert_eq!(first.y >> FIXED_SHIFT, 0);
+        assert_eq!(first.pos.x.0 >> FIXED_SHIFT, 0);
+        assert_eq!(first.pos.y.0 >> FIXED_SHIFT, 0);
 
         let end_first_row = mapping.get(15).unwrap();
-        assert_eq!(end_first_row.x >> FIXED_SHIFT, 15);
-        assert_eq!(end_first_row.y >> FIXED_SHIFT, 0);
+        assert_eq!(end_first_row.pos.x.0 >> FIXED_SHIFT, 15);
+        assert_eq!(end_first_row.pos.y.0 >> FIXED_SHIFT, 0);
 
         // Second row: 16-31 maps to (15.5,1.5) through (0.5,1.5) (reversed)
         let start_second_row = mapping.get(16).unwrap();
-        assert_eq!(start_second_row.x >> FIXED_SHIFT, 15);
-        assert_eq!(start_second_row.y >> FIXED_SHIFT, 1);
+        assert_eq!(start_second_row.pos.x.0 >> FIXED_SHIFT, 15);
+        assert_eq!(start_second_row.pos.y.0 >> FIXED_SHIFT, 1);
 
         let end_second_row = mapping.get(31).unwrap();
-        assert_eq!(end_second_row.x >> FIXED_SHIFT, 0);
-        assert_eq!(end_second_row.y >> FIXED_SHIFT, 1);
+        assert_eq!(end_second_row.pos.x.0 >> FIXED_SHIFT, 0);
+        assert_eq!(end_second_row.pos.y.0 >> FIXED_SHIFT, 1);
     }
 
     #[test]

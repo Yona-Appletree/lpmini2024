@@ -196,19 +196,17 @@ fn draw_led_debug_overlay(
     offset_y: usize,
     scale: usize,
 ) {
-    use engine_core::test_engine::{FIXED_SHIFT, fixed_to_f32};
+    use engine_core::math::fixed_to_f32;
     let mut fb = Framebuffer::new(buffer, WINDOW_WIDTH, WINDOW_HEIGHT);
 
     let circle_style_source = PrimitiveStyle::with_stroke(Rgb888::new(0, 255, 0), 2); // Green on source
-    let circle_style_dest = PrimitiveStyle::with_stroke(Rgb888::new(255, 255, 0), 2); // Yellow on dest
-    let text_style = MonoTextStyle::new(&FONT_6X10, Rgb888::new(255, 255, 255));
     let text_style_small = MonoTextStyle::new(&FONT_6X10, Rgb888::new(0, 0, 0)); // Black text on green circles
 
     for led_idx in 0..LED_COUNT {
         if let Some(map) = mapping.get(led_idx) {
             // Source position on RGB buffer (middle panel) - now with sub-pixel precision
-            let x_pixels = fixed_to_f32(map.x);
-            let y_pixels = fixed_to_f32(map.y);
+            let x_pixels = fixed_to_f32(map.pos.x.0);
+            let y_pixels = fixed_to_f32(map.pos.y.0);
             let source_x = (rgb_offset_x as f32 + x_pixels * scale as f32) as i32;
             let source_y = (offset_y as f32 + y_pixels * scale as f32) as i32;
 
