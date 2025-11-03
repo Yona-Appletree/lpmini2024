@@ -334,7 +334,7 @@ mod vm_opcode_tests {
         let input = vec![Fixed::ZERO; 16 * 16];
         let mut output = vec![Fixed::ZERO; 16 * 16];
 
-        let program = parse_expr("cos(perlin3(xNorm*0.3, yNorm*0.3, time, 3))");
+        let program = parse_expr("cos(perlin3(xNorm*0.3, yNorm*0.3, time, 3))").opcodes;
 
         println!("Parsed opcodes:");
         for (i, op) in program.iter().enumerate() {

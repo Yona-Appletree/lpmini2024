@@ -1,10 +1,11 @@
-pub mod locals;
 /// Virtual Machine for LightPlayer Script
 pub mod opcodes;
+pub mod locals;
 pub mod program;
 
 pub use locals::{LocalAccess, LocalDef, LocalType};
-pub use opcodes::OpCode;
+// Note: OpCode is NOT exported yet - we're still using test_engine::OpCode during migration
+// pub use opcodes::OpCode;
 pub use program::LpsProgram;
 
 // Note: Full VM executor implementation is ongoing.

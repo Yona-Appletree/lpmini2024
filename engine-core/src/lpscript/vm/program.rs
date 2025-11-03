@@ -4,7 +4,7 @@ use alloc::string::String;
 use alloc::vec::Vec;
 
 use super::locals::LocalDef;
-use super::opcodes::OpCode;
+use crate::test_engine::OpCode;
 use crate::lpscript::error::Span;
 
 /// A compiled LightPlayer Script program

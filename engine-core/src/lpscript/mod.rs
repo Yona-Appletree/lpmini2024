@@ -47,13 +47,28 @@ pub use vm::{LocalAccess, LocalDef, LocalType, LpsProgram};
 
 use crate::test_engine::OpCode;
 
-/// Parse an expression string and generate VM opcodes
+/// Parse an expression string and generate a compiled LPS program
 ///
 /// # Example
 /// ```
-/// let code = parse_expr("cos(perlin3(xNorm*0.3, yNorm*0.3, time, 3))");
+/// let program = parse_expr("cos(perlin3(xNorm*0.3, yNorm*0.3, time, 3))");
 /// ```
-pub fn parse_expr(input: &str) -> Vec<OpCode> {
+pub fn parse_expr(input: &str) -> LpsProgram {
+    let mut lexer = lexer::Lexer::new(input);
+    let tokens = lexer.tokenize();
+
+    let mut parser = parser::Parser::new(tokens);
+    let ast = parser.parse();
+
+    let opcodes = codegen::CodeGenerator::generate(&ast);
+    
+    LpsProgram::new("expr".into())
+        .with_opcodes(opcodes)
+        .with_source(input.into())
+}
+
+/// Legacy API: just get opcodes (for backward compatibility during migration)
+pub fn parse_expr_opcodes(input: &str) -> Vec<OpCode> {
     let mut lexer = lexer::Lexer::new(input);
     let tokens = lexer.tokenize();
 
@@ -70,14 +85,15 @@ mod tests {
 
     #[test]
     fn test_simple_number() {
-        let code = parse_expr("42");
-        assert_eq!(code.len(), 2); // Push(42), Return
-        assert!(matches!(code[0], OpCode::Push(_)));
+        let program = parse_expr("42");
+        assert_eq!(program.opcodes.len(), 2); // Push(42), Return
+        assert!(matches!(program.opcodes[0], OpCode::Push(_)));
     }
 
     #[test]
     fn test_arithmetic() {
-        let code = parse_expr("1 + 2 * 3");
+        let program = parse_expr("1 + 2 * 3");
+        let code = &program.opcodes;
         // Should respect precedence: 1 + (2 * 3)
         assert!(matches!(code[0], OpCode::Push(_)));
         assert!(matches!(code[1], OpCode::Push(_)));
@@ -88,33 +104,33 @@ mod tests {
 
     #[test]
     fn test_exponential() {
-        let code = parse_expr("2 ^ 3");
+        let code = &parse_expr("2 ^ 3").opcodes;
         assert!(matches!(code[2], OpCode::CallNative(_)));
     }
 
     #[test]
     fn test_variables() {
-        let code = parse_expr("xNorm");
+        let code = &parse_expr("xNorm").opcodes;
         assert!(matches!(code[0], OpCode::Load(LoadSource::XNorm)));
     }
 
     #[test]
     fn test_sin_function() {
-        let code = parse_expr("sin(time)");
+        let code = &parse_expr("sin(time)").opcodes;
         assert!(matches!(code[0], OpCode::Load(LoadSource::Time)));
         assert!(matches!(code[1], OpCode::Sin));
     }
 
     #[test]
     fn test_min_max() {
-        let code = parse_expr("min(xNorm, 0.5)");
+        let code = &parse_expr("min(xNorm, 0.5)").opcodes;
         assert!(matches!(code[0], OpCode::Load(LoadSource::XNorm)));
         assert!(matches!(code[2], OpCode::CallNative(_)));
     }
 
     #[test]
     fn test_ternary() {
-        let code = parse_expr("xNorm > 0.5 ? 1.0 : 0.0");
+        let code = &parse_expr("xNorm > 0.5 ? 1.0 : 0.0").opcodes;
         // Load xNorm, Push 0.5, Greater, Push 1.0, Push 0.0, Select
         assert!(matches!(code[2], OpCode::CallNative(_))); // Greater
         assert!(matches!(code.last(), Some(OpCode::Return)));
@@ -122,7 +138,7 @@ mod tests {
 
     #[test]
     fn test_complex_perlin() {
-        let code = parse_expr("cos(perlin3(xNorm*0.3, yNorm*0.3, time, 3))");
+        let code = &parse_expr("cos(perlin3(xNorm*0.3, yNorm*0.3, time, 3))").opcodes;
         assert!(matches!(code[0], OpCode::Load(LoadSource::XNorm)));
         // Should have Perlin3 and Cos
         let has_perlin = code.iter().any(|op| matches!(op, OpCode::Perlin3(_)));
@@ -133,7 +149,7 @@ mod tests {
 
     #[test]
     fn test_logical_and() {
-        let code = parse_expr("xNorm > 0.5 && yNorm < 0.5");
+        let code = &parse_expr("xNorm > 0.5 && yNorm < 0.5").opcodes;
         // Should have Greater, Less, and And
         let and_count = code
             .iter()
