@@ -23,7 +23,7 @@ const fn generate_gamma_table() -> [u8; 256] {
 }
 
 /// Configuration for power limiting
-#[derive(Clone, Copy)]
+#[derive(Debug, Clone, Copy)]
 pub struct PowerLimitConfig {
     /// Brightness multiplier in fixed-point (256 = 1.0, 128 = 0.5, etc.)
     pub brightness_256: u32,
@@ -111,6 +111,48 @@ pub fn apply_power_limit(leds: &mut [RGB8], config: &PowerLimitConfig) {
             led.r = ((led.r as u64 * scale_factor_65536) >> 16) as u8;
             led.g = ((led.g as u64 * scale_factor_65536) >> 16) as u8;
             led.b = ((led.b as u64 * scale_factor_65536) >> 16) as u8;
+        }
+    }
+}
+
+/// Apply power limiting directly to byte buffer (R,G,B,R,G,B,...)
+/// Same as apply_power_limit but works on raw bytes without allocation
+/// 
+/// # Arguments
+/// * `bytes` - Input/output LED buffer as raw RGB bytes
+/// * `config` - Power limiting configuration
+pub fn apply_power_limit_to_bytes(bytes: &mut [u8], config: &PowerLimitConfig) {
+    assert!(bytes.len() % 3 == 0, "Buffer length must be multiple of 3");
+    
+    // Step 1: Apply brightness scaling
+    for byte in bytes.iter_mut() {
+        *byte = apply_brightness(*byte, config.brightness_256);
+    }
+    
+    // Step 2: Apply gamma correction
+    for byte in bytes.iter_mut() {
+        *byte = apply_gamma(*byte);
+    }
+    
+    // Step 3: Calculate total power consumption
+    let num_leds = bytes.len() / 3;
+    let mut total_power_ma: u32 = 0;
+    for i in 0..num_leds {
+        let idx = i * 3;
+        let led = RGB8 {
+            r: bytes[idx],
+            g: bytes[idx + 1],
+            b: bytes[idx + 2],
+        };
+        total_power_ma += calculate_led_power(led, config.led_white_power_ma, config.led_idle_power_ma);
+    }
+    
+    // Step 4: If over budget, scale down using integer math
+    if total_power_ma > config.power_budget_ma {
+        let scale_factor_65536 = ((config.power_budget_ma as u64) << 16) / (total_power_ma as u64);
+        
+        for byte in bytes.iter_mut() {
+            *byte = ((*byte as u64 * scale_factor_65536) >> 16) as u8;
         }
     }
 }

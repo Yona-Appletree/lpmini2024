@@ -6,6 +6,7 @@ use crate::test_engine::{
     FxPipelineConfig, MappingConfig, LedMapping, Fixed,
     RuntimeOptions, FxPipeline, PipelineError, apply_2d_mapping,
 };
+use crate::power_limit::{PowerLimitConfig, apply_power_limit_to_bytes};
 
 /// Scene configuration (serializable, no runtime state)
 #[derive(Clone)]
@@ -39,6 +40,7 @@ pub struct SceneRuntime {
     pub width: usize,
     pub height: usize,
     rgb_bytes_buffer: Vec<u8>, // Reusable buffer for RGB conversion
+    pub power_config: PowerLimitConfig,
 }
 
 impl SceneRuntime {
@@ -57,6 +59,7 @@ impl SceneRuntime {
             width: options.width,
             height: options.height,
             rgb_bytes_buffer,
+            power_config: options.power_config,
         })
     }
     
@@ -75,6 +78,9 @@ impl SceneRuntime {
         
         // Apply 2D to 1D mapping
         apply_2d_mapping(&self.rgb_bytes_buffer, &mut self.led_output, &self.mapping, self.width, self.height);
+        
+        // Apply power limiting and brightness directly to LED output buffer
+        apply_power_limit_to_bytes(&mut self.led_output, &self.power_config);
         
         Ok(())
     }

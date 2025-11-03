@@ -4,6 +4,7 @@ use alloc::vec::Vec;
 
 use super::vm::{OpCode, Fixed};
 use super::palette::Palette;
+use crate::power_limit::PowerLimitConfig;
 
 pub mod rgb_utils;
 pub mod config;
@@ -83,11 +84,29 @@ pub enum PipelineError {
 pub struct RuntimeOptions {
     pub width: usize,
     pub height: usize,
+    pub power_config: PowerLimitConfig,
 }
 
 impl RuntimeOptions {
     pub const fn new(width: usize, height: usize) -> Self {
-        RuntimeOptions { width, height }
+        RuntimeOptions { 
+            width, 
+            height,
+            power_config: PowerLimitConfig {
+                brightness_256: 256,
+                power_budget_ma: 1000,
+                led_white_power_ma: 50,
+                led_idle_power_ma: 1,
+            }
+        }
+    }
+    
+    pub const fn with_power_config(width: usize, height: usize, power_config: PowerLimitConfig) -> Self {
+        RuntimeOptions { 
+            width, 
+            height,
+            power_config,
+        }
     }
 }
 
