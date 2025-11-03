@@ -1,14 +1,14 @@
 /// 2D to 1D LED mapping system
-use crate::math::{Vec2, Fixed, FIXED_SHIFT};
+use crate::math::{Fixed, Vec2, FIXED_SHIFT};
 
-mod grid;
-mod spiral;
 mod circular;
-mod sample;
 pub mod config;
+mod grid;
+mod sample;
+mod spiral;
 
-pub use sample::{bilinear_interp_channel, bilinear_interp_rgb, sample_rgb_bilinear};
 pub use config::MappingConfig;
+pub use sample::{bilinear_interp_channel, bilinear_interp_rgb, sample_rgb_bilinear};
 
 /// Single LED mapping entry with sub-pixel precision
 #[derive(Debug, Clone, Copy)]
@@ -22,7 +22,7 @@ impl LedMap {
             pos: Vec2::from_pixel(x, y),
         }
     }
-    
+
     pub fn new_fixed(x: i32, y: i32) -> Self {
         LedMap {
             pos: Vec2::new(Fixed(x), Fixed(y)),
@@ -56,7 +56,13 @@ impl LedMapping {
 /// * `mapping` - LED mapping configuration
 /// * `width` - Width of the 2D buffer
 /// * `height` - Height of the 2D buffer
-pub fn apply_2d_mapping(rgb_2d: &[u8], led_output: &mut [u8], mapping: &LedMapping, width: usize, height: usize) {
+pub fn apply_2d_mapping(
+    rgb_2d: &[u8],
+    led_output: &mut [u8],
+    mapping: &LedMapping,
+    width: usize,
+    height: usize,
+) {
     let led_count = led_output.len() / 3;
     #[cfg(not(feature = "use-libm"))]
     assert!(led_count <= 128, "LED count exceeds maximum of 128");
@@ -75,8 +81,8 @@ pub fn apply_2d_mapping(rgb_2d: &[u8], led_output: &mut [u8], mapping: &LedMappi
 #[cfg(all(test, not(feature = "use-libm")))]
 mod tests {
     extern crate alloc;
-    use alloc::vec;
     use super::*;
+    use alloc::vec;
 
     #[test]
     fn test_grid_mapping() {
@@ -84,18 +90,18 @@ mod tests {
 
         // First LED should map to (0.5, 0.5) in fixed point
         let first = mapping.get(0).unwrap();
-        assert_eq!(first.pos.x.0 >> FIXED_SHIFT, 0);
-        assert_eq!(first.pos.y.0 >> FIXED_SHIFT, 0);
+        assert_eq!(first.pos.x.to_i32(), 0);
+        assert_eq!(first.pos.y.to_i32(), 0);
 
         // LED 16 should map to (0.5, 1.5) - start of second row
         let row2 = mapping.get(16).unwrap();
-        assert_eq!(row2.pos.x.0 >> FIXED_SHIFT, 0);
-        assert_eq!(row2.pos.y.0 >> FIXED_SHIFT, 1);
+        assert_eq!(row2.pos.x.to_i32(), 0);
+        assert_eq!(row2.pos.y.to_i32(), 1);
 
         // LED 127 should map to (15.5, 7.5) - last position
         let last = mapping.get(127).unwrap();
-        assert_eq!(last.pos.x.0 >> FIXED_SHIFT, 15);
-        assert_eq!(last.pos.y.0 >> FIXED_SHIFT, 7);
+        assert_eq!(last.pos.x.to_i32(), 15);
+        assert_eq!(last.pos.y.to_i32(), 7);
     }
 
     #[test]
@@ -104,21 +110,21 @@ mod tests {
 
         // First row: 0-15 maps to (0.5,0.5) through (15.5,0.5)
         let first = mapping.get(0).unwrap();
-        assert_eq!(first.pos.x.0 >> FIXED_SHIFT, 0);
-        assert_eq!(first.pos.y.0 >> FIXED_SHIFT, 0);
+        assert_eq!(first.pos.x.to_i32(), 0);
+        assert_eq!(first.pos.y.to_i32(), 0);
 
         let end_first_row = mapping.get(15).unwrap();
-        assert_eq!(end_first_row.pos.x.0 >> FIXED_SHIFT, 15);
-        assert_eq!(end_first_row.pos.y.0 >> FIXED_SHIFT, 0);
+        assert_eq!(end_first_row.pos.x.to_i32(), 15);
+        assert_eq!(end_first_row.pos.y.to_i32(), 0);
 
         // Second row: 16-31 maps to (15.5,1.5) through (0.5,1.5) (reversed)
         let start_second_row = mapping.get(16).unwrap();
-        assert_eq!(start_second_row.pos.x.0 >> FIXED_SHIFT, 15);
-        assert_eq!(start_second_row.pos.y.0 >> FIXED_SHIFT, 1);
+        assert_eq!(start_second_row.pos.x.to_i32(), 15);
+        assert_eq!(start_second_row.pos.y.to_i32(), 1);
 
         let end_second_row = mapping.get(31).unwrap();
-        assert_eq!(end_second_row.pos.x.0 >> FIXED_SHIFT, 0);
-        assert_eq!(end_second_row.pos.y.0 >> FIXED_SHIFT, 1);
+        assert_eq!(end_second_row.pos.x.to_i32(), 0);
+        assert_eq!(end_second_row.pos.y.to_i32(), 1);
     }
 
     #[test]
@@ -148,4 +154,3 @@ mod tests {
         assert_eq!(led_output[led_idx + 2], 0);
     }
 }
-

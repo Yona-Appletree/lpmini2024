@@ -3,17 +3,18 @@
 /// Core type and conversion utilities for fixed-point math.
 use core::ops::{Add, Div, Mul, Neg, Sub};
 
+
 /// Fixed-point constants
-pub const SHIFT: i32 = 16;
-pub const ONE: i32 = 1 << SHIFT;
-pub const HALF: i32 = ONE / 2;
-pub const ZERO: i32 = 0;
+const SHIFT: i32 = 16;
+const ONE: i32 = 1 << SHIFT;
+const HALF: i32 = ONE / 2;
 
 /// Fixed-point number (16.16 format)
 #[derive(Copy, Clone, Debug, PartialEq, Eq, PartialOrd, Ord)]
 pub struct Fixed(pub i32);
 
 impl Fixed {
+    pub const SHIFT: i32 = SHIFT;
     pub const ZERO: Fixed = Fixed(0);
     pub const ONE: Fixed = Fixed(ONE);
     pub const HALF: Fixed = Fixed(HALF);
@@ -33,7 +34,7 @@ impl Fixed {
     /// Create a Fixed from an i32
     #[inline(always)]
     pub const fn from_i32(i: i32) -> Self {
-        Fixed(i << SHIFT)
+        Fixed(i << Self::SHIFT)
     }
 
     /// Convert to f32
@@ -71,6 +72,24 @@ impl Fixed {
     pub fn abs(self) -> Fixed {
         Fixed(self.0.abs())
     }
+
+    /// Get the fractional part (0..1)
+    #[inline(always)]
+    pub const fn frac(self) -> Fixed {
+        Fixed(self.0 & (ONE - 1))
+    }
+
+    /// Get the integer part (floor)
+    #[inline(always)]
+    pub const fn to_i32(self) -> i32 {
+        self.0 >> Self::SHIFT
+    }
+
+    /// Multiply by an integer (more efficient than converting to Fixed first)
+    #[inline(always)]
+    pub const fn mul_int(self, i: i32) -> Fixed {
+        Fixed(self.0 * i)
+    }
 }
 
 impl Add for Fixed {
@@ -93,7 +112,7 @@ impl Mul for Fixed {
     type Output = Self;
     #[inline(always)]
     fn mul(self, rhs: Self) -> Self {
-        Fixed(((self.0 as i64 * rhs.0 as i64) >> SHIFT) as i32)
+        Fixed(((self.0 as i64 * rhs.0 as i64) >> Self::SHIFT) as i32)
     }
 }
 

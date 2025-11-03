@@ -1,10 +1,10 @@
 /// LPS Program definition
 extern crate alloc;
-use alloc::vec::Vec;
 use alloc::string::String;
+use alloc::vec::Vec;
 
-use super::opcodes::OpCode;
 use super::locals::LocalDef;
+use super::opcodes::OpCode;
 use crate::lpscript::error::Span;
 
 /// A compiled LightPlayer Script program
@@ -43,4 +43,3 @@ impl LpsProgram {
         self
     }
 }
-

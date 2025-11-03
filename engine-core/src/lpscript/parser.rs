@@ -1,10 +1,11 @@
-/// Parser: converts tokens to AST
+/// Parser: converts tokens to AST with spans
 extern crate alloc;
 use alloc::vec::Vec;
 use alloc::boxed::Box;
 
-use super::lexer::Token;
-use super::ast::Expr;
+use super::lexer::{Token, TokenKind};
+use super::ast::{Expr, ExprKind};
+use crate::lpscript::error::Span;
 
 pub struct Parser {
     tokens: Vec<Token>,
@@ -34,19 +35,24 @@ impl Parser {
     fn ternary(&mut self) -> Expr {
         let mut expr = self.logical_or();
         
-        if matches!(self.current(), Token::Question) {
+        if matches!(self.current().kind, TokenKind::Question) {
+            let start = expr.span.start;
             self.advance(); // consume '?'
             let true_expr = Box::new(self.ternary());
             
-            if matches!(self.current(), Token::Colon) {
+            if matches!(self.current().kind, TokenKind::Colon) {
                 self.advance(); // consume ':'
                 let false_expr = Box::new(self.ternary());
+                let end = false_expr.span.end;
                 
-                expr = Expr::Ternary {
-                    condition: Box::new(expr),
-                    true_expr,
-                    false_expr,
-                };
+                expr = Expr::new(
+                    ExprKind::Ternary {
+                        condition: Box::new(expr),
+                        true_expr,
+                        false_expr,
+                    },
+                    Span::new(start, end),
+                );
             }
         }
         
@@ -57,10 +63,15 @@ impl Parser {
     fn logical_or(&mut self) -> Expr {
         let mut expr = self.logical_and();
         
-        while matches!(self.current(), Token::Or) {
+        while matches!(self.current().kind, TokenKind::Or) {
+            let start = expr.span.start;
             self.advance();
             let right = self.logical_and();
-            expr = Expr::Or(Box::new(expr), Box::new(right));
+            let end = right.span.end;
+            expr = Expr::new(
+                ExprKind::Or(Box::new(expr), Box::new(right)),
+                Span::new(start, end),
+            );
         }
         
         expr
@@ -70,10 +81,15 @@ impl Parser {
     fn logical_and(&mut self) -> Expr {
         let mut expr = self.comparison();
         
-        while matches!(self.current(), Token::And) {
+        while matches!(self.current().kind, TokenKind::And) {
+            let start = expr.span.start;
             self.advance();
             let right = self.comparison();
-            expr = Expr::And(Box::new(expr), Box::new(right));
+            let end = right.span.end;
+            expr = Expr::new(
+                ExprKind::And(Box::new(expr), Box::new(right)),
+                Span::new(start, end),
+            );
         }
         
         expr
@@ -84,36 +100,61 @@ impl Parser {
         let mut expr = self.additive();
         
         loop {
-            match self.current() {
-                Token::Less => {
+            let start = expr.span.start;
+            match &self.current().kind {
+                TokenKind::Less => {
                     self.advance();
                     let right = self.additive();
-                    expr = Expr::Less(Box::new(expr), Box::new(right));
+                    let end = right.span.end;
+                    expr = Expr::new(
+                        ExprKind::Less(Box::new(expr), Box::new(right)),
+                        Span::new(start, end),
+                    );
                 }
-                Token::Greater => {
+                TokenKind::Greater => {
                     self.advance();
                     let right = self.additive();
-                    expr = Expr::Greater(Box::new(expr), Box::new(right));
+                    let end = right.span.end;
+                    expr = Expr::new(
+                        ExprKind::Greater(Box::new(expr), Box::new(right)),
+                        Span::new(start, end),
+                    );
                 }
-                Token::LessEq => {
+                TokenKind::LessEq => {
                     self.advance();
                     let right = self.additive();
-                    expr = Expr::LessEq(Box::new(expr), Box::new(right));
+                    let end = right.span.end;
+                    expr = Expr::new(
+                        ExprKind::LessEq(Box::new(expr), Box::new(right)),
+                        Span::new(start, end),
+                    );
                 }
-                Token::GreaterEq => {
+                TokenKind::GreaterEq => {
                     self.advance();
                     let right = self.additive();
-                    expr = Expr::GreaterEq(Box::new(expr), Box::new(right));
+                    let end = right.span.end;
+                    expr = Expr::new(
+                        ExprKind::GreaterEq(Box::new(expr), Box::new(right)),
+                        Span::new(start, end),
+                    );
                 }
-                Token::EqEq => {
+                TokenKind::EqEq => {
                     self.advance();
                     let right = self.additive();
-                    expr = Expr::Eq(Box::new(expr), Box::new(right));
+                    let end = right.span.end;
+                    expr = Expr::new(
+                        ExprKind::Eq(Box::new(expr), Box::new(right)),
+                        Span::new(start, end),
+                    );
                 }
-                Token::NotEq => {
+                TokenKind::NotEq => {
                     self.advance();
                     let right = self.additive();
-                    expr = Expr::NotEq(Box::new(expr), Box::new(right));
+                    let end = right.span.end;
+                    expr = Expr::new(
+                        ExprKind::NotEq(Box::new(expr), Box::new(right)),
+                        Span::new(start, end),
+                    );
                 }
                 _ => break,
             }
@@ -127,16 +168,25 @@ impl Parser {
         let mut expr = self.multiplicative();
         
         loop {
-            match self.current() {
-                Token::Plus => {
+            let start = expr.span.start;
+            match &self.current().kind {
+                TokenKind::Plus => {
                     self.advance();
                     let right = self.multiplicative();
-                    expr = Expr::Add(Box::new(expr), Box::new(right));
+                    let end = right.span.end;
+                    expr = Expr::new(
+                        ExprKind::Add(Box::new(expr), Box::new(right)),
+                        Span::new(start, end),
+                    );
                 }
-                Token::Minus => {
+                TokenKind::Minus => {
                     self.advance();
                     let right = self.multiplicative();
-                    expr = Expr::Sub(Box::new(expr), Box::new(right));
+                    let end = right.span.end;
+                    expr = Expr::new(
+                        ExprKind::Sub(Box::new(expr), Box::new(right)),
+                        Span::new(start, end),
+                    );
                 }
                 _ => break,
             }
@@ -150,21 +200,34 @@ impl Parser {
         let mut expr = self.exponential();
         
         loop {
-            match self.current() {
-                Token::Star => {
+            let start = expr.span.start;
+            match &self.current().kind {
+                TokenKind::Star => {
                     self.advance();
                     let right = self.exponential();
-                    expr = Expr::Mul(Box::new(expr), Box::new(right));
+                    let end = right.span.end;
+                    expr = Expr::new(
+                        ExprKind::Mul(Box::new(expr), Box::new(right)),
+                        Span::new(start, end),
+                    );
                 }
-                Token::Slash => {
+                TokenKind::Slash => {
                     self.advance();
                     let right = self.exponential();
-                    expr = Expr::Div(Box::new(expr), Box::new(right));
+                    let end = right.span.end;
+                    expr = Expr::new(
+                        ExprKind::Div(Box::new(expr), Box::new(right)),
+                        Span::new(start, end),
+                    );
                 }
-                Token::Percent => {
+                TokenKind::Percent => {
                     self.advance();
                     let right = self.exponential();
-                    expr = Expr::Mod(Box::new(expr), Box::new(right));
+                    let end = right.span.end;
+                    expr = Expr::new(
+                        ExprKind::Mod(Box::new(expr), Box::new(right)),
+                        Span::new(start, end),
+                    );
                 }
                 _ => break,
             }
@@ -177,10 +240,15 @@ impl Parser {
     fn exponential(&mut self) -> Expr {
         let mut expr = self.primary();
         
-        if matches!(self.current(), Token::Caret) {
+        if matches!(self.current().kind, TokenKind::Caret) {
+            let start = expr.span.start;
             self.advance();
             let right = self.exponential(); // Right-associative
-            expr = Expr::Pow(Box::new(expr), Box::new(right));
+            let end = right.span.end;
+            expr = Expr::new(
+                ExprKind::Pow(Box::new(expr), Box::new(right)),
+                Span::new(start, end),
+            );
         }
         
         expr
@@ -188,48 +256,91 @@ impl Parser {
     
     // Primary: number, variable, function call, or parenthesized expression
     fn primary(&mut self) -> Expr {
-        match self.current().clone() {
-            Token::Number(n) => {
+        let token = self.current().clone();
+        
+        match &token.kind {
+            TokenKind::FloatLiteral(n) => {
                 self.advance();
-                Expr::Number(n)
+                Expr::new(ExprKind::Number(*n), token.span)
             }
-            Token::Ident(name) => {
+            TokenKind::IntLiteral(n) => {
                 self.advance();
-                if matches!(self.current(), Token::LParen) {
-                    // Function call
+                Expr::new(ExprKind::IntNumber(*n), token.span)
+            }
+            TokenKind::Ident(name) => {
+                let name = name.clone();
+                let start = token.span.start;
+                self.advance();
+                
+                if matches!(self.current().kind, TokenKind::LParen) {
+                    // Function call or vector constructor
                     self.advance(); // consume '('
                     let args = self.parse_args();
-                    if matches!(self.current(), Token::RParen) {
+                    let end = if matches!(self.current().kind, TokenKind::RParen) {
+                        let span = self.current().span;
                         self.advance(); // consume ')'
-                    }
-                    Expr::Call { name, args }
+                        span.end
+                    } else {
+                        self.current().span.end
+                    };
+                    
+                    // Check for vector constructors
+                    let kind = match name.as_str() {
+                        "vec2" if args.len() == 2 => {
+                            ExprKind::Vec2Constructor(
+                                Box::new(args[0].clone()),
+                                Box::new(args[1].clone()),
+                            )
+                        }
+                        "vec3" if args.len() == 3 => {
+                            ExprKind::Vec3Constructor(
+                                Box::new(args[0].clone()),
+                                Box::new(args[1].clone()),
+                                Box::new(args[2].clone()),
+                            )
+                        }
+                        "vec4" if args.len() == 4 => {
+                            ExprKind::Vec4Constructor(
+                                Box::new(args[0].clone()),
+                                Box::new(args[1].clone()),
+                                Box::new(args[2].clone()),
+                                Box::new(args[3].clone()),
+                            )
+                        }
+                        _ => ExprKind::Call { name, args },
+                    };
+                    
+                    Expr::new(kind, Span::new(start, end))
                 } else {
                     // Variable
-                    Expr::Variable(name)
+                    Expr::new(ExprKind::Variable(name), token.span)
                 }
             }
-            Token::LParen => {
+            TokenKind::LParen => {
                 self.advance(); // consume '('
                 let expr = self.ternary();
-                if matches!(self.current(), Token::RParen) {
+                if matches!(self.current().kind, TokenKind::RParen) {
                     self.advance(); // consume ')'
                 }
                 expr
             }
-            _ => Expr::Number(0.0), // Error fallback
+            _ => {
+                // Error fallback
+                Expr::new(ExprKind::Number(0.0), token.span)
+            }
         }
     }
     
     fn parse_args(&mut self) -> Vec<Expr> {
         let mut args = Vec::new();
         
-        if matches!(self.current(), Token::RParen) {
+        if matches!(self.current().kind, TokenKind::RParen) {
             return args;
         }
         
         loop {
             args.push(self.ternary());
-            if matches!(self.current(), Token::Comma) {
+            if matches!(self.current().kind, TokenKind::Comma) {
                 self.advance();
             } else {
                 break;
@@ -239,4 +350,3 @@ impl Parser {
         args
     }
 }
-

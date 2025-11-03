@@ -4,10 +4,33 @@ use alloc::vec::Vec;
 use alloc::string::String;
 use alloc::boxed::Box;
 
+use crate::lpscript::error::{Span, Type};
+
+/// Expression with metadata (span and optional type)
 #[derive(Debug, Clone)]
-pub enum Expr {
+pub struct Expr {
+    pub kind: ExprKind,
+    pub span: Span,
+    pub ty: Option<Type>,
+}
+
+impl Expr {
+    pub fn new(kind: ExprKind, span: Span) -> Self {
+        Expr { kind, span, ty: None }
+    }
+
+    pub fn with_type(mut self, ty: Type) -> Self {
+        self.ty = Some(ty);
+        self
+    }
+}
+
+/// Expression kinds
+#[derive(Debug, Clone)]
+pub enum ExprKind {
     // Literals
     Number(f32),
+    IntNumber(i32),
     Variable(String),
     
     // Binary operations
@@ -42,5 +65,10 @@ pub enum Expr {
         name: String,
         args: Vec<Expr>,
     },
+    
+    // Vector constructors
+    Vec2Constructor(Box<Expr>, Box<Expr>),
+    Vec3Constructor(Box<Expr>, Box<Expr>, Box<Expr>),
+    Vec4Constructor(Box<Expr>, Box<Expr>, Box<Expr>, Box<Expr>),
 }
 

@@ -1,6 +1,6 @@
-use super::conversions::ToFixed;
 /// 3D vector for fixed-point math
-use super::fixed::{Fixed, ONE as FIXED_ONE};
+use super::conversions::ToFixed;
+use super::fixed::Fixed;
 use core::ops::{Add, Div, Mul, Sub};
 
 #[derive(Copy, Clone, Debug, PartialEq)]
@@ -41,7 +41,7 @@ impl Vec3 {
 
     #[inline(always)]
     pub const fn one() -> Self {
-        Vec3::new(Fixed(FIXED_ONE), Fixed(FIXED_ONE), Fixed(FIXED_ONE))
+        Vec3::new(Fixed::ONE, Fixed::ONE, Fixed::ONE)
     }
 
     /// Dot product

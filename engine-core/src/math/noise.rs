@@ -1,5 +1,5 @@
 /// Perlin noise implementation
-use super::fixed::{Fixed, SHIFT, ONE};
+use super::fixed::Fixed;
 use super::interpolation::lerp;
 
 // Permutation table for perlin noise (standard 256-entry table)
@@ -22,12 +22,16 @@ const PERM: [u8; 256] = [
 // Fade function for perlin noise: 6t^5 - 15t^4 + 10t^3
 #[inline(always)]
 fn fade(t: Fixed) -> Fixed {
-    let t_norm = t.0 as i64;
-    let t2 = (t_norm * t_norm) >> SHIFT;
-    let t3 = (t2 * t_norm) >> SHIFT;
-    let t4 = (t3 * t_norm) >> SHIFT;
-    let t5 = (t4 * t_norm) >> SHIFT;
-    Fixed((6 * t5 - 15 * t4 + 10 * t3) as i32)
+    let t2 = t * t;
+    let t3 = t2 * t;
+    let t4 = t3 * t;
+    let t5 = t4 * t;
+
+    let six = Fixed::from_i32(6);
+    let fifteen = Fixed::from_i32(15);
+    let ten = Fixed::from_i32(10);
+
+    six * t5 - fifteen * t4 + ten * t3
 }
 
 // Gradient function - uses permutation table to get pseudo-random gradient
@@ -35,58 +39,64 @@ fn fade(t: Fixed) -> Fixed {
 fn grad(hash: u8, x: Fixed, y: Fixed, z: Fixed) -> Fixed {
     let h = hash & 15;
     let u = if h < 8 { x } else { y };
-    let v = if h < 4 { y } else if h == 12 || h == 14 { x } else { z };
+    let v = if h < 4 {
+        y
+    } else if h == 12 || h == 14 {
+        x
+    } else {
+        z
+    };
     let u_val = if (h & 1) == 0 { u } else { -u };
     let v_val = if (h & 2) == 0 { v } else { -v };
     Fixed((u_val.0 + v_val.0) >> 1)
 }
 
 /// 3D Perlin noise with multiple octaves
-/// 
+///
 /// # Arguments
 /// * `x`, `y`, `z` - 3D coordinates in fixed-point
 /// * `octaves` - Number of octaves (1-8) for fractal noise
-/// 
+///
 /// # Returns
 /// Fixed-point value in range approximately -1..1
 pub fn perlin3(x: Fixed, y: Fixed, z: Fixed, octaves: u8) -> Fixed {
     let octaves = octaves.min(8).max(1);
     let mut total = 0i64;
-    let mut amplitude = ONE as i64;
-    let mut frequency = Fixed(ONE);
-    
+    let mut amplitude = Fixed::ONE.0 as i64;
+    let mut frequency = Fixed::ONE;
+
     for _ in 0..octaves {
         let sample_x = x * frequency;
         let sample_y = y * frequency;
         let sample_z = z * frequency;
-        
+
         let noise_val = perlin3_single(sample_x, sample_y, sample_z).0 as i64;
         total += noise_val * amplitude;
-        
+
         amplitude >>= 1; // Halve amplitude for next octave
         frequency = Fixed(frequency.0 << 1);
     }
-    
-    Fixed((total >> SHIFT) as i32)
+
+    Fixed((total >> Fixed::SHIFT) as i32)
 }
 
 /// Single octave of 3D Perlin noise
 fn perlin3_single(x: Fixed, y: Fixed, z: Fixed) -> Fixed {
     // Find unit cube containing point
-    let xi = ((x.0 >> SHIFT) & 255) as usize;
-    let yi = ((y.0 >> SHIFT) & 255) as usize;
-    let zi = ((z.0 >> SHIFT) & 255) as usize;
-    
+    let xi = (x.to_i32() & 255) as usize;
+    let yi = (y.to_i32() & 255) as usize;
+    let zi = (z.to_i32() & 255) as usize;
+
     // Find relative position in cube (0..1)
-    let xf = Fixed(x.0 & (ONE - 1));
-    let yf = Fixed(y.0 & (ONE - 1));
-    let zf = Fixed(z.0 & (ONE - 1));
-    
+    let xf = x.frac();
+    let yf = y.frac();
+    let zf = z.frac();
+
     // Compute fade curves
     let u = fade(xf);
     let v = fade(yf);
     let w = fade(zf);
-    
+
     // Hash coordinates of 8 cube corners
     let p = |i: usize| PERM[i & 255] as usize;
     let aaa = p(p(p(xi) + yi) + zi);
@@ -97,44 +107,44 @@ fn perlin3_single(x: Fixed, y: Fixed, z: Fixed) -> Fixed {
     let bba = p(p(p(xi + 1) + yi + 1) + zi);
     let bab = p(p(p(xi + 1) + yi) + zi + 1);
     let bbb = p(p(p(xi + 1) + yi + 1) + zi + 1);
-    
+
     // Blend contributions from 8 corners
     let x1 = lerp(
         grad(PERM[aaa], xf, yf, zf),
         grad(PERM[baa], xf - Fixed::ONE, yf, zf),
         u,
     );
-    
+
     let x2 = lerp(
         grad(PERM[aba], xf, yf - Fixed::ONE, zf),
         grad(PERM[bba], xf - Fixed::ONE, yf - Fixed::ONE, zf),
         u,
     );
-    
+
     let y1 = lerp(x1, x2, v);
-    
+
     let x3 = lerp(
         grad(PERM[aab], xf, yf, zf - Fixed::ONE),
         grad(PERM[bab], xf - Fixed::ONE, yf, zf - Fixed::ONE),
         u,
     );
-    
+
     let x4 = lerp(
         grad(PERM[abb], xf, yf - Fixed::ONE, zf - Fixed::ONE),
         grad(PERM[bbb], xf - Fixed::ONE, yf - Fixed::ONE, zf - Fixed::ONE),
         u,
     );
-    
+
     let y2 = lerp(x3, x4, v);
-    
+
     lerp(y1, y2, w)
 }
 
 #[cfg(test)]
 mod tests {
-    use super::*;
     use super::super::conversions::ToFixed;
-    
+    use super::*;
+
     #[test]
     fn test_perlin3_basic() {
         let result = perlin3(0i32.to_fixed(), 0i32.to_fixed(), 0i32.to_fixed(), 3);
@@ -142,56 +152,77 @@ mod tests {
         println!("perlin3(0, 0, 0, 3) = {}", f);
         assert!(f >= -2.0 && f <= 2.0, "Perlin output {} out of range", f);
     }
-    
+
     #[test]
     fn test_perlin3_variation() {
         let p1 = perlin3(0.1f32.to_fixed(), 0.1f32.to_fixed(), 0i32.to_fixed(), 3);
         let p2 = perlin3(0.9f32.to_fixed(), 0.9f32.to_fixed(), 0i32.to_fixed(), 3);
         let p3 = perlin3(1.5f32.to_fixed(), 2.3f32.to_fixed(), 0.7f32.to_fixed(), 3);
         let p4 = perlin3(10.5f32.to_fixed(), 5.2f32.to_fixed(), 3.1f32.to_fixed(), 3);
-        
-        println!("p1 = {}, p2 = {}, p3 = {}, p4 = {}", 
-                 p1.to_f32(), p2.to_f32(), p3.to_f32(), p4.to_f32());
-        
+
+        println!(
+            "p1 = {}, p2 = {}, p3 = {}, p4 = {}",
+            p1.to_f32(),
+            p2.to_f32(),
+            p3.to_f32(),
+            p4.to_f32()
+        );
+
         // At least one pair should be different
         let has_variation = p1 != p2 || p2 != p3 || p3 != p4;
-        assert!(has_variation, "Perlin should produce varied output for different inputs");
+        assert!(
+            has_variation,
+            "Perlin should produce varied output for different inputs"
+        );
     }
-    
+
     #[test]
     fn test_perlin3_single_octave() {
         // Test single octave to isolate the issue
         let p = perlin3(0.5f32.to_fixed(), 0.5f32.to_fixed(), 0.5f32.to_fixed(), 1);
         let f = p.to_f32();
         println!("Single octave perlin3(0.5, 0.5, 0.5) = {}", f);
-        assert!(f.abs() > 0.001 || f == 0.0, "Perlin should produce non-zero values or be legitimately zero");
+        assert!(
+            f.abs() > 0.001 || f == 0.0,
+            "Perlin should produce non-zero values or be legitimately zero"
+        );
     }
-    
+
     #[test]
     fn test_perlin3_single_direct() {
         // Test perlin3_single directly with detailed debug
         let x = 0.5f32.to_fixed();
         let y = 0.5f32.to_fixed();
         let z = 0.5f32.to_fixed();
-        
-        println!("Input: x={}, y={}, z={}", x.to_f32(), y.to_f32(), z.to_f32());
-        
+
+        println!(
+            "Input: x={}, y={}, z={}",
+            x.to_f32(),
+            y.to_f32(),
+            z.to_f32()
+        );
+
         // Manually compute what should happen
-        let xi = ((x.0 >> SHIFT) & 255) as usize;
-        let yi = ((y.0 >> SHIFT) & 255) as usize;
-        let zi = ((z.0 >> SHIFT) & 255) as usize;
+        let xi = (x.to_i32() & 255) as usize;
+        let yi = (y.to_i32() & 255) as usize;
+        let zi = (z.to_i32() & 255) as usize;
         println!("Cube indices: xi={}, yi={}, zi={}", xi, yi, zi);
-        
-        let xf = Fixed(x.0 & (ONE - 1));
-        let yf = Fixed(y.0 & (ONE - 1));
-        let zf = Fixed(z.0 & (ONE - 1));
-        println!("Fractional: xf={}, yf={}, zf={}", xf.to_f32(), yf.to_f32(), zf.to_f32());
-        
+
+        let xf = x.frac();
+        let yf = y.frac();
+        let zf = z.frac();
+        println!(
+            "Fractional: xf={}, yf={}, zf={}",
+            xf.to_f32(),
+            yf.to_f32(),
+            zf.to_f32()
+        );
+
         let result = perlin3_single(x, y, z);
         let f = result.to_f32();
         println!("perlin3_single result = {}", f);
     }
-    
+
     #[test]
     fn test_lerp_function() {
         // Test that lerp works
@@ -203,7 +234,7 @@ mod tests {
         println!("lerp(0, 1, 0.5) = {}", f);
         assert!((f - 0.5).abs() < 0.01, "lerp should give 0.5, got {}", f);
     }
-    
+
     #[test]
     fn test_grad_function() {
         // Test that grad produces non-zero output

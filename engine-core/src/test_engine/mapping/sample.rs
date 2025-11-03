@@ -85,10 +85,10 @@ pub fn sample_rgb_bilinear(
     height: usize,
 ) -> [u8; 3] {
     // Get integer and fractional parts
-    let x_int = (x.0 >> FIXED_SHIFT) as usize;
-    let y_int = (y.0 >> FIXED_SHIFT) as usize;
-    let x_frac = Fixed(x.0 & (FIXED_ONE - 1));
-    let y_frac = Fixed(y.0 & (FIXED_ONE - 1));
+    let x_int = x.to_i32() as usize;
+    let y_int = y.to_i32() as usize;
+    let x_frac = x.frac();
+    let y_frac = y.frac();
 
     // Bounds check - must be within the image
     if x_int >= width || y_int >= height {
@@ -309,10 +309,10 @@ mod tests {
         
         // Also check their actual mapping positions for debugging
         if let core::option::Option::Some(map_81) = mapping.get(81) {
-            let x_int = (map_81.pos.x.0 >> crate::math::FIXED_SHIFT) as usize;
-            let y_int = (map_81.pos.y.0 >> crate::math::FIXED_SHIFT) as usize;
-            let x_frac = map_81.pos.x.0 & (crate::math::FIXED_ONE - 1);
-            let y_frac = map_81.pos.y.0 & (crate::math::FIXED_ONE - 1);
+            let x_int = map_81.pos.x.to_i32() as usize;
+            let y_int = map_81.pos.y.to_i32() as usize;
+            let x_frac = map_81.pos.x.frac().0;
+            let y_frac = map_81.pos.y.frac().0;
             
             // Direct sample to verify
             let direct_sample = sample_rgb_bilinear(&rgb_buffer, map_81.pos.x, map_81.pos.y, WIDTH, HEIGHT);
@@ -324,10 +324,10 @@ mod tests {
         }
         
         if let core::option::Option::Some(map_89) = mapping.get(89) {
-            let x_int = (map_89.pos.x.0 >> crate::math::FIXED_SHIFT) as usize;
-            let y_int = (map_89.pos.y.0 >> crate::math::FIXED_SHIFT) as usize;
-            let x_frac = map_89.pos.x.0 & (crate::math::FIXED_ONE - 1);
-            let y_frac = map_89.pos.y.0 & (crate::math::FIXED_ONE - 1);
+            let x_int = map_89.pos.x.to_i32() as usize;
+            let y_int = map_89.pos.y.to_i32() as usize;
+            let x_frac = map_89.pos.x.frac().0;
+            let y_frac = map_89.pos.y.frac().0;
             
             // Direct sample to verify
             let direct_sample = sample_rgb_bilinear(&rgb_buffer, map_89.pos.x, map_89.pos.y, WIDTH, HEIGHT);

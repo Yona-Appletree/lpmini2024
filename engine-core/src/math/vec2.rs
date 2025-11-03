@@ -1,6 +1,6 @@
-/// 2D vector for fixed-point coordinates
-use super::fixed::{Fixed, SHIFT};
 use super::conversions::ToFixed;
+/// 2D vector for fixed-point coordinates
+use super::fixed::Fixed;
 use core::ops::{Add, Sub};
 
 #[derive(Copy, Clone, Debug, PartialEq)]
@@ -35,17 +35,14 @@ impl Vec2 {
     #[inline(always)]
     pub const fn from_pixel(x: usize, y: usize) -> Self {
         Vec2 {
-            x: Fixed(((x as i32) << SHIFT) + (Fixed::HALF.0)),
-            y: Fixed(((y as i32) << SHIFT) + (Fixed::HALF.0)),
+            x: Fixed(((x as i32) << Fixed::SHIFT) + (Fixed::HALF.0)),
+            y: Fixed(((y as i32) << Fixed::SHIFT) + (Fixed::HALF.0)),
         }
     }
 
     #[inline(always)]
     pub fn to_int_coords(self) -> (usize, usize) {
-        (
-            (self.x.0 >> SHIFT) as usize,
-            (self.y.0 >> SHIFT) as usize,
-        )
+        (self.x.to_i32() as usize, self.y.to_i32() as usize)
     }
 }
 

@@ -1,11 +1,11 @@
 extern crate alloc;
 use alloc::vec;
 
-use crate::expr::parse_expr;
+use crate::lpscript::parse_expr;
 use crate::scene::SceneConfig;
 use crate::test_engine::{
-    BufferFormat, BufferRef, FxPipelineConfig, LoadSource, MappingConfig, OpCode,
-    Palette, PipelineStep,
+    BufferFormat, BufferRef, FxPipelineConfig, LoadSource, MappingConfig, OpCode, Palette,
+    PipelineStep,
 };
 
 /// Create a test pattern with a rotating white line from the center
@@ -87,9 +87,9 @@ pub fn create_demo_scene(width: usize, height: usize) -> SceneConfig {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::math::{Fixed, ToFixed};
     use crate::scene::SceneRuntime;
     use crate::test_engine::RuntimeOptions;
-    use crate::math::{Fixed, ToFixed};
 
     #[test]
     fn test_simple_white() {
@@ -167,7 +167,11 @@ mod tests {
         execute_program(&input, &mut output, &program, 16, 16, Fixed::ZERO);
 
         // Center row (row 7 with +0.5 offset gives Y=7.5, YNorm=7.5/15=0.5) should be white
-        assert_eq!(output[7 * 16], Fixed::ONE, "Center row (row 7) should be white");
+        assert_eq!(
+            output[7 * 16],
+            Fixed::ONE,
+            "Center row (row 7) should be white"
+        );
         // Rows far from center should be black
         assert_eq!(output[0], Fixed::ZERO, "Top row should be black");
         assert_eq!(output[15 * 16], Fixed::ZERO, "Bottom row should be black");
@@ -185,5 +189,4 @@ mod tests {
         );
         assert_eq!(output8[0], Fixed::ZERO, "Top row in 8x8 should be black");
     }
-
 }

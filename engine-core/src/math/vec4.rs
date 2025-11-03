@@ -1,6 +1,6 @@
-use super::conversions::ToFixed;
 /// 4D vector for fixed-point math (useful for RGBA colors and homogeneous coordinates)
-use super::fixed::{Fixed, ONE as FIXED_ONE};
+use super::conversions::ToFixed;
+use super::fixed::Fixed;
 use core::ops::{Add, Div, Mul, Sub};
 
 #[derive(Copy, Clone, Debug, PartialEq)]
@@ -44,12 +44,7 @@ impl Vec4 {
 
     #[inline(always)]
     pub const fn one() -> Self {
-        Vec4::new(
-            Fixed(FIXED_ONE),
-            Fixed(FIXED_ONE),
-            Fixed(FIXED_ONE),
-            Fixed(FIXED_ONE),
-        )
+        Vec4::new(Fixed::ONE, Fixed::ONE, Fixed::ONE, Fixed::ONE)
     }
 
     /// Dot product

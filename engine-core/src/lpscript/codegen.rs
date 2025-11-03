@@ -2,9 +2,9 @@
 extern crate alloc;
 use alloc::vec::Vec;
 
-use super::ast::Expr;
+use super::ast::{Expr, ExprKind};
 use crate::test_engine::{OpCode, LoadSource};
-use crate::math::ToFixed;
+use crate::math::{Fixed, ToFixed};
 
 pub struct CodeGenerator;
 
@@ -17,111 +17,114 @@ impl CodeGenerator {
     }
     
     fn gen_expr(expr: &Expr, code: &mut Vec<OpCode>) {
-        match expr {
-            Expr::Number(n) => {
+        match &expr.kind {
+            ExprKind::Number(n) => {
                 code.push(OpCode::Push((*n).to_fixed()));
             }
             
-            Expr::Variable(name) => {
+            ExprKind::IntNumber(n) => {
+                // Convert int to fixed point
+                code.push(OpCode::Push((*n).to_fixed()));
+            }
+            
+            ExprKind::Variable(name) => {
                 let source = Self::variable_to_load_source(name);
                 code.push(OpCode::Load(source));
             }
             
             // Binary operations
-            Expr::Add(left, right) => {
+            ExprKind::Add(left, right) => {
                 Self::gen_expr(left, code);
                 Self::gen_expr(right, code);
                 code.push(OpCode::Add);
             }
             
-            Expr::Sub(left, right) => {
+            ExprKind::Sub(left, right) => {
                 Self::gen_expr(left, code);
                 Self::gen_expr(right, code);
                 code.push(OpCode::Sub);
             }
             
-            Expr::Mul(left, right) => {
+            ExprKind::Mul(left, right) => {
                 Self::gen_expr(left, code);
                 Self::gen_expr(right, code);
                 code.push(OpCode::Mul);
             }
             
-            Expr::Div(left, right) => {
+            ExprKind::Div(left, right) => {
                 Self::gen_expr(left, code);
                 Self::gen_expr(right, code);
                 code.push(OpCode::Div);
             }
             
-            Expr::Mod(left, right) => {
+            ExprKind::Mod(left, right) => {
                 Self::gen_expr(left, code);
                 Self::gen_expr(right, code);
                 // Implement modulo as: a - floor(a/b) * b
-                // For now, emit placeholder - could add Mod opcode later
                 code.push(OpCode::Div);
                 code.push(OpCode::Frac);
                 Self::gen_expr(right, code);
                 code.push(OpCode::Mul);
             }
             
-            Expr::Pow(left, right) => {
+            ExprKind::Pow(left, right) => {
                 Self::gen_expr(left, code);
                 Self::gen_expr(right, code);
-                // Use native function for power
                 code.push(OpCode::CallNative(NativeFunction::Pow as u8));
             }
             
-            // Comparisons (evaluate to 0 or 1)
-            Expr::Less(left, right) => {
+            // Comparisons
+            ExprKind::Less(left, right) => {
                 Self::gen_expr(left, code);
                 Self::gen_expr(right, code);
                 code.push(OpCode::CallNative(NativeFunction::Less as u8));
             }
             
-            Expr::Greater(left, right) => {
+            ExprKind::Greater(left, right) => {
                 Self::gen_expr(left, code);
                 Self::gen_expr(right, code);
                 code.push(OpCode::CallNative(NativeFunction::Greater as u8));
             }
             
-            Expr::LessEq(left, right) => {
+            ExprKind::LessEq(left, right) => {
                 Self::gen_expr(left, code);
                 Self::gen_expr(right, code);
                 code.push(OpCode::CallNative(NativeFunction::LessEq as u8));
             }
             
-            Expr::GreaterEq(left, right) => {
+            ExprKind::GreaterEq(left, right) => {
                 Self::gen_expr(left, code);
                 Self::gen_expr(right, code);
                 code.push(OpCode::CallNative(NativeFunction::GreaterEq as u8));
             }
             
-            Expr::Eq(left, right) => {
+            ExprKind::Eq(left, right) => {
                 Self::gen_expr(left, code);
                 Self::gen_expr(right, code);
                 code.push(OpCode::CallNative(NativeFunction::Eq as u8));
             }
             
-            Expr::NotEq(left, right) => {
+            ExprKind::NotEq(left, right) => {
                 Self::gen_expr(left, code);
                 Self::gen_expr(right, code);
                 code.push(OpCode::CallNative(NativeFunction::NotEq as u8));
             }
             
             // Logical operations
-            Expr::And(left, right) => {
+            ExprKind::And(left, right) => {
                 Self::gen_expr(left, code);
                 Self::gen_expr(right, code);
                 code.push(OpCode::CallNative(NativeFunction::And as u8));
             }
             
-            Expr::Or(left, right) => {
+            ExprKind::Or(left, right) => {
                 Self::gen_expr(left, code);
                 Self::gen_expr(right, code);
                 code.push(OpCode::CallNative(NativeFunction::Or as u8));
             }
             
-            // Ternary: condition ? true_expr : false_expr
-            Expr::Ternary { condition, true_expr, false_expr } => {
+            // Ternary
+            ExprKind::Ternary { condition, true_expr, false_expr } => {
                 Self::gen_expr(condition, code);
                 Self::gen_expr(true_expr, code);
                 Self::gen_expr(false_expr, code);
@@ -129,34 +132,33 @@ impl CodeGenerator {
             }
             
             // Function calls
-            Expr::Call { name, args } => {
+            ExprKind::Call { name, args } => {
                 Self::gen_function_call(name, args, code);
+            }
+            
+            // Vector constructors - for now, just push components individually
+            ExprKind::Vec2Constructor(x, y) => {
+                Self::gen_expr(x, code);
+                Self::gen_expr(y, code);
+                // Components are now on stack
+            }
+            
+            ExprKind::Vec3Constructor(x, y, z) => {
+                Self::gen_expr(x, code);
+                Self::gen_expr(y, code);
+                Self::gen_expr(z, code);
+            }
+            
+            ExprKind::Vec4Constructor(x, y, z, w) => {
+                Self::gen_expr(x, code);
+                Self::gen_expr(y, code);
+                Self::gen_expr(z, code);
+                Self::gen_expr(w, code);
             }
         }
     }
     
     fn gen_function_call(name: &str, args: &[Expr], code: &mut Vec<OpCode>) {
-        // Special handling for perlin3 - octaves is part of the opcode, not a stack arg
-        if name == "perlin3" {
-            // Generate code for first 3 args only (x, y, z)
-            for arg in args.iter().take(3) {
-                Self::gen_expr(arg, code);
-            }
-            
-            // Extract octaves from 4th arg or use default
-            let octaves = if args.len() >= 4 {
-                if let Expr::Number(n) = &args[3] {
-                    *n as u8
-                } else {
-                    3 // Default
-                }
-            } else {
-                3 // Default
-            };
-            code.push(OpCode::Perlin3(octaves));
-            return;
-        }
-        
         // Generate code for all arguments first
         for arg in args {
             Self::gen_expr(arg, code);
@@ -167,6 +169,22 @@ impl CodeGenerator {
             "sin" => code.push(OpCode::Sin),
             "cos" => code.push(OpCode::Cos),
             "frac" => code.push(OpCode::Frac),
+            
+            "perlin3" => {
+                let octaves = if args.len() >= 4 {
+                    // Try to extract constant octaves from last arg
+                    if let ExprKind::Number(n) = &args[3].kind {
+                        *n as u8
+                    } else if let ExprKind::IntNumber(n) = &args[3].kind {
+                        *n as u8
+                    } else {
+                        3 // Default
+                    }
+                } else {
+                    3 // Default
+                };
+                code.push(OpCode::Perlin3(octaves));
+            }
             
             // Native functions - math
             "min" => code.push(OpCode::CallNative(NativeFunction::Min as u8)),
@@ -203,14 +221,6 @@ impl CodeGenerator {
 }
 
 /// Native function IDs for CallNative opcode
-/// 
-/// Common shader functions (GLSL/HLSL style):
-/// - **Math**: min, max, pow, abs, floor, ceil, sqrt, sign
-/// - **Clamping**: clamp, saturate, step
-/// - **Interpolation**: lerp/mix, smoothstep
-/// - **Comparisons**: <, >, <=, >=, ==, !=
-/// - **Logical**: &&, ||
-/// - **Ternary**: condition ? true_val : false_val
 #[repr(u8)]
 pub enum NativeFunction {
     // Math basics
@@ -221,16 +231,16 @@ pub enum NativeFunction {
     Floor = 4,
     Ceil = 5,
     Sqrt = 6,
-    Sign = 7,        // Returns -1, 0, or 1
-    Saturate = 8,    // Clamp to 0..1 (like HLSL)
-    Step = 9,        // step(edge, x) - returns 0 if x < edge, else 1
+    Sign = 7,
+    Saturate = 8,
+    Step = 9,
     
     // Utility
-    Clamp = 10,      // clamp(value, min, max)
-    Lerp = 11,       // lerp(a, b, t) aka mix in GLSL
-    Smoothstep = 12, // smoothstep(edge0, edge1, x)
+    Clamp = 10,
+    Lerp = 11,
+    Smoothstep = 12,
     
-    // Comparisons (return 0 or 1)
+    // Comparisons
     Less = 20,
     Greater = 21,
     LessEq = 22,
@@ -238,11 +248,10 @@ pub enum NativeFunction {
     Eq = 24,
     NotEq = 25,
     
-    // Logical (treat non-zero as true)
+    // Logical
     And = 30,
     Or = 31,
     
-    // Ternary select (pops: condition, true_val, false_val)
+    // Ternary select
     Select = 40,
 }
-

@@ -30,4 +30,4 @@ pub mod test_scene;
 pub mod power_limit;
 
 /// Expression parser for generating VM opcodes
-pub mod expr;
+pub mod lpscript;

@@ -61,7 +61,7 @@ fn compute_center_angle(x: i32, y: i32, width: usize, height: usize) -> i32 {
 
 /// Execute a native function call
 fn execute_native_function(func_id: u8, vm: &mut VM) {
-    use crate::expr::NativeFunction;
+    use crate::lpscript::NativeFunction;
 
     match func_id {
         id if id == NativeFunction::Min as u8 => {
@@ -77,7 +77,7 @@ fn execute_native_function(func_id: u8, vm: &mut VM) {
         id if id == NativeFunction::Pow as u8 => {
             let exp = vm.pop();
             let base = vm.pop();
-            let exp_int = exp.0 >> FIXED_SHIFT;
+            let exp_int = exp.to_i32();
             let mut result = Fixed::ONE;
             for _ in 0..exp_int.max(0) {
                 result = result * base;
@@ -90,13 +90,13 @@ fn execute_native_function(func_id: u8, vm: &mut VM) {
         }
         id if id == NativeFunction::Floor as u8 => {
             let a = vm.pop();
-            vm.push(Fixed(a.0 & !(FIXED_ONE - 1)));
+            vm.push(Fixed::from_i32(a.to_i32()));
         }
         id if id == NativeFunction::Ceil as u8 => {
             let a = vm.pop();
-            let frac = a.0 & (FIXED_ONE - 1);
-            vm.push(Fixed(if frac > 0 {
-                (a.0 & !(FIXED_ONE - 1)) + FIXED_ONE
+            let frac = a.frac();
+            vm.push(Fixed(if frac.0 > 0 {
+                Fixed::from_i32(a.to_i32()).0 + FIXED_ONE
             } else {
                 a.0
             }));
@@ -403,7 +403,7 @@ impl<'a> VM<'a> {
             OpCode::Frac => {
                 let a = self.pop();
                 // Get fractional part: keep only fractional bits
-                self.push(Fixed(a.0 & (FIXED_ONE - 1)));
+                self.push(a.frac());
             }
             OpCode::Perlin3(octaves) => {
                 let z = self.pop();
@@ -443,8 +443,8 @@ impl<'a> VM<'a> {
                     }
                     LoadSource::CenterDist => {
                         // Distance from center (0 at center, 1 at farthest corner)
-                        let center_x = (self.width as i32).to_fixed().0 >> 1;
-                        let center_y = (self.height as i32).to_fixed().0 >> 1;
+                        let center_x = Fixed::from_i32(self.width as i32 / 2).0;
+                        let center_y = Fixed::from_i32(self.height as i32 / 2).0;
                         let dx = self.x.0 - center_x;
                         let dy = self.y.0 - center_y;
 
@@ -463,8 +463,8 @@ impl<'a> VM<'a> {
                     }
                     LoadSource::CenterAngle => {
                         // Angle from center (0-1 for 0-2π, 0 = east/right)
-                        let center_x = (self.width as i32).to_fixed().0 >> 1;
-                        let center_y = (self.height as i32).to_fixed().0 >> 1;
+                        let center_x = Fixed::from_i32(self.width as i32 / 2).0;
+                        let center_y = Fixed::from_i32(self.height as i32 / 2).0;
                         let dx = self.x.0 - center_x;
                         let dy = self.y.0 - center_y;
 
@@ -508,8 +508,8 @@ impl<'a> VM<'a> {
                 self.push(value);
             }
             OpCode::LoadInput => {
-                let x_int = (self.x.0 >> FIXED_SHIFT) as usize;
-                let y_int = (self.y.0 >> FIXED_SHIFT) as usize;
+                let x_int = self.x.to_i32() as usize;
+                let y_int = self.y.to_i32() as usize;
                 let idx = y_int * self.width + x_int;
                 if idx < self.input.len() {
                     self.push(self.input[idx]);
@@ -520,8 +520,8 @@ impl<'a> VM<'a> {
             OpCode::LoadInputAt => {
                 let y = self.pop();
                 let x = self.pop();
-                let x_int = (x.0 >> FIXED_SHIFT) as usize;
-                let y_int = (y.0 >> FIXED_SHIFT) as usize;
+                let x_int = x.to_i32() as usize;
+                let y_int = y.to_i32() as usize;
                 if x_int < self.width && y_int < self.height {
                     let idx = y_int * self.width + x_int;
                     if idx < self.input.len() {

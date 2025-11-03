@@ -1,16 +1,16 @@
 /// Rounding functions for fixed-point numbers
-use super::fixed::{Fixed, ONE};
+use super::fixed::Fixed;
 
 /// Get fractional part of a fixed-point number
 #[inline(always)]
 pub fn frac(f: Fixed) -> Fixed {
-    Fixed(f.0 & (ONE - 1))
+    f.frac()
 }
 
 /// Floor (round down to integer)
 #[inline(always)]
 pub fn floor(f: Fixed) -> Fixed {
-    Fixed(f.0 & !(ONE - 1))
+    Fixed(f.0 & !(Fixed::ONE.0 - 1))
 }
 
 /// Ceiling (round up to integer)
@@ -32,8 +32,12 @@ mod tests {
     fn test_frac() {
         let f = Fixed::from_f32(1.25);
         let result = frac(f);
-        assert!((result.to_f32() - 0.25).abs() < 0.001, "Expected 0.25, got {}", result.to_f32());
-        
+        assert!(
+            (result.to_f32() - 0.25).abs() < 0.001,
+            "Expected 0.25, got {}",
+            result.to_f32()
+        );
+
         // Test with negative number
         let f_neg = Fixed::from_f32(-1.75);
         let result_neg = frac(f_neg);
@@ -45,10 +49,10 @@ mod tests {
     fn test_floor() {
         let f = Fixed::from_f32(1.7);
         assert_eq!(floor(f).to_f32(), 1.0);
-        
+
         let f2 = Fixed::from_f32(2.1);
         assert_eq!(floor(f2).to_f32(), 2.0);
-        
+
         let f3 = Fixed::from_f32(-1.7);
         assert_eq!(floor(f3).to_f32(), -2.0);
     }
@@ -57,10 +61,10 @@ mod tests {
     fn test_ceil() {
         let f = Fixed::from_f32(1.1);
         assert_eq!(ceil(f).to_f32(), 2.0);
-        
+
         let f2 = Fixed::from_f32(2.9);
         assert_eq!(ceil(f2).to_f32(), 3.0);
-        
+
         let f3 = Fixed::from_f32(3.0);
         assert_eq!(ceil(f3).to_f32(), 3.0);
     }
@@ -70,11 +74,10 @@ mod tests {
         // Test zero
         assert_eq!(floor(Fixed::ZERO).to_f32(), 0.0);
         assert_eq!(ceil(Fixed::ZERO).to_f32(), 0.0);
-        
+
         // Test exact integers
         let exact = Fixed::from_i32(5);
         assert_eq!(floor(exact).to_f32(), 5.0);
         assert_eq!(ceil(exact).to_f32(), 5.0);
     }
 }
-
