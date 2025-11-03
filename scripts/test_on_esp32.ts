@@ -12,7 +12,7 @@ console.log('Building ESP32 rust-bench...\n');
 const build = spawn('cargo', ['build', '--bin', 'rust-bench', '--release'], {
   cwd: '../fw-esp32c3',
   stdio: 'pipe',
-  env: process.env
+  env: process.env,
 });
 
 let buildOutput = '';
@@ -28,22 +28,22 @@ build.on('close', (code) => {
     console.log('\nBuild failed!');
     exit(1);
   }
-  
+
   // Build succeeded, now run
   console.log('Running on ESP32...\n');
-  
+
   const run = spawn('cargo', ['run', '--bin', 'rust-bench', '--release'], {
     cwd: '../fw-esp32c3',
     stdio: 'pipe',
-    env: process.env
+    env: process.env,
   });
-  
+
   let foundComplete = false;
-  
+
   run.stdout.on('data', (data: Buffer) => {
     const output = data.toString();
     process.stdout.write(output);
-    
+
     if (output.includes('Complete')) {
       foundComplete = true;
       setTimeout(() => {
@@ -51,23 +51,25 @@ build.on('close', (code) => {
       }, 300);
     }
   });
-  
+
   run.stderr.on('data', (data: Buffer) => {
     process.stderr.write(data);
   });
-  
+
   // Safety timeout
-  const timer = setTimeout(() => {
-    if (!foundComplete) {
-      console.log('\nTimeout reached');
-      run.kill('SIGTERM');
-    }
-  }, (timeout + 8) * 1000);
-  
+  const timer = setTimeout(
+    () => {
+      if (!foundComplete) {
+        console.log('\nTimeout reached');
+        run.kill('SIGTERM');
+      }
+    },
+    (timeout + 8) * 1000,
+  );
+
   run.on('close', () => {
     clearTimeout(timer);
     console.log('\nDone');
     exit(0);
   });
 });
-
