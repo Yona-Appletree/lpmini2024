@@ -136,3 +136,15 @@ pub fn fixed_div(a: Fixed, b: Fixed) -> Fixed {
     }
 }
 
+/// Convert an integer to fixed-point
+#[inline(always)]
+pub const fn fixed_from_int(i: i32) -> Fixed {
+    i << FIXED_SHIFT
+}
+
+/// Convert fixed-point to integer (truncates fractional part)
+#[inline(always)]
+pub const fn fixed_to_int(f: Fixed) -> i32 {
+    f >> FIXED_SHIFT
+}
+

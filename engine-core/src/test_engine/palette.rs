@@ -51,30 +51,50 @@ impl Palette {
         }
     }
 
+    /// Create a grayscale palette (black to white)
+    pub fn grayscale() -> Self {
+        let mut colors = [Rgb::new(0, 0, 0); 16];
+        for i in 0..16 {
+            let val = (i * 255 / 15) as u8;
+            colors[i] = Rgb::new(val, val, val);
+        }
+        Palette { colors }
+    }
+
     /// Get interpolated color for a value in range [0, 1] (fixed-point)
     #[inline(always)]
     pub fn get_color(&self, value: Fixed) -> Rgb {
         // Clamp value to 0..1 range
-        let clamped = value.max(0).min(FIXED_ONE);
+        let clamped = if value < 0 { 
+            0 
+        } else if value > FIXED_ONE { 
+            FIXED_ONE 
+        } else { 
+            value 
+        };
         
         // Map to palette range [0, 15]
         // value * 15.0 in fixed-point
         let scaled = ((clamped as i64 * 15) >> FIXED_SHIFT) as i32;
-        let index = scaled.min(14) as usize; // Max index is 14 for interpolation
+        let index = if scaled > 14 { 14 } else { scaled as usize }; // Max index is 14 for interpolation
         
-        // Get fractional part for interpolation
+        // Get fractional part for interpolation (0..FIXED_ONE)
         // frac = (value * 15) - floor(value * 15)
         let frac_fixed = (clamped * 15) - (index as i32 * FIXED_ONE);
-        let frac = frac_fixed as f32 / FIXED_ONE as f32;
         
-        // Interpolate between current and next color
+        // Interpolate between current and next color using fixed-point
+        // result = c1 + (c2 - c1) * frac
         let c1 = &self.colors[index];
         let c2 = &self.colors[index + 1];
         
+        let r = c1.r as i32 + (((c2.r as i32 - c1.r as i32) * frac_fixed) >> FIXED_SHIFT);
+        let g = c1.g as i32 + (((c2.g as i32 - c1.g as i32) * frac_fixed) >> FIXED_SHIFT);
+        let b = c1.b as i32 + (((c2.b as i32 - c1.b as i32) * frac_fixed) >> FIXED_SHIFT);
+        
         Rgb {
-            r: (c1.r as f32 + (c2.r as f32 - c1.r as f32) * frac) as u8,
-            g: (c1.g as f32 + (c2.g as f32 - c1.g as f32) * frac) as u8,
-            b: (c1.b as f32 + (c2.b as f32 - c1.b as f32) * frac) as u8,
+            r: r as u8,
+            g: g as u8,
+            b: b as u8,
         }
     }
 }

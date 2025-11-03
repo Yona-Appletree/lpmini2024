@@ -85,7 +85,7 @@ smart-leds = "0.4.0"
 smart-leds-trait = "0.3.1"
 
 # Engine core with test scene
-engine-core = { path = "../engine-core", features = ["use-libm"] }
+engine-core = { path = "../engine-core" }
 
 [dev-dependencies]
 embedded-test = { version = "0.6.0", features = [

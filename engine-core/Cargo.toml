@@ -5,11 +5,6 @@ edition = "2021"
 
 [dependencies]
 # Math for no_std
-libm = { version = "0.2", optional = true }
+libm = { version = "0.2" }
 fixed = { version = "1.28", default-features = false }
 smart-leds = { version = "0.4", default-features = false }
-
-[features]
-default = []
-# Use libm for sin/cos (for embedded targets without std)
-use-libm = ["libm"]

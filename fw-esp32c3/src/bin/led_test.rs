@@ -45,62 +45,42 @@ async fn main(_spawner: Spawner) {
     // Initialize WS2811 LED driver
     info!("Initializing WS2811 driver with {} LEDs", NUM_LEDS);
 
-    info!("Starting sequential LED test");
-    info!("Pattern: Red, Blue, Green, Red, Blue, Green...");
-    info!("100ms per LED");
+    info!("Starting horizontal line test");
+    info!("Hard-coded LED indices from visualizer");
 
-    let mut delay = Delay::new();
+    let delay = Delay::new();
     let mut led_buffer = alloc::vec![RGB8 { r: 0, g: 0, b: 0 }; NUM_LEDS];
-
-    delay.delay_millis(10);
 
     let _rmt_tx = rmt_ws2811_driver::rmt_ws2811_init(rmt, peripherals.GPIO4, NUM_LEDS)
         .expect("Failed to initialize WS2811 driver");
 
-    delay.delay_millis(10);
+    // Hard-coded LED indices that should form a horizontal line (from visualizer)
+    let horizontal_leds = [0, 1, 5, 9, 15, 21, 29, 47, 57, 69, 81, 97];
 
-    loop {
-        // Turn on LEDs one at a time
-        for i in 0..NUM_LEDS {
-            // Determine color based on position
-            let color = match i % 3 {
-                0 => RGB8 {
-                    r: BRIGHTNESS,
-                    g: 0,
-                    b: 0,
-                }, // Red
-                1 => RGB8 {
-                    r: 0,
-                    g: 0,
-                    b: BRIGHTNESS,
-                }, // Blue
-                2 => RGB8 {
-                    r: 0,
-                    g: BRIGHTNESS,
-                    b: 0,
-                }, // Green
-                _ => RGB8 { r: 0, g: 0, b: 0 },
+    info!("Turning on {} LEDs for horizontal line", horizontal_leds.len());
+    
+    // Set these specific LEDs to white
+    for &led_idx in horizontal_leds.iter() {
+        if led_idx < NUM_LEDS {
+            led_buffer[led_idx] = RGB8 {
+                r: BRIGHTNESS,
+                g: BRIGHTNESS,
+                b: BRIGHTNESS,
             };
-
-            // Set this LED to its color
-            led_buffer[i] = color;
-
-            // Write to LEDs
-            rmt_ws2811_driver::rmt_ws2811_wait_complete();
-
-            // Wait 100ms before next LED
-            delay.delay_millis(100);
-
-            rmt_ws2811_driver::rmt_ws2811_write(&led_buffer);
+            info!("LED {} set to white", led_idx);
         }
+    }
 
-        // Reset all LEDs to off
-        for i in 0..NUM_LEDS {
-            led_buffer[i] = RGB8 { r: 0, g: 0, b: 0 };
-        }
-        rmt_ws2811_driver::rmt_ws2811_write(&led_buffer);
-        rmt_ws2811_driver::rmt_ws2811_wait_complete();
+    // Write to LEDs
+    rmt_ws2811_driver::rmt_ws2811_write(&led_buffer);
+    rmt_ws2811_driver::rmt_ws2811_wait_complete();
+    delay.delay_micros(100);
 
-        delay.delay_millis(500);
+    info!("Horizontal line displayed - should see a straight line");
+    info!("Holding pattern forever...");
+
+    // Hold the pattern forever
+    loop {
+        delay.delay_millis(1000);
     }
 }

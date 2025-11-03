@@ -9,7 +9,9 @@ use embedded_graphics::{
 };
 use engine_core::test_engine::fixed_to_f32;
 use engine_core::test_scene::{render_test_scene, SceneData, WIDTH, HEIGHT};
-use engine_core::test_engine::{fixed_from_f32, LedMapping};
+use engine_core::test_engine::{fixed_from_f32, LedMapping, RuntimeOptions};
+use engine_core::demo_program::create_test_line_scene;
+use engine_core::scene::SceneRuntime;
 use minifb::{Key, Window, WindowOptions};
 
 const SCALE: usize = 16;
@@ -31,7 +33,12 @@ fn main() {
 
     window.set_target_fps(60);
     
-    let mut scene = SceneData::new();
+    // Create test line scene
+    let config = create_test_line_scene(WIDTH, HEIGHT);
+    let options = RuntimeOptions::new(WIDTH, HEIGHT);
+    let runtime = SceneRuntime::new(config, options).expect("Valid scene config");
+    let mut scene = SceneData::from_runtime(runtime);
+    
     let mut frame_count = 0u32;
     let mut buffer: Vec<u32> = vec![0; WINDOW_WIDTH * WINDOW_HEIGHT];
     

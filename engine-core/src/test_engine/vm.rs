@@ -52,7 +52,7 @@ fn fixed_div(a: Fixed, b: Fixed) -> Fixed {
 /// Input: 0..1 represents 0..2π
 /// Output: 0..1 represents -1..1 mapped to 0..1
 #[inline(always)]
-fn sin_fixed(x: Fixed) -> Fixed {
+pub fn sin_fixed(x: Fixed) -> Fixed {
     // Map 0..1 input to 0..255 table index
     let index = ((x as i64 * 256) >> FIXED_SHIFT) as usize & 0xFF;
     let sin_val = SIN_TABLE[index];
@@ -66,7 +66,7 @@ fn sin_fixed(x: Fixed) -> Fixed {
 /// Input: 0..1 represents 0..2π
 /// Output: 0..1 represents -1..1 mapped to 0..1
 #[inline(always)]
-fn cos_fixed(x: Fixed) -> Fixed {
+pub fn cos_fixed(x: Fixed) -> Fixed {
     // cos(x) = sin(x + 0.25) where 0.25 represents π/2 in 0..1 range
     const QUARTER: Fixed = FIXED_ONE / 4;
     sin_fixed(x + QUARTER)

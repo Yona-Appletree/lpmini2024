@@ -14,9 +14,9 @@ pub enum MappingConfig {
     },
     CircularPanel {
         ring_counts: alloc::vec::Vec<usize>,
-        center_x: f32,
-        center_y: f32,
-        max_radius: f32,
+        center_x: usize,
+        center_y: usize,
+        max_radius: usize,
     },
     CircularPanel7Ring {
         width: usize,

@@ -22,6 +22,11 @@ impl SceneData {
         SceneData { runtime }
     }
 
+    /// Create from an existing SceneRuntime
+    pub fn from_runtime(runtime: SceneRuntime) -> Self {
+        SceneData { runtime }
+    }
+
     /// Get the LED count
     pub fn led_count(&self) -> usize {
         self.runtime.led_count()

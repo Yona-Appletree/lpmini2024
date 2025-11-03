@@ -20,10 +20,10 @@ use panic_rtt_target as _;
 use smart_leds::RGB8;
 
 // Engine imports
-use engine_core::demo_program::create_demo_scene;
+use engine_core::demo_program::{create_demo_scene, create_test_line_scene};
 use engine_core::power_limit::{apply_power_limit, PowerLimitConfig};
 use engine_core::scene::SceneRuntime;
-use engine_core::test_engine::{fixed_from_f32, RuntimeOptions};
+use engine_core::test_engine::{RuntimeOptions, FIXED_ONE};
 
 // This creates a default app-descriptor required by the esp-idf bootloader.
 // For more information see: <https://docs.espressif.com/projects/esp-idf/en/stable/esp32/api-reference/system/app_image_format.html#application-description>
@@ -50,9 +50,9 @@ async fn main(spawner: Spawner) {
 
     info!("Embassy initialized!");
 
-    // Create the engine scene
-    info!("Creating {}x{} scene...", WIDTH, HEIGHT);
-    let scene_config = create_demo_scene(WIDTH, HEIGHT);
+    // Create the engine scene with test pattern
+    info!("Creating {}x{} test line scene...", WIDTH, HEIGHT);
+    let scene_config = create_test_line_scene(WIDTH, HEIGHT);
     let num_leds = scene_config.led_count();
     let options = RuntimeOptions::new(WIDTH, HEIGHT);
     let mut scene = SceneRuntime::new(scene_config, options).expect("Failed to create scene");
@@ -98,7 +98,8 @@ async fn main(spawner: Spawner) {
         // Calculate time in fixed-point (seconds since start) with speed adjustment
         let elapsed_ms = frame_start.duration_since(start_time).as_millis() as u32;
         let adjusted_ms = (elapsed_ms * TIME_SPEED_256) / 256;
-        let time = fixed_from_f32((adjusted_ms as f32) / 1000.0);
+        // Convert ms to seconds in fixed-point: (ms * FIXED_ONE) / 1000
+        let time = ((adjusted_ms as i64 * FIXED_ONE as i64) / 1000) as i32;
 
         // Render the scene (outputs to scene.led_output)
         scene.render(time, 1).expect("Render failed");
