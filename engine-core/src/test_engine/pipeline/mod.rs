@@ -2,7 +2,8 @@
 extern crate alloc;
 use alloc::vec::Vec;
 
-use super::vm::{OpCode, Fixed};
+use super::vm::OpCode;
+use crate::math::Fixed;
 use super::palette::Palette;
 use crate::power_limit::PowerLimitConfig;
 

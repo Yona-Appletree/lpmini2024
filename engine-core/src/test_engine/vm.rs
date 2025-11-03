@@ -1,106 +1,76 @@
-use crate::math::fixed_from_int;
 /// Stack-based VM for pixel operations using fixed-point arithmetic
-use crate::sin_table::SIN_TABLE_I32 as SIN_TABLE;
+use crate::math::{self, Fixed, FIXED_ONE, FIXED_SHIFT};
 
-// Permutation table for perlin noise (standard 256-entry table)
-const PERM: [u8; 256] = [
-    151, 160, 137, 91, 90, 15, 131, 13, 201, 95, 96, 53, 194, 233, 7, 225, 140, 36, 103, 30, 69,
-    142, 8, 99, 37, 240, 21, 10, 23, 190, 6, 148, 247, 120, 234, 75, 0, 26, 197, 62, 94, 252, 219,
-    203, 117, 35, 11, 32, 57, 177, 33, 88, 237, 149, 56, 87, 174, 20, 125, 136, 171, 168, 68, 175,
-    74, 165, 71, 134, 139, 48, 27, 166, 77, 146, 158, 231, 83, 111, 229, 122, 60, 211, 133, 230,
-    220, 105, 92, 41, 55, 46, 245, 40, 244, 102, 143, 54, 65, 25, 63, 161, 1, 216, 80, 73, 209, 76,
-    132, 187, 208, 89, 18, 169, 200, 196, 135, 130, 116, 188, 159, 86, 164, 100, 109, 198, 173,
-    186, 3, 64, 52, 217, 226, 250, 124, 123, 5, 202, 38, 147, 118, 126, 255, 82, 85, 212, 207, 206,
-    59, 227, 47, 16, 58, 17, 182, 189, 28, 42, 223, 183, 170, 213, 119, 248, 152, 2, 44, 154, 163,
-    70, 221, 153, 101, 155, 167, 43, 172, 9, 129, 22, 39, 253, 19, 98, 108, 110, 79, 113, 224, 232,
-    178, 185, 112, 104, 218, 246, 97, 228, 251, 34, 242, 193, 238, 210, 144, 12, 191, 179, 162,
-    241, 81, 51, 145, 235, 249, 14, 239, 107, 49, 192, 214, 31, 181, 199, 106, 157, 184, 84, 204,
-    176, 115, 121, 50, 45, 127, 4, 150, 254, 138, 236, 205, 93, 222, 114, 67, 29, 24, 72, 243, 141,
-    128, 195, 78, 66, 215, 61, 156, 180,
-];
+// Re-export for backward compatibility
+pub use crate::math::fixed_from_f32;
+pub use crate::math::fixed_from_int;
+pub use crate::math::fixed_to_f32;
 
-// Fixed-point format: 16.16 (16 bits integer, 16 bits fractional)
-pub type Fixed = i32;
+/// Compute angle from center (0..1 for 0..2π)
+fn compute_center_angle(x: Fixed, y: Fixed, width: usize, height: usize) -> Fixed {
+    let center_x = math::fixed::div(
+        math::fixed::from_int(width as i32),
+        math::fixed::from_int(2),
+    );
+    let center_y = math::fixed::div(
+        math::fixed::from_int(height as i32),
+        math::fixed::from_int(2),
+    );
+    let dx = x - center_x;
+    let dy = y - center_y;
 
-pub const FIXED_SHIFT: i32 = 16;
-pub const FIXED_ONE: Fixed = 1 << FIXED_SHIFT;
+    if dx == 0 && dy == 0 {
+        return 0; // Center has no angle
+    }
 
-/// Convert f32 to fixed-point
-#[inline(always)]
-pub fn fixed_from_f32(f: f32) -> Fixed {
-    (f * FIXED_ONE as f32) as Fixed
-}
+    // Approximate atan2 using octants
+    let abs_dx = dx.abs();
+    let abs_dy = dy.abs();
 
-/// Convert fixed-point to f32 (for testing/debugging)
-#[inline(always)]
-pub fn fixed_to_f32(f: Fixed) -> f32 {
-    f as f32 / FIXED_ONE as f32
-}
+    let angle = if abs_dx > abs_dy {
+        // Closer to horizontal
+        let ratio = math::fixed::div(abs_dy, abs_dx);
+        math::fixed::div(ratio, math::fixed::from_int(8)) // Scale to ~0..0.125
+    } else if abs_dy > 0 {
+        // Closer to vertical
+        let ratio = math::fixed::div(abs_dx, abs_dy);
+        math::fixed::div(FIXED_ONE, math::fixed::from_int(4))
+            - math::fixed::div(ratio, math::fixed::from_int(8))
+    } else {
+        0
+    };
 
-/// Fixed-point multiplication
-#[inline(always)]
-fn fixed_mul(a: Fixed, b: Fixed) -> Fixed {
-    ((a as i64 * b as i64) >> FIXED_SHIFT) as Fixed
-}
-
-/// Fixed-point division
-#[inline(always)]
-fn fixed_div(a: Fixed, b: Fixed) -> Fixed {
-    ((a as i64 * FIXED_ONE as i64) / b as i64) as Fixed
-}
-
-/// Fast sine using lookup table
-/// Input: 0..1 represents 0..2π
-/// Output: 0..1 represents -1..1 mapped to 0..1
-#[inline(always)]
-pub fn sin_fixed(x: Fixed) -> Fixed {
-    // Map 0..1 input to 0..255 table index
-    let index = ((x as i64 * 256) >> FIXED_SHIFT) as usize & 0xFF;
-    let sin_val = SIN_TABLE[index];
-
-    // Map -1..1 to 0..1
-    // result = (sin_val + 1) / 2
-    (sin_val + FIXED_ONE) >> 1
-}
-
-/// Fast cosine using lookup table
-/// Input: 0..1 represents 0..2π
-/// Output: 0..1 represents -1..1 mapped to 0..1
-#[inline(always)]
-pub fn cos_fixed(x: Fixed) -> Fixed {
-    // cos(x) = sin(x + 0.25) where 0.25 represents π/2 in 0..1 range
-    const QUARTER: Fixed = FIXED_ONE / 4;
-    sin_fixed(x + QUARTER)
-}
-
-// Fade function for perlin noise: 6t^5 - 15t^4 + 10t^3
-#[inline(always)]
-fn fade(t: Fixed) -> Fixed {
-    // Convert to 0..1 range for calculation
-    let t_norm = t as i64;
-    let t2 = (t_norm * t_norm) >> FIXED_SHIFT;
-    let t3 = (t2 * t_norm) >> FIXED_SHIFT;
-    let t4 = (t3 * t_norm) >> FIXED_SHIFT;
-    let t5 = (t4 * t_norm) >> FIXED_SHIFT;
-
-    let result = (6 * t5 - 15 * t4 + 10 * t3) as i32;
-    result
+    // Adjust based on quadrant
+    if dx >= 0 && dy >= 0 {
+        angle // Q1: 0 to 0.25
+    } else if dx < 0 && dy >= 0 {
+        math::fixed::div(FIXED_ONE, math::fixed::from_int(2)) - angle // Q2: 0.25 to 0.5
+    } else if dx < 0 && dy < 0 {
+        math::fixed::div(FIXED_ONE, math::fixed::from_int(2)) + angle // Q3: 0.5 to 0.75
+    } else {
+        FIXED_ONE - angle // Q4: 0.75 to 1.0
+    }
 }
 
 /// Execute a native function call
 fn execute_native_function(func_id: u8, vm: &mut VM) {
-    use crate::math::{fixed_div, fixed_mul};
     use crate::expr::NativeFunction;
-    
+    use crate::math::fixed::{div as fixed_div, mul as fixed_mul};
+
     match func_id {
         id if id == NativeFunction::Min as u8 => {
-            let b = vm.pop(); let a = vm.pop(); vm.push(a.min(b));
+            let b = vm.pop();
+            let a = vm.pop();
+            vm.push(a.min(b));
         }
         id if id == NativeFunction::Max as u8 => {
-            let b = vm.pop(); let a = vm.pop(); vm.push(a.max(b));
+            let b = vm.pop();
+            let a = vm.pop();
+            vm.push(a.max(b));
         }
         id if id == NativeFunction::Pow as u8 => {
-            let exp = vm.pop(); let base = vm.pop();
+            let exp = vm.pop();
+            let base = vm.pop();
             let exp_int = exp >> FIXED_SHIFT;
             let mut result = FIXED_ONE;
             for _ in 0..exp_int.max(0) {
@@ -109,15 +79,21 @@ fn execute_native_function(func_id: u8, vm: &mut VM) {
             vm.push(result);
         }
         id if id == NativeFunction::Abs as u8 => {
-            let a = vm.pop(); vm.push(a.abs());
+            let a = vm.pop();
+            vm.push(a.abs());
         }
         id if id == NativeFunction::Floor as u8 => {
-            let a = vm.pop(); vm.push(a & !((FIXED_ONE - 1)));
+            let a = vm.pop();
+            vm.push(a & !(FIXED_ONE - 1));
         }
         id if id == NativeFunction::Ceil as u8 => {
             let a = vm.pop();
             let frac = a & (FIXED_ONE - 1);
-            vm.push(if frac > 0 { (a & !((FIXED_ONE - 1))) + FIXED_ONE } else { a });
+            vm.push(if frac > 0 {
+                (a & !(FIXED_ONE - 1)) + FIXED_ONE
+            } else {
+                a
+            });
         }
         id if id == NativeFunction::Sqrt as u8 => {
             let a = vm.pop();
@@ -140,181 +116,91 @@ fn execute_native_function(func_id: u8, vm: &mut VM) {
         }
         id if id == NativeFunction::Sign as u8 => {
             let a = vm.pop();
-            vm.push(if a > 0 { FIXED_ONE } else if a < 0 { -FIXED_ONE } else { 0 });
+            vm.push(if a > 0 {
+                FIXED_ONE
+            } else if a < 0 {
+                -FIXED_ONE
+            } else {
+                0
+            });
         }
         id if id == NativeFunction::Saturate as u8 => {
-            let a = vm.pop(); vm.push(a.max(0).min(FIXED_ONE));
+            let a = vm.pop();
+            vm.push(a.max(0).min(FIXED_ONE));
         }
         id if id == NativeFunction::Step as u8 => {
-            let x = vm.pop(); let edge = vm.pop();
+            let x = vm.pop();
+            let edge = vm.pop();
             vm.push(if x < edge { 0 } else { FIXED_ONE });
         }
         id if id == NativeFunction::Clamp as u8 => {
-            let max = vm.pop(); let min = vm.pop(); let val = vm.pop();
+            let max = vm.pop();
+            let min = vm.pop();
+            let val = vm.pop();
             vm.push(val.max(min).min(max));
         }
         id if id == NativeFunction::Lerp as u8 => {
-            let t = vm.pop(); let b = vm.pop(); let a = vm.pop();
+            let t = vm.pop();
+            let b = vm.pop();
+            let a = vm.pop();
             vm.push(a + fixed_mul(b - a, t));
         }
         id if id == NativeFunction::Smoothstep as u8 => {
-            let x = vm.pop(); let edge1 = vm.pop(); let edge0 = vm.pop();
+            let x = vm.pop();
+            let edge1 = vm.pop();
+            let edge0 = vm.pop();
             let t = fixed_div(x - edge0, edge1 - edge0).max(0).min(FIXED_ONE);
             let t_sq = fixed_mul(t, t);
             vm.push(fixed_mul(t_sq, (FIXED_ONE * 3) - (t << 1)));
         }
         id if id == NativeFunction::Less as u8 => {
-            let b = vm.pop(); let a = vm.pop();
+            let b = vm.pop();
+            let a = vm.pop();
             vm.push(if a < b { FIXED_ONE } else { 0 });
         }
         id if id == NativeFunction::Greater as u8 => {
-            let b = vm.pop(); let a = vm.pop();
+            let b = vm.pop();
+            let a = vm.pop();
             vm.push(if a > b { FIXED_ONE } else { 0 });
         }
         id if id == NativeFunction::LessEq as u8 => {
-            let b = vm.pop(); let a = vm.pop();
+            let b = vm.pop();
+            let a = vm.pop();
             vm.push(if a <= b { FIXED_ONE } else { 0 });
         }
         id if id == NativeFunction::GreaterEq as u8 => {
-            let b = vm.pop(); let a = vm.pop();
+            let b = vm.pop();
+            let a = vm.pop();
             vm.push(if a >= b { FIXED_ONE } else { 0 });
         }
         id if id == NativeFunction::Eq as u8 => {
-            let b = vm.pop(); let a = vm.pop();
+            let b = vm.pop();
+            let a = vm.pop();
             vm.push(if a == b { FIXED_ONE } else { 0 });
         }
         id if id == NativeFunction::NotEq as u8 => {
-            let b = vm.pop(); let a = vm.pop();
+            let b = vm.pop();
+            let a = vm.pop();
             vm.push(if a != b { FIXED_ONE } else { 0 });
         }
         id if id == NativeFunction::And as u8 => {
-            let b = vm.pop(); let a = vm.pop();
+            let b = vm.pop();
+            let a = vm.pop();
             vm.push(if a != 0 && b != 0 { FIXED_ONE } else { 0 });
         }
         id if id == NativeFunction::Or as u8 => {
-            let b = vm.pop(); let a = vm.pop();
+            let b = vm.pop();
+            let a = vm.pop();
             vm.push(if a != 0 || b != 0 { FIXED_ONE } else { 0 });
         }
         id if id == NativeFunction::Select as u8 => {
-            let f = vm.pop(); let t = vm.pop(); let c = vm.pop();
+            let f = vm.pop();
+            let t = vm.pop();
+            let c = vm.pop();
             vm.push(if c != 0 { t } else { f });
         }
         _ => {} // Unknown function
     }
-}
-
-// Linear interpolation
-#[inline(always)]
-fn lerp(t: Fixed, a: Fixed, b: Fixed) -> Fixed {
-    a + fixed_mul(t, b - a)
-}
-
-// Gradient function - uses permutation table to get pseudo-random gradient
-#[inline(always)]
-fn grad(hash: u8, x: Fixed, y: Fixed, z: Fixed) -> Fixed {
-    let h = hash & 15;
-    // Convert hash to one of 12 gradient directions
-    let u = if h < 8 { x } else { y };
-    let v = if h < 4 {
-        y
-    } else if h == 12 || h == 14 {
-        x
-    } else {
-        z
-    };
-    (if h & 1 == 0 { u } else { -u }) + (if h & 2 == 0 { v } else { -v })
-}
-
-/// Single octave of Perlin3 noise
-#[inline(always)]
-fn perlin3_octave(x: Fixed, y: Fixed, z: Fixed) -> Fixed {
-    // Get integer parts
-    let xi = ((x >> FIXED_SHIFT) & 0xFF) as usize;
-    let yi = ((y >> FIXED_SHIFT) & 0xFF) as usize;
-    let zi = ((z >> FIXED_SHIFT) & 0xFF) as usize;
-
-    // Get fractional parts (0..1 in fixed point)
-    let xf = x & (FIXED_ONE - 1);
-    let yf = y & (FIXED_ONE - 1);
-    let zf = z & (FIXED_ONE - 1);
-
-    // Fade curves
-    let u = fade(xf);
-    let v = fade(yf);
-    let w = fade(zf);
-
-    // Hash coordinates of 8 cube corners
-    let p = &PERM;
-    let a = p[xi] as usize;
-    let aa = p[(a + yi) & 0xFF] as usize;
-    let ab = p[(a + yi + 1) & 0xFF] as usize;
-    let b = p[(xi + 1) & 0xFF] as usize;
-    let ba = p[(b + yi) & 0xFF] as usize;
-    let bb = p[(b + yi + 1) & 0xFF] as usize;
-
-    // Blend results from 8 corners
-    let x1 = lerp(
-        u,
-        grad(p[(aa + zi) & 0xFF], xf, yf, zf),
-        grad(p[(ba + zi) & 0xFF], xf - FIXED_ONE, yf, zf),
-    );
-    let x2 = lerp(
-        u,
-        grad(p[(ab + zi) & 0xFF], xf, yf - FIXED_ONE, zf),
-        grad(p[(bb + zi) & 0xFF], xf - FIXED_ONE, yf - FIXED_ONE, zf),
-    );
-    let y1 = lerp(v, x1, x2);
-
-    let x3 = lerp(
-        u,
-        grad(p[(aa + zi + 1) & 0xFF], xf, yf, zf - FIXED_ONE),
-        grad(p[(ba + zi + 1) & 0xFF], xf - FIXED_ONE, yf, zf - FIXED_ONE),
-    );
-    let x4 = lerp(
-        u,
-        grad(p[(ab + zi + 1) & 0xFF], xf, yf - FIXED_ONE, zf - FIXED_ONE),
-        grad(
-            p[(bb + zi + 1) & 0xFF],
-            xf - FIXED_ONE,
-            yf - FIXED_ONE,
-            zf - FIXED_ONE,
-        ),
-    );
-    let y2 = lerp(v, x3, x4);
-
-    let result = lerp(w, y1, y2);
-
-    // Output is roughly -0.7..0.7, leave as-is for octave mixing
-    result
-}
-
-/// Fractal Perlin3 noise with multiple octaves
-/// More octaves = more detail but slower
-/// Returns value in 0..1 range
-#[inline(always)]
-fn perlin3_fixed(x: Fixed, y: Fixed, z: Fixed, octaves: u8) -> Fixed {
-    let octaves = octaves.min(8).max(1);
-    let mut total = 0i64;
-    let mut amplitude = FIXED_ONE as i64;
-    let mut max_value = 0i64;
-    let mut frequency = FIXED_ONE;
-
-    for _ in 0..octaves {
-        let sample = perlin3_octave(
-            fixed_mul(x, frequency),
-            fixed_mul(y, frequency),
-            fixed_mul(z, frequency),
-        );
-        total += (sample as i64 * amplitude) >> FIXED_SHIFT;
-        max_value += amplitude;
-        amplitude >>= 1; // Halve amplitude each octave
-        frequency <<= 1; // Double frequency each octave
-    }
-
-    // Normalize to 0..1
-    let normalized = ((total << FIXED_SHIFT) / max_value) as i32;
-    let shifted = normalized + (FIXED_ONE >> 1);
-    shifted.max(0).min(FIXED_ONE)
 }
 
 /// Load source specifier
@@ -350,7 +236,7 @@ pub enum OpCode {
     Cos,
     Frac,        // Get fractional part of a number
     Perlin3(u8), // Perlin noise with N octaves (1-8)
-    
+
     // Native function call (ID determines which function)
     CallNative(u8),
 
@@ -484,24 +370,28 @@ impl<'a> VM<'a> {
             OpCode::Mul => {
                 let b = self.pop();
                 let a = self.pop();
-                self.push(fixed_mul(a, b));
+                self.push(math::fixed::mul(a, b));
             }
             OpCode::Div => {
                 let b = self.pop();
                 let a = self.pop();
                 if b != 0 {
-                    self.push(fixed_div(a, b));
+                    self.push(math::fixed::div(a, b));
                 } else {
                     self.push(0);
                 }
             }
             OpCode::Sin => {
                 let a = self.pop();
-                self.push(sin_fixed(a));
+                let sin_val = math::trig::sin(a);
+                // Map -1..1 to 0..1 for consistency with rest of system
+                self.push((sin_val + FIXED_ONE) >> 1);
             }
             OpCode::Cos => {
                 let a = self.pop();
-                self.push(cos_fixed(a));
+                let cos_val = math::trig::cos(a);
+                // Map -1..1 to 0..1 for consistency with rest of system
+                self.push((cos_val + FIXED_ONE) >> 1);
             }
             OpCode::Frac => {
                 let a = self.pop();
@@ -512,13 +402,13 @@ impl<'a> VM<'a> {
                 let z = self.pop();
                 let y = self.pop();
                 let x = self.pop();
-                self.push(perlin3_fixed(x, y, z, *octaves));
+                self.push(math::noise::perlin3(x, y, z, *octaves));
             }
-            
+
             OpCode::CallNative(func_id) => {
                 execute_native_function(*func_id, self);
             }
-            
+
             OpCode::Load(source) => {
                 let value = match source {
                     LoadSource::XInt => self.x,
@@ -526,7 +416,7 @@ impl<'a> VM<'a> {
                     LoadSource::XNorm => {
                         // Normalize to 0..1 range
                         if self.width > 0 {
-                            fixed_div(self.x, ((self.width - 1) as i32) << FIXED_SHIFT)
+                            math::fixed::div(self.x, ((self.width - 1) as i32) << FIXED_SHIFT)
                         } else {
                             0
                         }
@@ -534,7 +424,7 @@ impl<'a> VM<'a> {
                     LoadSource::YNorm => {
                         // Normalize to 0..1 range
                         if self.height > 0 {
-                            fixed_div(self.y, ((self.height - 1) as i32) << FIXED_SHIFT)
+                            math::fixed::div(self.y, ((self.height - 1) as i32) << FIXED_SHIFT)
                         } else {
                             0
                         }

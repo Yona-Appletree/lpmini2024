@@ -113,7 +113,7 @@ mod tests {
         let code = parse_expr("xNorm > 0.5 ? 1.0 : 0.0");
         // Load xNorm, Push 0.5, Greater, Push 1.0, Push 0.0, Select
         assert!(matches!(code[2], OpCode::CallNative(_))); // Greater
-        assert!(matches!(code.last(), OpCode::Return));
+        assert!(matches!(code.last(), Some(OpCode::Return)));
     }
     
     #[test]

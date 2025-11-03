@@ -1,5 +1,5 @@
 /// Palette-based RGB conversion
-use super::vm::{Fixed, FIXED_SHIFT, FIXED_ONE};
+use crate::math::{Fixed, FIXED_SHIFT, FIXED_ONE};
 
 /// RGB color representation
 #[derive(Debug, Clone, Copy)]

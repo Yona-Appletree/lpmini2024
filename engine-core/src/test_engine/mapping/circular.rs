@@ -1,7 +1,7 @@
 /// Circular panel LED mappings (concentric rings)
 use super::{LedMap, LedMapping};
 use crate::math::{Fixed, FIXED_ONE, FIXED_SHIFT, fixed_from_int};
-use crate::test_engine::vm::{sin_fixed, cos_fixed};
+use crate::math::trig::{sin, cos};
 use core::cmp::max;
 
 impl LedMapping {
@@ -46,8 +46,8 @@ impl LedMapping {
                 let angle_fixed = (i as i32 * FIXED_ONE) / led_count as i32;
                 
                 // Use fixed-point sin/cos (they return 0..1, we need -1..1)
-                let cos_val = cos_fixed(angle_fixed);
-                let sin_val = sin_fixed(angle_fixed);
+                let cos_val = cos(angle_fixed);
+                let sin_val = sin(angle_fixed);
                 
                 // Map from 0..1 to -1..1: (val * 2) - 1
                 let cos_centered = (cos_val << 1) - FIXED_ONE;

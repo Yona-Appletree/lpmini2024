@@ -11,8 +11,16 @@ pub mod palette;
 pub mod mapping;
 pub mod pipeline;
 
+#[cfg(test)]
+mod vm_tests;
+#[cfg(test)]
+mod mapping_tests;
+#[cfg(test)]
+mod pipeline_tests;
+
 // Re-export commonly used items
-pub use vm::{OpCode, LoadSource, Fixed, FIXED_SHIFT, FIXED_ONE, fixed_from_f32, fixed_to_f32, execute_program};
+pub use vm::{OpCode, LoadSource, execute_program};
+pub use crate::math::{Fixed, FIXED_SHIFT, FIXED_ONE, fixed_from_f32, fixed_to_f32, fixed_from_int};
 pub use palette::{Palette, rgb_buffer_from_greyscale};
 pub use mapping::{LedMapping, MappingConfig, apply_2d_mapping};
 pub use pipeline::{FxPipeline, FxPipelineConfig, BufferFormat, BufferRef, PipelineStep, PipelineError, RuntimeOptions};

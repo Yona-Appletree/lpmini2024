@@ -1,7 +1,7 @@
 /// Spiral LED mappings
 use super::{LedMap, LedMapping};
 use crate::math::{fixed_from_int, Fixed, FIXED_ONE, FIXED_SHIFT};
-use crate::test_engine::vm::{cos_fixed, sin_fixed};
+use crate::math::trig::{sin, cos};
 use core::cmp::{max, min};
 
 impl LedMapping {
@@ -41,8 +41,8 @@ impl LedMapping {
             let angle_fixed = arm_angle + spiral_angle;
 
             // Use fixed-point sin/cos (they return 0..1, we need -1..1)
-            let cos_val = cos_fixed(angle_fixed);
-            let sin_val = sin_fixed(angle_fixed);
+            let cos_val = cos(angle_fixed);
+            let sin_val = sin(angle_fixed);
 
             // Map from 0..1 to -1..1: (val * 2) - 1
             let cos_centered = (cos_val << 1) - FIXED_ONE;

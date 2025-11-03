@@ -156,8 +156,8 @@ impl CodeGenerator {
             "perlin3" => {
                 let octaves = if args.len() >= 4 {
                     // Try to extract constant octaves from last arg
-                    if let Expr::Number(n) = args[3] {
-                        n as u8
+                    if let Expr::Number(n) = &args[3] {
+                        *n as u8
                     } else {
                         3 // Default
                     }

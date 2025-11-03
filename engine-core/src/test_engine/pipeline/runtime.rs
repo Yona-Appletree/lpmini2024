@@ -5,7 +5,8 @@ use alloc::vec::Vec;
 use super::{Buffer, BufferFormat, PipelineStep, PipelineError, RuntimeOptions, BufferRef};
 use super::rgb_utils::{grey_to_i32, i32_to_grey, pack_rgb};
 use super::config::FxPipelineConfig;
-use super::super::vm::{Fixed, OpCode, execute_program};
+use super::super::vm::{OpCode, execute_program};
+use crate::math::Fixed;
 use super::super::palette::Palette;
 
 /// Runtime pipeline state

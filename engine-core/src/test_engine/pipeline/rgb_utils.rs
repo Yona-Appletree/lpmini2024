@@ -1,5 +1,5 @@
 /// RGB packing/unpacking utilities for 32-bit buffers
-use super::super::vm::{Fixed, FIXED_SHIFT, FIXED_ONE};
+use crate::math::{Fixed, FIXED_SHIFT, FIXED_ONE};
 use core::cmp::{max, min};
 
 /// Pack RGB into 0x00RRGGBB format

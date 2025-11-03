@@ -1,6 +1,5 @@
 #![cfg_attr(not(test), no_std)]
 
-#[cfg(all(not(test), not(feature = "use-libm")))]
 extern crate alloc;
 
 /// Shared sine lookup table to avoid duplication
