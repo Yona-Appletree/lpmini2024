@@ -11,7 +11,8 @@ use smart_leds::hsv::hsv2rgb;
 use smart_leds::RGB8;
 
 // Configuration constants
-const NUM_LEDS: usize = 250; // Total number of LEDs in the strip
+const MAX_LEDS: usize = 250; // Maximum number of LEDs supported
+static mut ACTUAL_NUM_LEDS: usize = 128; // Actual number of LEDs (set at init)
 
 // Buffer size for 8 LEDs worth of data (double buffered)
 // Using memsize(4) = 192 words. 8 LEDs = 192 words exactly, 4 LEDs per half
@@ -23,7 +24,7 @@ const BUFFER_SIZE: usize = BUFFER_LEDS * BITS_PER_LED;
 
 // Global state for interrupt handling
 static mut RMT_BUFFER: [u32; BUFFER_SIZE] = [0; BUFFER_SIZE];
-static mut LED_DATA_BUFFER: [RGB8; NUM_LEDS] = [RGB8 { r: 0, g: 0, b: 0 }; NUM_LEDS];
+static mut LED_DATA_BUFFER: [RGB8; MAX_LEDS] = [RGB8 { r: 0, g: 0, b: 0 }; MAX_LEDS];
 static mut FRAME_COUNTER: usize = 0;
 static mut LED_COUNTER: usize = 0; // Track current LED position in the strip
 static mut INTERRUPT_ENABLED: bool = false;
@@ -91,16 +92,16 @@ unsafe fn write_ws2811_byte(base_ptr: *mut u32, byte_value: u8, byte_offset: usi
     ptr.add(7).write_volatile(bit_pulse(0x01));
 }
 
-// Generate rainbow pattern for LED buffer
-fn generate_rainbow_pattern(buffer: &mut [RGB8; NUM_LEDS], frame_offset: u8) {
+// Generate rainbow pattern for LED buffer (test pattern)
+fn generate_rainbow_pattern(buffer: &mut [RGB8], num_leds: usize, frame_offset: u8) {
     let mut hsv = smart_leds::hsv::Hsv {
         hue: 0,
         sat: 255,
         val: 5,
     };
 
-    for (i, led) in buffer.iter_mut().enumerate() {
-        hsv.hue = (((i as u32 * 255 / NUM_LEDS as u32) + frame_offset as u32) % 255) as u8;
+    for (i, led) in buffer.iter_mut().enumerate().take(num_leds) {
+        hsv.hue = (((i as u32 * 255 / num_leds as u32) + frame_offset as u32) % 255) as u8;
         *led = hsv2rgb(hsv);
     }
 }
@@ -261,7 +262,7 @@ unsafe fn write_half_buffer(is_first_half: bool) -> bool {
     for i in 0..HALF_BUFFER_LEDS {
         let led_ptr = half_ptr.add(i * BITS_PER_LED);
 
-        if LED_COUNTER >= NUM_LEDS {
+        if LED_COUNTER >= ACTUAL_NUM_LEDS {
             // Fill the rest of the buffer segment with zero
             for j in 0..BITS_PER_LED * (HALF_BUFFER_LEDS - i) {
                 led_ptr.add(j).write_volatile(0);
@@ -285,13 +286,27 @@ unsafe fn write_half_buffer(is_first_half: bool) -> bool {
     return false;
 }
 
-pub fn rmt_interrupt_demo<'d, O>(
+/// Initialize the WS2811/WS2812 LED driver
+/// 
+/// # Arguments
+/// * `rmt` - RMT peripheral
+/// * `pin` - GPIO pin for LED data output
+/// * `num_leds` - Number of LEDs in the strip (max 250)
+/// 
+/// # Returns
+/// Transaction handle that must be kept alive
+pub fn rmt_ws2811_init<'d, O>(
     mut rmt: esp_hal::rmt::Rmt<'d, Blocking>,
     pin: O,
-) -> Result<(), RmtError>
+    num_leds: usize,
+) -> Result<impl core::marker::Sized + 'd, RmtError>
 where
     O: PeripheralOutput<'d>,
 {
+    unsafe {
+        ACTUAL_NUM_LEDS = num_leds.min(MAX_LEDS);
+    }
+
     // Set up the interrupt handler with max priority
     let handler = InterruptHandler::new(rmt_interrupt_handler, Priority::max());
     rmt.set_interrupt_handler(handler);
@@ -305,45 +320,32 @@ where
     //       working.
     //
     let dummy_buffer = [pulseCode(Level::Low, 1, Level::Low, 1)];
-    let _transaction = channel.transmit_continuously(&dummy_buffer)?;
+    let transaction = channel.transmit_continuously(&dummy_buffer)?;
 
-    // Start the initial transmission
+    Ok(transaction)
+}
+
+/// Write LED data and start transmission
+/// 
+/// # Arguments
+/// * `led_data` - RGB data for LEDs (must be at least num_leds length)
+pub fn rmt_ws2811_write(led_data: &[RGB8]) {
     unsafe {
-        // Initialize LED data buffer with rainbow pattern
-        generate_rainbow_pattern(&mut LED_DATA_BUFFER, 0);
+        // Copy LED data into internal buffer
+        let num_to_copy = led_data.len().min(ACTUAL_NUM_LEDS);
+        LED_DATA_BUFFER[..num_to_copy].copy_from_slice(&led_data[..num_to_copy]);
+        
+        // Start transmission
         start_transmission();
     }
+}
 
-    // Frame-based transmission loop
-    loop {
-        // Wait for current frame to complete
-        unsafe {
-            while !is_frame_complete() {
-                // Small delay to avoid busy waiting
-                esp_hal::delay::Delay::new().delay_micros(10);
-            }
-
-            // Frame is complete - update LED data for next frame
-            generate_rainbow_pattern(&mut LED_DATA_BUFFER, FRAME_COUNTER as u8);
-
-            // Start transmission of the new frame
-            start_transmission();
-
-            if FRAME_COUNTER % 20 == 0 {
-                // Every 20 frames (1 second at 20 FPS)
-                let avg_bytes_per_frame = if RMT_STATS_COUNT > 0 {
-                    RMT_STATS_SUM / RMT_STATS_COUNT
-                } else {
-                    0
-                };
-                RMT_STATS_SUM = 0;
-                RMT_STATS_COUNT = 0;
-
-                info!(
-                    "Frame: {}; avg_bytes_per_frame: {}",
-                    FRAME_COUNTER, avg_bytes_per_frame
-                );
-            }
+/// Wait for the current frame transmission to complete
+pub fn rmt_ws2811_wait_complete() {
+    unsafe {
+        while !is_frame_complete() {
+            // Small delay to avoid busy waiting
+            esp_hal::delay::Delay::new().delay_micros(10);
         }
     }
 }

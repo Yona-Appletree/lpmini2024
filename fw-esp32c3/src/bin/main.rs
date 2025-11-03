@@ -18,7 +18,7 @@ use esp_hal::rmt::{PulseCode, Rmt};
 use esp_hal::time::Rate;
 use esp_hal::timer::systimer::SystemTimer;
 use esp_hal::timer::timg::TimerGroup;
-use fw_esp32c3::rmt_interrupt_demo;
+use fw_esp32c3::rmt_ws2811_driver;
 use panic_rtt_target as _;
 use smart_leds::hsv::{hsv2rgb, Hsv};
 use smart_leds::{brightness, gamma, SmartLedsWriteAsync, RGB8};
@@ -59,13 +59,45 @@ async fn main(spawner: Spawner) {
     }
     .expect("Failed to initialize RMT");
 
-    // Demo: Use interrupt-driven continuous RMT transmission
-    info!("Starting RMT interrupt demo...");
-    rmt_interrupt_demo::rmt_interrupt_demo(rmt, peripherals.GPIO4)
-        .expect("Failed to start RMT interrupt demo");
+    // Initialize WS2811 LED driver
+    info!("Initializing WS2811 driver with {} LEDs...", NUM_LEDS);
+    let _rmt_tx = rmt_ws2811_driver::rmt_ws2811_init(rmt, peripherals.GPIO4, NUM_LEDS)
+        .expect("Failed to initialize WS2811 driver");
 
-    // The demo function runs in an infinite loop, so this should never be reached
-    info!("RMT demo ended unexpectedly");
+    info!("WS2811 driver initialized, starting LED loop");
+
+    // Create simple test pattern
+    let mut led_buffer = [RGB8 { r: 0, g: 0, b: 0 }; NUM_LEDS];
+    let mut frame_counter = 0u32;
+
+    loop {
+        // Generate rainbow pattern
+        let mut hsv = smart_leds::hsv::Hsv {
+            hue: 0,
+            sat: 255,
+            val: 5,
+        };
+
+        for (i, led) in led_buffer.iter_mut().enumerate() {
+            hsv.hue = (((i as u32 * 255 / NUM_LEDS as u32) + frame_counter) % 255) as u8;
+            *led = hsv2rgb(hsv);
+        }
+
+        // Write to LEDs
+        rmt_ws2811_driver::rmt_ws2811_write(&led_buffer);
+        
+        // Wait for transmission to complete
+        rmt_ws2811_driver::rmt_ws2811_wait_complete();
+
+        frame_counter = frame_counter.wrapping_add(1);
+
+        if frame_counter % 20 == 0 {
+            info!("Frame: {}", frame_counter);
+        }
+
+        // Small delay between frames
+        Timer::after(Duration::from_millis(50)).await;
+    }
 
     // for inspiration have a look at the examples at https://github.com/esp-rs/esp-hal/tree/esp-hal-v1.0.0-rc.0/examples/src/bin
 }
