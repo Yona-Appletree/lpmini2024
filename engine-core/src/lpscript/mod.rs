@@ -40,6 +40,7 @@ mod ast;
 mod codegen;
 mod lexer;
 mod parser;
+mod typechecker;
 
 pub use codegen::NativeFunction;
 pub use error::{CompileError, RuntimeError, Span, Type};
