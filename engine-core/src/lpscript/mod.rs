@@ -44,7 +44,7 @@ mod typechecker;
 
 pub use codegen::NativeFunction;
 pub use error::{CompileError, RuntimeError, RuntimeErrorWithContext, Span, Type};
-pub use vm::{LocalAccess, LocalDef, LocalType, LpsProgram};
+pub use vm::{LocalAccess, LocalDef, LocalType, LpsProgram, LpsVm};
 
 use crate::test_engine::OpCode;
 
