@@ -1,7 +1,7 @@
-use super::conversions::ToFixed;
 /// 2D vector for fixed-point coordinates
+use super::conversions::ToFixed;
 use super::fixed::Fixed;
-use core::ops::{Add, Sub};
+use core::ops::{Add, Sub, Mul, Div};
 
 #[derive(Copy, Clone, Debug, PartialEq)]
 pub struct Vec2 {
@@ -59,5 +59,23 @@ impl Sub for Vec2 {
     #[inline(always)]
     fn sub(self, rhs: Self) -> Self {
         Vec2::new(self.x - rhs.x, self.y - rhs.y)
+    }
+}
+
+// Vector * Scalar
+impl Mul<Fixed> for Vec2 {
+    type Output = Self;
+    #[inline(always)]
+    fn mul(self, rhs: Fixed) -> Self {
+        Vec2::new(self.x * rhs, self.y * rhs)
+    }
+}
+
+// Vector / Scalar
+impl Div<Fixed> for Vec2 {
+    type Output = Self;
+    #[inline(always)]
+    fn div(self, rhs: Fixed) -> Self {
+        Vec2::new(self.x / rhs, self.y / rhs)
     }
 }

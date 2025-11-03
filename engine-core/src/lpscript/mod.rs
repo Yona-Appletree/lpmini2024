@@ -43,7 +43,7 @@ mod parser;
 mod typechecker;
 
 pub use codegen::NativeFunction;
-pub use error::{CompileError, RuntimeError, Span, Type};
+pub use error::{CompileError, RuntimeError, RuntimeErrorWithContext, Span, Type};
 pub use vm::{LocalAccess, LocalDef, LocalType, LpsProgram};
 
 use crate::test_engine::OpCode;

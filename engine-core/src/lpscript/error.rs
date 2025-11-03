@@ -191,14 +191,8 @@ impl fmt::Display for CodegenError {
 /// Runtime errors (VM execution)
 #[derive(Debug)]
 pub enum RuntimeError {
-    StackUnderflow {
-        pc: usize,
-        opcode: String,
-    },
-    StackOverflow {
-        pc: usize,
-        opcode: String,
-    },
+    StackUnderflow { required: usize, actual: usize },
+    StackOverflow { sp: usize },
     LocalTypeMismatch {
         local_idx: usize,
         local_name: String,
@@ -209,9 +203,7 @@ pub enum RuntimeError {
         local_idx: usize,
         max: usize,
     },
-    DivisionByZero {
-        pc: usize,
-    },
+    DivisionByZero,
     InvalidTextureCoords {
         u: i32,
         v: i32,
@@ -223,14 +215,33 @@ pub enum RuntimeError {
     },
 }
 
+impl RuntimeError {
+    /// Add execution context (PC, opcode name) to the error
+    pub fn with_context(self, pc: usize, opcode: &'static str) -> RuntimeErrorWithContext {
+        RuntimeErrorWithContext {
+            error: self,
+            pc,
+            opcode,
+        }
+    }
+}
+
+/// Runtime error with execution context
+#[derive(Debug)]
+pub struct RuntimeErrorWithContext {
+    pub error: RuntimeError,
+    pub pc: usize,
+    pub opcode: &'static str,
+}
+
 impl fmt::Display for RuntimeError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            RuntimeError::StackUnderflow { pc, opcode } => {
-                write!(f, "Stack underflow at PC {}: {}", pc, opcode)
+            RuntimeError::StackUnderflow { required, actual } => {
+                write!(f, "Stack underflow: need {} items, have {}", required, actual)
             }
-            RuntimeError::StackOverflow { pc, opcode } => {
-                write!(f, "Stack overflow at PC {}: {}", pc, opcode)
+            RuntimeError::StackOverflow { sp } => {
+                write!(f, "Stack overflow at sp={}", sp)
             }
             RuntimeError::LocalTypeMismatch {
                 local_idx,
@@ -247,8 +258,8 @@ impl fmt::Display for RuntimeError {
             RuntimeError::LocalOutOfBounds { local_idx, max } => {
                 write!(f, "Local index {} out of bounds (max {})", local_idx, max)
             }
-            RuntimeError::DivisionByZero { pc } => {
-                write!(f, "Division by zero at PC {}", pc)
+            RuntimeError::DivisionByZero => {
+                write!(f, "Division by zero")
             }
             RuntimeError::InvalidTextureCoords { u, v, texture_idx } => {
                 write!(
@@ -265,6 +276,12 @@ impl fmt::Display for RuntimeError {
                 )
             }
         }
+    }
+}
+
+impl fmt::Display for RuntimeErrorWithContext {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "Runtime error at PC {} ({}): {}", self.pc, self.opcode, self.error)
     }
 }
 

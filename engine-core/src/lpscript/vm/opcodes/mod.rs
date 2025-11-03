@@ -5,6 +5,11 @@
 use crate::math::Fixed;
 use crate::test_engine::LoadSource;
 
+pub mod fixed;
+pub mod vec2;
+pub mod stack;
+pub mod control;
+
 /// New typed OpCode enum (not yet in use - will replace test_engine::OpCode during migration)
 #[derive(Debug, Clone, Copy, PartialEq)]
 #[allow(dead_code)]
