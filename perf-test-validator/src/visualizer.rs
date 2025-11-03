@@ -45,18 +45,18 @@ fn main() {
     let palette = Palette::rainbow();
     let mapping = LedMapping::spiral_3arm(); // Using 3-arm spiral!
 
-    // Sliding horizontal gradient: (x + time) % 1.0
-    // This creates a gradient that slides to the left over time
+    // Perlin noise scrolling through time (z-axis)
+    // Scale down x,y by 0.3 to zoom in and make it smoother
     let program = vec![
-        OpCode::Load(LoadSource::XNorm),    // Load normalized X (0..1)
-        OpCode::Load(LoadSource::TimeNorm), // Load normalized time (wraps 0..1)
-        OpCode::Add,                        // x + time (may exceed 1.0)
-        // Wrap to 0..1 by taking fractional part
-        OpCode::Dup,                       // duplicate value
-        OpCode::Push(fixed_from_f32(1.0)), // push 1.0
-        OpCode::JumpLt(2),                 // if < 1.0, skip subtraction
-        OpCode::Push(fixed_from_f32(1.0)), // push 1.0
-        OpCode::Sub,                       // subtract 1.0 to wrap
+        OpCode::Load(LoadSource::XNorm),   // Normalized x (0..1)
+        OpCode::Push(fixed_from_f32(0.3)), // Zoom factor
+        OpCode::Mul,                       // Scale x down
+        OpCode::Load(LoadSource::YNorm),   // Normalized y (0..1)
+        OpCode::Push(fixed_from_f32(0.3)), // Zoom factor
+        OpCode::Mul,                       // Scale y down
+        OpCode::Load(LoadSource::Time),    // Time (scrolls the z-axis)
+        OpCode::Perlin3,                   // Generate perlin noise
+        OpCode::Cos,                       // Apply cosine (already normalized 0..1)
         OpCode::Return,
     ];
 

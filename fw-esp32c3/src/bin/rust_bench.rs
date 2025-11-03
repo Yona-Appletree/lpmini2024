@@ -10,7 +10,9 @@ use embassy_time::Instant;
 use esp_hal::clock::CpuClock;
 use esp_hal::timer::systimer::SystemTimer;
 use panic_rtt_target as _;
-use perf_tests_common::pixel_vm::{self, OpCode, FIXED_SHIFT};
+use perf_tests_common::test_engine::{
+    fixed_from_f32, render_frame, LedMapping, LoadSource, OpCode, Palette,
+};
 use perf_tests_common::RenderFn;
 
 // This creates a default app-descriptor required by the esp-idf bootloader.
@@ -48,35 +50,34 @@ async fn run_test(name: &str, render_fn: RenderFn, buffer: &mut [u8]) {
     );
 }
 
-/// Run a pixel VM performance test
-async fn run_pixel_vm_test(name: &str) {
-    const VM_WIDTH: usize = 16;
-    const VM_HEIGHT: usize = 16;
-    const VM_SIZE: usize = VM_WIDTH * VM_HEIGHT;
+/// Run test engine performance test (full pipeline)
+async fn run_test_engine(name: &str) {
+    const WIDTH: usize = 16;
+    const HEIGHT: usize = 16;
+    const BUFFER_SIZE: usize = WIDTH * HEIGHT;
+    const LED_COUNT: usize = 128;
 
-    // Create buffers (grayscale, fixed-point) using alloc
-    let input = vec![0i32; VM_SIZE];
-    let mut output = vec![0i32; VM_SIZE];
+    // Create all buffers
+    let mut greyscale_buffer = vec![0i32; BUFFER_SIZE];
+    let input_buffer = vec![0i32; BUFFER_SIZE];
+    let mut rgb_2d_buffer = vec![0u8; BUFFER_SIZE * 3];
+    let mut led_output = vec![0u8; LED_COUNT * 3];
 
-    // Example program:
-    // v = perlin3(x, y, time)
-    // v = cos(v)
-    // v = v < 0.5 ? 0 : 1
-    // return v
+    // Create palette and mapping
+    let palette = Palette::rainbow();
+    let mapping = LedMapping::spiral_3arm();
+
+    // Same program as visualizer
     let program = vec![
-        // v = perlin3(x, y, time)
-        OpCode::LoadX,
-        OpCode::LoadY,
-        OpCode::LoadTime,
+        OpCode::Load(LoadSource::XNorm),
+        OpCode::Push(fixed_from_f32(0.3)),
+        OpCode::Mul,
+        OpCode::Load(LoadSource::YNorm),
+        OpCode::Push(fixed_from_f32(0.3)),
+        OpCode::Mul,
+        OpCode::Load(LoadSource::Time),
         OpCode::Perlin3,
-        // v = cos(v)
         OpCode::Cos,
-        // v = v < 0.5 ? 0 : 1
-        OpCode::Push(1 << (FIXED_SHIFT - 1)), // 0.5 in fixed-point
-        OpCode::JumpLt(3),                    // if v < 0.5, jump to push 0
-        OpCode::Push(1 << FIXED_SHIFT),       // push 1
-        OpCode::Return,
-        OpCode::Push(0), // push 0
         OpCode::Return,
     ];
 
@@ -87,8 +88,21 @@ async fn run_pixel_vm_test(name: &str) {
     // Run for 1 second
     while test_start.elapsed().as_millis() < TEST_DURATION_MS {
         let frame_start = Instant::now();
-        let time = pixel_vm::fixed_from_f32(frame_count as f32 * 0.016);
-        pixel_vm::execute_program(&input, &mut output, &program, VM_WIDTH, VM_HEIGHT, time);
+        let time = fixed_from_f32(frame_count as f32 * 0.01);
+        
+        render_frame(
+            &mut greyscale_buffer,
+            &input_buffer,
+            &mut rgb_2d_buffer,
+            &mut led_output,
+            &program,
+            &palette,
+            &mapping,
+            WIDTH,
+            HEIGHT,
+            time,
+        );
+        
         let frame_elapsed = frame_start.elapsed();
         total_us += frame_elapsed.as_micros();
         frame_count += 1;
@@ -153,7 +167,7 @@ async fn main(_spawner: embassy_executor::Spawner) {
     info!("Test 2 complete, waiting...");
     embassy_time::Timer::after(embassy_time::Duration::from_millis(500)).await;
 
-    run_pixel_vm_test("pixel_vm (16x16 grayscale)").await;
+    run_test_engine("test_engine (16x16->128 LEDs)").await;
 
     info!("");
 
