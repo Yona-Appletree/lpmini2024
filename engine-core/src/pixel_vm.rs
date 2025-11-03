@@ -89,7 +89,7 @@ pub enum OpCode {
     // Math functions
     Sin,
     Cos,
-    Perlin3,
+    Perlin3(u8), // Perlin noise with N octaves
 
     // Load coordinates
     LoadX,
@@ -229,11 +229,28 @@ impl<'a> VM<'a> {
                 let a = self.pop();
                 self.push(cos_fixed(a));
             }
-            OpCode::Perlin3 => {
+            OpCode::Perlin3(_octaves) => {
                 let z = self.pop();
                 let y = self.pop();
                 let x = self.pop();
-                self.push(perlin3_fixed(x, y, z));
+                // Use simple sin/cos based noise for legacy compatibility
+                let freq1 = FIXED_ONE;
+                let freq2 = FIXED_ONE * 2;
+                let freq3 = FIXED_ONE * 4;
+
+                let n1 = fixed_mul(
+                    sin_fixed(fixed_mul(x, freq1) + z),
+                    cos_fixed(fixed_mul(y, freq1)),
+                );
+                let n2 = fixed_mul(
+                    sin_fixed(fixed_mul(x, freq2) - z),
+                    cos_fixed(fixed_mul(y, freq2)),
+                ) / 2;
+                let n3 = sin_fixed(fixed_mul(x, freq3) + y + z) / 4;
+
+                let sum = n1 + n2 + n3;
+                let result = fixed_mul(sum, 37450);
+                self.push(result);
             }
             OpCode::LoadX => {
                 self.push(self.x);
@@ -676,7 +693,7 @@ mod tests {
             OpCode::LoadX,
             OpCode::LoadY,
             OpCode::Push(0),
-            OpCode::Perlin3,
+            OpCode::Perlin3(1),
             OpCode::Return,
         ];
 
@@ -739,7 +756,7 @@ mod tests {
             OpCode::LoadX,
             OpCode::LoadY,
             OpCode::LoadTime,
-            OpCode::Perlin3,
+            OpCode::Perlin3(1),
             OpCode::Cos,
             OpCode::Push(1 << (FIXED_SHIFT - 1)), // 0.5
             OpCode::JumpLt(3),                    // if v < 0.5, jump to Push(0)

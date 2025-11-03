@@ -32,7 +32,7 @@ impl SceneData {
         let palette = Palette::rainbow();
         let mapping = LedMapping::spiral_3arm();
 
-        // Test program: perlin noise with zoom and cosine smoothing
+        // Test program: perlin noise with 3 octaves, zoom, and cosine smoothing
         let program = vec![
             OpCode::Load(LoadSource::XNorm),   // Normalized x (0..1)
             OpCode::Push(fixed_from_f32(0.3)), // Zoom factor
@@ -41,7 +41,7 @@ impl SceneData {
             OpCode::Push(fixed_from_f32(0.3)), // Zoom factor
             OpCode::Mul,                       // Scale y down
             OpCode::Load(LoadSource::Time),    // Time (scrolls the z-axis)
-            OpCode::Perlin3,                   // Generate perlin noise
+            OpCode::Perlin3(3),                // Generate perlin noise with 3 octaves
             OpCode::Cos,                       // Apply cosine (outputs 0..1)
             OpCode::Return,
         ];

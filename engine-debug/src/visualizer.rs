@@ -36,7 +36,8 @@ fn main() {
     let mut buffer: Vec<u32> = vec![0; WINDOW_WIDTH * WINDOW_HEIGHT];
 
     while window.is_open() && !window.is_key_down(Key::Escape) {
-        let time = fixed_from_f32(frame_count as f32 * 0.01);
+        // Slower time progression to avoid integer boundary issues
+        let time = fixed_from_f32(frame_count as f32 * 0.003);
         render_test_scene(&mut scene, time);
 
         buffer.fill(0xFF000000);
@@ -45,6 +46,9 @@ fn main() {
         draw_rgb_2d(&scene.rgb_2d_buffer, &mut buffer, WIDTH * SCALE, 0, SCALE);
         draw_leds(&scene.led_output, &mut buffer, (WIDTH * SCALE) + (WIDTH * SCALE), 0, SCALE);
         draw_led_debug_overlay(&mut buffer, &scene.mapping, WIDTH * SCALE, (WIDTH * SCALE) + (WIDTH * SCALE), 0, SCALE);
+        
+        // Draw time value for debugging
+        draw_time_debug(&mut buffer, time, frame_count);
 
         // Update window
         window
@@ -240,6 +244,17 @@ fn draw_led_debug_overlay(
             .ok();
         }
     }
+}
+
+fn draw_time_debug(buffer: &mut [u32], time: i32, frame_count: u32) {
+    let mut fb = Framebuffer::new(buffer, WINDOW_WIDTH, WINDOW_HEIGHT);
+    let text_style = MonoTextStyle::new(&FONT_6X10, Rgb888::new(255, 255, 255));
+    
+    let time_f = fixed_to_f32(time);
+    let text = format!("Frame: {}  Time: {:.3}", frame_count, time_f);
+    Text::new(&text, Point::new(10, WINDOW_HEIGHT as i32 - 15), text_style)
+        .draw(&mut fb)
+        .ok();
 }
 
 #[inline(always)]

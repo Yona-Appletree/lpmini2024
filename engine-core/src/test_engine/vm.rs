@@ -108,11 +108,9 @@ fn grad(hash: u8, x: Fixed, y: Fixed, z: Fixed) -> Fixed {
     (if h & 1 == 0 { u } else { -u }) + (if h & 2 == 0 { v } else { -v })
 }
 
-/// Proper Perlin3 noise using permutation table
-/// Inputs can be any value, noise is non-repeating (period = 256)
-/// Returns value in 0..1 range
+/// Single octave of Perlin3 noise
 #[inline(always)]
-fn perlin3_fixed(x: Fixed, y: Fixed, z: Fixed) -> Fixed {
+fn perlin3_octave(x: Fixed, y: Fixed, z: Fixed) -> Fixed {
     // Get integer parts
     let xi = ((x >> FIXED_SHIFT) & 0xFF) as usize;
     let yi = ((y >> FIXED_SHIFT) & 0xFF) as usize;
@@ -168,12 +166,38 @@ fn perlin3_fixed(x: Fixed, y: Fixed, z: Fixed) -> Fixed {
     let y2 = lerp(v, x3, x4);
 
     let result = lerp(w, y1, y2);
+    
+    // Output is roughly -0.7..0.7, leave as-is for octave mixing
+    result
+}
 
-    // Map from roughly -0.7..0.7 to 0..1
-    // Scale up by ~1.4 then shift to 0..1
-    let scaled = fixed_mul(result, fixed_from_f32(1.4));
-    let normalized = scaled + (FIXED_ONE >> 1);
-    normalized.max(0).min(FIXED_ONE)
+/// Fractal Perlin3 noise with multiple octaves
+/// More octaves = more detail but slower
+/// Returns value in 0..1 range
+#[inline(always)]
+fn perlin3_fixed(x: Fixed, y: Fixed, z: Fixed, octaves: u8) -> Fixed {
+    let octaves = octaves.min(8).max(1);
+    let mut total = 0i64;
+    let mut amplitude = FIXED_ONE as i64;
+    let mut max_value = 0i64;
+    let mut frequency = FIXED_ONE;
+    
+    for _ in 0..octaves {
+        let sample = perlin3_octave(
+            fixed_mul(x, frequency),
+            fixed_mul(y, frequency),
+            fixed_mul(z, frequency),
+        );
+        total += (sample as i64 * amplitude) >> FIXED_SHIFT;
+        max_value += amplitude;
+        amplitude >>= 1; // Halve amplitude each octave
+        frequency <<= 1; // Double frequency each octave
+    }
+    
+    // Normalize to 0..1
+    let normalized = ((total << FIXED_SHIFT) / max_value) as i32;
+    let shifted = normalized + (FIXED_ONE >> 1);
+    shifted.max(0).min(FIXED_ONE)
 }
 
 /// Load source specifier
@@ -205,7 +229,7 @@ pub enum OpCode {
     // Math functions
     Sin,
     Cos,
-    Perlin3,
+    Perlin3(u8), // Perlin noise with N octaves (1-8)
 
     // Load coordinates
     Load(LoadSource),
@@ -356,11 +380,11 @@ impl<'a> VM<'a> {
                 let a = self.pop();
                 self.push(cos_fixed(a));
             }
-            OpCode::Perlin3 => {
+            OpCode::Perlin3(octaves) => {
                 let z = self.pop();
                 let y = self.pop();
                 let x = self.pop();
-                self.push(perlin3_fixed(x, y, z));
+                self.push(perlin3_fixed(x, y, z, *octaves));
             }
             OpCode::Load(source) => {
                 let value = match source {
