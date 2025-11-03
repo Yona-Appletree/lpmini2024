@@ -98,6 +98,199 @@ mod vm_opcode_tests {
     }
     
     #[test]
+    fn test_coordinate_variation() {
+        // First verify that XNorm actually varies across pixels
+        use crate::test_engine::vm::LoadSource;
+        let input = vec![Fixed::ZERO; 16];
+        let mut output = vec![Fixed::ZERO; 16];
+        
+        let program = vec![OpCode::Load(LoadSource::XNorm), OpCode::Return];
+        execute_program(&input, &mut output, &program, 4, 4, Fixed::ZERO);
+        
+        println!("XNorm values for 4x4:");
+        for y in 0..4 {
+            for x in 0..4 {
+                print!("{:.3} ", output[y*4 + x].to_f32());
+            }
+            println!();
+        }
+        
+        // Should have variation
+        let first = output[0];
+        let has_variation = output.iter().any(|&v| v.0 != first.0);
+        assert!(has_variation, "XNorm should vary across pixels");
+    }
+
+    #[test]
+    fn test_perlin3_with_varying_coords() {
+        // Test perlin3 directly with varying coordinates
+        use crate::test_engine::vm::LoadSource;
+        let input = vec![Fixed::ZERO; 16];
+        let mut output = vec![Fixed::ZERO; 16];
+        
+        // First test what xNorm * 0.3 gives us
+        let test_mult = vec![
+            OpCode::Load(LoadSource::XNorm),
+            OpCode::Push(0.3f32.to_fixed()),
+            OpCode::Mul,
+            OpCode::Return,
+        ];
+        
+        execute_program(&input, &mut output, &test_mult, 4, 4, Fixed::ZERO);
+        println!("XNorm * 0.3 values:");
+        for y in 0..2 {
+            for x in 0..2 {
+                print!("{:.6} ", output[y*4 + x].to_f32());
+            }
+            println!();
+        }
+        
+        // perlin3(xNorm * 0.3, yNorm * 0.3, 0, 3)
+        let program = vec![
+            OpCode::Load(LoadSource::XNorm),
+            OpCode::Push(0.3f32.to_fixed()),
+            OpCode::Mul,
+            OpCode::Load(LoadSource::YNorm),
+            OpCode::Push(0.3f32.to_fixed()),
+            OpCode::Mul,
+            OpCode::Push(Fixed::ZERO), // time
+            OpCode::Perlin3(3),
+            OpCode::Return,
+        ];
+        
+        execute_program(&input, &mut output, &program, 4, 4, Fixed::ZERO);
+        
+        println!("Perlin3 output for 4x4:");
+        for y in 0..4 {
+            for x in 0..4 {
+                print!("{:.3} ", output[y*4 + x].to_f32());
+            }
+            println!();
+        }
+        
+        // Should have variation
+        let first = output[0];
+        let has_variation = output.iter().any(|&v| (v.0 - first.0).abs() > 100);
+        assert!(has_variation, "Perlin3 output should vary, got all ~{}", first.to_f32());
+    }
+
+    #[test]
+    fn test_xnorm_mul_varies() {
+        // Verify XNorm * 0.3 produces different values across row
+        use crate::test_engine::vm::LoadSource;
+        let input = vec![Fixed::ZERO; 16 * 16];
+        let mut output = vec![Fixed::ZERO; 16 * 16];
+        
+        let program = vec![
+            OpCode::Load(LoadSource::XNorm),
+            OpCode::Push(0.3f32.to_fixed()),
+            OpCode::Mul,
+            OpCode::Return,
+        ];
+        execute_program(&input, &mut output, &program, 16, 16, Fixed::ZERO);
+        
+        println!("XNorm * 0.3 in first row (should vary):");
+        for i in 0..8 {
+            println!("  output[{}] (x={}) = {:.6}", i, i, output[i].to_f32());
+        }
+        
+        // Check variation in first row
+        let first_row_has_variation = (0..16).any(|x| output[x].0 != output[0].0);
+        assert!(first_row_has_variation, "XNorm * 0.3 should vary across first row, got all {:.6}", output[0].to_f32());
+    }
+
+    #[test]
+    fn test_perlin3_x_variation() {
+        // Test perlin3 directly without cos to see if it varies in X
+        use crate::test_engine::vm::LoadSource;
+        let input = vec![Fixed::ZERO; 16 * 16];
+        let mut output = vec![Fixed::ZERO; 16 * 16];
+        
+        let program = vec![
+            OpCode::Load(LoadSource::XNorm),
+            OpCode::Push(0.3f32.to_fixed()),
+            OpCode::Mul,
+            OpCode::Load(LoadSource::YNorm),
+            OpCode::Push(0.3f32.to_fixed()),
+            OpCode::Mul,
+            OpCode::Push(Fixed::ZERO), // time = 0
+            OpCode::Perlin3(3),
+            OpCode::Return,
+        ];
+        
+        execute_program(&input, &mut output, &program, 16, 16, Fixed::ZERO);
+        
+        println!("Perlin3 output in first row (should vary in X):");
+        for i in 0..8 {
+            println!("  output[{}] (x={}) = {:.6}", i, i, output[i].to_f32());
+        }
+        
+        // Check variation in first row
+        let first_row_has_variation = (0..16).any(|x| (output[x].0 - output[0].0).abs() > 100);
+        assert!(first_row_has_variation, "Perlin3 should vary in X across first row, got all ~{:.6}", output[0].to_f32());
+    }
+
+    #[test]
+    fn test_cos_on_varying_values() {
+        // Test if cos preserves variation
+        let input = vec![Fixed::ZERO; 16];
+        let mut output = vec![Fixed::ZERO; 16];
+        
+        // cos(xNorm * 0.3)
+        use crate::test_engine::vm::LoadSource;
+        let program = vec![
+            OpCode::Load(LoadSource::XNorm),
+            OpCode::Push(0.3f32.to_fixed()),
+            OpCode::Mul,
+            OpCode::Cos,
+            OpCode::Return,
+        ];
+        
+        execute_program(&input, &mut output, &program, 4, 4, Fixed::ZERO);
+        
+        println!("cos(XNorm * 0.3) in first row:");
+        for i in 0..4 {
+            println!("  output[{}] (x={}) = {:.6}", i, i, output[i].to_f32());
+        }
+        
+        // Should have variation
+        let first_row_has_variation = (0..4).any(|x| (output[x].0 - output[0].0).abs() > 100);
+        assert!(first_row_has_variation, "cos(XNorm * 0.3) should vary, got all ~{:.6}", output[0].to_f32());
+    }
+
+    #[test]
+    fn test_cos_perlin_combination() {
+        // Test cos(perlin3(...)) manually built to see if variation is preserved
+        use crate::test_engine::vm::LoadSource;
+        let input = vec![Fixed::ZERO; 16];
+        let mut output = vec![Fixed::ZERO; 16];
+        
+        let program = vec![
+            OpCode::Load(LoadSource::XNorm),
+            OpCode::Push(0.3f32.to_fixed()),
+            OpCode::Mul,
+            OpCode::Load(LoadSource::YNorm),
+            OpCode::Push(0.3f32.to_fixed()),
+            OpCode::Mul,
+            OpCode::Push(Fixed::ZERO), // time = 0
+            OpCode::Perlin3(3),
+            OpCode::Cos,
+            OpCode::Return,
+        ];
+        
+        execute_program(&input, &mut output, &program, 4, 4, Fixed::ZERO);
+        
+        println!("cos(perlin3(...)) in first row:");
+        for i in 0..4 {
+            println!("  output[{}] (x={}) = {:.6}", i, i, output[i].to_f32());
+        }
+        
+        // Should have variation
+        let first_row_has_variation = (0..4).any(|x| (output[x].0 - output[0].0).abs() > 100);
+        assert!(first_row_has_variation, "cos(perlin3(...)) should vary in X, got all ~{:.6}", output[0].to_f32());
+    }
+
+    #[test]
     fn test_demo_expression_output() {
         // Test the actual demo expression: cos(perlin3(xNorm*0.3, yNorm*0.3, time, 3))
         use crate::expr::parse_expr;
@@ -107,7 +300,21 @@ mod vm_opcode_tests {
         
         let program = parse_expr("cos(perlin3(xNorm*0.3, yNorm*0.3, time, 3))");
         
+        println!("Parsed opcodes:");
+        for (i, op) in program.iter().enumerate() {
+            println!("  [{}] {:?}", i, op);
+        }
+        
         execute_program(&input, &mut output, &program, 16, 16, Fixed::ZERO);
+        
+        println!("Demo expression output sample (first row, should vary in X):");
+        for i in 0..8 {
+            println!("  output[{}] (x={},y=0) = {:.6}", i, i, output[i].to_f32());
+        }
+        println!("Demo expression output sample (first column):");
+        for i in 0..5 {
+            println!("  output[{}] (x=0,y={}) = {:.6}", i*16, i, output[i*16].to_f32());
+        }
         
         // Check that we get varied output (not all the same value)
         let first = output[0];

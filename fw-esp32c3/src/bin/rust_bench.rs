@@ -5,7 +5,8 @@ use defmt::info;
 use embassy_time::Instant;
 use engine_core::demo_program::create_demo_scene;
 use engine_core::scene::SceneRuntime;
-use engine_core::test_engine::{fixed_from_f32, RuntimeOptions};
+use engine_core::test_engine::RuntimeOptions;
+use engine_core::math::{Fixed, ToFixed};
 use esp_hal::clock::CpuClock;
 use esp_hal::timer::systimer::SystemTimer;
 use panic_rtt_target as _;
@@ -24,7 +25,7 @@ async fn benchmark_16x16() {
 
     while test_start.elapsed().as_millis() < TEST_DURATION_MS {
         let frame_start = Instant::now();
-        let time = fixed_from_f32(frame_count as f32 * 0.01);
+        let time = (frame_count as f32 * 0.01).to_fixed();
 
         scene.render(time, 1).expect("Render failed");
         total_us += frame_start.elapsed().as_micros();

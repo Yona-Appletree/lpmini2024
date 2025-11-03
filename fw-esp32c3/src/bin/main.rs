@@ -13,7 +13,7 @@ use embassy_time::Instant;
 // Engine imports
 use engine_core::demo_program::create_demo_scene;
 use engine_core::scene::SceneRuntime;
-use engine_core::test_engine::FIXED_ONE;
+use engine_core::math::Fixed;
 use esp_hal::clock::CpuClock;
 use esp_hal::delay::Delay;
 use esp_hal::rmt::Rmt;
@@ -97,11 +97,11 @@ async fn main(_spawner: Spawner) {
         // Calculate time in fixed-point (seconds since start) with speed adjustment
         let elapsed_ms = frame_start.duration_since(start_time).as_millis() as u32;
         let adjusted_ms = (elapsed_ms * TIME_SPEED_256) / 256;
-        // Convert ms to seconds in fixed-point: (ms * FIXED_ONE) / 1000
-        let time = ((adjusted_ms as i64 * FIXED_ONE as i64) / 1000) as i32;
+        // Convert ms to seconds in fixed-point: (ms * Fixed::ONE) / 1000
+        let time = ((adjusted_ms as i64 * Fixed::ONE.0 as i64) / 1000) as i32;
 
         // Render the scene (outputs to scene.led_output with power limiting applied)
-        scene.render(time, 1).expect("Render failed");
+        scene.render(Fixed(time), 1).expect("Render failed");
 
         // Log FPS every second
         if frame_start.duration_since(last_fps_time).as_millis() >= 1000 {

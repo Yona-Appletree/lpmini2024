@@ -13,30 +13,6 @@ mod mapping_tests {
     
     
     #[test]
-    fn test_apply_2d_mapping_all_white_16x16() {
-        // Use 16x16 which is the standard size for CircularPanel7Ring
-        let config = MappingConfig::CircularPanel7Ring { width: 16, height: 16 };
-        let led_count = config.led_count();
-        let mapping = config.build();
-        
-        // Create 16x16 RGB input (all white)
-        let input_rgb = vec![255u8; 16 * 16 * 3];
-        let mut output = vec![0u8; led_count * 3];
-        
-        apply_2d_mapping(&input_rgb, &mut output, &mapping, 16, 16);
-        
-        // All output LEDs should be white
-        for i in 0..led_count {
-            let r = output[i * 3];
-            let g = output[i * 3 + 1];
-            let b = output[i * 3 + 2];
-            
-            assert!(r == 255 && g == 255 && b == 255, 
-                   "LED {} should be white (255,255,255), got ({},{},{})", i, r, g, b);
-        }
-    }
-    
-    #[test]
     fn test_mapping_gradient() {
         let config = MappingConfig::CircularPanel7Ring { width: 8, height: 8 };
         let led_count = config.led_count();

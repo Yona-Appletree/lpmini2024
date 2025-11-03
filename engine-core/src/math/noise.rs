@@ -61,9 +61,9 @@ pub fn perlin3(x: Fixed, y: Fixed, z: Fixed, octaves: u8) -> Fixed {
         let sample_z = z * frequency;
         
         let noise_val = perlin3_single(sample_x, sample_y, sample_z).0 as i64;
-        total += (noise_val * amplitude) >> SHIFT;
+        total += noise_val * amplitude;
         
-        amplitude = (amplitude * ONE as i64) >> (SHIFT + 1);
+        amplitude >>= 1; // Halve amplitude for next octave
         frequency = Fixed(frequency.0 << 1);
     }
     

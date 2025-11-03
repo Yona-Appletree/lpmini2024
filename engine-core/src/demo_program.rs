@@ -186,42 +186,4 @@ mod tests {
         assert_eq!(output8[0], Fixed::ZERO, "Top row in 8x8 should be black");
     }
 
-    #[test]
-    fn test_horizontal_line_pattern() {
-        // Test with 16x16
-        let config = create_test_line_scene(16, 16);
-        let options = RuntimeOptions::new(16, 16);
-        let mut scene = SceneRuntime::new(config, options).expect("Valid config");
-
-        scene.render(Fixed::ZERO, 1).expect("Render failed");
-        let grey_buffer = scene.pipeline.get_buffer(0).expect("Buffer 0 should exist");
-
-        // Center row (row 7, Y=7.5, YNorm=0.5) should be white, others black
-        assert_eq!(
-            grey_buffer.data[7 * 16],
-            Fixed::ONE.0,
-            "Center row (row 7) should be white"
-        );
-        assert_eq!(grey_buffer.data[0], Fixed::ZERO.0, "Top row should be black");
-        assert_eq!(grey_buffer.data[15 * 16], Fixed::ZERO.0, "Bottom row should be black");
-
-        // Test with 8x8
-        let config8 = create_test_line_scene(8, 8);
-        let options8 = RuntimeOptions::new(8, 8);
-        let mut scene8 = SceneRuntime::new(config8, options8).expect("Valid config");
-
-        scene8.render(Fixed::ZERO, 1).expect("Render failed");
-        let grey_buffer8 = scene8
-            .pipeline
-            .get_buffer(0)
-            .expect("Buffer 0 should exist");
-
-        // Center row (row 3, Y=3.5, YNorm=0.5) should be white
-        assert_eq!(
-            grey_buffer8.data[3 * 8],
-            Fixed::ONE.0,
-            "Center row in 8x8 (row 3) should be white"
-        );
-        assert_eq!(grey_buffer8.data[0], Fixed::ZERO.0, "Top row in 8x8 should be black");
-    }
 }

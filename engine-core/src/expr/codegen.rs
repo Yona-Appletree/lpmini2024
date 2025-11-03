@@ -136,6 +136,27 @@ impl CodeGenerator {
     }
     
     fn gen_function_call(name: &str, args: &[Expr], code: &mut Vec<OpCode>) {
+        // Special handling for perlin3 - octaves is part of the opcode, not a stack arg
+        if name == "perlin3" {
+            // Generate code for first 3 args only (x, y, z)
+            for arg in args.iter().take(3) {
+                Self::gen_expr(arg, code);
+            }
+            
+            // Extract octaves from 4th arg or use default
+            let octaves = if args.len() >= 4 {
+                if let Expr::Number(n) = &args[3] {
+                    *n as u8
+                } else {
+                    3 // Default
+                }
+            } else {
+                3 // Default
+            };
+            code.push(OpCode::Perlin3(octaves));
+            return;
+        }
+        
         // Generate code for all arguments first
         for arg in args {
             Self::gen_expr(arg, code);
@@ -146,20 +167,6 @@ impl CodeGenerator {
             "sin" => code.push(OpCode::Sin),
             "cos" => code.push(OpCode::Cos),
             "frac" => code.push(OpCode::Frac),
-            
-            "perlin3" => {
-                let octaves = if args.len() >= 4 {
-                    // Try to extract constant octaves from last arg
-                    if let Expr::Number(n) = &args[3] {
-                        *n as u8
-                    } else {
-                        3 // Default
-                    }
-                } else {
-                    3 // Default
-                };
-                code.push(OpCode::Perlin3(octaves));
-            }
             
             // Native functions - math
             "min" => code.push(OpCode::CallNative(NativeFunction::Min as u8)),
