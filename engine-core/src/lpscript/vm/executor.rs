@@ -1,13 +1,11 @@
 /// LPS VM executor - runs compiled programs
 extern crate alloc;
-use alloc::string::ToString;
 use alloc::vec::Vec;
 
 use crate::math::Fixed;
 use crate::lpscript::error::{RuntimeError, RuntimeErrorWithContext};
 use super::program::LpsProgram;
 use super::locals::LocalType;
-use crate::test_engine::OpCode;
 
 /// LightPlayer Script Virtual Machine
 /// 
@@ -17,7 +15,9 @@ pub struct LpsVm {
     pub program: LpsProgram,
     stack: [i32; 64],
     sp: usize,
+    #[allow(dead_code)]
     pc: usize,
+    #[allow(dead_code)]
     locals: Vec<LocalType>,
 }
 

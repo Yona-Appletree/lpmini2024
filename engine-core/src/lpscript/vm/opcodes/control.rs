@@ -1,5 +1,4 @@
 /// Control flow opcodes with error handling
-use crate::math::Fixed;
 use crate::lpscript::error::RuntimeError;
 
 /// Execute Select (ternary): pop false_val, true_val, condition; push selected
@@ -60,7 +59,7 @@ pub fn exec_jump_if_nonzero(stack: &mut [i32; 64], sp: &mut usize, pc: usize, of
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::math::ToFixed;
+    use crate::math::{Fixed, ToFixed};
     
     #[test]
     fn test_select_true() {

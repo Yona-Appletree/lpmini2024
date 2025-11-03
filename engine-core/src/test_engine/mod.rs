@@ -20,6 +20,7 @@ mod pipeline_tests;
 
 // Re-export commonly used items
 pub use vm::{OpCode, LoadSource, execute_program};
+#[allow(deprecated)]
 pub use crate::math::{Fixed, FIXED_SHIFT, FIXED_ONE, fixed_from_f32, fixed_to_f32, fixed_from_int};
 pub use palette::{Palette, rgb_buffer_from_greyscale};
 pub use mapping::{LedMapping, MappingConfig, apply_2d_mapping};

@@ -15,12 +15,12 @@ pub enum LocalType {
     Int32Array {
         data: Vec<i32>,
     },
-    Texture2D_R {
+    Texture2dR {
         data: Vec<u8>,
         width: usize,
         height: usize,
     },
-    Texture2D_RGBA {
+    Texture2dRgba {
         data: Vec<u32>,
         width: usize,
         height: usize,
@@ -37,8 +37,8 @@ impl LocalType {
             LocalType::Vec3(_, _, _) => "vec3",
             LocalType::Vec4(_, _, _, _) => "vec4",
             LocalType::Int32Array { .. } => "int[]",
-            LocalType::Texture2D_R { .. } => "sampler2D",
-            LocalType::Texture2D_RGBA { .. } => "sampler2D",
+            LocalType::Texture2dR { .. } => "sampler2D",
+            LocalType::Texture2dRgba { .. } => "sampler2D",
         }
     }
 }

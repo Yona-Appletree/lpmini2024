@@ -1,5 +1,5 @@
 /// Vec2 opcodes - vectors are represented as consecutive stack slots
-use crate::math::{Fixed, Vec2, ToFixed};
+use crate::math::{Fixed, Vec2};
 use crate::lpscript::error::RuntimeError;
 
 /// Execute AddVec2: pop 4 (b.y, b.x, a.y, a.x), push 2 ((a+b).y, (a+b).x)
@@ -168,6 +168,7 @@ pub fn exec_normalize2(stack: &mut [i32; 64], sp: &mut usize) -> Result<(), Runt
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::math::ToFixed;
     
     #[test]
     fn test_add_vec2() {

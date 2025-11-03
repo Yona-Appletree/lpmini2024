@@ -1,5 +1,5 @@
 /// Image sampling with bilinear interpolation
-use crate::math::{Fixed, FIXED_SHIFT, FIXED_ONE};
+use crate::math::{Fixed, FIXED_SHIFT};
 use core::cmp::{max, min};
 
 /// Bilinear interpolation of a single channel

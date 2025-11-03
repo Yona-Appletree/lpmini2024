@@ -2,7 +2,6 @@
 /// 
 /// Performs type inference and validation on the AST.
 extern crate alloc;
-use alloc::vec::Vec;
 use alloc::string::ToString;
 
 use crate::lpscript::ast::{Expr, ExprKind};

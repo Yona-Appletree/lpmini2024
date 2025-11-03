@@ -1,8 +1,8 @@
 use crate::lpscript::error::RuntimeError;
 use crate::math::trig::{cos, sin};
-use crate::math::{ceil, floor, sqrt};
 /// Fixed-point arithmetic opcodes with error handling
-use crate::math::{Fixed, ToFixed};
+use crate::math::Fixed;
+use crate::math::{ceil, floor, sqrt};
 
 /// Execute AddFixed: pop b, a; push a + b
 #[inline(always)]
@@ -258,6 +258,7 @@ pub fn exec_ceil_fixed(stack: &mut [i32; 64], sp: &mut usize) -> Result<(), Runt
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::math::ToFixed;
 
     #[test]
     fn test_add_fixed() {

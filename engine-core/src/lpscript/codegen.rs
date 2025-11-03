@@ -4,7 +4,7 @@ use alloc::vec::Vec;
 
 use super::ast::{Expr, ExprKind};
 use crate::test_engine::{OpCode, LoadSource};
-use crate::math::{Fixed, ToFixed};
+use crate::math::ToFixed;
 
 pub struct CodeGenerator;
 

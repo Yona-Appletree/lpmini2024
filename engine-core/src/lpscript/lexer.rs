@@ -70,6 +70,7 @@ impl Lexer {
         }
     }
     
+    #[allow(dead_code)]
     fn peek(&self, offset: usize) -> Option<char> {
         let idx = self.pos + offset;
         if idx < self.input.len() {

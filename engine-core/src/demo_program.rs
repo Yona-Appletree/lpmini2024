@@ -2,6 +2,7 @@ extern crate alloc;
 use alloc::vec;
 
 use crate::lpscript::parse_expr;
+use crate::math::Fixed;
 use crate::scene::SceneConfig;
 use crate::test_engine::{
     BufferFormat, BufferRef, FxPipelineConfig, LoadSource, MappingConfig, OpCode, Palette,
@@ -66,16 +67,11 @@ pub fn create_demo_scene(width: usize, height: usize) -> SceneConfig {
                 output: BufferRef::new(1, BufferFormat::ImageRgb),
                 palette,
             },
-            // PipelineStep::BlurStep {
-            //     input: BufferRef::new(1, BufferFormat::ImageRgb),
-            //     output: BufferRef::new(0, BufferFormat::ImageRgb), // Reuse buffer 0
-            //     radius: fixed_from_f32(0.2),                       // 0.2 pixel blur radius
-            // },
-            // PipelineStep::BlurStep {
-            //     input: BufferRef::new(0, BufferFormat::ImageRgb),
-            //     output: BufferRef::new(1, BufferFormat::ImageRgb), // Back to buffer 1
-            //     radius: fixed_from_f32(0.1),                       // Second pass for smoother blur
-            // },
+            PipelineStep::BlurStep {
+                input: BufferRef::new(1, BufferFormat::ImageRgb),
+                output: BufferRef::new(0, BufferFormat::ImageRgb), // Reuse buffer 0
+                radius: Fixed::from_f32(0.2),                      // 0.2 pixel blur radius
+            },
         ],
     );
 
