@@ -111,7 +111,7 @@ fn draw_rgb_2d(rgb: &[u8], buffer: &mut [u32], offset_x: usize, offset_y: usize,
 }
 
 fn draw_leds(leds: &[u8], buffer: &mut [u32], offset_x: usize, offset_y: usize, scale: usize) {
-    // Draw as 8 rows of 16 LEDs
+    // Draw as filled circles
     for led_idx in 0..LED_COUNT.min(leds.len() / 3) {
         let idx = led_idx * 3;
         let r = leds[idx];
@@ -122,13 +122,23 @@ fn draw_leds(leds: &[u8], buffer: &mut [u32], offset_x: usize, offset_y: usize, 
         // Position in 8x16 grid
         let x = led_idx % 16;
         let y = led_idx / 16;
+        let center_x = offset_x + x * scale + scale / 2;
+        let center_y = offset_y + y * scale + scale / 2;
+        let radius = scale / 2;
 
-        // Fill scaled LED
+        // Draw filled circle
         for dy in 0..scale {
             for dx in 0..scale {
                 let px = offset_x + x * scale + dx;
                 let py = offset_y + y * scale + dy;
-                if px < WINDOW_WIDTH && py < WINDOW_HEIGHT {
+                
+                // Check if point is inside circle
+                let dist_x = (px as i32 - center_x as i32).abs();
+                let dist_y = (py as i32 - center_y as i32).abs();
+                let dist_sq = dist_x * dist_x + dist_y * dist_y;
+                let radius_sq = (radius * radius) as i32;
+                
+                if dist_sq <= radius_sq && px < WINDOW_WIDTH && py < WINDOW_HEIGHT {
                     buffer[py * WINDOW_WIDTH + px] = color;
                 }
             }
@@ -186,6 +196,7 @@ fn draw_led_debug_overlay(
     offset_y: usize,
     scale: usize,
 ) {
+    use engine_core::test_engine::{FIXED_SHIFT, fixed_to_f32};
     let mut fb = Framebuffer::new(buffer, WINDOW_WIDTH, WINDOW_HEIGHT);
 
     let circle_style_source = PrimitiveStyle::with_stroke(Rgb888::new(0, 255, 0), 2); // Green on source
@@ -195,9 +206,11 @@ fn draw_led_debug_overlay(
 
     for led_idx in 0..LED_COUNT {
         if let Some(map) = mapping.get(led_idx) {
-            // Source position on RGB buffer (middle panel)
-            let source_x = (rgb_offset_x + map.x * scale + scale / 2) as i32;
-            let source_y = (offset_y + map.y * scale + scale / 2) as i32;
+            // Source position on RGB buffer (middle panel) - now with sub-pixel precision
+            let x_pixels = fixed_to_f32(map.x);
+            let y_pixels = fixed_to_f32(map.y);
+            let source_x = (rgb_offset_x as f32 + x_pixels * scale as f32) as i32;
+            let source_y = (offset_y as f32 + y_pixels * scale as f32) as i32;
 
             // Destination position on LED strip (right panel)
             let dest_x = led_idx % 16;
@@ -205,13 +218,13 @@ fn draw_led_debug_overlay(
             let dest_center_x = (led_offset_x + dest_x * scale + scale / 2) as i32;
             let dest_center_y = (offset_y + dest_y * scale + scale / 2) as i32;
 
-            // Draw circle on source (RGB buffer) with LED number
-            Circle::with_center(Point::new(source_x, source_y), (scale / 3) as u32)
+            // Draw circle on source showing sampling area (diameter = scale, radius = scale/2)
+            Circle::with_center(Point::new(source_x, source_y), scale as u32)
                 .into_styled(circle_style_source)
                 .draw(&mut fb)
                 .ok();
 
-            // Draw LED number on source (green circle on RGB buffer)
+            // Draw LED number on source
             let text = format!("{}", led_idx);
             let text_width = if led_idx < 10 {
                 6
@@ -224,21 +237,6 @@ fn draw_led_debug_overlay(
                 &text,
                 Point::new(source_x - text_width / 2, source_y + 3),
                 text_style_small,
-            )
-            .draw(&mut fb)
-            .ok();
-
-            // Draw circle on destination (LED strip)
-            Circle::with_center(Point::new(dest_center_x, dest_center_y), (scale / 2) as u32)
-                .into_styled(circle_style_dest)
-                .draw(&mut fb)
-                .ok();
-
-            // Draw LED number on destination (yellow circle on LED strip)
-            Text::new(
-                &text,
-                Point::new(dest_center_x - text_width / 2, dest_center_y + 3),
-                text_style,
             )
             .draw(&mut fb)
             .ok();

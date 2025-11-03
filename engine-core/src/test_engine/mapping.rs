@@ -1,14 +1,23 @@
 /// 2D to 1D LED mapping system
+use super::vm::{Fixed, FIXED_SHIFT, FIXED_ONE};
 
-/// Single LED mapping entry
+/// Single LED mapping entry with sub-pixel precision
 #[derive(Debug, Clone, Copy)]
 pub struct LedMap {
-    pub x: usize,
-    pub y: usize,
+    pub x: Fixed, // Fixed-point x coordinate (supports sub-pixel)
+    pub y: Fixed, // Fixed-point y coordinate (supports sub-pixel)
 }
 
 impl LedMap {
     pub const fn new(x: usize, y: usize) -> Self {
+        // Center of pixel is at (x + 0.5, y + 0.5)
+        LedMap {
+            x: ((x as i32) << FIXED_SHIFT) + (FIXED_ONE >> 1),
+            y: ((y as i32) << FIXED_SHIFT) + (FIXED_ONE >> 1),
+        }
+    }
+    
+    pub fn new_fixed(x: Fixed, y: Fixed) -> Self {
         LedMap { x, y }
     }
 }
@@ -82,34 +91,18 @@ impl LedMapping {
             {
                 let x = center_x + radius * libm::cosf(angle);
                 let y = center_y + radius * libm::sinf(angle);
-                let x_clamped = if x as usize > width - 1 {
-                    width - 1
-                } else {
-                    x as usize
-                };
-                let y_clamped = if y as usize > height - 1 {
-                    height - 1
-                } else {
-                    y as usize
-                };
-                maps[i] = LedMap::new(x_clamped, y_clamped);
+                let x_fixed = ((x * FIXED_ONE as f32) as i32).max(0).min((((width - 1) as i32) << FIXED_SHIFT) + FIXED_ONE);
+                let y_fixed = ((y * FIXED_ONE as f32) as i32).max(0).min((((height - 1) as i32) << FIXED_SHIFT) + FIXED_ONE);
+                maps[i] = LedMap::new_fixed(x_fixed, y_fixed);
             }
 
             #[cfg(not(feature = "use-libm"))]
             {
                 let x = center_x + radius * angle.cos();
                 let y = center_y + radius * angle.sin();
-                let x_clamped = if x as usize > width - 1 {
-                    width - 1
-                } else {
-                    x as usize
-                };
-                let y_clamped = if y as usize > height - 1 {
-                    height - 1
-                } else {
-                    y as usize
-                };
-                maps[i] = LedMap::new(x_clamped, y_clamped);
+                let x_fixed = ((x * FIXED_ONE as f32) as i32).max(0).min((((width - 1) as i32) << FIXED_SHIFT) + FIXED_ONE);
+                let y_fixed = ((y * FIXED_ONE as f32) as i32).max(0).min((((height - 1) as i32) << FIXED_SHIFT) + FIXED_ONE);
+                maps[i] = LedMap::new_fixed(x_fixed, y_fixed);
             }
         }
 
@@ -128,27 +121,50 @@ impl LedMapping {
     }
 }
 
-/// Apply 2D to 1D mapping to convert an RGB buffer to LED output
+/// Apply 2D to 1D mapping with bilinear interpolation
 ///
 /// # Arguments
 /// * `rgb_2d` - Input RGB buffer in 2D format (width * height * 3 bytes)
 /// * `led_output` - Output buffer for LED strip (led_count * 3 bytes)
 /// * `mapping` - LED mapping configuration
 /// * `width` - Width of the 2D buffer
-pub fn apply_2d_mapping(rgb_2d: &[u8], led_output: &mut [u8], mapping: &LedMapping, width: usize) {
+/// * `height` - Height of the 2D buffer
+pub fn apply_2d_mapping(rgb_2d: &[u8], led_output: &mut [u8], mapping: &LedMapping, width: usize, height: usize) {
     let led_count = led_output.len() / 3;
     assert!(led_count <= 128, "LED count exceeds maximum of 128");
 
     for led_idx in 0..led_count {
         if let Some(map) = mapping.get(led_idx) {
-            let src_idx = (map.y * width + map.x) * 3;
-            let dst_idx = led_idx * 3;
+            // Get integer and fractional parts
+            let x_int = (map.x >> FIXED_SHIFT) as usize;
+            let y_int = (map.y >> FIXED_SHIFT) as usize;
+            let x_frac = (map.x & (FIXED_ONE - 1)) as i64;
+            let y_frac = (map.y & (FIXED_ONE - 1)) as i64;
 
-            // Bounds check
-            if src_idx + 2 < rgb_2d.len() && dst_idx + 2 < led_output.len() {
-                led_output[dst_idx] = rgb_2d[src_idx];
-                led_output[dst_idx + 1] = rgb_2d[src_idx + 1];
-                led_output[dst_idx + 2] = rgb_2d[src_idx + 2];
+            // Bounds check for bilinear sampling
+            if x_int + 1 < width && y_int + 1 < height {
+                // Sample 4 neighboring pixels
+                let idx_00 = (y_int * width + x_int) * 3;
+                let idx_10 = (y_int * width + x_int + 1) * 3;
+                let idx_01 = ((y_int + 1) * width + x_int) * 3;
+                let idx_11 = ((y_int + 1) * width + x_int + 1) * 3;
+
+                // Bilinear interpolation for each channel
+                let dst_idx = led_idx * 3;
+                for c in 0..3 {
+                    let c00 = rgb_2d[idx_00 + c] as i64;
+                    let c10 = rgb_2d[idx_10 + c] as i64;
+                    let c01 = rgb_2d[idx_01 + c] as i64;
+                    let c11 = rgb_2d[idx_11 + c] as i64;
+
+                    // Lerp in x direction
+                    let top = c00 + ((c10 - c00) * x_frac >> FIXED_SHIFT);
+                    let bottom = c01 + ((c11 - c01) * x_frac >> FIXED_SHIFT);
+
+                    // Lerp in y direction
+                    let result = top + ((bottom - top) * y_frac >> FIXED_SHIFT);
+                    led_output[dst_idx + c] = result.clamp(0, 255) as u8;
+                }
             }
         }
     }
@@ -162,43 +178,43 @@ mod tests {
     fn test_grid_mapping() {
         let mapping = LedMapping::grid_16x8();
 
-        // First LED should map to (0, 0)
+        // First LED should map to (0.5, 0.5) in fixed point
         let first = mapping.get(0).unwrap();
-        assert_eq!(first.x, 0);
-        assert_eq!(first.y, 0);
+        assert_eq!(first.x >> FIXED_SHIFT, 0);
+        assert_eq!(first.y >> FIXED_SHIFT, 0);
 
-        // LED 16 should map to (0, 1) - start of second row
+        // LED 16 should map to (0.5, 1.5) - start of second row
         let row2 = mapping.get(16).unwrap();
-        assert_eq!(row2.x, 0);
-        assert_eq!(row2.y, 1);
+        assert_eq!(row2.x >> FIXED_SHIFT, 0);
+        assert_eq!(row2.y >> FIXED_SHIFT, 1);
 
-        // LED 127 should map to (15, 7) - last position
+        // LED 127 should map to (15.5, 7.5) - last position
         let last = mapping.get(127).unwrap();
-        assert_eq!(last.x, 15);
-        assert_eq!(last.y, 7);
+        assert_eq!(last.x >> FIXED_SHIFT, 15);
+        assert_eq!(last.y >> FIXED_SHIFT, 7);
     }
 
     #[test]
     fn test_serpentine_mapping() {
         let mapping = LedMapping::serpentine_16x8();
 
-        // First row: 0-15 maps to (0,0) through (15,0)
+        // First row: 0-15 maps to (0.5,0.5) through (15.5,0.5)
         let first = mapping.get(0).unwrap();
-        assert_eq!(first.x, 0);
-        assert_eq!(first.y, 0);
+        assert_eq!(first.x >> FIXED_SHIFT, 0);
+        assert_eq!(first.y >> FIXED_SHIFT, 0);
 
         let end_first_row = mapping.get(15).unwrap();
-        assert_eq!(end_first_row.x, 15);
-        assert_eq!(end_first_row.y, 0);
+        assert_eq!(end_first_row.x >> FIXED_SHIFT, 15);
+        assert_eq!(end_first_row.y >> FIXED_SHIFT, 0);
 
-        // Second row: 16-31 maps to (15,1) through (0,1) (reversed)
+        // Second row: 16-31 maps to (15.5,1.5) through (0.5,1.5) (reversed)
         let start_second_row = mapping.get(16).unwrap();
-        assert_eq!(start_second_row.x, 15);
-        assert_eq!(start_second_row.y, 1);
+        assert_eq!(start_second_row.x >> FIXED_SHIFT, 15);
+        assert_eq!(start_second_row.y >> FIXED_SHIFT, 1);
 
         let end_second_row = mapping.get(31).unwrap();
-        assert_eq!(end_second_row.x, 0);
-        assert_eq!(end_second_row.y, 1);
+        assert_eq!(end_second_row.x >> FIXED_SHIFT, 0);
+        assert_eq!(end_second_row.y >> FIXED_SHIFT, 1);
     }
 
     #[test]
@@ -206,18 +222,22 @@ mod tests {
         // Create a 16x8 RGB buffer (width=16, height=8)
         let mut rgb_2d = vec![0u8; 16 * 8 * 3];
 
-        // Set pixel (5, 3) to red
-        let idx = (3 * 16 + 5) * 3;
-        rgb_2d[idx] = 255; // R
-        rgb_2d[idx + 1] = 0; // G
-        rgb_2d[idx + 2] = 0; // B
+        // Set a 2x2 block to red for bilinear sampling
+        for y in 3..5 {
+            for x in 5..7 {
+                let idx = (y * 16 + x) * 3;
+                rgb_2d[idx] = 255; // R
+                rgb_2d[idx + 1] = 0; // G
+                rgb_2d[idx + 2] = 0; // B
+            }
+        }
 
-        // Apply grid mapping
+        // Apply grid mapping (LED at (5,3) maps to pixel center (5.5, 3.5))
         let mapping = LedMapping::grid_16x8();
         let mut led_output = vec![0u8; 128 * 3];
-        apply_2d_mapping(&rgb_2d, &mut led_output, &mapping, 16);
+        apply_2d_mapping(&rgb_2d, &mut led_output, &mapping, 16, 8);
 
-        // LED at index (3 * 16 + 5) = 53 should be red
+        // LED at index (3 * 16 + 5) = 53 should be red (with bilinear it samples 4 red pixels)
         let led_idx = 53 * 3;
         assert_eq!(led_output[led_idx], 255);
         assert_eq!(led_output[led_idx + 1], 0);
