@@ -35,7 +35,7 @@ pub fn bilinear_interp_channel(
 
     // Lerp in y direction
     let result = top + ((bottom - top) * y_frac >> FIXED_SHIFT);
-    
+
     min(255, max(0, result)) as u8
 }
 
@@ -165,30 +165,30 @@ mod tests {
 
     #[test]
     fn test_bilinear_interp_rgb() {
-        let rgb00 = [255, 0, 0];    // Red
-        let rgb10 = [0, 255, 0];    // Green
-        let rgb01 = [0, 0, 255];    // Blue
-        let rgb11 = [255, 255, 0];  // Yellow
+        let rgb00 = [255, 0, 0]; // Red
+        let rgb10 = [0, 255, 0]; // Green
+        let rgb01 = [0, 0, 255]; // Blue
+        let rgb11 = [255, 255, 0]; // Yellow
 
         // At center (0.5, 0.5)
         let half = Fixed::HALF;
         let result = bilinear_interp_rgb(rgb00, rgb10, rgb01, rgb11, half, half);
-        
+
         // Each channel should be averaged
         // R: (255 + 0 + 0 + 255) / 4 = 127.5 ≈ 127
         // G: (0 + 255 + 0 + 255) / 4 = 127.5 ≈ 127
         // B: (0 + 0 + 255 + 0) / 4 = 63.75 ≈ 63
         assert_eq!(result[0], 127); // R
         assert_eq!(result[1], 127); // G
-        assert_eq!(result[2], 63);  // B
+        assert_eq!(result[2], 63); // B
     }
 
     #[test]
     fn test_sample_rgb_bilinear_center() {
         // Create a 2x2 test image
         let buffer = [
-            255, 0, 0,    0, 255, 0,   // Row 0: Red, Green
-            0, 0, 255,    255, 255, 0, // Row 1: Blue, Yellow
+            255, 0, 0, 0, 255, 0, // Row 0: Red, Green
+            0, 0, 255, 255, 255, 0, // Row 1: Blue, Yellow
         ];
 
         // Sample at pixel (0, 0) - should be red
@@ -200,7 +200,7 @@ mod tests {
         let result = sample_rgb_bilinear(&buffer, half, half, 2, 2);
         assert_eq!(result[0], 127); // R
         assert_eq!(result[1], 127); // G
-        assert_eq!(result[2], 63);  // B
+        assert_eq!(result[2], 63); // B
     }
 
     #[test]
@@ -208,11 +208,11 @@ mod tests {
         // Test the specific case where we're exactly on pixel boundaries
         // This mimics the issue with LEDs 81 and 89
         let buffer = [
-            255, 0, 0,    0, 255, 0,    0, 0, 255,   // Row 0
-            0, 255, 0,    255, 255, 0,  255, 0, 255, // Row 1
-            0, 0, 255,    255, 0, 255,  0, 255, 255, // Row 2
+            255, 0, 0, 0, 255, 0, 0, 0, 255, // Row 0
+            0, 255, 0, 255, 255, 0, 255, 0, 255, // Row 1
+            0, 0, 255, 255, 0, 255, 0, 255, 255, // Row 2
         ];
-        
+
         // Sample at exact pixel (2, 0) - rightmost pixel of first row
         // When exactly on a pixel, should return that pixel's value
         let x = 2.0f32.to_fixed();
@@ -225,19 +225,19 @@ mod tests {
         let y = 2.0f32.to_fixed();
         let result = sample_rgb_bilinear(&buffer, x, y, 3, 3);
         assert_eq!(result, [0, 0, 255]); // Blue pixel at (0, 2)
-        
+
         // Sample at exact pixel (1, 1) - center pixel
         let x = 1.0f32.to_fixed();
         let y = 1.0f32.to_fixed();
         let result = sample_rgb_bilinear(&buffer, x, y, 3, 3);
         assert_eq!(result, [255, 255, 0]); // Yellow pixel at (1, 1)
-        
+
         // Sample at corner (0, 0)
         let x = 0.0f32.to_fixed();
         let y = 0.0f32.to_fixed();
         let result = sample_rgb_bilinear(&buffer, x, y, 3, 3);
         assert_eq!(result, [255, 0, 0]); // Red pixel at (0, 0)
-        
+
         // Sample at bottom-right corner (2, 2)
         let x = 2.0f32.to_fixed();
         let y = 2.0f32.to_fixed();
@@ -247,12 +247,12 @@ mod tests {
 
     #[test]
     fn test_sample_rgb_out_of_bounds() {
-        let buffer = [255, 0, 0, 0, 255, 0];  // 2x1 image
-        
+        let buffer = [255, 0, 0, 0, 255, 0]; // 2x1 image
+
         // Sample beyond width
         let result = sample_rgb_bilinear(&buffer, 2.0f32.to_fixed(), 0i32.to_fixed(), 2, 1);
         assert_eq!(result, [0, 0, 0]);
-        
+
         // Sample beyond height
         let result = sample_rgb_bilinear(&buffer, 0i32.to_fixed(), 1.0f32.to_fixed(), 2, 1);
         assert_eq!(result, [0, 0, 0]);
@@ -264,15 +264,15 @@ mod tests {
         // Reproduce the exact issue: LEDs 81 and 89 in circular_panel_7ring mapping
         // are sampling at exact pixel boundaries and returning black
         extern crate alloc;
+        use super::super::{apply_2d_mapping, LedMapping};
         use alloc::vec;
-        use super::super::{LedMapping, apply_2d_mapping};
-        
+
         const WIDTH: usize = 16;
         const HEIGHT: usize = 16;
-        
+
         // Create the circular panel mapping (same as test_scene)
         let mapping = LedMapping::circular_panel_7ring(WIDTH, HEIGHT);
-        
+
         // Create a simple gradient RGB buffer (red to green)
         let mut rgb_buffer = vec![0u8; WIDTH * HEIGHT * 3];
         for y in 0..HEIGHT {
@@ -280,63 +280,82 @@ mod tests {
                 let idx = (y * WIDTH + x) * 3;
                 let brightness = (x * 255 / (WIDTH - 1)) as u8;
                 rgb_buffer[idx] = 255 - brightness; // R: high on left
-                rgb_buffer[idx + 1] = brightness;   // G: high on right
-                rgb_buffer[idx + 2] = 0;            // B: zero
+                rgb_buffer[idx + 1] = brightness; // G: high on right
+                rgb_buffer[idx + 2] = 0; // B: zero
             }
         }
-        
+
         // Create LED output buffer
         let mut led_output = vec![0u8; 128 * 3];
-        
+
         // Apply the mapping
         apply_2d_mapping(&rgb_buffer, &mut led_output, &mapping, WIDTH, HEIGHT);
-        
+
         // Check LED 81 - should NOT be black
         let led_81_idx = 81 * 3;
-        let led_81_color = [led_output[led_81_idx], led_output[led_81_idx + 1], led_output[led_81_idx + 2]];
+        let led_81_color = [
+            led_output[led_81_idx],
+            led_output[led_81_idx + 1],
+            led_output[led_81_idx + 2],
+        ];
         assert!(
             led_81_color[0] > 0 || led_81_color[1] > 0 || led_81_color[2] > 0,
-            "LED 81 should not be black, got {:?}", led_81_color
+            "LED 81 should not be black, got {:?}",
+            led_81_color
         );
-        
+
         // Check LED 89 - should NOT be black
         let led_89_idx = 89 * 3;
-        let led_89_color = [led_output[led_89_idx], led_output[led_89_idx + 1], led_output[led_89_idx + 2]];
+        let led_89_color = [
+            led_output[led_89_idx],
+            led_output[led_89_idx + 1],
+            led_output[led_89_idx + 2],
+        ];
         assert!(
             led_89_color[0] > 0 || led_89_color[1] > 0 || led_89_color[2] > 0,
-            "LED 89 should not be black, got {:?}", led_89_color
+            "LED 89 should not be black, got {:?}",
+            led_89_color
         );
-        
+
         // Also check their actual mapping positions for debugging
         if let core::option::Option::Some(map_81) = mapping.get(81) {
             let x_int = map_81.pos.x.to_i32() as usize;
             let y_int = map_81.pos.y.to_i32() as usize;
             let x_frac = map_81.pos.x.frac().0;
             let y_frac = map_81.pos.y.frac().0;
-            
+
             // Direct sample to verify
-            let direct_sample = sample_rgb_bilinear(&rgb_buffer, map_81.pos.x, map_81.pos.y, WIDTH, HEIGHT);
+            let direct_sample =
+                sample_rgb_bilinear(&rgb_buffer, map_81.pos.x, map_81.pos.y, WIDTH, HEIGHT);
             assert!(
                 direct_sample[0] > 0 || direct_sample[1] > 0 || direct_sample[2] > 0,
                 "LED 81 at ({}.{}, {}.{}) should not sample black, got {:?}",
-                x_int, x_frac, y_int, y_frac, direct_sample
+                x_int,
+                x_frac,
+                y_int,
+                y_frac,
+                direct_sample
             );
         }
-        
+
         if let core::option::Option::Some(map_89) = mapping.get(89) {
             let x_int = map_89.pos.x.to_i32() as usize;
             let y_int = map_89.pos.y.to_i32() as usize;
             let x_frac = map_89.pos.x.frac().0;
             let y_frac = map_89.pos.y.frac().0;
-            
+
             // Direct sample to verify
-            let direct_sample = sample_rgb_bilinear(&rgb_buffer, map_89.pos.x, map_89.pos.y, WIDTH, HEIGHT);
+            let direct_sample =
+                sample_rgb_bilinear(&rgb_buffer, map_89.pos.x, map_89.pos.y, WIDTH, HEIGHT);
             assert!(
                 direct_sample[0] > 0 || direct_sample[1] > 0 || direct_sample[2] > 0,
                 "LED 89 at ({}.{}, {}.{}) should not sample black, got {:?}",
-                x_int, x_frac, y_int, y_frac, direct_sample
+                x_int,
+                x_frac,
+                y_int,
+                y_frac,
+                direct_sample
             );
         }
     }
 }
-

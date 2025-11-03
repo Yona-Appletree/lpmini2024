@@ -1,7 +1,7 @@
 use crate::math::noise::perlin3;
 use crate::math::trig::{cos, sin};
 /// Stack-based VM for pixel operations using fixed-point arithmetic
-use crate::math::{Fixed, ToFixed, FIXED_ONE, FIXED_SHIFT};
+use crate::math::{Fixed, FIXED_ONE, FIXED_SHIFT};
 
 // Re-export for backward compatibility
 #[deprecated(note = "Use Fixed::from_f32 instead")]
@@ -17,46 +17,6 @@ pub fn fixed_from_int(i: i32) -> i32 {
 #[deprecated(note = "Use Fixed::to_f32 instead")]
 pub fn fixed_to_f32(f: i32) -> f32 {
     Fixed(f).to_f32()
-}
-
-/// Compute angle from center (0..1 for 0..2π)
-fn compute_center_angle(x: i32, y: i32, width: usize, height: usize) -> i32 {
-    let center_x = Fixed::from_i32(width as i32) / 2i32.to_fixed();
-    let center_y = Fixed::from_i32(height as i32) / 2i32.to_fixed();
-    let dx = Fixed(x) - center_x;
-    let dy = Fixed(y) - center_y;
-
-    if dx.0 == 0 && dy.0 == 0 {
-        return 0; // Center has no angle
-    }
-
-    // Approximate atan2 using octants
-    let abs_dx = Fixed(dx.0.abs());
-    let abs_dy = Fixed(dy.0.abs());
-
-    let angle = if abs_dx.0 > abs_dy.0 {
-        // Closer to horizontal
-        let ratio = abs_dy / abs_dx;
-        ratio / 8i32.to_fixed() // Scale to ~0..0.125
-    } else if abs_dy.0 > 0 {
-        // Closer to vertical
-        let ratio = abs_dx / abs_dy;
-        Fixed::ONE / 4i32.to_fixed() - ratio / 8i32.to_fixed()
-    } else {
-        Fixed::ZERO
-    };
-
-    // Adjust based on quadrant
-    let result = if dx.0 >= 0 && dy.0 >= 0 {
-        angle // Q1: 0 to 0.25
-    } else if dx.0 < 0 && dy.0 >= 0 {
-        Fixed::ONE / 2i32.to_fixed() - angle // Q2: 0.25 to 0.5
-    } else if dx.0 < 0 && dy.0 < 0 {
-        Fixed::ONE / 2i32.to_fixed() + angle // Q3: 0.5 to 0.75
-    } else {
-        Fixed::ONE - angle // Q4: 0.75 to 1.0
-    };
-    result.0
 }
 
 /// Execute a native function call
@@ -269,13 +229,13 @@ pub enum OpCode {
 
 // Convenience constructors for backward compatibility
 impl OpCode {
-    pub const fn LoadX() -> Self {
+    pub const fn load_x() -> Self {
         OpCode::Load(LoadSource::XNorm)
     }
-    pub const fn LoadY() -> Self {
+    pub const fn load_y() -> Self {
         OpCode::Load(LoadSource::YNorm)
     }
-    pub const fn LoadTime() -> Self {
+    pub const fn load_time() -> Self {
         OpCode::Load(LoadSource::Time)
     }
 }

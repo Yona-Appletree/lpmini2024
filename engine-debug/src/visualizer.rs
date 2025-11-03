@@ -39,7 +39,7 @@ fn main() {
     let runtime = SceneRuntime::new(config, options).expect("Valid scene config");
     let mut scene = SceneData::from_runtime(runtime);
     
-    let mut frame_count = 0u32;
+    let mut _frame_count = 0u32;
     let mut buffer: Vec<u32> = vec![0; WINDOW_WIDTH * WINDOW_HEIGHT];
     
     // Performance tracking
@@ -137,7 +137,7 @@ fn main() {
 
         window.update_with_buffer(&buffer, WINDOW_WIDTH, WINDOW_HEIGHT).unwrap();
 
-        frame_count += 1;
+        _frame_count += 1;
         let full_frame_us = frame_start.elapsed().as_micros() as u64;
         total_ui_us += full_frame_us;
     }

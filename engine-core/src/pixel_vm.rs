@@ -48,29 +48,6 @@ fn cos_fixed(x: Fixed) -> Fixed {
     sin_fixed(x + PI_DIV_2_FIXED)
 }
 
-/// Perlin3 noise using fixed-point
-#[inline(always)]
-fn perlin3_fixed(x: Fixed, y: Fixed, z: Fixed) -> Fixed {
-    let freq1 = FIXED_ONE;
-    let freq2 = FIXED_ONE * 2;
-    let freq3 = FIXED_ONE * 4;
-
-    let n1 = fixed_mul(
-        sin_fixed(fixed_mul(x, freq1) + z),
-        cos_fixed(fixed_mul(y, freq1)),
-    );
-    let n2 = fixed_mul(
-        sin_fixed(fixed_mul(x, freq2) - z),
-        cos_fixed(fixed_mul(y, freq2)),
-    ) / 2;
-    let n3 = sin_fixed(fixed_mul(x, freq3) + y + z) / 4;
-
-    let sum = n1 + n2 + n3;
-    // Divide by 1.75 = multiply by 1/1.75 ≈ 0.5714
-    // In fixed point: 0.5714 * 65536 ≈ 37450
-    fixed_mul(sum, 37450)
-}
-
 /// OpCode instructions for the VM
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub enum OpCode {

@@ -3,7 +3,6 @@
 /// Core type and conversion utilities for fixed-point math.
 use core::ops::{Add, Div, Mul, Neg, Sub};
 
-
 /// Fixed-point constants
 const SHIFT: i32 = 16;
 const ONE: i32 = 1 << SHIFT;

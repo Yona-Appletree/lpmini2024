@@ -46,26 +46,48 @@ pub use codegen::NativeFunction;
 pub use error::{CompileError, RuntimeError, RuntimeErrorWithContext, Span, Type};
 pub use vm::{LocalAccess, LocalDef, LocalType, LpsProgram, LpsVm};
 
+// Export compile functions
+pub use self::{compile_expr, parse_expr};
+
 use crate::test_engine::OpCode;
 
 /// Parse an expression string and generate a compiled LPS program
+///
+/// Returns Result with comprehensive compile errors.
+///
+/// # Example
+/// ```
+/// let program = compile_expr("cos(perlin3(xNorm*0.3, yNorm*0.3, time, 3))").unwrap();
+/// ```
+pub fn compile_expr(input: &str) -> Result<LpsProgram, CompileError> {
+    let mut lexer = lexer::Lexer::new(input);
+    let tokens = lexer.tokenize();
+
+    let mut parser = parser::Parser::new(tokens);
+    let ast = parser.parse();
+    
+    // Type check the AST
+    let typed_ast = typechecker::TypeChecker::check(ast)?;
+
+    let opcodes = codegen::CodeGenerator::generate(&typed_ast);
+    
+    Ok(LpsProgram::new("expr".into())
+        .with_opcodes(opcodes)
+        .with_source(input.into()))
+}
+
+/// Parse an expression string and generate a compiled LPS program
+///
+/// Panics on compile errors. Use `compile_expr()` for error handling.
 ///
 /// # Example
 /// ```
 /// let program = parse_expr("cos(perlin3(xNorm*0.3, yNorm*0.3, time, 3))");
 /// ```
 pub fn parse_expr(input: &str) -> LpsProgram {
-    let mut lexer = lexer::Lexer::new(input);
-    let tokens = lexer.tokenize();
-
-    let mut parser = parser::Parser::new(tokens);
-    let ast = parser.parse();
-
-    let opcodes = codegen::CodeGenerator::generate(&ast);
-    
-    LpsProgram::new("expr".into())
-        .with_opcodes(opcodes)
-        .with_source(input.into())
+    compile_expr(input).unwrap_or_else(|e| {
+        panic!("Failed to compile LPS expression: {}", e);
+    })
 }
 
 /// Legacy API: just get opcodes (for backward compatibility during migration)
@@ -157,5 +179,35 @@ mod tests {
             .filter(|op| matches!(op, OpCode::CallNative(_)))
             .count();
         assert!(and_count >= 3); // Greater, Less, And
+    }
+    
+    #[test]
+    fn test_compile_expr_success() {
+        let result = compile_expr("sin(time) + 0.5");
+        assert!(result.is_ok());
+        let program = result.unwrap();
+        assert!(program.opcodes.len() > 0);
+    }
+    
+    #[test]
+    fn test_compile_expr_undefined_variable() {
+        let result = compile_expr("undefined_var");
+        assert!(result.is_err());
+        if let Err(CompileError::TypeCheck(e)) = result {
+            assert!(matches!(e.kind, error::TypeErrorKind::UndefinedVariable(_)));
+        } else {
+            panic!("Expected TypeCheck error");
+        }
+    }
+    
+    #[test]
+    fn test_compile_expr_undefined_function() {
+        let result = compile_expr("unknown_func(1.0)");
+        assert!(result.is_err());
+        if let Err(CompileError::TypeCheck(e)) = result {
+            assert!(matches!(e.kind, error::TypeErrorKind::UndefinedFunction(_)));
+        } else {
+            panic!("Expected TypeCheck error");
+        }
     }
 }
