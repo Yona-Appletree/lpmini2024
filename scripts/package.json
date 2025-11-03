@@ -1,0 +1,14 @@
+{
+  "name": "lpmini-scripts",
+  "version": "0.0.0",
+  "type": "module",
+  "private": true,
+  "scripts": {
+    "test-esp32": "tsx test_on_esp32.ts"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "tsx": "^4.19.2"
+  }
+}
+

@@ -1,9 +1,6 @@
 #![no_std]
 #![no_main]
 
-extern crate alloc;
-use alloc::vec;
-
 use defmt::info;
 use embassy_time::Instant;
 use engine_core::demo_program::create_demo_scene;
@@ -17,12 +14,10 @@ esp_bootloader_esp_idf::esp_app_desc!();
 
 const TEST_DURATION_MS: u64 = 1000;
 
-async fn benchmark_size(width: usize, height: usize) {
-    // Create scene with demo program
-    let config = create_demo_scene(width, height);
-    let options = RuntimeOptions::new(width, height);
-    let mut scene = SceneRuntime::new(config, options).expect("Valid scene");
-    
+async fn benchmark_16x16() {
+    let config = create_demo_scene(16, 16);
+    let options = RuntimeOptions::new(16, 16);
+    let mut scene = SceneRuntime::new(config, options).expect("Failed to create scene");
     let mut frame_count = 0u32;
     let mut total_us = 0u64;
     let test_start = Instant::now();
@@ -30,6 +25,7 @@ async fn benchmark_size(width: usize, height: usize) {
     while test_start.elapsed().as_millis() < TEST_DURATION_MS {
         let frame_start = Instant::now();
         let time = fixed_from_f32(frame_count as f32 * 0.01);
+
         scene.render(time, 1).expect("Render failed");
         total_us += frame_start.elapsed().as_micros();
         frame_count += 1;
@@ -38,7 +34,7 @@ async fn benchmark_size(width: usize, height: usize) {
     let avg_us = total_us / frame_count as u64;
     let fps = if avg_us > 0 { 1_000_000 / avg_us } else { 0 };
 
-    info!("{}x{}: {}us/frame ({} FPS)", width, height, avg_us, fps);
+    info!("16x16: {}us/frame ({} FPS)", avg_us, fps);
 }
 
 #[esp_hal_embassy::main]
@@ -58,24 +54,13 @@ async fn main(_spawner: embassy_executor::Spawner) {
     embassy_time::Timer::after(embassy_time::Duration::from_millis(100)).await;
 
     info!("Embassy initialized!");
-    info!("Test Engine Benchmark - multiple resolutions");
+    info!("Test Engine Benchmark - 16x16");
     info!("");
-
-    benchmark_size(8, 8).await;
-    embassy_time::Timer::after(embassy_time::Duration::from_millis(200)).await;
     
-    benchmark_size(12, 12).await;
-    embassy_time::Timer::after(embassy_time::Duration::from_millis(200)).await;
-    
-    benchmark_size(16, 16).await;
-    embassy_time::Timer::after(embassy_time::Duration::from_millis(200)).await;
-    
-    benchmark_size(20, 20).await;
-    embassy_time::Timer::after(embassy_time::Duration::from_millis(200)).await;
-    
-    benchmark_size(24, 24).await;
+    benchmark_16x16().await;
 
     info!("");
+    info!("Complete");
 
     loop {
         // Keep alive
