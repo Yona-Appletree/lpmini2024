@@ -27,7 +27,7 @@ async fn main(_spawner: Spawner) {
     let config = esp_hal::Config::default().with_cpu_clock(CpuClock::max());
     let peripherals = esp_hal::init(config);
 
-    esp_alloc::heap_allocator!(size: 64 * 1024);
+    esp_alloc::heap_allocator!(size: 140 * 1024);
     esp_alloc::heap_allocator!(#[unsafe(link_section = ".dram2_uninit")] size: 64 * 1024);
 
     let timer0 = SystemTimer::new(peripherals.SYSTIMER);
@@ -71,10 +71,16 @@ async fn main(_spawner: Spawner) {
         }
     }
 
+    // Convert to bytes for RMT driver
+    let mut output_bytes = alloc::vec![0u8; NUM_LEDS * 3];
+    for (i, led) in led_buffer.iter().enumerate() {
+        output_bytes[i * 3] = led.r;
+        output_bytes[i * 3 + 1] = led.g;
+        output_bytes[i * 3 + 2] = led.b;
+    }
+
     // Write to LEDs
-    rmt_ws2811_driver::rmt_ws2811_write(&led_buffer);
-    rmt_ws2811_driver::rmt_ws2811_wait_complete();
-    delay.delay_micros(100);
+    rmt_ws2811_driver::rmt_ws2811_write_bytes(&output_bytes);
 
     info!("Horizontal line displayed - should see a straight line");
     info!("Holding pattern forever...");

@@ -120,6 +120,7 @@ impl FxPipeline {
     }
     
     /// Get RGB buffer as byte slice for mapping (extracts from i32 packed format)
+    /// This allocates - prefer extract_rgb_bytes() for performance
     pub fn get_rgb_bytes(&self, buffer_idx: usize) -> Vec<u8> {
         if let Some(buf) = self.buffers.get(buffer_idx) {
             let mut rgb_bytes = alloc::vec![0u8; buf.data.len() * 3];
@@ -132,6 +133,20 @@ impl FxPipeline {
             rgb_bytes
         } else {
             alloc::vec![]
+        }
+    }
+    
+    /// Extract RGB buffer into provided slice (no allocation)
+    pub fn extract_rgb_bytes(&self, buffer_idx: usize, output: &mut [u8]) {
+        if let Some(buf) = self.buffers.get(buffer_idx) {
+            for (i, &packed) in buf.data.iter().enumerate() {
+                if i * 3 + 2 < output.len() {
+                    let (r, g, b) = super::rgb_utils::unpack_rgb(packed);
+                    output[i * 3] = r;
+                    output[i * 3 + 1] = g;
+                    output[i * 3 + 2] = b;
+                }
+            }
         }
     }
     

@@ -38,6 +38,7 @@ pub struct SceneRuntime {
     pub led_output: Vec<u8>,
     pub width: usize,
     pub height: usize,
+    rgb_bytes_buffer: Vec<u8>, // Reusable buffer for RGB conversion
 }
 
 impl SceneRuntime {
@@ -47,13 +48,15 @@ impl SceneRuntime {
         let pipeline = FxPipeline::new(config.pipeline_config, options)?;
         let mapping = config.mapping_config.build();
         let led_output = alloc::vec![0u8; led_count * 3];
-        
+        let rgb_bytes_buffer = alloc::vec![0u8; options.width * options.height * 3];
+
         Ok(SceneRuntime {
             pipeline,
             mapping,
             led_output,
             width: options.width,
             height: options.height,
+            rgb_bytes_buffer,
         })
     }
     
@@ -67,9 +70,11 @@ impl SceneRuntime {
         // Render the pipeline
         self.pipeline.render(time)?;
         
-        // Get RGB buffer and apply 2D to 1D mapping
-        let rgb_bytes = self.pipeline.get_rgb_bytes(output_buffer_idx);
-        apply_2d_mapping(&rgb_bytes, &mut self.led_output, &self.mapping, self.width, self.height);
+        // Extract RGB buffer into our reusable bytes buffer (no allocation)
+        self.pipeline.extract_rgb_bytes(output_buffer_idx, &mut self.rgb_bytes_buffer);
+        
+        // Apply 2D to 1D mapping
+        apply_2d_mapping(&self.rgb_bytes_buffer, &mut self.led_output, &self.mapping, self.width, self.height);
         
         Ok(())
     }

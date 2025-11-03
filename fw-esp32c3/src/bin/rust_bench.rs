@@ -44,8 +44,8 @@ async fn main(_spawner: embassy_executor::Spawner) {
     let config = esp_hal::Config::default().with_cpu_clock(CpuClock::max());
     let peripherals = esp_hal::init(config);
 
-    // Allocate heap
-    esp_alloc::heap_allocator!(size: 64 * 1024);
+    // Allocate heap - 204KB total (140KB main DRAM + 64KB DRAM2)
+    esp_alloc::heap_allocator!(size: 140 * 1024);
     esp_alloc::heap_allocator!(#[unsafe(link_section = ".dram2_uninit")] size: 64 * 1024);
 
     let timer0 = SystemTimer::new(peripherals.SYSTIMER);

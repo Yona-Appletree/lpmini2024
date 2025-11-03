@@ -10,6 +10,11 @@ extern crate alloc;
 use defmt::info;
 use embassy_executor::Spawner;
 use embassy_time::{Duration, Instant, Timer};
+// Engine imports
+use engine_core::demo_program::{create_demo_scene, create_test_line_scene};
+use engine_core::power_limit::{apply_power_limit, PowerLimitConfig};
+use engine_core::scene::SceneRuntime;
+use engine_core::test_engine::{RuntimeOptions, FIXED_ONE};
 use esp_hal::clock::CpuClock;
 use esp_hal::delay::Delay;
 use esp_hal::rmt::Rmt;
@@ -19,12 +24,6 @@ use fw_esp32c3::rmt_ws2811_driver;
 use panic_rtt_target as _;
 use smart_leds::RGB8;
 
-// Engine imports
-use engine_core::demo_program::{create_demo_scene, create_test_line_scene};
-use engine_core::power_limit::{apply_power_limit, PowerLimitConfig};
-use engine_core::scene::SceneRuntime;
-use engine_core::test_engine::{RuntimeOptions, FIXED_ONE};
-
 // This creates a default app-descriptor required by the esp-idf bootloader.
 // For more information see: <https://docs.espressif.com/projects/esp-idf/en/stable/esp32/api-reference/system/app_image_format.html#application-description>
 esp_bootloader_esp_idf::esp_app_desc!();
@@ -33,7 +32,7 @@ const WIDTH: usize = 16;
 const HEIGHT: usize = 16;
 
 #[esp_hal_embassy::main]
-async fn main(spawner: Spawner) {
+async fn main(_spawner: Spawner) {
     // generator version: 0.5.0
 
     rtt_target::rtt_init_defmt!();
@@ -41,8 +40,9 @@ async fn main(spawner: Spawner) {
     let config = esp_hal::Config::default().with_cpu_clock(CpuClock::max());
     let peripherals = esp_hal::init(config);
 
-    esp_alloc::heap_allocator!(size: 64 * 1024);
-    // COEX needs more RAM - so we've added some more
+    // Allocate heap in DRAM (regular heap) - can allocate more here
+    esp_alloc::heap_allocator!(size: 140 * 1024);
+    // DRAM2 is a fixed-size region (~64KB), keep this conservative
     esp_alloc::heap_allocator!(#[unsafe(link_section = ".dram2_uninit")] size: 64 * 1024);
 
     let timer0 = SystemTimer::new(peripherals.SYSTIMER);
@@ -86,11 +86,15 @@ async fn main(spawner: Spawner) {
         led_idle_power_ma: 1,
     };
 
-    let mut delay = Delay::new();
+    let delay = Delay::new();
     let start_time = Instant::now();
     let mut frame_count = 0u32;
     let mut last_fps_time = start_time;
     let mut last_fps_frame = 0u32;
+
+    // Pre-allocate buffers outside the loop to avoid allocations during rendering
+    let mut led_buffer_rgb8 = alloc::vec![RGB8 { r: 0, g: 0, b: 0 }; num_leds];
+    let mut output_bytes = alloc::vec![0u8; num_leds * 3];
 
     loop {
         let frame_start = Instant::now();
@@ -104,11 +108,10 @@ async fn main(spawner: Spawner) {
         // Render the scene (outputs to scene.led_output)
         scene.render(time, 1).expect("Render failed");
 
-        // Convert engine output (u8 RGB bytes) to smart_leds::RGB8
-        let mut led_buffer = alloc::vec![RGB8 { r: 0, g: 0, b: 0 }; num_leds];
+        // Convert to RGB8 for power limiting (reuse pre-allocated buffer)
         for i in 0..num_leds {
             let idx = i * 3;
-            led_buffer[i] = RGB8 {
+            led_buffer_rgb8[i] = RGB8 {
                 r: scene.led_output[idx],
                 g: scene.led_output[idx + 1],
                 b: scene.led_output[idx + 2],
@@ -116,14 +119,14 @@ async fn main(spawner: Spawner) {
         }
 
         // Apply power limiting and gamma correction
-        apply_power_limit(&mut led_buffer, &power_config);
+        apply_power_limit(&mut led_buffer_rgb8, &power_config);
 
-        // Wait for previous transmission to complete before writing new data
-        rmt_ws2811_driver::rmt_ws2811_wait_complete();
-        // Write to LEDs and start transmission
-        rmt_ws2811_driver::rmt_ws2811_write(&led_buffer);
-
-        frame_count += 1;
+        // Convert back to bytes for RMT driver (reuse pre-allocated buffer)
+        for (i, led) in led_buffer_rgb8.iter().enumerate() {
+            output_bytes[i * 3] = led.r;
+            output_bytes[i * 3 + 1] = led.g;
+            output_bytes[i * 3 + 2] = led.b;
+        }
 
         // Log FPS every second
         if frame_start.duration_since(last_fps_time).as_millis() >= 1000 {
@@ -137,12 +140,10 @@ async fn main(spawner: Spawner) {
             last_fps_frame = frame_count;
         }
 
-        // Frame rate limiting
-        let frame_time = frame_start.elapsed().as_millis() as u32;
-        if frame_time < FRAME_TIME_MS {
-            let sleep_ms = FRAME_TIME_MS - frame_time;
-            Timer::after(Duration::from_millis(sleep_ms as u64)).await;
-        }
+        // Write to LEDs and start transmission
+        rmt_ws2811_driver::rmt_ws2811_write_bytes(&output_bytes);
+
+        frame_count += 1;
     }
 
     // for inspiration have a look at the examples at https://github.com/esp-rs/esp-hal/tree/esp-hal-v1.0.0-rc.0/examples/src/bin

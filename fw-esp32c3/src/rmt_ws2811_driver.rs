@@ -7,8 +7,8 @@ use smart_leds::hsv::hsv2rgb;
 use smart_leds::RGB8;
 
 // Configuration constants
-const MAX_LEDS: usize = 250; // Maximum number of LEDs supported
-static mut ACTUAL_NUM_LEDS: usize = 128; // Actual number of LEDs (set at init)
+static mut ACTUAL_NUM_LEDS: usize = 0; // Actual number of LEDs (set at init)
+static mut LED_DATA_BUFFER_PTR: *mut RGB8 = core::ptr::null_mut(); // Dynamically allocated
 
 // Buffer size for 8 LEDs worth of data (double buffered)
 // Using memsize(4) = 192 words. 8 LEDs = 192 words exactly, 4 LEDs per half
@@ -20,7 +20,6 @@ const BUFFER_SIZE: usize = BUFFER_LEDS * BITS_PER_LED;
 
 // Global state for interrupt handling
 static mut RMT_BUFFER: [u32; BUFFER_SIZE] = [0; BUFFER_SIZE];
-static mut LED_DATA_BUFFER: [RGB8; MAX_LEDS] = [RGB8 { r: 0, g: 0, b: 0 }; MAX_LEDS];
 static mut FRAME_COUNTER: usize = 0;
 static mut LED_COUNTER: usize = 0; // Track current LED position in the strip
 static mut INTERRUPT_ENABLED: bool = false;
@@ -270,7 +269,7 @@ unsafe fn write_half_buffer(is_first_half: bool) -> bool {
             return true;
         } else {
             // Get RGB color from LED data buffer and write directly to RMT buffer
-            let color = LED_DATA_BUFFER[LED_COUNTER];
+            let color = LED_DATA_BUFFER_PTR.add(LED_COUNTER).read();
 
             // WS2812 uses GRB order
             write_ws2811_byte(led_ptr, color.g, 0); // Green first
@@ -278,7 +277,6 @@ unsafe fn write_half_buffer(is_first_half: bool) -> bool {
             write_ws2811_byte(led_ptr, color.b, 2); // Blue third
 
             LED_COUNTER += 1;
-            // info!("led {}", LED_COUNTER);
         }
     }
 
@@ -290,7 +288,7 @@ unsafe fn write_half_buffer(is_first_half: bool) -> bool {
 /// # Arguments
 /// * `rmt` - RMT peripheral
 /// * `pin` - GPIO pin for LED data output
-/// * `num_leds` - Number of LEDs in the strip (max 250)
+/// * `num_leds` - Number of LEDs in the strip
 ///
 /// # Returns
 /// Transaction handle that must be kept alive
@@ -302,8 +300,16 @@ pub fn rmt_ws2811_init<'d, O>(
 where
     O: PeripheralOutput<'d>,
 {
+    extern crate alloc;
+    use alloc::boxed::Box;
+    use alloc::vec;
+
     unsafe {
-        ACTUAL_NUM_LEDS = num_leds.min(MAX_LEDS);
+        ACTUAL_NUM_LEDS = num_leds;
+
+        // Allocate LED buffer dynamically
+        let buffer = vec![RGB8 { r: 0, g: 0, b: 0 }; num_leds].into_boxed_slice();
+        LED_DATA_BUFFER_PTR = Box::into_raw(buffer) as *mut RGB8;
     }
 
     // Set up the interrupt handler with max priority
@@ -323,15 +329,31 @@ where
     Ok(transaction)
 }
 
-/// Write LED data and start transmission
+/// Write LED data and start transmission from raw RGB bytes
 ///
 /// # Arguments
-/// * `led_data` - RGB data for LEDs (must be at least num_leds length)
-pub fn rmt_ws2811_write(led_data: &[RGB8]) {
+/// * `rgb_bytes` - Raw RGB bytes (R,G,B,R,G,B,...) must be at least num_leds * 3 bytes
+pub fn rmt_ws2811_write_bytes(rgb_bytes: &[u8]) {
+    rmt_ws2811_wait_complete();
+
     unsafe {
-        // Copy LED data into internal buffer
-        let num_to_copy = led_data.len().min(ACTUAL_NUM_LEDS);
-        LED_DATA_BUFFER[..num_to_copy].copy_from_slice(&led_data[..num_to_copy]);
+        let buffer = core::slice::from_raw_parts_mut(LED_DATA_BUFFER_PTR, ACTUAL_NUM_LEDS);
+
+        // Clear first
+        for led in buffer.iter_mut() {
+            *led = RGB8 { r: 0, g: 0, b: 0 };
+        }
+
+        // Convert from bytes to RGB8 as we copy
+        let num_leds = (rgb_bytes.len() / 3).min(ACTUAL_NUM_LEDS);
+        for i in 0..num_leds {
+            let idx = i * 3;
+            buffer[i] = RGB8 {
+                r: rgb_bytes[idx],
+                g: rgb_bytes[idx + 1],
+                b: rgb_bytes[idx + 2],
+            };
+        }
 
         // Start transmission
         start_transmission();
