@@ -46,9 +46,6 @@ pub use codegen::NativeFunction;
 pub use error::{CompileError, RuntimeError, RuntimeErrorWithContext, Span, Type};
 pub use vm::{LocalAccess, LocalDef, LocalType, LpsProgram, LpsVm};
 
-// Export compile functions
-pub use self::{compile_expr, parse_expr};
-
 use crate::test_engine::OpCode;
 
 /// Parse an expression string and generate a compiled LPS program
