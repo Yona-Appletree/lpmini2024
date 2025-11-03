@@ -5,8 +5,10 @@ mod grid;
 mod spiral;
 mod circular;
 mod sample;
+pub mod config;
 
 pub use sample::{bilinear_interp_channel, bilinear_interp_rgb, sample_rgb_bilinear};
+pub use config::MappingConfig;
 
 /// Single LED mapping entry with sub-pixel precision
 #[derive(Debug, Clone, Copy)]

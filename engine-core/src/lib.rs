@@ -18,5 +18,11 @@ pub mod pixel_vm;
 /// Test engine - modular rendering pipeline for LED effects
 pub mod test_engine;
 
+/// Scene configuration and runtime system
+pub mod scene;
+
+/// Demo program configuration
+pub mod demo_program;
+
 /// Standard test scene shared between ESP32 and host
 pub mod test_scene;

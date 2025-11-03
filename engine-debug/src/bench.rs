@@ -1,56 +1,23 @@
 /// Quick benchmark for test scene at multiple resolutions
-use engine_core::test_engine::{fixed_from_f32, render_frame, LedMapping, LoadSource, OpCode, Palette, Fixed};
+use engine_core::demo_program::create_demo_scene;
+use engine_core::scene::SceneRuntime;
+use engine_core::test_engine::{fixed_from_f32, RuntimeOptions};
 use std::time::Instant;
-
-extern crate alloc;
-use alloc::vec;
 
 const FRAME_COUNT: u32 = 1000;
 const LED_COUNT: usize = 128;
 
 fn benchmark_size(width: usize, height: usize) {
-    let buffer_size = width * height;
-    
-    // Create buffers
-    let mut greyscale_buffer = vec![0i32; buffer_size];
-    let input_buffer = vec![0i32; buffer_size];
-    let mut rgb_2d_buffer = vec![0u8; buffer_size * 3];
-    let mut led_output = vec![0u8; LED_COUNT * 3];
-    
-    // Create palette and mapping
-    let palette = Palette::rainbow();
-    let mapping = LedMapping::spiral(3, width, height);
-    
-    // Same program as SceneData
-    let program = vec![
-        OpCode::Load(LoadSource::XNorm),
-        OpCode::Push(Fixed::from(fixed_from_f32(0.3))),
-        OpCode::Mul,
-        OpCode::Load(LoadSource::YNorm),
-        OpCode::Push(Fixed::from(fixed_from_f32(0.3))),
-        OpCode::Mul,
-        OpCode::Load(LoadSource::Time),
-        OpCode::Perlin3(3),
-        OpCode::Cos,
-        OpCode::Return,
-    ];
+    // Create scene with demo program
+    let config = create_demo_scene(width, height, LED_COUNT);
+    let options = RuntimeOptions::new(width, height);
+    let mut scene = SceneRuntime::new(config, options).expect("Valid scene");
     
     let start = Instant::now();
     
     for i in 0..FRAME_COUNT {
         let time = fixed_from_f32(i as f32 * 0.01);
-        render_frame(
-            &mut greyscale_buffer,
-            &input_buffer,
-            &mut rgb_2d_buffer,
-            &mut led_output,
-            &program,
-            &palette,
-            &mapping,
-            width,
-            height,
-            time,
-        );
+        scene.render(time, 1).expect("Render failed");
     }
     
     let elapsed = start.elapsed();
