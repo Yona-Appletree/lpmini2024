@@ -3,11 +3,14 @@
 
 extern crate alloc;
 
+use alloc::vec;
+
 use defmt::info;
 use embassy_time::Instant;
 use esp_hal::clock::CpuClock;
 use esp_hal::timer::systimer::SystemTimer;
 use panic_rtt_target as _;
+use perf_tests_common::pixel_vm::{self, OpCode, FIXED_SHIFT};
 use perf_tests_common::RenderFn;
 
 // This creates a default app-descriptor required by the esp-idf bootloader.
@@ -38,8 +41,66 @@ async fn run_test(name: &str, render_fn: RenderFn, buffer: &mut [u8]) {
 
     let avg_us = total_us / frame_count as u64;
     let avg_fps = if avg_us > 0 { 1_000_000 / avg_us } else { 0 };
-    
-    info!("{}: {}µs/frame, {} FPS ({} frames)", name, avg_us, avg_fps, frame_count);
+
+    info!(
+        "{}: {}µs/frame, {} FPS ({} frames)",
+        name, avg_us, avg_fps, frame_count
+    );
+}
+
+/// Run a pixel VM performance test
+async fn run_pixel_vm_test(name: &str) {
+    const VM_WIDTH: usize = 16;
+    const VM_HEIGHT: usize = 16;
+    const VM_SIZE: usize = VM_WIDTH * VM_HEIGHT;
+
+    // Create buffers (grayscale, fixed-point) using alloc
+    let input = vec![0i32; VM_SIZE];
+    let mut output = vec![0i32; VM_SIZE];
+
+    // Example program:
+    // v = perlin3(x, y, time)
+    // v = cos(v)
+    // v = v < 0.5 ? 0 : 1
+    // return v
+    let program = vec![
+        // v = perlin3(x, y, time)
+        OpCode::LoadX,
+        OpCode::LoadY,
+        OpCode::LoadTime,
+        OpCode::Perlin3,
+        // v = cos(v)
+        OpCode::Cos,
+        // v = v < 0.5 ? 0 : 1
+        OpCode::Push(1 << (FIXED_SHIFT - 1)), // 0.5 in fixed-point
+        OpCode::JumpLt(3),                    // if v < 0.5, jump to push 0
+        OpCode::Push(1 << FIXED_SHIFT),       // push 1
+        OpCode::Return,
+        OpCode::Push(0), // push 0
+        OpCode::Return,
+    ];
+
+    let mut frame_count = 0u32;
+    let mut total_us = 0u64;
+    let test_start = Instant::now();
+
+    // Run for 1 second
+    while test_start.elapsed().as_millis() < TEST_DURATION_MS {
+        let frame_start = Instant::now();
+        let time = pixel_vm::fixed_from_f32(frame_count as f32 * 0.016);
+        pixel_vm::execute_program(&input, &mut output, &program, VM_WIDTH, VM_HEIGHT, time);
+        let frame_elapsed = frame_start.elapsed();
+        total_us += frame_elapsed.as_micros();
+        frame_count += 1;
+    }
+
+    let avg_us = total_us / frame_count as u64;
+    let avg_fps = if avg_us > 0 { 1_000_000 / avg_us } else { 0 };
+
+    info!(
+        "{}: {}µs/frame, {} FPS ({} frames)",
+        name, avg_us, avg_fps, frame_count
+    );
 }
 
 #[esp_hal_embassy::main]
@@ -61,20 +122,38 @@ async fn main(_spawner: embassy_executor::Spawner) {
 
     info!("Embassy initialized!");
     info!("");
-    info!("Performance Tests: {}x{} RGB, {}ms per test", MATRIX_WIDTH, MATRIX_HEIGHT, TEST_DURATION_MS);
+    info!(
+        "Performance Tests: {}x{} RGB, {}ms per test",
+        MATRIX_WIDTH, MATRIX_HEIGHT, TEST_DURATION_MS
+    );
     info!("");
 
     let mut buffer = [0u8; BUFFER_SIZE];
 
     // Test one at a time to debug RTT issues
     info!("Starting tests...");
-    
-    run_test("perlin3_fixed", perf_tests_common::perlin3_fixed::render_frame, &mut buffer).await;
-    
+
+    run_test(
+        "perlin3_fixed",
+        perf_tests_common::perlin3_fixed::render_frame,
+        &mut buffer,
+    )
+    .await;
+
     info!("Test 1 complete, waiting...");
     embassy_time::Timer::after(embassy_time::Duration::from_millis(500)).await;
-    
-    run_test("perlin3_decimal", perf_tests_common::perlin3_decimal::render_frame, &mut buffer).await;
+
+    run_test(
+        "perlin3_decimal",
+        perf_tests_common::perlin3_decimal::render_frame,
+        &mut buffer,
+    )
+    .await;
+
+    info!("Test 2 complete, waiting...");
+    embassy_time::Timer::after(embassy_time::Duration::from_millis(500)).await;
+
+    run_pixel_vm_test("pixel_vm (16x16 grayscale)").await;
 
     info!("");
 
