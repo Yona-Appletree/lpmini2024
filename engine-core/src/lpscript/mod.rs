@@ -207,4 +207,40 @@ mod tests {
             panic!("Expected TypeCheck error");
         }
     }
+    
+    #[test]
+    fn test_perlin3_only_pushes_xyz() {
+        // Regression test for horizontal stripes bug!
+        // perlin3(x, y, z, octaves) should only push 3 args to stack (x, y, z)
+        // Octaves should be extracted at compile time and embedded in the opcode
+        let program = parse_expr("perlin3(xNorm, yNorm, time, 3)");
+        
+        // Count Push/Load opcodes before Perlin3
+        let mut push_count = 0;
+        for op in &program.opcodes {
+            if matches!(op, OpCode::Perlin3(_)) {
+                break;
+            }
+            if matches!(op, OpCode::Push(_) | OpCode::Load(_)) {
+                push_count += 1;
+            }
+        }
+        
+        // CRITICAL: Should be exactly 3 (xNorm, yNorm, time)
+        // If it's 4, the VM will pop them as (z=octaves, y=z, x=y)
+        // causing only Y to vary (horizontal stripes)!
+        assert_eq!(push_count, 3, 
+            "BUG: perlin3 pushed {} args but VM expects 3. This causes horizontal stripes!",
+            push_count);
+        
+        // Verify octaves is embedded in opcode
+        let has_perlin = program.opcodes.iter().any(|op| {
+            if let OpCode::Perlin3(octaves) = op {
+                *octaves == 3
+            } else {
+                false
+            }
+        });
+        assert!(has_perlin, "Should have Perlin3(3) opcode with octaves=3 embedded");
+    }
 }

@@ -159,7 +159,32 @@ impl CodeGenerator {
     }
     
     fn gen_function_call(name: &str, args: &[Expr], code: &mut Vec<OpCode>) {
-        // Generate code for all arguments first
+        // Special case: perlin3(x, y, z, octaves)
+        // Octaves is embedded in opcode, not pushed to stack
+        if name == "perlin3" {
+            // Push only first 3 args (x, y, z) to stack
+            for arg in args.iter().take(3) {
+                Self::gen_expr(arg, code);
+            }
+            
+            // Extract octaves from 4th arg or use default
+            let octaves = if args.len() >= 4 {
+                if let ExprKind::Number(n) = &args[3].kind {
+                    *n as u8
+                } else if let ExprKind::IntNumber(n) = &args[3].kind {
+                    *n as u8
+                } else {
+                    3 // Default
+                }
+            } else {
+                3 // Default
+            };
+            
+            code.push(OpCode::Perlin3(octaves));
+            return;
+        }
+        
+        // For all other functions, generate code for all arguments first
         for arg in args {
             Self::gen_expr(arg, code);
         }
@@ -169,22 +194,6 @@ impl CodeGenerator {
             "sin" => code.push(OpCode::Sin),
             "cos" => code.push(OpCode::Cos),
             "frac" => code.push(OpCode::Frac),
-            
-            "perlin3" => {
-                let octaves = if args.len() >= 4 {
-                    // Try to extract constant octaves from last arg
-                    if let ExprKind::Number(n) = &args[3].kind {
-                        *n as u8
-                    } else if let ExprKind::IntNumber(n) = &args[3].kind {
-                        *n as u8
-                    } else {
-                        3 // Default
-                    }
-                } else {
-                    3 // Default
-                };
-                code.push(OpCode::Perlin3(octaves));
-            }
             
             // Native functions - math
             "min" => code.push(OpCode::CallNative(NativeFunction::Min as u8)),
