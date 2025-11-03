@@ -69,6 +69,13 @@ pub enum PipelineStep {
         output: BufferRef,
         palette: Palette,
     },
+    
+    /// Apply Gaussian blur
+    BlurStep {
+        input: BufferRef,
+        output: BufferRef,
+        radius: Fixed, // Blur radius in fixed-point (pixels)
+    },
 }
 
 /// Pipeline validation and execution errors

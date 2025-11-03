@@ -10,13 +10,16 @@ const GAMMA_TABLE: [u8; 256] = generate_gamma_table();
 
 const fn generate_gamma_table() -> [u8; 256] {
     let mut table = [0u8; 256];
-    let mut i = 0;
+    table[0] = 0; // Black stays black
+    let mut i = 1;
     while i < 256 {
         // Approximation of gamma 2.2: (i/255)^2.2 * 255
-        // Using integer math: (i * i * i) / (255 * 255) is roughly gamma 2.0
-        // For gamma 2.2, we use a slightly different curve
-        let normalized = (i * i) / 255;
-        table[i] = if normalized > 255 { 255 } else { normalized as u8 };
+        // Using integer math with better precision
+        // Use (i * i * 256) / (255 * 255) to get more range
+        let normalized = (i * i * 256) / (255 * 255);
+        // Ensure non-zero inputs never become zero (preserve dim pixels)
+        let result = if normalized == 0 { 1 } else { normalized };
+        table[i] = if result > 255 { 255 } else { result as u8 };
         i += 1;
     }
     table

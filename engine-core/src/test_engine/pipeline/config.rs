@@ -57,13 +57,33 @@ impl FxPipelineConfig {
                         });
                     }
                     
-                    // Validate format compatibility
+                    // Validate format compatibility (palette needs greyscale input)
                     if input.format != BufferFormat::ImageGrey {
                         return Err(PipelineError::FormatMismatch {
                             expected: BufferFormat::ImageGrey,
                             actual: input.format,
                         });
                     }
+                }
+                
+                PipelineStep::BlurStep { input, output, .. } => {
+                    // Validate input buffer
+                    if input.buffer_idx >= self.num_buffers {
+                        return Err(PipelineError::InvalidBufferRef {
+                            buffer_idx: input.buffer_idx,
+                            num_buffers: self.num_buffers,
+                        });
+                    }
+                    
+                    // Validate output buffer
+                    if output.buffer_idx >= self.num_buffers {
+                        return Err(PipelineError::InvalidBufferRef {
+                            buffer_idx: output.buffer_idx,
+                            num_buffers: self.num_buffers,
+                        });
+                    }
+                    
+                    // Blur accepts any format (no format validation needed)
                 }
             }
         }

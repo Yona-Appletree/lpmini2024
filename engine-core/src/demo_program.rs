@@ -63,7 +63,7 @@ pub fn create_demo_scene(width: usize, height: usize) -> SceneConfig {
 
     // Build pipeline configuration
     let pipeline_config = FxPipelineConfig::new(
-        2, // Two buffers: 0=greyscale, 1=RGB
+        2, // Two buffers: 0=greyscale/temp, 1=RGB
         vec![
             PipelineStep::ExprStep {
                 program,
@@ -74,6 +74,16 @@ pub fn create_demo_scene(width: usize, height: usize) -> SceneConfig {
                 input: BufferRef::new(0, BufferFormat::ImageGrey),
                 output: BufferRef::new(1, BufferFormat::ImageRgb),
                 palette,
+            },
+            PipelineStep::BlurStep {
+                input: BufferRef::new(1, BufferFormat::ImageRgb),
+                output: BufferRef::new(0, BufferFormat::ImageRgb), // Reuse buffer 0
+                radius: fixed_from_f32(0.2),                       // 0.2 pixel blur radius
+            },
+            PipelineStep::BlurStep {
+                input: BufferRef::new(0, BufferFormat::ImageRgb),
+                output: BufferRef::new(1, BufferFormat::ImageRgb), // Back to buffer 1
+                radius: fixed_from_f32(0.1),                       // Second pass for smoother blur
             },
         ],
     );

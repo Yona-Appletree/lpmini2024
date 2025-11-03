@@ -11,7 +11,7 @@ use defmt::info;
 use embassy_executor::Spawner;
 use embassy_time::Instant;
 // Engine imports
-use engine_core::demo_program::create_test_line_scene;
+use engine_core::demo_program::create_demo_scene;
 use engine_core::scene::SceneRuntime;
 use engine_core::test_engine::FIXED_ONE;
 use esp_hal::clock::CpuClock;
@@ -49,14 +49,14 @@ async fn main(_spawner: Spawner) {
 
     info!("Embassy initialized!");
 
-    // Create the engine scene with test pattern
-    info!("Creating {}x{} test line scene...", WIDTH, HEIGHT);
-    let scene_config = create_test_line_scene(WIDTH, HEIGHT);
+    // Create the engine scene with demo pattern
+    info!("Creating {}x{} demo scene...", WIDTH, HEIGHT);
+    let scene_config = create_demo_scene(WIDTH, HEIGHT);
     let num_leds = scene_config.led_count();
 
     // Power limiting configuration
     let power_config = engine_core::power_limit::PowerLimitConfig {
-        brightness_256: 32,    // ~12.5% brightness (32/256)
+        brightness_256: 255,   // ~12.5% brightness (32/256)
         power_budget_ma: 1000, // 1A budget
         led_white_power_ma: 50,
         led_idle_power_ma: 1,

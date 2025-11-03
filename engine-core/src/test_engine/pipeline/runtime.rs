@@ -51,6 +51,10 @@ impl FxPipeline {
                 PipelineStep::PaletteStep { input, output, palette } => {
                     self.execute_palette_step(input, output, palette, step_idx)?;
                 }
+                
+                PipelineStep::BlurStep { input, output, radius } => {
+                    self.execute_blur_step(input, output, *radius, step_idx)?;
+                }
             }
         }
         
@@ -111,6 +115,93 @@ impl FxPipeline {
         }
         output_buf.set_format(BufferFormat::ImageRgb);
         
+        Ok(())
+    }
+    
+    /// Execute a blur step (box blur approximation)
+    fn execute_blur_step(
+        &mut self,
+        input: &BufferRef,
+        output: &BufferRef,
+        radius: Fixed,
+        _step_idx: usize,
+    ) -> Result<(), PipelineError> {
+        let input_buf = &self.buffers[input.buffer_idx];
+        let format = input_buf.last_format;
+        
+        // Clone input data for reading
+        let input_data = input_buf.data.clone();
+        
+        // Convert radius from fixed-point to pixel radius (relative to image size)
+        // radius is a fraction (e.g., 0.2 = 20% of image dimension)
+        // Multiply by average dimension to get absolute pixels
+        let avg_dimension = (self.width + self.height) / 2;
+        let radius_pixels_fp = (radius as i64 * avg_dimension as i64) >> 16; // Fixed-point multiply
+        let radius_pixels = radius_pixels_fp.max(1) as usize; // Clamp to at least 1 pixel
+        
+        // Box blur (faster than Gaussian for embedded)
+        let output_buf = &mut self.buffers[output.buffer_idx];
+        
+        match format {
+            BufferFormat::ImageRgb => {
+                // Blur RGB channels separately
+                for y in 0..self.height {
+                    for x in 0..self.width {
+                        let mut sum_r = 0i64;
+                        let mut sum_g = 0i64;
+                        let mut sum_b = 0i64;
+                        let mut count = 0i64;
+                        
+                        // Sample within blur radius
+                        for ky in -(radius_pixels as isize)..=(radius_pixels as isize) {
+                            for kx in -(radius_pixels as isize)..=(radius_pixels as isize) {
+                                let sx = (x as isize + kx).max(0).min(self.width as isize - 1) as usize;
+                                let sy = (y as isize + ky).max(0).min(self.height as isize - 1) as usize;
+                                let idx = sy * self.width + sx;
+                                
+                                let (r, g, b) = super::rgb_utils::unpack_rgb(input_data[idx]);
+                                sum_r += r as i64;
+                                sum_g += g as i64;
+                                sum_b += b as i64;
+                                count += 1;
+                            }
+                        }
+                        
+                        let avg_r = (sum_r / count) as u8;
+                        let avg_g = (sum_g / count) as u8;
+                        let avg_b = (sum_b / count) as u8;
+                        
+                        let idx = y * self.width + x;
+                        output_buf.data[idx] = pack_rgb(avg_r, avg_g, avg_b);
+                    }
+                }
+            }
+            BufferFormat::ImageGrey => {
+                // Blur greyscale
+                for y in 0..self.height {
+                    for x in 0..self.width {
+                        let mut sum = 0i64;
+                        let mut count = 0i64;
+                        
+                        for ky in -(radius_pixels as isize)..=(radius_pixels as isize) {
+                            for kx in -(radius_pixels as isize)..=(radius_pixels as isize) {
+                                let sx = (x as isize + kx).max(0).min(self.width as isize - 1) as usize;
+                                let sy = (y as isize + ky).max(0).min(self.height as isize - 1) as usize;
+                                let idx = sy * self.width + sx;
+                                
+                                sum += input_data[idx] as i64;
+                                count += 1;
+                            }
+                        }
+                        
+                        let idx = y * self.width + x;
+                        output_buf.data[idx] = (sum / count) as i32;
+                    }
+                }
+            }
+        }
+        
+        output_buf.set_format(format);
         Ok(())
     }
     
