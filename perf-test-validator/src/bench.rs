@@ -1,5 +1,6 @@
 use perf_tests_common;
-use perf_tests_common::pixel_vm::{self, OpCode, FIXED_SHIFT};
+use perf_tests_common::test_engine::{fixed_from_f32, OpCode, FIXED_SHIFT};
+use perf_tests_common::test_engine::{render_frame, LedMapping, Palette};
 use std::time::{Duration, Instant};
 
 const WIDTH: usize = 64;
@@ -35,34 +36,40 @@ fn benchmark(name: &str, render_fn: perf_tests_common::RenderFn) {
     );
 }
 
-fn benchmark_pixel_vm() {
-    const VM_WIDTH: usize = 16;
-    const VM_HEIGHT: usize = 16;
-    const VM_SIZE: usize = VM_WIDTH * VM_HEIGHT;
+fn benchmark_test_engine() {
+    const WIDTH: usize = 16;
+    const HEIGHT: usize = 16;
+    const BUFFER_SIZE: usize = WIDTH * HEIGHT;
+    const LED_COUNT: usize = 128;
 
-    // Create buffers (grayscale, fixed-point)
-    let input = vec![0i32; VM_SIZE];
-    let mut output = vec![0i32; VM_SIZE];
+    // Create all buffers
+    let mut greyscale_buffer = vec![0i32; BUFFER_SIZE];
+    let input_buffer = vec![0i32; BUFFER_SIZE];
+    let mut rgb_2d_buffer = vec![0u8; BUFFER_SIZE * 3];
+    let mut led_output = vec![0u8; LED_COUNT * 3];
 
-    // Example program from plan:
+    // Create palette (rainbow)
+    let palette = Palette::rainbow();
+
+    // Create LED mapping (serpentine for realistic LED strip)
+    // Maps 128 LEDs to first 8 rows of 16x16 grid
+    let mapping = LedMapping::serpentine_16x8();
+
+    // Example program: animated perlin noise with color threshold
     // v = perlin3(x, y, time)
     // v = cos(v)
-    // v = v < 0.5 ? 0 : 1
-    // return v
+    // v = (v + 1) / 2  // normalize to 0..1
     let program = vec![
-        // v = perlin3(x, y, time)
         OpCode::LoadX,
         OpCode::LoadY,
         OpCode::LoadTime,
         OpCode::Perlin3,
-        // v = cos(v)
         OpCode::Cos,
-        // v = v < 0.5 ? 0 : 1
-        OpCode::Push(1 << (FIXED_SHIFT - 1)), // 0.5 in fixed-point
-        OpCode::JumpLt(3),                    // if v < 0.5, jump to push 0
-        OpCode::Push(1 << FIXED_SHIFT),       // push 1
-        OpCode::Return,
-        OpCode::Push(0), // push 0
+        // Normalize from -1..1 to 0..1
+        OpCode::Push(1 << FIXED_SHIFT), // push 1
+        OpCode::Add,                    // v + 1
+        OpCode::Push(2 << FIXED_SHIFT), // push 2
+        OpCode::Div,                    // (v + 1) / 2
         OpCode::Return,
     ];
 
@@ -74,8 +81,22 @@ fn benchmark_pixel_vm() {
     // Run for 1 second
     while test_start.elapsed() < TEST_DURATION {
         let frame_start = Instant::now();
-        let time = pixel_vm::fixed_from_f32(frame_count as f32 * 0.016); // ~60 FPS time step
-        pixel_vm::execute_program(&input, &mut output, &program, VM_WIDTH, VM_HEIGHT, time);
+        let time = fixed_from_f32(frame_count as f32 * 0.016);
+
+        // Full pipeline: VM -> RGB -> LED mapping
+        render_frame(
+            &mut greyscale_buffer,
+            &input_buffer,
+            &mut rgb_2d_buffer,
+            &mut led_output,
+            &program,
+            &palette,
+            &mapping,
+            WIDTH,
+            HEIGHT,
+            time,
+        );
+
         total_micros += frame_start.elapsed().as_micros() as u64;
         frame_count += 1;
     }
@@ -88,17 +109,14 @@ fn benchmark_pixel_vm() {
     };
 
     println!(
-        "pixel_vm (16x16 grayscale): {}µs/frame, {} FPS ({} frames)",
+        "test_engine (16x16 -> 128 LEDs): {}µs/frame, {} FPS ({} frames)",
         avg_micros, fps, frame_count
     );
 
-    // Show a sample of the output for verification
+    // Show a sample of the LED output for verification
     println!(
-        "  Sample output (first 4 pixels): {:?}",
-        &output[0..4]
-            .iter()
-            .map(|&v| pixel_vm::fixed_to_f32(v))
-            .collect::<Vec<_>>()
+        "  Sample LED output (first LED RGB): [{}, {}, {}]",
+        led_output[0], led_output[1], led_output[2]
     );
 }
 
@@ -127,8 +145,8 @@ fn main() {
         perf_tests_common::perlin3_fixed_crate::render_frame,
     );
 
-    println!("\n--- Stack-based VM Benchmark ---");
-    benchmark_pixel_vm();
+    println!("\n--- Test Engine (Full Pipeline) ---");
+    benchmark_test_engine();
 
     println!("\nNote: ESP32-C3 will be ~10-50x slower than these numbers");
 }

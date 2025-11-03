@@ -12,8 +12,11 @@ pub mod perlin3_fixed;
 pub mod perlin3_fixed_crate;
 pub mod perlin3_decimal;
 
-/// Stack-based VM for pixel operations
+/// Stack-based VM for pixel operations (legacy, with tests)
 pub mod pixel_vm;
+
+/// Test engine - modular rendering pipeline
+pub mod test_engine;
 
 /// Common render function signature
 pub type RenderFn = fn(buffer: &mut [u8], time: f32, width: usize, height: usize);

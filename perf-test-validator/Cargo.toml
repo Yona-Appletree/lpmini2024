@@ -11,5 +11,11 @@ path = "src/main.rs"
 name = "bench"
 path = "src/bench.rs"
 
+[[bin]]
+name = "visualizer"
+path = "src/visualizer.rs"
+
 [dependencies]
 perf-tests-common = { path = "../perf-tests-common" }
+minifb = "0.27"
+embedded-graphics = "0.8"
