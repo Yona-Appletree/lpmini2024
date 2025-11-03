@@ -6,6 +6,8 @@ use crate::math::Fixed;
 use crate::test_engine::LoadSource;
 
 pub mod fixed;
+pub mod comparisons;
+pub mod int32;
 pub mod vec2;
 pub mod stack;
 pub mod control;
