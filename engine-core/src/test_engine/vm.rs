@@ -56,7 +56,7 @@ fn sin_fixed(x: Fixed) -> Fixed {
     // Map 0..1 input to 0..255 table index
     let index = ((x as i64 * 256) >> FIXED_SHIFT) as usize & 0xFF;
     let sin_val = SIN_TABLE[index];
-    
+
     // Map -1..1 to 0..1
     // result = (sin_val + 1) / 2
     (sin_val + FIXED_ONE) >> 1
@@ -81,7 +81,7 @@ fn fade(t: Fixed) -> Fixed {
     let t3 = (t2 * t_norm) >> FIXED_SHIFT;
     let t4 = (t3 * t_norm) >> FIXED_SHIFT;
     let t5 = (t4 * t_norm) >> FIXED_SHIFT;
-    
+
     let result = (6 * t5 - 15 * t4 + 10 * t3) as i32;
     result
 }
@@ -98,7 +98,13 @@ fn grad(hash: u8, x: Fixed, y: Fixed, z: Fixed) -> Fixed {
     let h = hash & 15;
     // Convert hash to one of 12 gradient directions
     let u = if h < 8 { x } else { y };
-    let v = if h < 4 { y } else if h == 12 || h == 14 { x } else { z };
+    let v = if h < 4 {
+        y
+    } else if h == 12 || h == 14 {
+        x
+    } else {
+        z
+    };
     (if h & 1 == 0 { u } else { -u }) + (if h & 2 == 0 { v } else { -v })
 }
 
@@ -111,17 +117,17 @@ fn perlin3_fixed(x: Fixed, y: Fixed, z: Fixed) -> Fixed {
     let xi = ((x >> FIXED_SHIFT) & 0xFF) as usize;
     let yi = ((y >> FIXED_SHIFT) & 0xFF) as usize;
     let zi = ((z >> FIXED_SHIFT) & 0xFF) as usize;
-    
+
     // Get fractional parts (0..1 in fixed point)
     let xf = x & (FIXED_ONE - 1);
     let yf = y & (FIXED_ONE - 1);
     let zf = z & (FIXED_ONE - 1);
-    
+
     // Fade curves
     let u = fade(xf);
     let v = fade(yf);
     let w = fade(zf);
-    
+
     // Hash coordinates of 8 cube corners
     let p = &PERM;
     let a = p[xi] as usize;
@@ -130,22 +136,39 @@ fn perlin3_fixed(x: Fixed, y: Fixed, z: Fixed) -> Fixed {
     let b = p[(xi + 1) & 0xFF] as usize;
     let ba = p[(b + yi) & 0xFF] as usize;
     let bb = p[(b + yi + 1) & 0xFF] as usize;
-    
+
     // Blend results from 8 corners
-    let x1 = lerp(u, grad(p[(aa + zi) & 0xFF], xf, yf, zf),
-                     grad(p[(ba + zi) & 0xFF], xf - FIXED_ONE, yf, zf));
-    let x2 = lerp(u, grad(p[(ab + zi) & 0xFF], xf, yf - FIXED_ONE, zf),
-                     grad(p[(bb + zi) & 0xFF], xf - FIXED_ONE, yf - FIXED_ONE, zf));
+    let x1 = lerp(
+        u,
+        grad(p[(aa + zi) & 0xFF], xf, yf, zf),
+        grad(p[(ba + zi) & 0xFF], xf - FIXED_ONE, yf, zf),
+    );
+    let x2 = lerp(
+        u,
+        grad(p[(ab + zi) & 0xFF], xf, yf - FIXED_ONE, zf),
+        grad(p[(bb + zi) & 0xFF], xf - FIXED_ONE, yf - FIXED_ONE, zf),
+    );
     let y1 = lerp(v, x1, x2);
-    
-    let x3 = lerp(u, grad(p[(aa + zi + 1) & 0xFF], xf, yf, zf - FIXED_ONE),
-                     grad(p[(ba + zi + 1) & 0xFF], xf - FIXED_ONE, yf, zf - FIXED_ONE));
-    let x4 = lerp(u, grad(p[(ab + zi + 1) & 0xFF], xf, yf - FIXED_ONE, zf - FIXED_ONE),
-                     grad(p[(bb + zi + 1) & 0xFF], xf - FIXED_ONE, yf - FIXED_ONE, zf - FIXED_ONE));
+
+    let x3 = lerp(
+        u,
+        grad(p[(aa + zi + 1) & 0xFF], xf, yf, zf - FIXED_ONE),
+        grad(p[(ba + zi + 1) & 0xFF], xf - FIXED_ONE, yf, zf - FIXED_ONE),
+    );
+    let x4 = lerp(
+        u,
+        grad(p[(ab + zi + 1) & 0xFF], xf, yf - FIXED_ONE, zf - FIXED_ONE),
+        grad(
+            p[(bb + zi + 1) & 0xFF],
+            xf - FIXED_ONE,
+            yf - FIXED_ONE,
+            zf - FIXED_ONE,
+        ),
+    );
     let y2 = lerp(v, x3, x4);
-    
+
     let result = lerp(w, y1, y2);
-    
+
     // Map from roughly -0.7..0.7 to 0..1
     // Scale up by ~1.4 then shift to 0..1
     let scaled = fixed_mul(result, fixed_from_f32(1.4));
@@ -156,12 +179,12 @@ fn perlin3_fixed(x: Fixed, y: Fixed, z: Fixed) -> Fixed {
 /// Load source specifier
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub enum LoadSource {
-    XInt,        // Integer X coordinate (0..width-1)
-    YInt,        // Integer Y coordinate (0..height-1)
-    XNorm,       // Normalized X (0..1)
-    YNorm,       // Normalized Y (0..1)
-    Time,        // Time value
-    TimeNorm,    // Time normalized to 0..1 range (wraps at 1.0)
+    XInt,     // Integer X coordinate (0..width-1)
+    YInt,     // Integer Y coordinate (0..height-1)
+    XNorm,    // Normalized X (0..1)
+    YNorm,    // Normalized Y (0..1)
+    Time,     // Time value
+    TimeNorm, // Time normalized to 0..1 range (wraps at 1.0)
 }
 
 /// OpCode instructions for the VM
@@ -501,4 +524,3 @@ pub fn execute_program(
         }
     }
 }
-

@@ -2,7 +2,9 @@
 members = [
     "lpcore",
     "lpcli",
-    "fw-esp32c3", "perf-test-validator", "perf-tests-common",
+    "fw-esp32c3",
+    "engine-core",
+    "engine-debug",
 ]
 resolver = "2"
 

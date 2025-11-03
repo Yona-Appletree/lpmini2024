@@ -9,6 +9,9 @@
       <sourceFolder url="file://$MODULE_DIR$/lpfirmware/src" isTestSource="false" />
       <sourceFolder url="file://$MODULE_DIR$/fw-esp32c3/src" isTestSource="false" />
       <sourceFolder url="file://$MODULE_DIR$/fw-esp32c3/tests" isTestSource="true" />
+      <sourceFolder url="file://$MODULE_DIR$/engine-core/src" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/engine-debug/src" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/engine-debug/tests" isTestSource="true" />
       <sourceFolder url="file://$MODULE_DIR$/perf-test-validator/src" isTestSource="false" />
       <sourceFolder url="file://$MODULE_DIR$/perf-test-validator/tests" isTestSource="true" />
       <sourceFolder url="file://$MODULE_DIR$/perf-tests-common/src" isTestSource="false" />

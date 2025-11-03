@@ -658,6 +658,23 @@ dependencies = [
 ]
 
 [[package]]
+name = "engine-core"
+version = "0.1.0"
+dependencies = [
+ "fixed",
+ "libm",
+]
+
+[[package]]
+name = "engine-debug"
+version = "0.1.0"
+dependencies = [
+ "embedded-graphics",
+ "engine-core",
+ "minifb",
+]
+
+[[package]]
 name = "enumset"
 version = "1.1.10"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1157,13 +1174,13 @@ dependencies = [
  "embedded-io",
  "embedded-io-async",
  "embedded-test",
+ "engine-core",
  "esp-alloc",
  "esp-bootloader-esp-idf",
  "esp-hal",
  "esp-hal-embassy",
  "esp-wifi",
  "panic-rtt-target",
- "perf-tests-common",
  "rtt-target",
  "smart-leds",
  "smart-leds-trait",
@@ -1561,23 +1578,6 @@ name = "paste"
 version = "1.0.15"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "57c0d7b74b563b49d38dae00a0c37d4d6de9b432382b2892f0574ddcae73fd0a"
-
-[[package]]
-name = "perf-test-validator"
-version = "0.1.0"
-dependencies = [
- "embedded-graphics",
- "minifb",
- "perf-tests-common",
-]
-
-[[package]]
-name = "perf-tests-common"
-version = "0.1.0"
-dependencies = [
- "fixed",
- "libm",
-]
 
 [[package]]
 name = "pin-project-lite"

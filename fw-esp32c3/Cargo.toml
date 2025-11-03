@@ -84,8 +84,8 @@ smart-leds = "0.4.0"
 # esp-hal-smartled = { git = "https://github.com/esp-rs/esp-hal-community", rev = "bbe8484" }
 smart-leds-trait = "0.3.1"
 
-# Performance test implementations (shared with validator)
-perf-tests-common = { path = "../perf-tests-common", features = ["use-libm"] }
+# Engine core with test scene
+engine-core = { path = "../engine-core", features = ["use-libm"] }
 
 [dev-dependencies]
 embedded-test = { version = "0.6.0", features = [

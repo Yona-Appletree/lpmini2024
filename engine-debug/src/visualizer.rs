@@ -7,15 +7,12 @@ use embedded_graphics::{
     primitives::{Circle, PrimitiveStyle},
     text::Text,
 };
+use engine_core::test_engine::fixed_to_f32;
+use engine_core::test_scene::{render_test_scene, SceneData, LED_COUNT, WIDTH, HEIGHT};
+use engine_core::test_engine::{fixed_from_f32, LedMapping};
 use minifb::{Key, Window, WindowOptions};
-use perf_tests_common::test_engine::{
-    fixed_from_f32, fixed_to_f32, render_frame, LedMapping, LoadSource, OpCode, Palette,
-};
 
 const SCALE: usize = 20; // Pixels per cell
-const WIDTH: usize = 16;
-const HEIGHT: usize = 16;
-const LED_COUNT: usize = 128;
 
 // Window layout: [Grayscale 16x16] [RGB 16x16] [LEDs 128x1]
 const WINDOW_WIDTH: usize = (WIDTH * SCALE) + (WIDTH * SCALE) + (LED_COUNT * SCALE / 8);
@@ -32,82 +29,22 @@ fn main() {
         panic!("{}", e);
     });
 
-    // Limit to ~60 fps
     window.set_target_fps(60);
 
-    // Create buffers
-    let mut greyscale_buffer = vec![0i32; WIDTH * HEIGHT];
-    let input_buffer = vec![0i32; WIDTH * HEIGHT];
-    let mut rgb_2d_buffer = vec![0u8; WIDTH * HEIGHT * 3];
-    let mut led_output = vec![0u8; LED_COUNT * 3];
-
-    // Create palette and mapping
-    let palette = Palette::rainbow();
-    let mapping = LedMapping::spiral_3arm(); // Using 3-arm spiral!
-
-    // Perlin noise scrolling through time (z-axis)
-    // Scale down x,y by 0.3 to zoom in and make it smoother
-    let program = vec![
-        OpCode::Load(LoadSource::XNorm),   // Normalized x (0..1)
-        OpCode::Push(fixed_from_f32(0.3)), // Zoom factor
-        OpCode::Mul,                       // Scale x down
-        OpCode::Load(LoadSource::YNorm),   // Normalized y (0..1)
-        OpCode::Push(fixed_from_f32(0.3)), // Zoom factor
-        OpCode::Mul,                       // Scale y down
-        OpCode::Load(LoadSource::Time),    // Time (scrolls the z-axis)
-        OpCode::Perlin3,                   // Generate perlin noise
-        OpCode::Cos,                       // Apply cosine (already normalized 0..1)
-        OpCode::Return,
-    ];
-
+    let mut scene = SceneData::new();
     let mut frame_count = 0u32;
     let mut buffer: Vec<u32> = vec![0; WINDOW_WIDTH * WINDOW_HEIGHT];
 
     while window.is_open() && !window.is_key_down(Key::Escape) {
-        // Update animation - slower for better visibility
         let time = fixed_from_f32(frame_count as f32 * 0.01);
+        render_test_scene(&mut scene, time);
 
-        // Render frame
-        render_frame(
-            &mut greyscale_buffer,
-            &input_buffer,
-            &mut rgb_2d_buffer,
-            &mut led_output,
-            &program,
-            &palette,
-            &mapping,
-            WIDTH,
-            HEIGHT,
-            time,
-        );
-
-        // Clear buffer
         buffer.fill(0xFF000000);
 
-        // Draw grayscale buffer (left)
-        draw_greyscale(&greyscale_buffer, &mut buffer, 0, 0, SCALE);
-
-        // Draw RGB buffer (middle)
-        draw_rgb_2d(&rgb_2d_buffer, &mut buffer, WIDTH * SCALE, 0, SCALE);
-
-        // Draw LED strip (right) - 8 rows of 16
-        draw_leds(
-            &led_output,
-            &mut buffer,
-            (WIDTH * SCALE) + (WIDTH * SCALE),
-            0,
-            SCALE,
-        );
-
-        // Draw debug overlay showing LED mapping
-        draw_led_debug_overlay(
-            &mut buffer,
-            &mapping,
-            WIDTH * SCALE,                     // RGB buffer offset
-            (WIDTH * SCALE) + (WIDTH * SCALE), // LED strip offset
-            0,
-            SCALE,
-        );
+        draw_greyscale(&scene.greyscale_buffer, &mut buffer, 0, 0, SCALE);
+        draw_rgb_2d(&scene.rgb_2d_buffer, &mut buffer, WIDTH * SCALE, 0, SCALE);
+        draw_leds(&scene.led_output, &mut buffer, (WIDTH * SCALE) + (WIDTH * SCALE), 0, SCALE);
+        draw_led_debug_overlay(&mut buffer, &scene.mapping, WIDTH * SCALE, (WIDTH * SCALE) + (WIDTH * SCALE), 0, SCALE);
 
         // Update window
         window
