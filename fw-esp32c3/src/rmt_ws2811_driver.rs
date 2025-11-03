@@ -1,11 +1,7 @@
-use defmt::info;
-use esp_hal::clock::Clocks;
 use esp_hal::gpio::interconnect::PeripheralOutput;
 use esp_hal::gpio::Level;
 use esp_hal::interrupt::{InterruptHandler, Priority};
-use esp_hal::peripherals::Interrupt;
 use esp_hal::rmt::{Error as RmtError, TxChannel, TxChannelConfig, TxChannelCreator};
-use esp_hal::system::Cpu;
 use esp_hal::Blocking;
 use smart_leds::hsv::hsv2rgb;
 use smart_leds::RGB8;
@@ -32,7 +28,7 @@ static mut RMT_PTR: *mut u32 = 0 as *mut u32;
 
 static mut RMT_STATS_COUNT: i32 = 0;
 static mut RMT_STATS_SUM: i32 = 0;
-static mut FRAME_COMPLETE: bool = false; // Signal when frame transmission is complete
+static mut FRAME_COMPLETE: bool = true; // Signal when frame transmission is complete
 
 const SRC_CLOCK_MHZ: u32 = 80;
 const PULSE_ZERO: u32 = // Zero
@@ -51,8 +47,9 @@ const PULSE_ONE: u32 = pulseCode(
     ((SK68XX_T1L_NS * SRC_CLOCK_MHZ) / 1000) as u16,
 );
 
-// Latch
-const PULSE_LATCH: u32 = pulseCode(Level::Low, 3000u16, Level::Low, 3000u16);
+// Latch - WS2812 requires 50us+ low to latch
+// At 80MHz: 50us = 4000 ticks, split as 2000+2000
+const PULSE_LATCH: u32 = pulseCode(Level::Low, 2000u16, Level::Low, 2000u16);
 
 const fn pulseCode(level1: Level, length1: u16, level2: Level, length2: u16) -> u32 {
     let level1 = (level_bit(level1)) | (length1 as u32 & 0b111_1111_1111_1111);
@@ -265,7 +262,9 @@ unsafe fn write_half_buffer(is_first_half: bool) -> bool {
         if LED_COUNTER >= ACTUAL_NUM_LEDS {
             // Fill the rest of the buffer segment with zero
             for j in 0..BITS_PER_LED * (HALF_BUFFER_LEDS - i) {
-                led_ptr.add(j).write_volatile(0);
+                led_ptr
+                    .add(j)
+                    .write_volatile(if j == 0 { PULSE_LATCH } else { 0 });
             }
 
             return true;
@@ -287,12 +286,12 @@ unsafe fn write_half_buffer(is_first_half: bool) -> bool {
 }
 
 /// Initialize the WS2811/WS2812 LED driver
-/// 
+///
 /// # Arguments
 /// * `rmt` - RMT peripheral
 /// * `pin` - GPIO pin for LED data output
 /// * `num_leds` - Number of LEDs in the strip (max 250)
-/// 
+///
 /// # Returns
 /// Transaction handle that must be kept alive
 pub fn rmt_ws2811_init<'d, O>(
@@ -315,7 +314,6 @@ where
     let config = create_rmt_config();
     let channel = rmt.channel0.configure_tx(pin, config)?;
 
-    //
     // HACK: If we don't call transmit_continuously, things work, but the debug output stops
     //       working.
     //
@@ -326,7 +324,7 @@ where
 }
 
 /// Write LED data and start transmission
-/// 
+///
 /// # Arguments
 /// * `led_data` - RGB data for LEDs (must be at least num_leds length)
 pub fn rmt_ws2811_write(led_data: &[RGB8]) {
@@ -334,7 +332,7 @@ pub fn rmt_ws2811_write(led_data: &[RGB8]) {
         // Copy LED data into internal buffer
         let num_to_copy = led_data.len().min(ACTUAL_NUM_LEDS);
         LED_DATA_BUFFER[..num_to_copy].copy_from_slice(&led_data[..num_to_copy]);
-        
+
         // Start transmission
         start_transmission();
     }

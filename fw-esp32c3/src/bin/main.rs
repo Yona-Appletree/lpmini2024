@@ -11,6 +11,7 @@ use defmt::info;
 use embassy_executor::Spawner;
 use embassy_time::{Duration, Instant, Timer};
 use esp_hal::clock::CpuClock;
+use esp_hal::delay::Delay;
 use esp_hal::rmt::Rmt;
 use esp_hal::time::Rate;
 use esp_hal::timer::systimer::SystemTimer;
@@ -72,14 +73,20 @@ async fn main(spawner: Spawner) {
 
     info!("Starting render loop");
 
+    // Runtime configuration
+    const TARGET_FPS: u32 = 60;
+    const FRAME_TIME_MS: u32 = 1000 / TARGET_FPS;
+    const TIME_SPEED_256: u32 = 64; // 64/256 = 0.25 (4x slower)
+
     // Power limiting configuration
     let power_config = PowerLimitConfig {
-        brightness_256: 256, // 1.0 (full brightness)
+        brightness_256: 32,    // ~12.5% brightness (32/256)
         power_budget_ma: 1000, // 1A budget
         led_white_power_ma: 50,
         led_idle_power_ma: 1,
     };
 
+    let mut delay = Delay::new();
     let start_time = Instant::now();
     let mut frame_count = 0u32;
     let mut last_fps_time = start_time;
@@ -88,9 +95,10 @@ async fn main(spawner: Spawner) {
     loop {
         let frame_start = Instant::now();
 
-        // Calculate time in fixed-point (seconds since start)
-        let elapsed_ms = frame_start.duration_since(start_time).as_millis() as f32;
-        let time = fixed_from_f32(elapsed_ms / 1000.0);
+        // Calculate time in fixed-point (seconds since start) with speed adjustment
+        let elapsed_ms = frame_start.duration_since(start_time).as_millis() as u32;
+        let adjusted_ms = (elapsed_ms * TIME_SPEED_256) / 256;
+        let time = fixed_from_f32((adjusted_ms as f32) / 1000.0);
 
         // Render the scene (outputs to scene.led_output)
         scene.render(time, 1).expect("Render failed");
@@ -109,19 +117,18 @@ async fn main(spawner: Spawner) {
         // Apply power limiting and gamma correction
         apply_power_limit(&mut led_buffer, &power_config);
 
-        // Write to LEDs
-        rmt_ws2811_driver::rmt_ws2811_write(&led_buffer);
-
-        // Wait for transmission to complete
+        // Wait for previous transmission to complete before writing new data
         rmt_ws2811_driver::rmt_ws2811_wait_complete();
+        // Write to LEDs and start transmission
+        rmt_ws2811_driver::rmt_ws2811_write(&led_buffer);
 
         frame_count += 1;
 
         // Log FPS every second
         if frame_start.duration_since(last_fps_time).as_millis() >= 1000 {
             let frames_rendered = frame_count - last_fps_frame;
-            let elapsed_s = frame_start.duration_since(last_fps_time).as_millis() as f32 / 1000.0;
-            let fps = (frames_rendered as f32 / elapsed_s) as u32;
+            let elapsed_ms = frame_start.duration_since(last_fps_time).as_millis();
+            let fps = (frames_rendered * 1000) / elapsed_ms as u32;
 
             info!("FPS: {}, Frame: {}", fps, frame_count);
 
@@ -129,8 +136,12 @@ async fn main(spawner: Spawner) {
             last_fps_frame = frame_count;
         }
 
-        // Small delay to prevent overwhelming the system
-        Timer::after(Duration::from_millis(16)).await; // ~60 FPS target
+        // Frame rate limiting
+        let frame_time = frame_start.elapsed().as_millis() as u32;
+        if frame_time < FRAME_TIME_MS {
+            let sleep_ms = FRAME_TIME_MS - frame_time;
+            Timer::after(Duration::from_millis(sleep_ms as u64)).await;
+        }
     }
 
     // for inspiration have a look at the examples at https://github.com/esp-rs/esp-hal/tree/esp-hal-v1.0.0-rc.0/examples/src/bin

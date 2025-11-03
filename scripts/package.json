@@ -5,7 +5,8 @@
   "private": true,
   "scripts": {
     "test-esp32": "tsx test_on_esp32.ts",
-    "flash-leds": "cd ../fw-esp32c3 && cargo run --bin fw-esp32c3 --release"
+    "flash-leds": "cd ../fw-esp32c3 && cargo run --bin fw-esp32c3 --release",
+    "test-mapping": "cd ../fw-esp32c3 && cargo run --bin led_test --release"
   },
   "devDependencies": {
     "@types/node": "^22.0.0",
