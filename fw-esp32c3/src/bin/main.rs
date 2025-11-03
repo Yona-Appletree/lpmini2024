@@ -9,14 +9,15 @@
 extern crate alloc;
 use defmt::info;
 use embassy_executor::Spawner;
-use embassy_time::{Duration, Instant, Timer};
+use embassy_time::Instant;
 // Engine imports
-use engine_core::demo_program::{create_demo_scene, create_test_line_scene};
+use engine_core::demo_program::create_test_line_scene;
 use engine_core::power_limit::{apply_power_limit, PowerLimitConfig};
 use engine_core::scene::SceneRuntime;
 use engine_core::test_engine::{RuntimeOptions, FIXED_ONE};
 use esp_hal::clock::CpuClock;
 use esp_hal::delay::Delay;
+use esp_hal::riscv::asm::delay;
 use esp_hal::rmt::Rmt;
 use esp_hal::time::Rate;
 use esp_hal::timer::systimer::SystemTimer;
@@ -35,8 +36,6 @@ const HEIGHT: usize = 16;
 async fn main(_spawner: Spawner) {
     // generator version: 0.5.0
 
-    rtt_target::rtt_init_defmt!();
-
     let config = esp_hal::Config::default().with_cpu_clock(CpuClock::max());
     let peripherals = esp_hal::init(config);
 
@@ -47,6 +46,9 @@ async fn main(_spawner: Spawner) {
 
     let timer0 = SystemTimer::new(peripherals.SYSTIMER);
     esp_hal_embassy::init(timer0.alarm0);
+
+    // Initialize RTT after heap setup to avoid memory conflicts
+    rtt_target::rtt_init_defmt!();
 
     info!("Embassy initialized!");
 
@@ -74,8 +76,6 @@ async fn main(_spawner: Spawner) {
     info!("Starting render loop");
 
     // Runtime configuration
-    const TARGET_FPS: u32 = 60;
-    const FRAME_TIME_MS: u32 = 1000 / TARGET_FPS;
     const TIME_SPEED_256: u32 = 64; // 64/256 = 0.25 (4x slower)
 
     // Power limiting configuration
@@ -106,7 +106,9 @@ async fn main(_spawner: Spawner) {
         let time = ((adjusted_ms as i64 * FIXED_ONE as i64) / 1000) as i32;
 
         // Render the scene (outputs to scene.led_output)
-        scene.render(time, 1).expect("Render failed");
+        if (frame_count < 10) {
+            scene.render(time, 1).expect("Render failed");
+        }
 
         // Convert to RGB8 for power limiting (reuse pre-allocated buffer)
         for i in 0..num_leds {
@@ -134,7 +136,7 @@ async fn main(_spawner: Spawner) {
             let elapsed_ms = frame_start.duration_since(last_fps_time).as_millis();
             let fps = (frames_rendered * 1000) / elapsed_ms as u32;
 
-            info!("FPS: {}, Frame: {}", fps, frame_count);
+            //info!("FPS: {}, Frame: {}", fps, frame_count);
 
             last_fps_time = frame_start;
             last_fps_frame = frame_count;

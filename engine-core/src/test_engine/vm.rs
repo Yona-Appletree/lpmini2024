@@ -1,3 +1,4 @@
+use crate::math::fixed_from_int;
 /// Stack-based VM for pixel operations using fixed-point arithmetic
 use crate::sin_table::SIN_TABLE_I32 as SIN_TABLE;
 
@@ -166,7 +167,7 @@ fn perlin3_octave(x: Fixed, y: Fixed, z: Fixed) -> Fixed {
     let y2 = lerp(v, x3, x4);
 
     let result = lerp(w, y1, y2);
-    
+
     // Output is roughly -0.7..0.7, leave as-is for octave mixing
     result
 }
@@ -181,7 +182,7 @@ fn perlin3_fixed(x: Fixed, y: Fixed, z: Fixed, octaves: u8) -> Fixed {
     let mut amplitude = FIXED_ONE as i64;
     let mut max_value = 0i64;
     let mut frequency = FIXED_ONE;
-    
+
     for _ in 0..octaves {
         let sample = perlin3_octave(
             fixed_mul(x, frequency),
@@ -193,7 +194,7 @@ fn perlin3_fixed(x: Fixed, y: Fixed, z: Fixed, octaves: u8) -> Fixed {
         amplitude >>= 1; // Halve amplitude each octave
         frequency <<= 1; // Double frequency each octave
     }
-    
+
     // Normalize to 0..1
     let normalized = ((total << FIXED_SHIFT) / max_value) as i32;
     let shifted = normalized + (FIXED_ONE >> 1);
@@ -203,12 +204,14 @@ fn perlin3_fixed(x: Fixed, y: Fixed, z: Fixed, octaves: u8) -> Fixed {
 /// Load source specifier
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub enum LoadSource {
-    XInt,     // Integer X coordinate (0..width-1)
-    YInt,     // Integer Y coordinate (0..height-1)
-    XNorm,    // Normalized X (0..1)
-    YNorm,    // Normalized Y (0..1)
-    Time,     // Time value
-    TimeNorm, // Time normalized to 0..1 range (wraps at 1.0)
+    XInt,        // Integer X coordinate (0..width-1)
+    YInt,        // Integer Y coordinate (0..height-1)
+    XNorm,       // Normalized X (0..1)
+    YNorm,       // Normalized Y (0..1)
+    Time,        // Time value
+    TimeNorm,    // Time normalized to 0..1 range (wraps at 1.0)
+    CenterDist,  // Distance from center (0 at center, 1 at farthest corner)
+    CenterAngle, // Angle from center (0-1 for 0-2π, 0 = east/right)
 }
 
 /// OpCode instructions for the VM
@@ -229,6 +232,7 @@ pub enum OpCode {
     // Math functions
     Sin,
     Cos,
+    Frac,        // Get fractional part of a number
     Perlin3(u8), // Perlin noise with N octaves (1-8)
 
     // Load coordinates
@@ -380,6 +384,11 @@ impl<'a> VM<'a> {
                 let a = self.pop();
                 self.push(cos_fixed(a));
             }
+            OpCode::Frac => {
+                let a = self.pop();
+                // Get fractional part: keep only fractional bits
+                self.push(a & (FIXED_ONE - 1));
+            }
             OpCode::Perlin3(octaves) => {
                 let z = self.pop();
                 let y = self.pop();
@@ -410,6 +419,66 @@ impl<'a> VM<'a> {
                     LoadSource::TimeNorm => {
                         // Wrap time to 0..1 range
                         (self.time as i64).rem_euclid(FIXED_ONE as i64) as Fixed
+                    }
+                    LoadSource::CenterDist => {
+                        // Distance from center (0 at center, 1 at farthest corner)
+                        let center_x = fixed_from_int(self.width as i32) >> 1;
+                        let center_y = fixed_from_int(self.height as i32) >> 1;
+                        let dx = self.x - center_x;
+                        let dy = self.y - center_y;
+
+                        // Use Manhattan distance normalized by half-diagonal
+                        let manhattan =
+                            (if dx < 0 { -dx } else { dx }) + (if dy < 0 { -dy } else { dy });
+                        let max_manhattan = center_x + center_y;
+                        if max_manhattan == 0 {
+                            0
+                        } else {
+                            ((manhattan as i64 * FIXED_ONE as i64) / max_manhattan as i64) as Fixed
+                        }
+                    }
+                    LoadSource::CenterAngle => {
+                        // Angle from center (0-1 for 0-2π, 0 = east/right)
+                        let center_x = fixed_from_int(self.width as i32) >> 1;
+                        let center_y = fixed_from_int(self.height as i32) >> 1;
+                        let dx = self.x - center_x;
+                        let dy = self.y - center_y;
+
+                        // atan2(dy, dx) normalized to 0..1
+                        if dx == 0 && dy == 0 {
+                            0 // Center has no angle
+                        } else {
+                            // Approximate atan2 using octants
+                            let abs_dx = if dx < 0 { -dx } else { dx };
+                            let abs_dy = if dy < 0 { -dy } else { dy };
+
+                            let angle = if abs_dx > abs_dy {
+                                // Closer to horizontal
+                                let ratio = ((abs_dy as i64) << FIXED_SHIFT) / (abs_dx as i64);
+                                (ratio as Fixed) >> 3 // Scale to ~0..0.125
+                            } else if abs_dy > 0 {
+                                // Closer to vertical
+                                let ratio = ((abs_dx as i64) << FIXED_SHIFT) / (abs_dy as i64);
+                                (FIXED_ONE >> 2) - ((ratio as Fixed) >> 3) // 0.25 - scaled ratio
+                            } else {
+                                0
+                            };
+
+                            // Adjust based on quadrant
+                            if dx >= 0 && dy >= 0 {
+                                // Q1: 0 to 0.25
+                                angle
+                            } else if dx < 0 && dy >= 0 {
+                                // Q2: 0.25 to 0.5
+                                (FIXED_ONE >> 1) - angle
+                            } else if dx < 0 && dy < 0 {
+                                // Q3: 0.5 to 0.75
+                                (FIXED_ONE >> 1) + angle
+                            } else {
+                                // Q4: 0.75 to 1.0
+                                FIXED_ONE - angle
+                            }
+                        }
                     }
                 };
                 self.push(value);

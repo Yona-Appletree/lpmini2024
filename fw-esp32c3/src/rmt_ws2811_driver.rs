@@ -8,7 +8,7 @@ use smart_leds::RGB8;
 
 // Configuration constants
 static mut ACTUAL_NUM_LEDS: usize = 0; // Actual number of LEDs (set at init)
-static mut LED_DATA_BUFFER_PTR: *mut RGB8 = core::ptr::null_mut(); // Dynamically allocated
+static mut LED_DATA_BUFFER_PTR: *mut RGB8 = core::ptr::null_mut(); // Dynamically allocatedar
 
 // Buffer size for 8 LEDs worth of data (double buffered)
 // Using memsize(4) = 192 words. 8 LEDs = 192 words exactly, 4 LEDs per half
@@ -269,7 +269,8 @@ unsafe fn write_half_buffer(is_first_half: bool) -> bool {
             return true;
         } else {
             // Get RGB color from LED data buffer and write directly to RMT buffer
-            let color = LED_DATA_BUFFER_PTR.add(LED_COUNTER).read();
+            // Use volatile read to ensure we get the latest data
+            let color = LED_DATA_BUFFER_PTR.add(LED_COUNTER).read_volatile();
 
             // WS2812 uses GRB order
             write_ws2811_byte(led_ptr, color.g, 0); // Green first
@@ -354,6 +355,10 @@ pub fn rmt_ws2811_write_bytes(rgb_bytes: &[u8]) {
                 b: rgb_bytes[idx + 2],
             };
         }
+
+        // Memory fence to ensure buffer writes complete before starting transmission
+        // This prevents RTT or other interrupts from causing partial reads
+        // core::sync::atomic::compiler_fence(core::sync::atomic::Ordering::SeqCst);
 
         // Start transmission
         start_transmission();
