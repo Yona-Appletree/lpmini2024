@@ -166,38 +166,44 @@ fn draw_rgb_2d(rgb: &[u8], buffer: &mut [u32], offset_x: usize, offset_y: usize,
 }
 
 fn draw_leds(leds: &[u8], buffer: &mut [u32], offset_x: usize, offset_y: usize, scale: usize) {
-    // Draw as filled circles
+    use embedded_graphics::{
+        mono_font::{ascii::FONT_6X10, MonoTextStyle},
+        pixelcolor::Rgb888,
+        prelude::*,
+        primitives::{Circle, PrimitiveStyle},
+        text::Text,
+    };
+    
+    let mut fb = Framebuffer::new(buffer, WINDOW_WIDTH, WINDOW_HEIGHT);
+    let text_style = MonoTextStyle::new(&FONT_6X10, Rgb888::new(255, 255, 255));
+    
+    // Draw as filled circles using embedded-graphics
     for led_idx in 0..LED_COUNT.min(leds.len() / 3) {
         let idx = led_idx * 3;
         let r = leds[idx];
         let g = leds[idx + 1];
         let b = leds[idx + 2];
-        let color = rgb_to_u32(r, g, b);
 
         // Position in 8x16 grid
         let x = led_idx % 16;
         let y = led_idx / 16;
-        let center_x = offset_x + x * scale + scale / 2;
-        let center_y = offset_y + y * scale + scale / 2;
-        let radius = scale / 2;
+        let center_x = (offset_x + x * scale + scale / 2) as i32;
+        let center_y = (offset_y + y * scale + scale / 2) as i32;
+        let diameter = scale as u32;
 
         // Draw filled circle
-        for dy in 0..scale {
-            for dx in 0..scale {
-                let px = offset_x + x * scale + dx;
-                let py = offset_y + y * scale + dy;
-                
-                // Check if point is inside circle
-                let dist_x = (px as i32 - center_x as i32).abs();
-                let dist_y = (py as i32 - center_y as i32).abs();
-                let dist_sq = dist_x * dist_x + dist_y * dist_y;
-                let radius_sq = (radius * radius) as i32;
-                
-                if dist_sq <= radius_sq && px < WINDOW_WIDTH && py < WINDOW_HEIGHT {
-                    buffer[py * WINDOW_WIDTH + px] = color;
-                }
-            }
-        }
+        Circle::new(Point::new(center_x - (diameter / 2) as i32, center_y - (diameter / 2) as i32), diameter)
+            .into_styled(PrimitiveStyle::with_fill(Rgb888::new(r, g, b)))
+            .draw(&mut fb)
+            .ok();
+        
+        // Draw LED number
+        let label = format!("{}", led_idx);
+        let text_x = center_x - (label.len() as i32 * 3);
+        let text_y = center_y + 3;
+        Text::new(&label, Point::new(text_x, text_y), text_style)
+            .draw(&mut fb)
+            .ok();
     }
 }
 

@@ -29,7 +29,7 @@ impl SceneData {
     pub fn new() -> Self {
         // Create palette and mapping
         let palette = Palette::rainbow();
-        let mapping = LedMapping::spiral(3, WIDTH, HEIGHT);
+        let mapping = LedMapping::circular_panel_7ring(WIDTH, HEIGHT);
 
         // Test program: perlin noise with 3 octaves, zoom, and cosine smoothing
         let program = vec![

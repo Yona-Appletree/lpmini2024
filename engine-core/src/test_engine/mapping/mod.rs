@@ -1,6 +1,10 @@
 /// 2D to 1D LED mapping system
 use crate::math::{Vec2, Fixed, FIXED_SHIFT, FIXED_ONE};
 
+mod grid;
+mod spiral;
+mod circular;
+
 /// Single LED mapping entry with sub-pixel precision
 #[derive(Debug, Clone, Copy)]
 pub struct LedMap {
@@ -32,90 +36,9 @@ impl LedMapping {
         LedMapping { maps }
     }
 
-    /// Create a simple grid mapping (for testing)
-    /// Maps 128 LEDs to an 16x8 grid in row-major order
-    pub fn grid_16x8() -> Self {
-        let mut maps = [LedMap::new(0, 0); 128];
-        for i in 0..128 {
-            let x = i % 16;
-            let y = i / 16;
-            maps[i] = LedMap::new(x, y);
-        }
-        LedMapping { maps }
-    }
-
-    /// Create a serpentine/zigzag mapping (common for LED matrices)
-    /// Even rows go left-to-right, odd rows go right-to-left
-    pub fn serpentine_16x8() -> Self {
-        let mut maps = [LedMap::new(0, 0); 128];
-        for i in 0..128 {
-            let y = i / 16;
-            let x = if y % 2 == 0 { i % 16 } else { 15 - (i % 16) };
-            maps[i] = LedMap::new(x, y);
-        }
-        LedMapping { maps }
-    }
-
-    /// Create a spiral mapping with configurable number of arms
-    ///
-    /// # Arguments
-    /// * `arms` - Number of spiral arms (1-8)
-    /// * `width` - Width of the mapping area (default 16)
-    /// * `height` - Height of the mapping area (default 16)
-    pub fn spiral(arms: usize, width: usize, height: usize) -> Self {
-        let mut maps = [LedMap::new(0, 0); 128];
-        let center_x = width as f32 / 2.0;
-        let center_y = height as f32 / 2.0;
-        let max_radius = if center_x > center_y {
-            center_x
-        } else {
-            center_y
-        };
-
-        for i in 0..128 {
-            // Distribute LEDs across arms
-            let arm = i % arms;
-            let led_in_arm = i / arms;
-            let total_leds_per_arm = (128 + arms - 1) / arms;
-
-            // Calculate spiral parameters
-            let t = led_in_arm as f32 / total_leds_per_arm as f32;
-            let radius = t * max_radius;
-            let angle = (arm as f32 * 2.0 * 3.14159265 / arms as f32) + (t * 4.0 * 3.14159265);
-
-            // Convert polar to cartesian using lookup-based approximation
-            // For std environments, we could use angle.cos()/sin()
-            // For no_std, we use libm
-            #[cfg(feature = "use-libm")]
-            {
-                let x = center_x + radius * libm::cosf(angle);
-                let y = center_y + radius * libm::sinf(angle);
-                let x_fixed = ((x * FIXED_ONE as f32) as i32).max(0).min((((width - 1) as i32) << FIXED_SHIFT) + FIXED_ONE);
-                let y_fixed = ((y * FIXED_ONE as f32) as i32).max(0).min((((height - 1) as i32) << FIXED_SHIFT) + FIXED_ONE);
-                maps[i] = LedMap::new_fixed(x_fixed, y_fixed);
-            }
-
-            #[cfg(not(feature = "use-libm"))]
-            {
-                let x = center_x + radius * angle.cos();
-                let y = center_y + radius * angle.sin();
-                let x_fixed = ((x * FIXED_ONE as f32) as i32).max(0).min((((width - 1) as i32) << FIXED_SHIFT) + FIXED_ONE);
-                let y_fixed = ((y * FIXED_ONE as f32) as i32).max(0).min((((height - 1) as i32) << FIXED_SHIFT) + FIXED_ONE);
-                maps[i] = LedMap::new_fixed(x_fixed, y_fixed);
-            }
-        }
-
-        LedMapping { maps }
-    }
-
-    /// Create a 3-arm spiral (convenience function)
-    pub fn spiral_3arm() -> Self {
-        Self::spiral(3, 24, 24)
-    }
-
     /// Get the mapping for a specific LED index
     #[inline(always)]
-    pub fn get(&self, led_index: usize) -> Option<&LedMap> {
+    pub fn get(&self, led_index: usize) -> core::option::Option<&LedMap> {
         self.maps.get(led_index)
     }
 }
@@ -130,10 +53,11 @@ impl LedMapping {
 /// * `height` - Height of the 2D buffer
 pub fn apply_2d_mapping(rgb_2d: &[u8], led_output: &mut [u8], mapping: &LedMapping, width: usize, height: usize) {
     let led_count = led_output.len() / 3;
+    #[cfg(not(feature = "use-libm"))]
     assert!(led_count <= 128, "LED count exceeds maximum of 128");
 
     for led_idx in 0..led_count {
-        if let Some(map) = mapping.get(led_idx) {
+        if let core::option::Option::Some(map) = mapping.get(led_idx) {
             // Get integer and fractional parts
             let x_int = (map.pos.x.0 >> FIXED_SHIFT) as usize;
             let y_int = (map.pos.y.0 >> FIXED_SHIFT) as usize;
@@ -162,15 +86,18 @@ pub fn apply_2d_mapping(rgb_2d: &[u8], led_output: &mut [u8], mapping: &LedMappi
 
                     // Lerp in y direction
                     let result = top + ((bottom - top) * y_frac >> FIXED_SHIFT);
-                    led_output[dst_idx + c] = result.clamp(0, 255) as u8;
+                    use core::cmp::{max, min};
+                    led_output[dst_idx + c] = min(255, max(0, result)) as u8;
                 }
             }
         }
     }
 }
 
-#[cfg(test)]
+#[cfg(all(test, not(feature = "use-libm")))]
 mod tests {
+    extern crate alloc;
+    use alloc::vec;
     use super::*;
 
     #[test]
@@ -243,3 +170,4 @@ mod tests {
         assert_eq!(led_output[led_idx + 2], 0);
     }
 }
+
