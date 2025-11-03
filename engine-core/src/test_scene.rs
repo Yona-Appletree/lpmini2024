@@ -6,7 +6,6 @@ use crate::test_engine::{Fixed, RuntimeOptions};
 
 pub const WIDTH: usize = 16;
 pub const HEIGHT: usize = 16;
-pub const LED_COUNT: usize = 128;
 
 /// Scene data containing runtime state (backward compatibility wrapper)
 pub struct SceneData {
@@ -16,11 +15,16 @@ pub struct SceneData {
 impl SceneData {
     /// Create a new scene with the standard demo configuration
     pub fn new() -> Self {
-        let config = create_demo_scene(WIDTH, HEIGHT, LED_COUNT);
+        let config = create_demo_scene(WIDTH, HEIGHT);
         let options = RuntimeOptions::new(WIDTH, HEIGHT);
         let runtime = SceneRuntime::new(config, options).expect("Valid scene config");
 
         SceneData { runtime }
+    }
+
+    /// Get the LED count
+    pub fn led_count(&self) -> usize {
+        self.runtime.led_count()
     }
 
     // Expose runtime fields for visualizer

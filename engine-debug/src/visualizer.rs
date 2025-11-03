@@ -8,15 +8,14 @@ use embedded_graphics::{
     text::Text,
 };
 use engine_core::test_engine::fixed_to_f32;
-use engine_core::test_scene::{render_test_scene, SceneData, LED_COUNT, WIDTH, HEIGHT};
+use engine_core::test_scene::{render_test_scene, SceneData, WIDTH, HEIGHT};
 use engine_core::test_engine::{fixed_from_f32, LedMapping};
 use minifb::{Key, Window, WindowOptions};
 
-const SCALE: usize = 20; // Pixels per cell
-const STATS_BAR_HEIGHT: usize = 30; // Black bar at bottom for stats
-
-// Window layout: [Grayscale 16x16] [RGB 16x16] [LEDs 128x1] [Stats Bar]
-const WINDOW_WIDTH: usize = (WIDTH * SCALE) + (WIDTH * SCALE) + (LED_COUNT * SCALE / 8);
+const SCALE: usize = 16;
+const STATS_BAR_HEIGHT: usize = 40;
+const NUM_BUFFERS: usize = 2; // Greyscale + RGB
+const WINDOW_WIDTH: usize = (WIDTH * SCALE * NUM_BUFFERS) + (WIDTH * SCALE); // Buffers + LED output
 const WINDOW_HEIGHT: usize = (HEIGHT * SCALE) + STATS_BAR_HEIGHT;
 
 fn main() {
@@ -117,16 +116,17 @@ fn main() {
         
         // Draw LED output after all buffers
         let led_offset_x = x_offset;
+        let led_count = scene.led_count();
         draw_leds(scene.led_output(), &mut buffer, led_offset_x, 0, SCALE);
         
         // Draw debug overlay on RGB buffer (buffer 1)
         let rgb_buffer_offset = WIDTH * SCALE; // Greyscale is at 0, RGB is at WIDTH*SCALE
-        draw_led_debug_overlay(&mut buffer, scene.mapping(), rgb_buffer_offset, led_offset_x, 0, SCALE);
+        draw_led_debug_overlay(&mut buffer, scene.mapping(), led_count, rgb_buffer_offset, led_offset_x, 0, SCALE);
         
         // Predict ESP32 performance for current canvas size
         let pixels = WIDTH * HEIGHT;
         let esp32_predicted_us = esp32_us_per_pixel * pixels as f32 + esp32_base_us;
-        draw_stats_bar(&mut buffer, engine_us_avg, ui_us_avg, esp32_predicted_us);
+        draw_stats_bar(&mut buffer, engine_us_avg, ui_us_avg, esp32_predicted_us, led_count);
 
         window.update_with_buffer(&buffer, WINDOW_WIDTH, WINDOW_HEIGHT).unwrap();
 
@@ -199,8 +199,10 @@ fn draw_leds(leds: &[u8], buffer: &mut [u32], offset_x: usize, offset_y: usize, 
     let mut fb = Framebuffer::new(buffer, WINDOW_WIDTH, WINDOW_HEIGHT);
     let text_style = MonoTextStyle::new(&FONT_6X10, Rgb888::new(255, 255, 255));
     
+    let led_count = leds.len() / 3;
+    
     // Draw as filled circles using embedded-graphics
-    for led_idx in 0..LED_COUNT.min(leds.len() / 3) {
+    for led_idx in 0..led_count {
         let idx = led_idx * 3;
         let r = leds[idx];
         let g = leds[idx + 1];
@@ -274,6 +276,7 @@ impl OriginDimensions for Framebuffer<'_> {
 fn draw_led_debug_overlay(
     buffer: &mut [u32],
     mapping: &LedMapping,
+    led_count: usize,
     rgb_offset_x: usize,
     led_offset_x: usize,
     offset_y: usize,
@@ -285,7 +288,7 @@ fn draw_led_debug_overlay(
     let circle_style_source = PrimitiveStyle::with_stroke(Rgb888::new(0, 255, 0), 2); // Green on source
     let text_style_small = MonoTextStyle::new(&FONT_6X10, Rgb888::new(0, 0, 0)); // Black text on green circles
 
-    for led_idx in 0..LED_COUNT {
+    for led_idx in 0..led_count {
         if let Some(map) = mapping.get(led_idx) {
             // Source position on RGB buffer (middle panel) - now with sub-pixel precision
             let x_pixels = fixed_to_f32(map.pos.x.0);
@@ -325,7 +328,7 @@ fn draw_led_debug_overlay(
     }
 }
 
-fn draw_stats_bar(buffer: &mut [u32], engine_us: f32, ui_us: f32, esp32_predicted_us: f32) {
+fn draw_stats_bar(buffer: &mut [u32], engine_us: f32, ui_us: f32, esp32_predicted_us: f32, led_count: usize) {
     // Fill black bar at bottom
     let bar_y_start = HEIGHT * SCALE;
     for y in bar_y_start..(HEIGHT * SCALE + STATS_BAR_HEIGHT) {
@@ -341,7 +344,7 @@ fn draw_stats_bar(buffer: &mut [u32], engine_us: f32, ui_us: f32, esp32_predicte
     let text_style_bright = MonoTextStyle::new(&FONT_6X10, Rgb888::new(255, 255, 255));
     
     // Line 1: Canvas info
-    let info_text = format!("Canvas: {}x{}  Output: {} LEDs", WIDTH, HEIGHT, LED_COUNT);
+    let info_text = format!("Canvas: {}x{}  Output: {} LEDs", WIDTH, HEIGHT, led_count);
     Text::new(&info_text, Point::new(10, (HEIGHT * SCALE + 10) as i32), text_style)
         .draw(&mut fb)
         .ok();

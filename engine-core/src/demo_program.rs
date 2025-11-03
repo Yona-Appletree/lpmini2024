@@ -9,7 +9,7 @@ use crate::test_engine::{
 use crate::scene::SceneConfig;
 
 /// Create the standard demo scene configuration
-pub fn create_demo_scene(width: usize, height: usize, led_count: usize) -> SceneConfig {
+pub fn create_demo_scene(width: usize, height: usize) -> SceneConfig {
     // Demo program: perlin noise with 3 octaves, zoom, and cosine smoothing
     let program = vec![
         OpCode::Load(LoadSource::XNorm),   // Normalized x (0..1)
@@ -45,6 +45,6 @@ pub fn create_demo_scene(width: usize, height: usize, led_count: usize) -> Scene
 
     let mapping_config = MappingConfig::CircularPanel7Ring { width, height };
 
-    SceneConfig::new(pipeline_config, mapping_config, led_count)
+    SceneConfig::new(pipeline_config, mapping_config)
 }
 

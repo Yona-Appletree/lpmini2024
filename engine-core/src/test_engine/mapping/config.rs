@@ -24,6 +24,21 @@ pub enum MappingConfig {
 }
 
 impl MappingConfig {
+    /// Get the LED count for this mapping
+    pub fn led_count(&self) -> usize {
+        match self {
+            MappingConfig::Grid16x8 | MappingConfig::Serpentine16x8 => 128,
+            MappingConfig::Spiral { .. } => 128, // Fixed count for now
+            MappingConfig::CircularPanel { ring_counts, .. } => {
+                1 + ring_counts.iter().sum::<usize>()
+            }
+            MappingConfig::CircularPanel7Ring { .. } => {
+                // 1 + 8 + 12 + 16 + 20 + 24 + 32
+                113
+            }
+        }
+    }
+    
     /// Build the actual LedMapping from this config
     pub fn build(&self) -> LedMapping {
         match self {

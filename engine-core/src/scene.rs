@@ -12,20 +12,22 @@ use crate::test_engine::{
 pub struct SceneConfig {
     pub pipeline_config: FxPipelineConfig,
     pub mapping_config: MappingConfig,
-    pub led_count: usize,
 }
 
 impl SceneConfig {
     pub fn new(
         pipeline_config: FxPipelineConfig,
         mapping_config: MappingConfig,
-        led_count: usize,
     ) -> Self {
         SceneConfig {
             pipeline_config,
             mapping_config,
-            led_count,
         }
+    }
+    
+    /// Get the LED count from the mapping config
+    pub fn led_count(&self) -> usize {
+        self.mapping_config.led_count()
     }
 }
 
@@ -41,9 +43,10 @@ pub struct SceneRuntime {
 impl SceneRuntime {
     /// Create a new scene runtime from config
     pub fn new(config: SceneConfig, options: RuntimeOptions) -> Result<Self, PipelineError> {
+        let led_count = config.led_count();
         let pipeline = FxPipeline::new(config.pipeline_config, options)?;
         let mapping = config.mapping_config.build();
-        let led_output = alloc::vec![0u8; config.led_count * 3];
+        let led_output = alloc::vec![0u8; led_count * 3];
         
         Ok(SceneRuntime {
             pipeline,
@@ -52,6 +55,11 @@ impl SceneRuntime {
             width: options.width,
             height: options.height,
         })
+    }
+    
+    /// Get the LED count
+    pub fn led_count(&self) -> usize {
+        self.led_output.len() / 3
     }
     
     /// Render a single frame

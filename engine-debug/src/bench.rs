@@ -5,11 +5,10 @@ use engine_core::test_engine::{fixed_from_f32, RuntimeOptions};
 use std::time::Instant;
 
 const FRAME_COUNT: u32 = 1000;
-const LED_COUNT: usize = 128;
 
 fn benchmark_size(width: usize, height: usize) {
     // Create scene with demo program
-    let config = create_demo_scene(width, height, LED_COUNT);
+    let config = create_demo_scene(width, height);
     let options = RuntimeOptions::new(width, height);
     let mut scene = SceneRuntime::new(config, options).expect("Valid scene");
     
