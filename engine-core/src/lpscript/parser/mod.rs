@@ -8,10 +8,9 @@ use super::ast::{Expr, ExprKind, FunctionDef, Parameter, Program, Stmt, StmtKind
 use super::lexer::{Token, TokenKind};
 use crate::lpscript::error::{Span, Type};
 
-mod control_flow;
-mod expressions;
+mod expr;
+mod stmt;
 mod functions;
-mod statements;
 
 pub struct Parser {
     pub(super) tokens: Vec<Token>,
@@ -33,10 +32,8 @@ impl Parser {
         }
     }
 
-    /// Parse an expression (expression mode)
-    pub fn parse(&mut self) -> Expr {
-        self.ternary()
-    }
+    /// Parse an expression (expression mode) - delegated to expr module
+    // pub fn parse(&mut self) -> Expr is implemented in expr/mod.rs
 
     /// Parse a full program (script mode)
     pub fn parse_program(&mut self) -> Program {
