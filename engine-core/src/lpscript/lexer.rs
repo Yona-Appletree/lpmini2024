@@ -42,10 +42,23 @@ pub enum TokenKind {
     // Delimiters
     LParen,
     RParen,
+    LBrace,
+    RBrace,
     Comma,
+    Semicolon,
     Question,  // Ternary ?
     Colon,     // Ternary :
     Dot,       // Member access / swizzle
+    Eq,        // Assignment =
+    
+    // Keywords
+    If,
+    Else,
+    While,
+    For,
+    Return,
+    Float,
+    Int,
     
     Eof,
 }
@@ -157,6 +170,20 @@ impl Lexer {
         ident
     }
     
+    fn keyword_or_ident(ident: String) -> TokenKind {
+        match ident.as_str() {
+            "if" => TokenKind::If,
+            "else" => TokenKind::Else,
+            "while" => TokenKind::While,
+            "for" => TokenKind::For,
+            "return" => TokenKind::Return,
+            "float" => TokenKind::Float,
+            "int" => TokenKind::Int,
+            // vec2/vec3/vec4 are kept as identifiers (used as both types and constructors)
+            _ => TokenKind::Ident(ident),
+        }
+    }
+    
     pub fn tokenize(&mut self) -> Vec<Token> {
         let mut tokens = Vec::new();
         loop {
@@ -190,7 +217,10 @@ impl Lexer {
                     '^' => { self.advance(); TokenKind::Caret }
                     '(' => { self.advance(); TokenKind::LParen }
                     ')' => { self.advance(); TokenKind::RParen }
+                    '{' => { self.advance(); TokenKind::LBrace }
+                    '}' => { self.advance(); TokenKind::RBrace }
                     ',' => { self.advance(); TokenKind::Comma }
+                    ';' => { self.advance(); TokenKind::Semicolon }
                     '?' => { self.advance(); TokenKind::Question }
                     ':' => { self.advance(); TokenKind::Colon }
                     '.' => {
@@ -239,7 +269,7 @@ impl Lexer {
                             self.advance();
                             TokenKind::EqEq
                         } else {
-                            TokenKind::Eof // Single = not supported
+                            TokenKind::Eq // Assignment
                         }
                     }
                     '!' => {
@@ -290,7 +320,7 @@ impl Lexer {
                             }
                         }
                     }
-                    'a'..='z' | 'A'..='Z' | '_' => TokenKind::Ident(self.read_ident()),
+                    'a'..='z' | 'A'..='Z' | '_' => Self::keyword_or_ident(self.read_ident()),
                     _ => { self.advance(); TokenKind::Eof }
                 };
                 

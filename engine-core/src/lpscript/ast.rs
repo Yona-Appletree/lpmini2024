@@ -1,10 +1,77 @@
-/// Abstract Syntax Tree for expressions
+/// Abstract Syntax Tree for expressions and statements
 extern crate alloc;
 use alloc::vec::Vec;
 use alloc::string::String;
 use alloc::boxed::Box;
 
 use crate::lpscript::error::{Span, Type};
+
+/// A complete program (for script mode)
+#[derive(Debug, Clone)]
+pub struct Program {
+    pub stmts: Vec<Stmt>,
+    pub span: Span,
+}
+
+/// Statement with metadata
+#[derive(Debug, Clone)]
+pub struct Stmt {
+    pub kind: StmtKind,
+    pub span: Span,
+}
+
+impl Stmt {
+    pub fn new(kind: StmtKind, span: Span) -> Self {
+        Stmt { kind, span }
+    }
+}
+
+/// Statement kinds
+#[derive(Debug, Clone)]
+pub enum StmtKind {
+    /// Variable declaration: `float x = expr;`
+    VarDecl {
+        ty: Type,
+        name: String,
+        init: Option<Expr>,
+    },
+    
+    /// Assignment: `x = expr;`
+    Assignment {
+        name: String,
+        value: Expr,
+    },
+    
+    /// Return statement: `return expr;`
+    Return(Expr),
+    
+    /// Expression statement: `expr;`
+    Expr(Expr),
+    
+    /// Block: `{ stmt1; stmt2; ... }`
+    Block(Vec<Stmt>),
+    
+    /// If statement: `if (cond) then_stmt else else_stmt`
+    If {
+        condition: Expr,
+        then_stmt: Box<Stmt>,
+        else_stmt: Option<Box<Stmt>>,
+    },
+    
+    /// While loop: `while (cond) body`
+    While {
+        condition: Expr,
+        body: Box<Stmt>,
+    },
+    
+    /// For loop: `for (init; condition; increment) body`
+    For {
+        init: Option<Box<Stmt>>,
+        condition: Option<Expr>,
+        increment: Option<Expr>,
+        body: Box<Stmt>,
+    },
+}
 
 /// Expression with metadata (span and optional type)
 #[derive(Debug, Clone)]

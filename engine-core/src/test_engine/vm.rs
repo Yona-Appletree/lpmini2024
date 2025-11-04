@@ -258,28 +258,28 @@ pub enum OpCode {
     Perlin3(u8), // Perlin noise with N octaves (1-8)
 
     // Vec2 arithmetic
-    AddVec2,        // pop 4, push 2
-    SubVec2,        // pop 4, push 2
-    MulVec2,        // pop 4, push 2 (component-wise)
-    DivVec2,        // pop 4, push 2 (component-wise)
-    MulVec2Scalar,  // pop 3 (vec2 + scalar), push 2
-    DivVec2Scalar,  // pop 3 (vec2 + scalar), push 2
-    
+    AddVec2,       // pop 4, push 2
+    SubVec2,       // pop 4, push 2
+    MulVec2,       // pop 4, push 2 (component-wise)
+    DivVec2,       // pop 4, push 2 (component-wise)
+    MulVec2Scalar, // pop 3 (vec2 + scalar), push 2
+    DivVec2Scalar, // pop 3 (vec2 + scalar), push 2
+
     // Vec3 arithmetic
-    AddVec3,        // pop 6, push 3
-    SubVec3,        // pop 6, push 3
-    MulVec3,        // pop 6, push 3 (component-wise)
-    DivVec3,        // pop 6, push 3 (component-wise)
-    MulVec3Scalar,  // pop 4 (vec3 + scalar), push 3
-    DivVec3Scalar,  // pop 4 (vec3 + scalar), push 3
-    
+    AddVec3,       // pop 6, push 3
+    SubVec3,       // pop 6, push 3
+    MulVec3,       // pop 6, push 3 (component-wise)
+    DivVec3,       // pop 6, push 3 (component-wise)
+    MulVec3Scalar, // pop 4 (vec3 + scalar), push 3
+    DivVec3Scalar, // pop 4 (vec3 + scalar), push 3
+
     // Vec4 arithmetic
-    AddVec4,        // pop 8, push 4
-    SubVec4,        // pop 8, push 4
-    MulVec4,        // pop 8, push 4 (component-wise)
-    DivVec4,        // pop 8, push 4 (component-wise)
-    MulVec4Scalar,  // pop 5 (vec4 + scalar), push 4
-    DivVec4Scalar,  // pop 5 (vec4 + scalar), push 4
+    AddVec4,       // pop 8, push 4
+    SubVec4,       // pop 8, push 4
+    MulVec4,       // pop 8, push 4 (component-wise)
+    DivVec4,       // pop 8, push 4 (component-wise)
+    MulVec4Scalar, // pop 5 (vec4 + scalar), push 4
+    DivVec4Scalar, // pop 5 (vec4 + scalar), push 4
 
     // Vector functions (typed)
     Dot2,       // pop 4 (two vec2s), push 1 (dot product)
@@ -638,7 +638,7 @@ impl<'a> VM<'a> {
                     return None;
                 }
             }
-            
+
             // Vec2 arithmetic
             OpCode::AddVec2 => {
                 use crate::math::Vec2;
@@ -708,7 +708,7 @@ impl<'a> VM<'a> {
                 self.push(result.x);
                 self.push(result.y);
             }
-            
+
             // Vec3 arithmetic (similar to Vec2)
             OpCode::AddVec3 => {
                 use crate::math::Vec3;
@@ -794,7 +794,7 @@ impl<'a> VM<'a> {
                 self.push(result.y);
                 self.push(result.z);
             }
-            
+
             // Vec4 arithmetic (similar to Vec2/Vec3)
             OpCode::AddVec4 => {
                 use crate::math::Vec4;
@@ -896,7 +896,7 @@ impl<'a> VM<'a> {
                 self.push(result.z);
                 self.push(result.w);
             }
-            
+
             // Vector functions (typed)
             OpCode::Dot2 => {
                 use crate::math::Vec2;
@@ -1039,7 +1039,7 @@ impl<'a> VM<'a> {
                 self.push(result.y);
                 self.push(result.z);
             }
-            
+
             OpCode::Return => {
                 return Some(self.pop());
             }

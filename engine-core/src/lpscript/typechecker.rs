@@ -1,5 +1,5 @@
 /// Type checker for LightPlayer Script
-/// 
+///
 /// Performs type inference and validation on the AST.
 extern crate alloc;
 use alloc::format;
@@ -354,7 +354,8 @@ impl TypeChecker {
     fn function_return_type(name: &str, args: &[Expr]) -> Result<Type, TypeError> {
         match name {
             // Math functions: Fixed -> Fixed
-            "sin" | "cos" | "tan" | "abs" | "floor" | "ceil" | "sqrt" | "sign" | "frac" | "fract" | "saturate" => {
+            "sin" | "cos" | "tan" | "abs" | "floor" | "ceil" | "sqrt" | "sign" | "frac"
+            | "fract" | "saturate" => {
                 if args.len() != 1 {
                     return Err(TypeError {
                         kind: TypeErrorKind::InvalidArgumentCount {
@@ -366,7 +367,7 @@ impl TypeChecker {
                 }
                 Ok(Type::Fixed)
             }
-            
+
             // atan: can take 1 or 2 args (atan(y) or atan(y, x))
             "atan" => {
                 if args.is_empty() || args.len() > 2 {
@@ -380,7 +381,7 @@ impl TypeChecker {
                 }
                 Ok(Type::Fixed)
             }
-            
+
             // Vector length: vec -> float
             "length" => {
                 if args.len() != 1 {
@@ -404,7 +405,7 @@ impl TypeChecker {
                     }),
                 }
             }
-            
+
             // Normalize: vec -> vec (same type)
             "normalize" => {
                 if args.len() != 1 {
@@ -463,7 +464,7 @@ impl TypeChecker {
                     }),
                 }
             }
-            
+
             // Distance: vec x vec -> float
             "distance" => {
                 if args.len() != 2 {
@@ -497,7 +498,7 @@ impl TypeChecker {
                     }),
                 }
             }
-            
+
             // Cross product: vec3 x vec3 -> vec3
             "cross" => {
                 if args.len() != 2 {
