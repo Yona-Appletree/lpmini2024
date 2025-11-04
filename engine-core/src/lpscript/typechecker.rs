@@ -3,6 +3,7 @@
 /// Performs type inference and validation on the AST.
 extern crate alloc;
 use alloc::string::ToString;
+use alloc::vec::Vec;
 
 use crate::lpscript::ast::{Expr, ExprKind};
 use crate::lpscript::error::{Span, Type, TypeError, TypeErrorKind};
@@ -28,20 +29,30 @@ impl TypeChecker {
             }
             
             ExprKind::Variable(name) => {
-                // Built-in variables are all Fixed (normalized coords, time, etc.)
-                expr.ty = Some(Type::Fixed);
-                
-                // Validate variable exists
-                match name.as_str() {
-                    "x" | "xNorm" | "y" | "yNorm" | "time" | "t" | 
-                    "timeNorm" | "centerAngle" | "angle" | "centerDist" | "dist" => {}
+                // Validate variable exists and determine type
+                let var_type = match name.as_str() {
+                    // Vec2 built-ins (GLSL-style)
+                    "uv" => Type::Vec2,  // normalized coordinates (0..1)
+                    "coord" => Type::Vec2,  // pixel coordinates
+                    
+                    // Scalar built-ins
+                    "time" | "t" => Type::Fixed,
+                    "timeNorm" => Type::Fixed,
+                    "centerAngle" | "angle" => Type::Fixed,
+                    "centerDist" | "dist" => Type::Fixed,
+                    
+                    // Legacy scalar built-ins (deprecated, kept for compatibility)
+                    "x" | "xNorm" | "y" | "yNorm" => Type::Fixed,
+                    
                     _ => {
                         return Err(TypeError {
                             kind: TypeErrorKind::UndefinedVariable(name.clone()),
                             span: expr.span,
                         });
                     }
-                }
+                };
+                
+                expr.ty = Some(var_type);
             }
             
             // Binary arithmetic operations
@@ -54,14 +65,33 @@ impl TypeChecker {
                 let left_ty = left.ty.clone().unwrap();
                 let right_ty = right.ty.clone().unwrap();
                 
-                // For now, both operands must match type
-                if left_ty != right_ty {
-                    // Allow int -> fixed promotion
-                    if left_ty == Type::Int32 && right_ty == Type::Fixed {
+                // Check for vector-scalar operations
+                let result_ty = match (&left_ty, &right_ty) {
+                    // Both same type
+                    (l, r) if l == r => l.clone(),
+                    
+                    // Int -> Fixed promotion
+                    (Type::Int32, Type::Fixed) => {
                         left.ty = Some(Type::Fixed);
-                    } else if left_ty == Type::Fixed && right_ty == Type::Int32 {
+                        Type::Fixed
+                    }
+                    (Type::Fixed, Type::Int32) => {
                         right.ty = Some(Type::Fixed);
-                    } else {
+                        Type::Fixed
+                    }
+                    
+                    // Vector * Scalar (returns vector)
+                    (Type::Vec2, Type::Fixed | Type::Int32) => Type::Vec2,
+                    (Type::Vec3, Type::Fixed | Type::Int32) => Type::Vec3,
+                    (Type::Vec4, Type::Fixed | Type::Int32) => Type::Vec4,
+                    
+                    // Scalar * Vector (returns vector)
+                    (Type::Fixed | Type::Int32, Type::Vec2) => Type::Vec2,
+                    (Type::Fixed | Type::Int32, Type::Vec3) => Type::Vec3,
+                    (Type::Fixed | Type::Int32, Type::Vec4) => Type::Vec4,
+                    
+                    // Mismatch
+                    _ => {
                         return Err(TypeError {
                             kind: TypeErrorKind::Mismatch {
                                 expected: left_ty.clone(),
@@ -70,9 +100,9 @@ impl TypeChecker {
                             span: expr.span,
                         });
                     }
-                }
+                };
                 
-                expr.ty = Some(left_ty);
+                expr.ty = Some(result_ty);
             }
             
             // Comparisons return Fixed (0 or 1)
@@ -130,29 +160,164 @@ impl TypeChecker {
             }
             
             // Vector constructors
-            ExprKind::Vec2Constructor(x, y) => {
-                Self::infer_type(x)?;
-                Self::infer_type(y)?;
+            // In GLSL, these can take mixed vec/scalar args: vec3(vec2, float) is valid
+            ExprKind::Vec2Constructor(args) => {
+                Self::check_vector_constructor(args, 2, "vec2", expr.span)?;
                 expr.ty = Some(Type::Vec2);
             }
             
-            ExprKind::Vec3Constructor(x, y, z) => {
-                Self::infer_type(x)?;
-                Self::infer_type(y)?;
-                Self::infer_type(z)?;
+            ExprKind::Vec3Constructor(args) => {
+                Self::check_vector_constructor(args, 3, "vec3", expr.span)?;
                 expr.ty = Some(Type::Vec3);
             }
             
-            ExprKind::Vec4Constructor(x, y, z, w) => {
-                Self::infer_type(x)?;
-                Self::infer_type(y)?;
-                Self::infer_type(z)?;
-                Self::infer_type(w)?;
+            ExprKind::Vec4Constructor(args) => {
+                Self::check_vector_constructor(args, 4, "vec4", expr.span)?;
                 expr.ty = Some(Type::Vec4);
+            }
+            
+            ExprKind::Swizzle { expr: base_expr, components } => {
+                Self::infer_type(base_expr)?;
+                let base_type = base_expr.ty.as_ref().unwrap();
+                
+                // Validate swizzle is on a vector type
+                let source_size = match base_type {
+                    Type::Vec2 => 2,
+                    Type::Vec3 => 3,
+                    Type::Vec4 => 4,
+                    _ => {
+                        return Err(TypeError {
+                            kind: TypeErrorKind::InvalidSwizzle(
+                                format!("Cannot swizzle non-vector type {:?}", base_type)
+                            ),
+                            span: expr.span,
+                        });
+                    }
+                };
+                
+                // Validate components and determine result type
+                let result_type = Self::validate_swizzle(components, source_size, expr.span)?;
+                expr.ty = Some(result_type);
             }
         }
         
         Ok(())
+    }
+    
+    /// Get the number of components in a type (for vector constructor validation)
+    fn component_count(ty: &Type) -> usize {
+        match ty {
+            Type::Fixed | Type::Int32 => 1,
+            Type::Vec2 => 2,
+            Type::Vec3 => 3,
+            Type::Vec4 => 4,
+            Type::Void => 0,
+        }
+    }
+    
+    /// Check vector constructor arguments and ensure total components match expected
+    fn check_vector_constructor(args: &mut [Expr], expected_components: usize, name: &str, span: Span) -> Result<(), TypeError> {
+        // Type check all arguments
+        for arg in args.iter_mut() {
+            Self::infer_type(arg)?;
+        }
+        
+        // Count total components provided
+        let total: usize = args.iter()
+            .map(|arg| Self::component_count(arg.ty.as_ref().unwrap()))
+            .sum();
+        
+        if total != expected_components {
+            let types: Vec<Type> = args.iter()
+                .map(|arg| arg.ty.clone().unwrap())
+                .collect();
+                
+            return Err(TypeError {
+                kind: TypeErrorKind::InvalidOperation {
+                    op: format!("{} constructor expects {} components, got {}", name, expected_components, total),
+                    types,
+                },
+                span,
+            });
+        }
+        
+        Ok(())
+    }
+    
+    /// Validate swizzle components and return result type
+    fn validate_swizzle(components: &str, source_size: usize, span: Span) -> Result<Type, TypeError> {
+        if components.is_empty() {
+            return Err(TypeError {
+                kind: TypeErrorKind::InvalidSwizzle("Empty swizzle".to_string()),
+                span,
+            });
+        }
+        
+        // Check which naming scheme is used (can't mix)
+        let is_xyzw = components.chars().all(|c| "xyzw".contains(c));
+        let is_rgba = components.chars().all(|c| "rgba".contains(c));
+        let is_stpq = components.chars().all(|c| "stpq".contains(c));
+        
+        if !is_xyzw && !is_rgba && !is_stpq {
+            return Err(TypeError {
+                kind: TypeErrorKind::InvalidSwizzle(
+                    format!("Invalid or mixed swizzle naming: '{}'. Use xyzw, rgba, or stpq.", components)
+                ),
+                span,
+            });
+        }
+        
+        // Validate each component is within bounds
+        for ch in components.chars() {
+            let component_index = if is_xyzw {
+                match ch {
+                    'x' => 0,
+                    'y' => 1,
+                    'z' => 2,
+                    'w' => 3,
+                    _ => unreachable!(),
+                }
+            } else if is_rgba {
+                match ch {
+                    'r' => 0,
+                    'g' => 1,
+                    'b' => 2,
+                    'a' => 3,
+                    _ => unreachable!(),
+                }
+            } else { // is_stpq
+                match ch {
+                    's' => 0,
+                    't' => 1,
+                    'p' => 2,
+                    'q' => 3,
+                    _ => unreachable!(),
+                }
+            };
+            
+            if component_index >= source_size {
+                return Err(TypeError {
+                    kind: TypeErrorKind::InvalidSwizzle(
+                        format!("Component '{}' out of bounds for vec{}", ch, source_size)
+                    ),
+                    span,
+                });
+            }
+        }
+        
+        // Determine result type based on component count
+        match components.len() {
+            1 => Ok(Type::Fixed), // Single component returns scalar
+            2 => Ok(Type::Vec2),
+            3 => Ok(Type::Vec3),
+            4 => Ok(Type::Vec4),
+            _ => Err(TypeError {
+                kind: TypeErrorKind::InvalidSwizzle(
+                    format!("Too many swizzle components: {}", components.len())
+                ),
+                span,
+            }),
+        }
     }
     
     fn function_return_type(name: &str, args: &[Expr]) -> Result<Type, TypeError> {
@@ -200,17 +365,31 @@ impl TypeChecker {
                 Ok(Type::Fixed)
             }
             
-            // Perlin noise
+            // Perlin noise: perlin3(vec3) or perlin3(vec3, octaves)
             "perlin3" => {
-                if args.len() < 3 || args.len() > 4 {
+                if args.is_empty() || args.len() > 2 {
                     return Err(TypeError {
                         kind: TypeErrorKind::InvalidArgumentCount {
-                            expected: 3,
+                            expected: 1,
                             found: args.len(),
                         },
                         span: args.first().map(|e| e.span).unwrap_or(Span::new(0, 0)),
                     });
                 }
+                
+                // First arg must be vec3
+                let first_ty = args[0].ty.as_ref().unwrap();
+                if first_ty != &Type::Vec3 {
+                    return Err(TypeError {
+                        kind: TypeErrorKind::Mismatch {
+                            expected: Type::Vec3,
+                            found: first_ty.clone(),
+                        },
+                        span: args[0].span,
+                    });
+                }
+                
+                // Second arg (if present) should be int (octaves), but we're lenient
                 Ok(Type::Fixed)
             }
             
@@ -295,6 +474,160 @@ mod tests {
         // true and false branches must match
         let result = parse_and_check("xNorm > 0.5 ? vec2(1.0, 0.0) : 1.0");
         assert!(matches!(result, Err(TypeError { kind: TypeErrorKind::Mismatch { .. }, .. })));
+    }
+    
+    #[test]
+    fn test_swizzle_single_component() {
+        let expr = parse_and_check("vec2(1.0, 2.0).x").unwrap();
+        assert_eq!(expr.ty, Some(Type::Fixed));
+        
+        let expr = parse_and_check("vec3(1.0, 2.0, 3.0).z").unwrap();
+        assert_eq!(expr.ty, Some(Type::Fixed));
+    }
+    
+    #[test]
+    fn test_swizzle_two_components() {
+        let expr = parse_and_check("vec2(1.0, 2.0).xy").unwrap();
+        assert_eq!(expr.ty, Some(Type::Vec2));
+        
+        let expr = parse_and_check("vec2(1.0, 2.0).yx").unwrap();
+        assert_eq!(expr.ty, Some(Type::Vec2));
+        
+        let expr = parse_and_check("vec3(1.0, 2.0, 3.0).xz").unwrap();
+        assert_eq!(expr.ty, Some(Type::Vec2));
+    }
+    
+    #[test]
+    fn test_swizzle_duplicate() {
+        let expr = parse_and_check("vec2(1.0, 2.0).xx").unwrap();
+        assert_eq!(expr.ty, Some(Type::Vec2));
+        
+        let expr = parse_and_check("vec3(1.0, 2.0, 3.0).zzz").unwrap();
+        assert_eq!(expr.ty, Some(Type::Vec3));
+    }
+    
+    #[test]
+    fn test_swizzle_rgba() {
+        let expr = parse_and_check("vec4(1.0, 2.0, 3.0, 4.0).rgba").unwrap();
+        assert_eq!(expr.ty, Some(Type::Vec4));
+        
+        let expr = parse_and_check("vec4(1.0, 2.0, 3.0, 4.0).rgb").unwrap();
+        assert_eq!(expr.ty, Some(Type::Vec3));
+        
+        let expr = parse_and_check("vec2(1.0, 2.0).rg").unwrap();
+        assert_eq!(expr.ty, Some(Type::Vec2));
+    }
+    
+    #[test]
+    fn test_swizzle_stpq() {
+        let expr = parse_and_check("vec2(1.0, 2.0).st").unwrap();
+        assert_eq!(expr.ty, Some(Type::Vec2));
+        
+        let expr = parse_and_check("vec4(1.0, 2.0, 3.0, 4.0).stpq").unwrap();
+        assert_eq!(expr.ty, Some(Type::Vec4));
+    }
+    
+    #[test]
+    fn test_swizzle_out_of_bounds() {
+        let result = parse_and_check("vec2(1.0, 2.0).z");
+        assert!(matches!(result, Err(TypeError { kind: TypeErrorKind::InvalidSwizzle(_), .. })));
+        
+        let result = parse_and_check("vec3(1.0, 2.0, 3.0).w");
+        assert!(matches!(result, Err(TypeError { kind: TypeErrorKind::InvalidSwizzle(_), .. })));
+    }
+    
+    #[test]
+    fn test_swizzle_mixed_naming() {
+        // Can't mix xyzw with rgba
+        let result = parse_and_check("vec2(1.0, 2.0).xr");
+        assert!(matches!(result, Err(TypeError { kind: TypeErrorKind::InvalidSwizzle(_), .. })));
+    }
+    
+    #[test]
+    fn test_swizzle_on_scalar() {
+        let result = parse_and_check("xNorm.x");
+        assert!(matches!(result, Err(TypeError { kind: TypeErrorKind::InvalidSwizzle(_), .. })));
+    }
+    
+    #[test]
+    fn test_swizzle_chaining() {
+        let expr = parse_and_check("vec3(1.0, 2.0, 3.0).xy.yx").unwrap();
+        assert_eq!(expr.ty, Some(Type::Vec2));
+    }
+    
+    #[test]
+    fn test_uv_variable() {
+        let expr = parse_and_check("uv").unwrap();
+        assert_eq!(expr.ty, Some(Type::Vec2));
+    }
+    
+    #[test]
+    fn test_coord_variable() {
+        let expr = parse_and_check("coord").unwrap();
+        assert_eq!(expr.ty, Some(Type::Vec2));
+    }
+    
+    #[test]
+    fn test_uv_swizzle() {
+        let expr = parse_and_check("uv.x").unwrap();
+        assert_eq!(expr.ty, Some(Type::Fixed));
+        
+        let expr = parse_and_check("uv.y").unwrap();
+        assert_eq!(expr.ty, Some(Type::Fixed));
+        
+        let expr = parse_and_check("uv.yx").unwrap();
+        assert_eq!(expr.ty, Some(Type::Vec2));
+    }
+    
+    #[test]
+    fn test_coord_swizzle() {
+        let expr = parse_and_check("coord.xy").unwrap();
+        assert_eq!(expr.ty, Some(Type::Vec2));
+    }
+    
+    #[test]
+    fn test_uv_in_expression() {
+        let expr = parse_and_check("uv.x * 2.0 + uv.y").unwrap();
+        assert_eq!(expr.ty, Some(Type::Fixed));
+    }
+    
+    #[test]
+    fn test_vec3_from_vec2_and_float() {
+        // GLSL-style: vec3(vec2, float)
+        let expr = parse_and_check("vec3(uv, time)").unwrap();
+        assert_eq!(expr.ty, Some(Type::Vec3));
+    }
+    
+    #[test]
+    fn test_vec4_from_vec3_and_float() {
+        // GLSL-style: vec4(vec3, float)
+        let expr = parse_and_check("vec4(vec3(1.0, 2.0, 3.0), 4.0)").unwrap();
+        assert_eq!(expr.ty, Some(Type::Vec4));
+    }
+    
+    #[test]
+    fn test_vec4_from_two_vec2s() {
+        // GLSL-style: vec4(vec2, vec2)
+        let expr = parse_and_check("vec4(uv, uv)").unwrap();
+        assert_eq!(expr.ty, Some(Type::Vec4));
+    }
+    
+    #[test]
+    fn test_vec3_from_float_and_vec2() {
+        // GLSL-style: vec3(float, vec2)
+        let expr = parse_and_check("vec3(time, uv)").unwrap();
+        assert_eq!(expr.ty, Some(Type::Vec3));
+    }
+    
+    #[test]
+    fn test_vec_constructor_wrong_component_count() {
+        // Too many components
+        let result = parse_and_check("vec2(vec3(1.0, 2.0, 3.0))");
+        assert!(matches!(result, Err(TypeError { kind: TypeErrorKind::InvalidOperation { .. }, .. })));
+        
+        // Too few components
+        let result = parse_and_check("vec3(1.0)");
+        assert!(matches!(result, Err(TypeError { kind: TypeErrorKind::InvalidOperation { .. }, .. })));
     }
 }
 

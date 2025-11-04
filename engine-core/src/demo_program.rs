@@ -47,8 +47,8 @@ pub fn create_test_line_scene(width: usize, height: usize) -> SceneConfig {
 /// Create the standard demo scene configuration
 pub fn create_demo_scene(width: usize, height: usize) -> SceneConfig {
     // Demo program: perlin noise with 3 octaves, zoom, and cosine smoothing
-    // Using the expression parser instead of manually building opcodes!
-    let program = parse_expr("cos(perlin3(xNorm*0.3, yNorm*0.3, time, 3))").opcodes;
+    // Using GLSL-style syntax with vec3 constructor and uv variable!
+    let program = parse_expr("cos(perlin3(vec3(uv * 0.3, time), 3))").opcodes;
 
     // Create palette
     let palette = Palette::rainbow();

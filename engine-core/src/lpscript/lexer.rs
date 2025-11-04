@@ -45,6 +45,7 @@ pub enum TokenKind {
     Comma,
     Question,  // Ternary ?
     Colon,     // Ternary :
+    Dot,       // Member access / swizzle
     
     Eof,
 }
@@ -192,6 +193,28 @@ impl Lexer {
                     ',' => { self.advance(); TokenKind::Comma }
                     '?' => { self.advance(); TokenKind::Question }
                     ':' => { self.advance(); TokenKind::Colon }
+                    '.' => {
+                        // Check if it's a number like .5 or a dot operator
+                        if let Some(next_ch) = self.peek(1) {
+                            if next_ch.is_numeric() {
+                                // It's a number like .5
+                                let (num_str, is_float) = self.read_number();
+                                if is_float {
+                                    TokenKind::FloatLiteral(num_str.parse().unwrap_or(0.0))
+                                } else {
+                                    TokenKind::FloatLiteral(num_str.parse().unwrap_or(0.0))
+                                }
+                            } else {
+                                // It's a dot operator
+                                self.advance();
+                                TokenKind::Dot
+                            }
+                        } else {
+                            // End of input, treat as dot
+                            self.advance();
+                            TokenKind::Dot
+                        }
+                    }
                     '<' => {
                         self.advance();
                         if self.current() == Some('=') {
@@ -246,7 +269,7 @@ impl Lexer {
                             TokenKind::Eof
                         }
                     }
-                    '0'..='9' | '.' => {
+                    '0'..='9' => {
                         let (num_str, is_float) = self.read_number();
                         if num_str.starts_with("0x") || num_str.starts_with("0X") {
                             // Hex number

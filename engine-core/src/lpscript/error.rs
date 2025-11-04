@@ -131,6 +131,7 @@ pub enum TypeErrorKind {
     UndefinedFunction(String),
     InvalidArgumentCount { expected: usize, found: usize },
     InvalidOperation { op: String, types: Vec<Type> },
+    InvalidSwizzle(String),
 }
 
 impl fmt::Display for TypeError {
@@ -151,6 +152,9 @@ impl fmt::Display for TypeError {
             }
             TypeErrorKind::InvalidOperation { op, types } => {
                 write!(f, "invalid operation '{}' for types {:?}", op, types)
+            }
+            TypeErrorKind::InvalidSwizzle(msg) => {
+                write!(f, "invalid swizzle: {}", msg)
             }
         }
     }

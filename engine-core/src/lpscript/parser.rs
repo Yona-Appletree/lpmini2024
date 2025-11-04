@@ -238,7 +238,7 @@ impl Parser {
     
     // Exponential: ^ (right-associative)
     fn exponential(&mut self) -> Expr {
-        let mut expr = self.primary();
+        let mut expr = self.postfix();
         
         if matches!(self.current().kind, TokenKind::Caret) {
             let start = expr.span.start;
@@ -249,6 +249,37 @@ impl Parser {
                 ExprKind::Pow(Box::new(expr), Box::new(right)),
                 Span::new(start, end),
             );
+        }
+        
+        expr
+    }
+    
+    // Postfix: swizzle (.xyzw, .rgba, .stpq)
+    fn postfix(&mut self) -> Expr {
+        let mut expr = self.primary();
+        
+        // Handle swizzle operations
+        while matches!(self.current().kind, TokenKind::Dot) {
+            let start = expr.span.start;
+            self.advance(); // consume '.'
+            
+            // Read the swizzle components
+            if let TokenKind::Ident(components) = &self.current().kind {
+                let components = components.clone();
+                let end = self.current().span.end;
+                self.advance();
+                
+                expr = Expr::new(
+                    ExprKind::Swizzle {
+                        expr: Box::new(expr),
+                        components,
+                    },
+                    Span::new(start, end),
+                );
+            } else {
+                // Invalid swizzle, just break
+                break;
+            }
         }
         
         expr
@@ -286,27 +317,9 @@ impl Parser {
                     
                     // Check for vector constructors
                     let kind = match name.as_str() {
-                        "vec2" if args.len() == 2 => {
-                            ExprKind::Vec2Constructor(
-                                Box::new(args[0].clone()),
-                                Box::new(args[1].clone()),
-                            )
-                        }
-                        "vec3" if args.len() == 3 => {
-                            ExprKind::Vec3Constructor(
-                                Box::new(args[0].clone()),
-                                Box::new(args[1].clone()),
-                                Box::new(args[2].clone()),
-                            )
-                        }
-                        "vec4" if args.len() == 4 => {
-                            ExprKind::Vec4Constructor(
-                                Box::new(args[0].clone()),
-                                Box::new(args[1].clone()),
-                                Box::new(args[2].clone()),
-                                Box::new(args[3].clone()),
-                            )
-                        }
+                        "vec2" => ExprKind::Vec2Constructor(args),
+                        "vec3" => ExprKind::Vec3Constructor(args),
+                        "vec4" => ExprKind::Vec4Constructor(args),
                         _ => ExprKind::Call { name, args },
                     };
                     

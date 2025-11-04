@@ -67,9 +67,15 @@ pub enum ExprKind {
         args: Vec<Expr>,
     },
     
-    // Vector constructors
-    Vec2Constructor(Box<Expr>, Box<Expr>),
-    Vec3Constructor(Box<Expr>, Box<Expr>, Box<Expr>),
-    Vec4Constructor(Box<Expr>, Box<Expr>, Box<Expr>, Box<Expr>),
+    // Vector constructors (GLSL-style: can take mixed vec/scalar args)
+    Vec2Constructor(Vec<Expr>),
+    Vec3Constructor(Vec<Expr>),
+    Vec4Constructor(Vec<Expr>),
+    
+    // Swizzle (component access/reordering)
+    Swizzle {
+        expr: Box<Expr>,
+        components: String,  // e.g. "xy", "yx", "rgba", "x", etc.
+    },
 }
 

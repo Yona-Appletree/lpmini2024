@@ -7,12 +7,19 @@
 /// - **Comparisons**: `<`, `>`, `<=`, `>=`, `==`, `!=`
 /// - **Logical**: `&&`, `||`
 /// - **Ternary**: `condition ? true_val : false_val`
+/// - **Vector Swizzling**: `.x`, `.xy`, `.yx`, `.rgba`, `.stpq`, etc.
+///
+/// # Built-in Variables
+/// - **`uv`**: vec2, normalized coordinates (0..1)
+/// - **`coord`**: vec2, pixel coordinates
+/// - **`time`**: float, time value
+/// - **Legacy**: `xNorm`, `yNorm`, `centerAngle`, `centerDist`
 ///
 /// # GLSL/HLSL Shader Functions
 /// - **Math**: `sin`, `cos`, `abs`, `floor`, `ceil`, `sqrt`, `sign`, `pow`, `min`, `max`
 /// - **Clamping**: `clamp(value, min, max)`, `saturate(x)` (clamp to 0..1), `step(edge, x)`
 /// - **Interpolation**: `lerp(a, b, t)` or `mix(a, b, t)`, `smoothstep(edge0, edge1, x)`
-/// - **Perlin noise**: `perlin3(x, y, z, octaves)`
+/// - **Perlin noise**: `perlin3(vec3)` or `perlin3(vec3, octaves)`
 ///
 /// # Examples
 /// ```
@@ -21,14 +28,18 @@
 /// // Simple math
 /// let code = parse_expr("sin(time) * 0.5 + 0.5");
 ///
-/// // Perlin noise
-/// let code = parse_expr("cos(perlin3(xNorm*0.3, yNorm*0.3, time, 3))");
+/// // Vector swizzling
+/// let code = parse_expr("uv.x * 2.0");
+/// let code = parse_expr("uv.yx");
+///
+/// // Perlin noise with GLSL-style vec3 constructor
+/// let code = parse_expr("cos(perlin3(vec3(uv * 0.3, time), 3))");
 ///
 /// // Ternary operator
 /// let code = parse_expr("centerDist < 0.5 ? 1.0 : 0.0");
 ///
 /// // Min/max
-/// let code = parse_expr("max(0, min(1, xNorm * 2))");
+/// let code = parse_expr("max(0.0, min(1.0, uv.x * 2.0))");
 /// ```
 extern crate alloc;
 use alloc::vec::Vec;
@@ -54,7 +65,7 @@ use crate::test_engine::OpCode;
 ///
 /// # Example
 /// ```
-/// let program = compile_expr("cos(perlin3(xNorm*0.3, yNorm*0.3, time, 3))").unwrap();
+/// let program = compile_expr("cos(perlin3(vec3(uv * 0.3, time), 3))").unwrap();
 /// ```
 pub fn compile_expr(input: &str) -> Result<LpsProgram, CompileError> {
     let mut lexer = lexer::Lexer::new(input);
@@ -79,7 +90,7 @@ pub fn compile_expr(input: &str) -> Result<LpsProgram, CompileError> {
 ///
 /// # Example
 /// ```
-/// let program = parse_expr("cos(perlin3(xNorm*0.3, yNorm*0.3, time, 3))");
+/// let program = parse_expr("cos(perlin3(vec3(uv * 0.3, time), 3))");
 /// ```
 pub fn parse_expr(input: &str) -> LpsProgram {
     compile_expr(input).unwrap_or_else(|e| {
@@ -158,9 +169,8 @@ mod tests {
 
     #[test]
     fn test_complex_perlin() {
-        let code = &parse_expr("cos(perlin3(xNorm*0.3, yNorm*0.3, time, 3))").opcodes;
-        assert!(matches!(code[0], OpCode::Load(LoadSource::XNorm)));
-        // Should have Perlin3 and Cos
+        let code = &parse_expr("cos(perlin3(vec3(uv * 0.3, time), 3))").opcodes;
+        // Should have loads for uv (vec2), multiplication, vec3 construction, Perlin3 and Cos
         let has_perlin = code.iter().any(|op| matches!(op, OpCode::Perlin3(_)));
         let has_cos = code.iter().any(|op| matches!(op, OpCode::Cos));
         assert!(has_perlin);
@@ -211,9 +221,9 @@ mod tests {
     #[test]
     fn test_perlin3_only_pushes_xyz() {
         // Regression test for horizontal stripes bug!
-        // perlin3(x, y, z, octaves) should only push 3 args to stack (x, y, z)
+        // perlin3(vec3) should only push 3 args to stack (x, y, z components of vec3)
         // Octaves should be extracted at compile time and embedded in the opcode
-        let program = parse_expr("perlin3(xNorm, yNorm, time, 3)");
+        let program = parse_expr("perlin3(vec3(xNorm, yNorm, time), 3)");
         
         // Count Push/Load opcodes before Perlin3
         let mut push_count = 0;

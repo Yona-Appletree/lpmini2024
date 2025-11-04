@@ -144,7 +144,7 @@ mod vm_opcode_tests {
         let input = vec![Fixed::ZERO; 16];
         let mut output = vec![Fixed::ZERO; 16];
 
-        // First test what xNorm * 0.3 gives us
+        // First test what uv.x * 0.3 gives us
         let test_mult = vec![
             OpCode::Load(LoadSource::XNorm),
             OpCode::Push(0.3f32.to_fixed()),
@@ -161,7 +161,7 @@ mod vm_opcode_tests {
             println!();
         }
 
-        // perlin3(xNorm * 0.3, yNorm * 0.3, 0, 3)
+        // perlin3(uv.x * 0.3, uv.y * 0.3, 0, 3)
         let program = vec![
             OpCode::Load(LoadSource::XNorm),
             OpCode::Push(0.3f32.to_fixed()),
@@ -264,7 +264,7 @@ mod vm_opcode_tests {
         let input = vec![Fixed::ZERO; 16];
         let mut output = vec![Fixed::ZERO; 16];
 
-        // cos(xNorm * 0.3)
+        // cos(uv.x * 0.3)
         use crate::test_engine::vm::LoadSource;
         let program = vec![
             OpCode::Load(LoadSource::XNorm),
@@ -328,13 +328,13 @@ mod vm_opcode_tests {
 
     #[test]
     fn test_demo_expression_output() {
-        // Test the actual demo expression: cos(perlin3(xNorm*0.3, yNorm*0.3, time, 3))
+        // Test the actual demo expression: cos(perlin3(vec3(uv * 0.3, time), 3))
         use crate::lpscript::parse_expr;
 
         let input = vec![Fixed::ZERO; 16 * 16];
         let mut output = vec![Fixed::ZERO; 16 * 16];
 
-        let program = parse_expr("cos(perlin3(xNorm*0.3, yNorm*0.3, time, 3))").opcodes;
+        let program = parse_expr("cos(perlin3(vec3(uv * 0.3, time), 3))").opcodes;
 
         println!("Parsed opcodes:");
         for (i, op) in program.iter().enumerate() {
