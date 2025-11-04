@@ -1,22 +1,13 @@
 /// Block statement code generation
 extern crate alloc;
-use alloc::vec::Vec;
-use alloc::collections::BTreeMap;
-use alloc::string::String;
 
 use crate::lpscript::ast::Stmt;
-use crate::lpscript::vm::opcodes::LpsOpCode;
-use super::super::local_allocator::LocalAllocator;
+use super::super::CodeGenerator;
 
-pub fn gen_block(
-    stmts: &[Stmt],
-    code: &mut Vec<LpsOpCode>,
-    locals: &mut LocalAllocator,
-    func_offsets: &BTreeMap<String, u32>,
-    gen_stmt: impl Fn(&Stmt, &mut Vec<LpsOpCode>, &mut LocalAllocator, &BTreeMap<String, u32>),
-) {
-    for stmt in stmts {
-        gen_stmt(stmt, code, locals, func_offsets);
+impl<'a> CodeGenerator<'a> {
+    pub(in crate::lpscript::codegen::stmt) fn gen_block(&mut self, stmts: &[Stmt]) {
+        for stmt in stmts {
+            self.gen_stmt(stmt);
+        }
     }
 }
-

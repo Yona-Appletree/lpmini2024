@@ -1,41 +1,35 @@
 /// While loop code generation
 extern crate alloc;
-use alloc::vec::Vec;
-use alloc::collections::BTreeMap;
-use alloc::string::String;
 use alloc::boxed::Box;
 
 use crate::lpscript::ast::{Expr, Stmt};
 use crate::lpscript::vm::opcodes::LpsOpCode;
-use super::super::local_allocator::LocalAllocator;
+use super::super::CodeGenerator;
 
-pub fn gen_while(
-    condition: &Expr,
-    body: &Box<Stmt>,
-    code: &mut Vec<LpsOpCode>,
-    locals: &mut LocalAllocator,
-    func_offsets: &BTreeMap<String, u32>,
-    gen_expr: impl Fn(&Expr, &mut Vec<LpsOpCode>, &mut LocalAllocator, &BTreeMap<String, u32>),
-    gen_stmt: impl Fn(&Stmt, &mut Vec<LpsOpCode>, &mut LocalAllocator, &BTreeMap<String, u32>),
-) {
-    // Generate: loop_start → condition → JumpIfZero(end) → body → Jump(loop_start)
-    let loop_start = code.len();
-    
-    gen_expr(condition, code, locals, func_offsets);
-    
-    let jump_to_end_index = code.len();
-    code.push(LpsOpCode::JumpIfZero(0)); // Placeholder
-    
-    gen_stmt(body, code, locals, func_offsets);
-    
-    // Jump back to loop start
-    let jump_back_offset = (loop_start as i32) - (code.len() as i32) - 1;
-    code.push(LpsOpCode::Jump(jump_back_offset));
-    
-    // Patch JumpIfZero to point to end
-    let end = code.len();
-    if let LpsOpCode::JumpIfZero(ref mut offset) = code[jump_to_end_index] {
-        *offset = (end as i32) - (jump_to_end_index as i32) - 1;
+impl<'a> CodeGenerator<'a> {
+    pub(in crate::lpscript::codegen::stmt) fn gen_while(
+        &mut self,
+        condition: &Expr,
+        body: &Box<Stmt>,
+    ) {
+        // Generate: loop_start → condition → JumpIfZero(end) → body → Jump(loop_start)
+        let loop_start = self.code.len();
+        
+        self.gen_expr(condition);
+        
+        let jump_to_end_index = self.code.len();
+        self.code.push(LpsOpCode::JumpIfZero(0)); // Placeholder
+        
+        self.gen_stmt(body);
+        
+        // Jump back to loop start
+        let jump_back_offset = (loop_start as i32) - (self.code.len() as i32) - 1;
+        self.code.push(LpsOpCode::Jump(jump_back_offset));
+        
+        // Patch JumpIfZero to point to end
+        let end = self.code.len();
+        if let LpsOpCode::JumpIfZero(ref mut offset) = self.code[jump_to_end_index] {
+            *offset = (end as i32) - (jump_to_end_index as i32) - 1;
+        }
     }
 }
-

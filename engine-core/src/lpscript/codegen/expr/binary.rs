@@ -1,14 +1,15 @@
 /// Binary operation code generation
 extern crate alloc;
-use alloc::vec::Vec;
+use alloc::boxed::Box;
 use alloc::collections::BTreeMap;
 use alloc::string::String;
-use alloc::boxed::Box;
+use alloc::vec::Vec;
 
+use super::super::local_allocator::LocalAllocator;
+use super::super::CodeGenerator;
 use crate::lpscript::ast::Expr;
 use crate::lpscript::error::Type;
 use crate::lpscript::vm::opcodes::LpsOpCode;
-use super::super::local_allocator::LocalAllocator;
 
 /// Binary operation types
 pub enum BinaryOp {
@@ -19,123 +20,114 @@ pub enum BinaryOp {
     Mod,
 }
 
-pub fn gen_add(
-    left: &Box<Expr>,
-    right: &Box<Expr>,
-    result_ty: &Type,
-    code: &mut Vec<LpsOpCode>,
-    locals: &mut LocalAllocator,
-    func_offsets: &BTreeMap<String, u32>,
-    gen_expr: impl Fn(&Expr, &mut Vec<LpsOpCode>, &mut LocalAllocator, &BTreeMap<String, u32>) + Copy,
-) {
-    gen_expr(left, code, locals, func_offsets);
-    gen_expr(right, code, locals, func_offsets);
-    gen_binary_op(
-        BinaryOp::Add,
-        left.ty.as_ref().unwrap(),
-        right.ty.as_ref().unwrap(),
-        result_ty,
-        code,
-    );
-}
+impl<'a> CodeGenerator<'a> {
+    pub(in crate::lpscript::codegen::expr) fn gen_add(
+        &mut self,
+        left: &Box<Expr>,
+        right: &Box<Expr>,
+        result_ty: &Type,
+    ) {
+        self.gen_expr(left);
+        self.gen_expr(right);
+        gen_binary_op(
+            BinaryOp::Add,
+            left.ty.as_ref().unwrap(),
+            right.ty.as_ref().unwrap(),
+            result_ty,
+            self.code,
+        );
+    }
 
-pub fn gen_sub(
-    left: &Box<Expr>,
-    right: &Box<Expr>,
-    result_ty: &Type,
-    code: &mut Vec<LpsOpCode>,
-    locals: &mut LocalAllocator,
-    func_offsets: &BTreeMap<String, u32>,
-    gen_expr: impl Fn(&Expr, &mut Vec<LpsOpCode>, &mut LocalAllocator, &BTreeMap<String, u32>) + Copy,
-) {
-    gen_expr(left, code, locals, func_offsets);
-    gen_expr(right, code, locals, func_offsets);
-    gen_binary_op(
-        BinaryOp::Sub,
-        left.ty.as_ref().unwrap(),
-        right.ty.as_ref().unwrap(),
-        result_ty,
-        code,
-    );
-}
+    pub(in crate::lpscript::codegen::expr) fn gen_sub(
+        &mut self,
+        left: &Box<Expr>,
+        right: &Box<Expr>,
+        result_ty: &Type,
+    ) {
+        self.gen_expr(left);
+        self.gen_expr(right);
+        gen_binary_op(
+            BinaryOp::Sub,
+            left.ty.as_ref().unwrap(),
+            right.ty.as_ref().unwrap(),
+            result_ty,
+            self.code,
+        );
+    }
 
-pub fn gen_mul(
-    left: &Box<Expr>,
-    right: &Box<Expr>,
-    result_ty: &Type,
-    code: &mut Vec<LpsOpCode>,
-    locals: &mut LocalAllocator,
-    func_offsets: &BTreeMap<String, u32>,
-    gen_expr: impl Fn(&Expr, &mut Vec<LpsOpCode>, &mut LocalAllocator, &BTreeMap<String, u32>) + Copy,
-) {
-    gen_expr(left, code, locals, func_offsets);
-    gen_expr(right, code, locals, func_offsets);
-    gen_binary_op(
-        BinaryOp::Mul,
-        left.ty.as_ref().unwrap(),
-        right.ty.as_ref().unwrap(),
-        result_ty,
-        code,
-    );
-}
+    pub(in crate::lpscript::codegen::expr) fn gen_mul(
+        &mut self,
+        left: &Box<Expr>,
+        right: &Box<Expr>,
+        result_ty: &Type,
+    ) {
+        self.gen_expr(left);
+        self.gen_expr(right);
+        gen_binary_op(
+            BinaryOp::Mul,
+            left.ty.as_ref().unwrap(),
+            right.ty.as_ref().unwrap(),
+            result_ty,
+            self.code,
+        );
+    }
 
-pub fn gen_div(
-    left: &Box<Expr>,
-    right: &Box<Expr>,
-    result_ty: &Type,
-    code: &mut Vec<LpsOpCode>,
-    locals: &mut LocalAllocator,
-    func_offsets: &BTreeMap<String, u32>,
-    gen_expr: impl Fn(&Expr, &mut Vec<LpsOpCode>, &mut LocalAllocator, &BTreeMap<String, u32>) + Copy,
-) {
-    gen_expr(left, code, locals, func_offsets);
-    gen_expr(right, code, locals, func_offsets);
-    gen_binary_op(
-        BinaryOp::Div,
-        left.ty.as_ref().unwrap(),
-        right.ty.as_ref().unwrap(),
-        result_ty,
-        code,
-    );
-}
+    pub(in crate::lpscript::codegen::expr) fn gen_div(
+        &mut self,
+        left: &Box<Expr>,
+        right: &Box<Expr>,
+        result_ty: &Type,
+    ) {
+        self.gen_expr(left);
+        self.gen_expr(right);
+        gen_binary_op(
+            BinaryOp::Div,
+            left.ty.as_ref().unwrap(),
+            right.ty.as_ref().unwrap(),
+            result_ty,
+            self.code,
+        );
+    }
 
-pub fn gen_mod(
-    left: &Box<Expr>,
-    right: &Box<Expr>,
-    result_ty: &Type,
-    code: &mut Vec<LpsOpCode>,
-    locals: &mut LocalAllocator,
-    func_offsets: &BTreeMap<String, u32>,
-    gen_expr: impl Fn(&Expr, &mut Vec<LpsOpCode>, &mut LocalAllocator, &BTreeMap<String, u32>) + Copy,
-) {
-    gen_expr(left, code, locals, func_offsets);
-    gen_expr(right, code, locals, func_offsets);
-    gen_binary_op(
-        BinaryOp::Mod,
-        left.ty.as_ref().unwrap(),
-        right.ty.as_ref().unwrap(),
-        result_ty,
-        code,
-    );
-}
+    pub(in crate::lpscript::codegen::expr) fn gen_mod(
+        &mut self,
+        left: &Box<Expr>,
+        right: &Box<Expr>,
+        result_ty: &Type,
+    ) {
+        self.gen_expr(left);
+        self.gen_expr(right);
+        gen_binary_op(
+            BinaryOp::Mod,
+            left.ty.as_ref().unwrap(),
+            right.ty.as_ref().unwrap(),
+            result_ty,
+            self.code,
+        );
+    }
 
-pub fn gen_pow(
-    left: &Box<Expr>,
-    right: &Box<Expr>,
-    code: &mut Vec<LpsOpCode>,
-    locals: &mut LocalAllocator,
-    func_offsets: &BTreeMap<String, u32>,
-    gen_expr: impl Fn(&Expr, &mut Vec<LpsOpCode>, &mut LocalAllocator, &BTreeMap<String, u32>) + Copy,
-) {
-    gen_expr(left, code, locals, func_offsets);
-    gen_expr(right, code, locals, func_offsets);
-    // Pow is always scalar for now
-    // TODO: Add proper pow implementation
-    code.push(LpsOpCode::Push(crate::math::Fixed::ONE)); // Placeholder
+    pub(in crate::lpscript::codegen::expr) fn gen_pow(
+        &mut self,
+        left: &Box<Expr>,
+        right: &Box<Expr>,
+    ) {
+        self.gen_expr(left);
+        self.gen_expr(right);
+        // Pow is always scalar for now
+        // TODO: Add proper pow implementation
+        self.code.push(LpsOpCode::Push(crate::math::Fixed::ONE)); // Placeholder
+    }
 }
 
 /// Generate typed binary operation based on operand and result types
-fn gen_binary_op(op: BinaryOp, _left_ty: &Type, right_ty: &Type, result_ty: &Type, code: &mut Vec<LpsOpCode>) {
+fn gen_binary_op(
+    op: BinaryOp,
+    _left_ty: &Type,
+    right_ty: &Type,
+    result_ty: &Type,
+    code: &mut Vec<LpsOpCode>,
+) {
+    let _ = _left_ty; // Silence unused variable warning
     match (op, result_ty) {
         // Fixed operations
         (BinaryOp::Add, Type::Fixed | Type::Int32) => code.push(LpsOpCode::AddFixed),
@@ -149,7 +141,7 @@ fn gen_binary_op(op: BinaryOp, _left_ty: &Type, right_ty: &Type, result_ty: &Typ
             // TODO: Implement properly - for now use placeholder
             code.push(LpsOpCode::DivFixed);
         }
-        
+
         // Vec2 operations
         (BinaryOp::Add, Type::Vec2) => code.push(LpsOpCode::AddVec2),
         (BinaryOp::Sub, Type::Vec2) => code.push(LpsOpCode::SubVec2),
@@ -169,7 +161,7 @@ fn gen_binary_op(op: BinaryOp, _left_ty: &Type, right_ty: &Type, result_ty: &Typ
             }
         }
         (BinaryOp::Mod, Type::Vec2) => code.push(LpsOpCode::MulVec2), // Placeholder
-        
+
         // Vec3 operations
         (BinaryOp::Add, Type::Vec3) => code.push(LpsOpCode::AddVec3),
         (BinaryOp::Sub, Type::Vec3) => code.push(LpsOpCode::SubVec3),
@@ -188,7 +180,7 @@ fn gen_binary_op(op: BinaryOp, _left_ty: &Type, right_ty: &Type, result_ty: &Typ
             }
         }
         (BinaryOp::Mod, Type::Vec3) => code.push(LpsOpCode::MulVec3), // Placeholder
-        
+
         // Vec4 operations
         (BinaryOp::Add, Type::Vec4) => code.push(LpsOpCode::AddVec4),
         (BinaryOp::Sub, Type::Vec4) => code.push(LpsOpCode::SubVec4),
@@ -207,8 +199,7 @@ fn gen_binary_op(op: BinaryOp, _left_ty: &Type, right_ty: &Type, result_ty: &Typ
             }
         }
         (BinaryOp::Mod, Type::Vec4) => code.push(LpsOpCode::MulVec4), // Placeholder
-        
+
         _ => {} // Void or unsupported
     }
 }
-

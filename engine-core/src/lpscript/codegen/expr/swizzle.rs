@@ -1,37 +1,34 @@
 /// Swizzle operation code generation
 extern crate alloc;
 use alloc::vec::Vec;
-use alloc::collections::BTreeMap;
-use alloc::string::String;
 use alloc::boxed::Box;
 
 use crate::lpscript::ast::Expr;
 use crate::lpscript::error::Type;
 use crate::lpscript::vm::opcodes::LpsOpCode;
-use super::super::local_allocator::LocalAllocator;
+use super::super::CodeGenerator;
 
-pub fn gen_swizzle(
-    base_expr: &Box<Expr>,
-    components: &str,
-    code: &mut Vec<LpsOpCode>,
-    locals: &mut LocalAllocator,
-    func_offsets: &BTreeMap<String, u32>,
-    gen_expr: impl Fn(&Expr, &mut Vec<LpsOpCode>, &mut LocalAllocator, &BTreeMap<String, u32>) + Copy,
-) {
-    // Generate code for base expression (pushes vector components)
-    gen_expr(base_expr, code, locals, func_offsets);
-    
-    // Get base type to know how many components to pop
-    let base_type = base_expr.ty.as_ref().unwrap();
-    let source_size = match base_type {
-        Type::Vec2 => 2,
-        Type::Vec3 => 3,
-        Type::Vec4 => 4,
-        _ => unreachable!("Type checker should catch non-vector swizzles"),
-    };
-    
-    // Generate swizzle opcodes
-    gen_swizzle_opcodes(components, source_size, code);
+impl<'a> CodeGenerator<'a> {
+    pub(in crate::lpscript::codegen::expr) fn gen_swizzle(
+        &mut self,
+        base_expr: &Box<Expr>,
+        components: &str,
+    ) {
+        // Generate code for base expression (pushes vector components)
+        self.gen_expr(base_expr);
+        
+        // Get base type to know how many components to pop
+        let base_type = base_expr.ty.as_ref().unwrap();
+        let source_size = match base_type {
+            Type::Vec2 => 2,
+            Type::Vec3 => 3,
+            Type::Vec4 => 4,
+            _ => unreachable!("Type checker should catch non-vector swizzles"),
+        };
+        
+        // Generate swizzle opcodes
+        gen_swizzle_opcodes(components, source_size, self.code);
+    }
 }
 
 /// Generate opcodes for swizzling
@@ -117,4 +114,3 @@ fn gen_swizzle_opcodes(components: &str, source_size: usize, code: &mut Vec<LpsO
         }
     }
 }
-

@@ -8,6 +8,7 @@ use crate::lpscript::ast::{FunctionDef, Stmt};
 use crate::lpscript::error::Type;
 use crate::lpscript::vm::opcodes::LpsOpCode;
 use super::local_allocator::LocalAllocator;
+use super::CodeGenerator;
 
 /// Generate code for a single function definition
 pub fn gen_function(
@@ -31,18 +32,19 @@ pub fn gen_function(
         }
     }
     
-    // Generate function body
+    // Generate function body using CodeGenerator
+    let mut gen = CodeGenerator::new(code, &mut locals, function_offsets);
     for stmt in &func.body {
-        gen_stmt(stmt, code, &mut locals, function_offsets);
+        gen.gen_stmt(stmt);
     }
     
     // If no explicit return, add a default one
-    if !matches!(code.last(), Some(LpsOpCode::Return)) {
+    if !matches!(gen.code.last(), Some(LpsOpCode::Return)) {
         if func.return_type == Type::Void {
-            code.push(LpsOpCode::Return);
+            gen.code.push(LpsOpCode::Return);
         } else {
-            code.push(LpsOpCode::Push(crate::math::Fixed::ZERO));
-            code.push(LpsOpCode::Return);
+            gen.code.push(LpsOpCode::Push(crate::math::Fixed::ZERO));
+            gen.code.push(LpsOpCode::Return);
         }
     }
 }

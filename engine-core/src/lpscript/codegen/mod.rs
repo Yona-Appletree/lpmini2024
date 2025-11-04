@@ -2,6 +2,7 @@
 extern crate alloc;
 use alloc::vec::Vec;
 use alloc::collections::BTreeMap;
+use alloc::string::String;
 
 use super::ast::{Expr, Program};
 use super::vm::opcodes::LpsOpCode;
@@ -16,16 +17,36 @@ mod program;
 pub use native_functions::NativeFunction;
 use local_allocator::LocalAllocator;
 
-pub struct CodeGenerator;
+pub struct CodeGenerator<'a> {
+    code: &'a mut Vec<LpsOpCode>,
+    locals: &'a mut LocalAllocator,
+    func_offsets: &'a BTreeMap<String, u32>,
+}
 
-impl CodeGenerator {
+impl<'a> CodeGenerator<'a> {
+    /// Create a new code generator instance
+    fn new(
+        code: &'a mut Vec<LpsOpCode>,
+        locals: &'a mut LocalAllocator,
+        func_offsets: &'a BTreeMap<String, u32>,
+    ) -> Self {
+        CodeGenerator {
+            code,
+            locals,
+            func_offsets,
+        }
+    }
+    
     /// Generate opcodes for an expression (expression mode)
     pub fn generate(expr: &Expr) -> Vec<LpsOpCode> {
         let mut code = Vec::new();
         let mut locals = LocalAllocator::new();
         let func_offsets = BTreeMap::new(); // Empty for expression mode
-        expr::gen_expr(expr, &mut code, &mut locals, &func_offsets);
-        code.push(LpsOpCode::Return);
+        
+        let mut gen = CodeGenerator::new(&mut code, &mut locals, &func_offsets);
+        gen.gen_expr(expr);
+        gen.code.push(LpsOpCode::Return);
+        
         code
     }
     
@@ -33,9 +54,8 @@ impl CodeGenerator {
     /// Returns (opcodes, local_count) tuple
     pub fn generate_program(program: &Program) -> (Vec<LpsOpCode>, u32) {
         program::gen_program(program, |stmt, code, locals, func_offsets| {
-            stmt::gen_stmt(stmt, code, locals, func_offsets, |expr, c, l, f| {
-                expr::gen_expr(expr, c, l, f);
-            });
+            let mut gen = CodeGenerator::new(code, locals, func_offsets);
+            gen.gen_stmt(stmt);
         })
     }
 }

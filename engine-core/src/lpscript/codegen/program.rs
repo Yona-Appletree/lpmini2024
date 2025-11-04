@@ -47,19 +47,24 @@ pub fn gen_program(
         }
     }
     
-    // Generate main code
+    // Generate main code using CodeGenerator
     let mut locals = LocalAllocator::new();
-    for stmt in &program.stmts {
-        gen_stmt(stmt, &mut code, &mut locals, &function_offsets);
-    }
-    
-    // If no explicit return, add one
-    if !matches!(code.last(), Some(LpsOpCode::Return)) {
-        code.push(LpsOpCode::Push(crate::math::Fixed::ZERO));
-        code.push(LpsOpCode::Return);
-    }
+    let local_count = {
+        let mut gen = super::CodeGenerator::new(&mut code, &mut locals, &function_offsets);
+        for stmt in &program.stmts {
+            gen.gen_stmt(stmt);
+        }
+        
+        // If no explicit return, add one
+        if !matches!(gen.code.last(), Some(LpsOpCode::Return)) {
+            gen.code.push(LpsOpCode::Push(crate::math::Fixed::ZERO));
+            gen.code.push(LpsOpCode::Return);
+        }
+        
+        gen.locals.next_index
+    };
     
     // Return opcodes and the total number of locals allocated
-    (code, locals.next_index)
+    (code, local_count)
 }
 
