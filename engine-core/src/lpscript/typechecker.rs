@@ -338,7 +338,7 @@ impl TypeChecker {
 
                 expr.ty = Some(true_ty.clone());
             }
-            
+
             // Assignment expression
             ExprKind::Assign { target, value } => {
                 // Check that variable exists
@@ -346,11 +346,11 @@ impl TypeChecker {
                     kind: TypeErrorKind::UndefinedVariable(target.clone()),
                     span: expr.span,
                 })?;
-                
+
                 // Type check the value
                 Self::infer_type(value, symbols)?;
                 let value_ty = value.ty.as_ref().unwrap();
-                
+
                 // Check type matches
                 if &var_ty != value_ty {
                     return Err(TypeError {
@@ -361,7 +361,7 @@ impl TypeChecker {
                         span: value.span,
                     });
                 }
-                
+
                 // Assignment expression returns the assigned value
                 expr.ty = Some(var_ty);
             }

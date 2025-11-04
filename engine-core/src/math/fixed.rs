@@ -78,6 +78,12 @@ impl Fixed {
         Fixed(self.0.abs())
     }
 
+    /// Check if value is zero
+    #[inline(always)]
+    pub const fn is_zero(self) -> bool {
+        self.0 == 0
+    }
+
     /// Get the fractional part (0..1)
     #[inline(always)]
     pub const fn frac(self) -> Fixed {

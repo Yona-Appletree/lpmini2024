@@ -216,6 +216,12 @@ pub enum RuntimeError {
         index: i32,
         array_size: usize,
     },
+    ProgramCounterOutOfBounds {
+        pc: usize,
+        max: usize,
+    },
+    TypeMismatch,
+    UnsupportedOpCode,
 }
 
 impl RuntimeError {
@@ -277,6 +283,19 @@ impl fmt::Display for RuntimeError {
                     "Array index {} out of bounds (size {})",
                     index, array_size
                 )
+            }
+            RuntimeError::ProgramCounterOutOfBounds { pc, max } => {
+                write!(
+                    f,
+                    "Program counter {} out of bounds (max {})",
+                    pc, max
+                )
+            }
+            RuntimeError::TypeMismatch => {
+                write!(f, "Type mismatch in operation")
+            }
+            RuntimeError::UnsupportedOpCode => {
+                write!(f, "Unsupported opcode encountered")
             }
         }
     }
