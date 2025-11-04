@@ -58,7 +58,7 @@ impl Parser {
     fn parse_stmt(&mut self) -> Stmt {
         let start = self.current().span.start;
         
-        match &self.current().kind {
+        let stmt = match &self.current().kind {
             TokenKind::If => self.parse_if_stmt(),
             TokenKind::While => self.parse_while_stmt(),
             TokenKind::For => self.parse_for_stmt(),
@@ -87,7 +87,9 @@ impl Parser {
                 }
             }
             _ => self.parse_expr_stmt(),
-        }
+        };
+        
+        stmt
     }
     
     fn parse_if_stmt(&mut self) -> Stmt {
@@ -171,11 +173,11 @@ impl Parser {
             Some(cond)
         };
         
-        // Parse increment
+        // Parse increment (can be assignment expression)
         let increment = if matches!(self.current().kind, TokenKind::RParen) {
             None
         } else {
-            Some(self.ternary())
+            Some(self.parse_assignment_expr())
         };
         
         self.expect(TokenKind::RParen);
@@ -280,6 +282,33 @@ impl Parser {
         if matches!(self.current().kind, TokenKind::Semicolon) {
             self.advance();
         }
+    }
+    
+    // Assignment expression: lvalue = rvalue (right-associative)
+    // This is needed for for-loop increments like: i = i + 1
+    fn parse_assignment_expr(&mut self) -> Expr {
+        let expr = self.ternary();
+        
+        // Check if this is an assignment
+        if matches!(self.current().kind, TokenKind::Eq) {
+            if let ExprKind::Variable(name) = &expr.kind {
+                let start = expr.span.start;
+                self.advance(); // consume '='
+                let value = Box::new(self.parse_assignment_expr()); // right-associative
+                let end = value.span.end;
+                
+                // Return assignment expression (which evaluates to the assigned value)
+                return Expr::new(
+                    ExprKind::Assign {
+                        target: name.clone(),
+                        value,
+                    },
+                    Span::new(start, end),
+                );
+            }
+        }
+        
+        expr
     }
     
     // Ternary: condition ? true_expr : false_expr

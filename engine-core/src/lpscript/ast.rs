@@ -128,6 +128,13 @@ pub enum ExprKind {
         false_expr: Box<Expr>,
     },
     
+    // Assignment expression (returns the assigned value)
+    // In C/GLSL, assignments are expressions: x = y = 5
+    Assign {
+        target: String,
+        value: Box<Expr>,
+    },
+    
     // Function call
     Call {
         name: String,

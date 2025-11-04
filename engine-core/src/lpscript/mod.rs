@@ -362,8 +362,7 @@ mod tests {
     }
     
     #[test]
-    #[ignore] // For loops have a parsing/compilation bug - hangs during compilation
-    fn test_compile_script_for_loop() {
+    fn test_compile_script_for_loop_debug() {
         // Simple for loop - just verify it compiles
         let script = "
             for (float i = 0.0; i < 3.0; i = i + 1.0) {

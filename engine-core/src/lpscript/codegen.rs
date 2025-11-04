@@ -470,6 +470,28 @@ impl CodeGenerator {
                 code.push(LpsOpCode::Select);
             }
             
+            // Assignment expression
+            ExprKind::Assign { target, value } => {
+                // Generate code for the value
+                Self::gen_expr_with_locals(value, code, locals);
+                
+                // Duplicate the value (assignment returns the value)
+                code.push(LpsOpCode::Dup);
+                
+                // Store in the variable
+                if let Some(index) = locals.get(target) {
+                    let ty = value.ty.as_ref().unwrap();
+                    match ty {
+                        Type::Fixed | Type::Int32 => code.push(LpsOpCode::StoreLocalFixed(index)),
+                        Type::Vec2 => code.push(LpsOpCode::StoreLocalVec2(index)),
+                        Type::Vec3 => code.push(LpsOpCode::StoreLocalVec3(index)),
+                        Type::Vec4 => code.push(LpsOpCode::StoreLocalVec4(index)),
+                        _ => {}
+                    }
+                }
+                // Value is left on stack (assignment expression returns the value)
+            }
+            
             // Function calls
             ExprKind::Call { name, args } => {
                 Self::gen_function_call(name, args, code, locals);
