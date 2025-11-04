@@ -1,6 +1,80 @@
 /// Advanced math functions for fixed-point numbers
 use super::fixed::Fixed;
 
+/// Modulo operation (GLSL-compatible: sign follows dividend)
+#[inline]
+pub fn modulo(x: Fixed, y: Fixed) -> Fixed {
+    x - (x / y) * y
+}
+
+/// Fractional part (x - floor(x))
+#[inline]
+pub fn fract(x: Fixed) -> Fixed {
+    x.frac()
+}
+
+/// Arctangent (returns radians)
+/// Simple polynomial approximation for atan(x) where x in [-1, 1]
+pub fn atan(y: Fixed) -> Fixed {
+    // For |y| > 1, use atan(y) = π/2 - atan(1/y)
+    let abs_y = if y.0 < 0 { Fixed(-y.0) } else { y };
+
+    if abs_y.0 > Fixed::ONE.0 {
+        // Use complementary angle for |y| > 1
+        let result = Fixed::PI / Fixed::from_i32(2) - atan_approx(Fixed::ONE / abs_y);
+        if y.0 < 0 {
+            -result
+        } else {
+            result
+        }
+    } else {
+        atan_approx(y)
+    }
+}
+
+/// Arctangent approximation for |x| <= 1
+/// Uses polynomial: x - x³/3 + x⁵/5 - x⁷/7
+fn atan_approx(x: Fixed) -> Fixed {
+    let x2 = x * x;
+    let x3 = x2 * x;
+    let x5 = x3 * x2;
+    let x7 = x5 * x2;
+
+    x - x3 / Fixed::from_i32(3) + x5 / Fixed::from_i32(5) - x7 / Fixed::from_i32(7)
+}
+
+/// Two-argument arctangent (atan2)
+/// Returns angle in radians from -π to π
+pub fn atan2(y: Fixed, x: Fixed) -> Fixed {
+    // Handle special cases
+    if x.0 == 0 {
+        return if y.0 >= 0 {
+            Fixed::PI / Fixed::from_i32(2)
+        } else {
+            -Fixed::PI / Fixed::from_i32(2)
+        };
+    }
+
+    if y.0 == 0 {
+        return if x.0 >= 0 { Fixed::ZERO } else { Fixed::PI };
+    }
+
+    // Calculate atan(y/x) and adjust by quadrant
+    let ratio = y / x;
+    let angle = atan(ratio);
+
+    if x.0 > 0 {
+        // Quadrants I and IV
+        angle
+    } else if y.0 >= 0 {
+        // Quadrant II
+        angle + Fixed::PI
+    } else {
+        // Quadrant III
+        angle - Fixed::PI
+    }
+}
+
 /// Integer square root for fixed-point
 pub fn sqrt(a: Fixed) -> Fixed {
     if a.0 <= 0 {

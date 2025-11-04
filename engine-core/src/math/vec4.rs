@@ -1,6 +1,8 @@
 /// 4D vector for fixed-point math (useful for RGBA colors and homogeneous coordinates)
 use super::conversions::ToFixed;
 use super::fixed::Fixed;
+use super::vec2::Vec2;
+use super::vec3::Vec3;
 use core::ops::{Add, Div, Mul, Sub};
 
 #[derive(Copy, Clone, Debug, PartialEq)]
@@ -80,6 +82,108 @@ impl Vec4 {
             return Vec4::zero();
         }
         self / len
+    }
+
+    // Swizzle accessors (GLSL-style) - scalar
+    #[inline(always)]
+    pub fn x(self) -> Fixed {
+        self.x
+    }
+    #[inline(always)]
+    pub fn y(self) -> Fixed {
+        self.y
+    }
+    #[inline(always)]
+    pub fn z(self) -> Fixed {
+        self.z
+    }
+    #[inline(always)]
+    pub fn w(self) -> Fixed {
+        self.w
+    }
+    #[inline(always)]
+    pub fn r(self) -> Fixed {
+        self.x
+    }
+    #[inline(always)]
+    pub fn g(self) -> Fixed {
+        self.y
+    }
+    #[inline(always)]
+    pub fn b(self) -> Fixed {
+        self.z
+    }
+    #[inline(always)]
+    pub fn a(self) -> Fixed {
+        self.w
+    }
+
+    // 2-component swizzles (most common)
+    #[inline(always)]
+    pub fn xy(self) -> Vec2 {
+        Vec2::new(self.x, self.y)
+    }
+    #[inline(always)]
+    pub fn xz(self) -> Vec2 {
+        Vec2::new(self.x, self.z)
+    }
+    #[inline(always)]
+    pub fn xw(self) -> Vec2 {
+        Vec2::new(self.x, self.w)
+    }
+    #[inline(always)]
+    pub fn yz(self) -> Vec2 {
+        Vec2::new(self.y, self.z)
+    }
+    #[inline(always)]
+    pub fn yw(self) -> Vec2 {
+        Vec2::new(self.y, self.w)
+    }
+    #[inline(always)]
+    pub fn zw(self) -> Vec2 {
+        Vec2::new(self.z, self.w)
+    }
+
+    // 3-component swizzles (most common)
+    #[inline(always)]
+    pub fn xyz(self) -> Vec3 {
+        Vec3::new(self.x, self.y, self.z)
+    }
+    #[inline(always)]
+    pub fn xyw(self) -> Vec3 {
+        Vec3::new(self.x, self.y, self.w)
+    }
+    #[inline(always)]
+    pub fn xzw(self) -> Vec3 {
+        Vec3::new(self.x, self.z, self.w)
+    }
+    #[inline(always)]
+    pub fn yzw(self) -> Vec3 {
+        Vec3::new(self.y, self.z, self.w)
+    }
+
+    // 4-component swizzle (identity)
+    #[inline(always)]
+    pub fn xyzw(self) -> Vec4 {
+        self
+    }
+
+    // RGBA variants
+    #[inline(always)]
+    pub fn rg(self) -> Vec2 {
+        self.xy()
+    }
+    #[inline(always)]
+    pub fn rb(self) -> Vec2 {
+        self.xz()
+    }
+    #[inline(always)]
+    pub fn rgb(self) -> Vec3 {
+        self.xyz()
+    }
+    #[inline(always)]
+    pub fn rgba(self) -> Vec4 {
+        self
     }
 
     /// Component-wise multiply
