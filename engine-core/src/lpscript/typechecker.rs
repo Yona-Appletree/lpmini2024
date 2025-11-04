@@ -1,14 +1,14 @@
 /// Type checker for LightPlayer Script
-/// 
+///
 /// Performs type inference and validation on the AST.
 extern crate alloc;
+use alloc::collections::BTreeMap;
 use alloc::format;
 use alloc::string::{String, ToString};
 use alloc::vec;
 use alloc::vec::Vec;
-use alloc::collections::BTreeMap;
 
-use crate::lpscript::ast::{Expr, ExprKind, Stmt, StmtKind, Program};
+use crate::lpscript::ast::{Expr, ExprKind, Program, Stmt, StmtKind};
 use crate::lpscript::error::{Span, Type, TypeError, TypeErrorKind};
 
 /// Symbol table for tracking variables in scope
@@ -23,28 +23,31 @@ impl SymbolTable {
             scopes: vec![BTreeMap::new()],
         }
     }
-    
+
     fn push_scope(&mut self) {
         self.scopes.push(BTreeMap::new());
     }
-    
+
     fn pop_scope(&mut self) {
         if self.scopes.len() > 1 {
             self.scopes.pop();
         }
     }
-    
+
     fn declare(&mut self, name: String, ty: Type) -> Result<(), String> {
         // Check if already declared in current scope
         if let Some(scope) = self.scopes.last_mut() {
             if scope.contains_key(&name) {
-                return Err(format!("Variable '{}' already declared in this scope", name));
+                return Err(format!(
+                    "Variable '{}' already declared in this scope",
+                    name
+                ));
             }
             scope.insert(name, ty);
         }
         Ok(())
     }
-    
+
     fn lookup(&self, name: &str) -> Option<Type> {
         // Search from innermost to outermost scope
         for scope in self.scopes.iter().rev() {
@@ -65,18 +68,18 @@ impl TypeChecker {
         Self::infer_type(&mut expr, &mut symbols)?;
         Ok(expr)
     }
-    
+
     /// Type check a program (script mode)
     pub fn check_program(mut program: Program) -> Result<Program, TypeError> {
         let mut symbols = SymbolTable::new();
-        
+
         for stmt in &mut program.stmts {
             Self::check_stmt(stmt, &mut symbols)?;
         }
-        
+
         Ok(program)
     }
-    
+
     /// Type check a statement
     fn check_stmt(stmt: &mut Stmt, symbols: &mut SymbolTable) -> Result<(), TypeError> {
         match &mut stmt.kind {
@@ -84,7 +87,7 @@ impl TypeChecker {
                 // Type check initializer if present
                 if let Some(init_expr) = init {
                     Self::infer_type(init_expr, symbols)?;
-                    
+
                     // Check that initializer type matches declared type
                     let init_ty = init_expr.ty.as_ref().unwrap();
                     if init_ty != ty {
@@ -102,25 +105,26 @@ impl TypeChecker {
                         }
                     }
                 }
-                
+
                 // Declare variable in current scope
-                symbols.declare(name.clone(), ty.clone())
+                symbols
+                    .declare(name.clone(), ty.clone())
                     .map_err(|msg| TypeError {
                         kind: TypeErrorKind::UndefinedVariable(msg),
                         span: stmt.span,
                     })?;
             }
-            
+
             StmtKind::Assignment { name, value } => {
                 // Type check the value
                 Self::infer_type(value, symbols)?;
-                
+
                 // Check that variable exists
                 let var_ty = symbols.lookup(name).ok_or_else(|| TypeError {
                     kind: TypeErrorKind::UndefinedVariable(name.clone()),
                     span: stmt.span,
                 })?;
-                
+
                 // Check type matches
                 let value_ty = value.ty.as_ref().unwrap();
                 if &var_ty != value_ty {
@@ -133,15 +137,15 @@ impl TypeChecker {
                     });
                 }
             }
-            
+
             StmtKind::Return(expr) => {
                 Self::infer_type(expr, symbols)?;
             }
-            
+
             StmtKind::Expr(expr) => {
                 Self::infer_type(expr, symbols)?;
             }
-            
+
             StmtKind::Block(stmts) => {
                 symbols.push_scope();
                 for stmt in stmts {
@@ -149,44 +153,53 @@ impl TypeChecker {
                 }
                 symbols.pop_scope();
             }
-            
-            StmtKind::If { condition, then_stmt, else_stmt } => {
+
+            StmtKind::If {
+                condition,
+                then_stmt,
+                else_stmt,
+            } => {
                 Self::infer_type(condition, symbols)?;
                 Self::check_stmt(then_stmt, symbols)?;
                 if let Some(else_s) = else_stmt {
                     Self::check_stmt(else_s, symbols)?;
                 }
             }
-            
+
             StmtKind::While { condition, body } => {
                 Self::infer_type(condition, symbols)?;
                 Self::check_stmt(body, symbols)?;
             }
-            
-            StmtKind::For { init, condition, increment, body } => {
+
+            StmtKind::For {
+                init,
+                condition,
+                increment,
+                body,
+            } => {
                 symbols.push_scope();
-                
+
                 if let Some(init_stmt) = init {
                     Self::check_stmt(init_stmt, symbols)?;
                 }
-                
+
                 if let Some(cond_expr) = condition {
                     Self::infer_type(cond_expr, symbols)?;
                 }
-                
+
                 if let Some(inc_expr) = increment {
                     Self::infer_type(inc_expr, symbols)?;
                 }
-                
+
                 Self::check_stmt(body, symbols)?;
-                
+
                 symbols.pop_scope();
             }
         }
-        
+
         Ok(())
     }
-    
+
     fn infer_type(expr: &mut Expr, symbols: &mut SymbolTable) -> Result<(), TypeError> {
         match &mut expr.kind {
             // Literals
@@ -215,12 +228,10 @@ impl TypeChecker {
                     "x" | "xNorm" | "y" | "yNorm" => Type::Fixed,
 
                     // Not a built-in, check symbol table
-                    _ => {
-                        symbols.lookup(name).ok_or_else(|| TypeError {
-                            kind: TypeErrorKind::UndefinedVariable(name.clone()),
-                            span: expr.span,
-                        })?
-                    }
+                    _ => symbols.lookup(name).ok_or_else(|| TypeError {
+                        kind: TypeErrorKind::UndefinedVariable(name.clone()),
+                        span: expr.span,
+                    })?,
                 };
 
                 expr.ty = Some(var_type);

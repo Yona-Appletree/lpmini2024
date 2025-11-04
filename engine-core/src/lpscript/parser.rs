@@ -149,11 +149,16 @@ impl Parser {
             self.advance();
             None
         } else if matches!(self.current().kind, TokenKind::Float | TokenKind::Int) {
-            let decl = self.parse_var_decl();
+            // Parse var decl inline without consuming semicolon
+            let decl = self.parse_var_decl_no_semicolon();
+            self.expect(TokenKind::Semicolon);
             Some(Box::new(decl))
         } else {
-            let expr_stmt = self.parse_expr_stmt();
-            Some(Box::new(expr_stmt))
+            // Parse expression and consume its semicolon
+            let expr = self.ternary();
+            self.expect(TokenKind::Semicolon);
+            let span = expr.span;
+            Some(Box::new(Stmt::new(StmtKind::Expr(expr), span)))
         };
         
         // Parse condition
@@ -201,6 +206,12 @@ impl Parser {
     }
     
     fn parse_var_decl(&mut self) -> Stmt {
+        let stmt = self.parse_var_decl_no_semicolon();
+        self.consume_semicolon();
+        stmt
+    }
+    
+    fn parse_var_decl_no_semicolon(&mut self) -> Stmt {
         let start = self.current().span.start;
         
         // Parse type
@@ -228,7 +239,6 @@ impl Parser {
             None
         };
         
-        self.consume_semicolon();
         let end = self.current().span.end;
         
         Stmt::new(

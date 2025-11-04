@@ -362,7 +362,7 @@ mod tests {
     }
     
     #[test]
-    #[ignore] // TODO: Debugging infinite loop in for loop compilation
+    #[ignore] // For loops have a parsing/compilation bug - hangs during compilation
     fn test_compile_script_for_loop() {
         // Simple for loop - just verify it compiles
         let script = "
@@ -378,6 +378,18 @@ mod tests {
         let program = result.unwrap();
         let has_jumps = program.opcodes.iter().any(|op| matches!(op, LpsOpCode::Jump(_) | LpsOpCode::JumpIfZero(_)));
         assert!(has_jumps, "For loop should generate jump opcodes");
+    }
+    
+    #[test]
+    fn test_compile_script_variable_mutation() {
+        // Test variable mutation without for loop
+        let script = "
+            float x = 1.0;
+            x = x + 1.0;
+            return x;
+        ";
+        let result = compile_script(script);
+        assert!(result.is_ok());
     }
     
     #[test]
