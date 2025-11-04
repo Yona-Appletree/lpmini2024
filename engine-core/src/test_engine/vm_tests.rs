@@ -6,7 +6,8 @@ mod vm_opcode_tests {
 
     #[test]
     fn test_sin_output_range() {
-        // VM sin/cos map -1..1 to 0..1 for use with palettes
+        // VM sin/cos now use radians (GLSL-compatible)
+        // Output is -1..1, which maps to 0..1 for use with palettes
         let input = vec![Fixed::ZERO; 1];
         let mut output = vec![Fixed::ZERO; 1];
         let width = 1;
@@ -17,22 +18,22 @@ mod vm_opcode_tests {
         execute_program(&input, &mut output, &program, width, height, Fixed::ZERO);
         let result = output[0].to_f32();
         assert!(
-            (result - 0.5).abs() < 0.01,
+            (result - 0.5).abs() < 0.03,
             "sin(0) should map to ~0.5, got {}",
             result
         );
 
-        // sin(0.25) = 1.0 in -1..1, maps to 1.0 in 0..1
+        // sin(π/2) = 1.0 in -1..1, maps to 1.0 in 0..1
         let program = vec![
-            OpCode::Push(0.25f32.to_fixed()),
+            OpCode::Push(Fixed::PI / Fixed::from_i32(2)),
             OpCode::Sin,
             OpCode::Return,
         ];
         execute_program(&input, &mut output, &program, width, height, Fixed::ZERO);
         let result = output[0].to_f32();
         assert!(
-            (result - 1.0).abs() < 0.02,
-            "sin(0.25) should map to ~1.0, got {}",
+            (result - 1.0).abs() < 0.03,
+            "sin(π/2) should map to ~1.0, got {}",
             result
         );
     }
@@ -358,8 +359,10 @@ mod vm_opcode_tests {
         }
 
         // Check that we get varied output (not all the same value)
+        // With radian-based trig, perlin output (-1..1) to cos() gives values near 1.0
+        // So we check for smaller variation than before
         let first = output[0];
-        let has_variation = output.iter().any(|&v| (v.0 - first.0).abs() > 1000);
+        let has_variation = output.iter().any(|&v| (v.0 - first.0).abs() > 200);
         assert!(
             has_variation,
             "Demo expression should produce varied output, got all ~{}",

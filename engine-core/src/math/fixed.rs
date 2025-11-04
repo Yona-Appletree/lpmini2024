@@ -18,6 +18,12 @@ impl Fixed {
     pub const ONE: Fixed = Fixed(ONE);
     pub const HALF: Fixed = Fixed(HALF);
 
+    // Mathematical constants
+    pub const PI: Fixed = Fixed(205887); // π ≈ 3.14159265359 in 16.16
+    pub const TAU: Fixed = Fixed(411774); // 2π ≈ 6.28318530718 in 16.16
+    pub const E: Fixed = Fixed(178145); // e ≈ 2.71828182846 in 16.16
+    pub const PHI: Fixed = Fixed(106039); // φ ≈ 1.61803398875 in 16.16 (golden ratio)
+
     /// Create a Fixed from a raw fixed-point value
     #[inline(always)]
     pub const fn from_fixed(f: i32) -> Self {
