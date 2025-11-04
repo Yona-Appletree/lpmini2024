@@ -147,12 +147,11 @@ pub enum LpsOpCode {
     JumpIfZero(i32),    // Pop value, jump if zero
     JumpIfNonZero(i32), // Pop value, jump if non-zero
     Select,             // Pop false_val, true_val, condition; push selected
+    Call(u32),          // Call user-defined function at offset (pushes return address)
+    Return,             // Return from function (pops return address, or exits if main)
 
     // Coordinate loading (legacy compatibility)
     Load(LoadSource),
-
-    // End execution
-    Return,
 }
 
 impl LpsOpCode {
@@ -263,8 +262,9 @@ impl LpsOpCode {
             LpsOpCode::JumpIfZero(_) => "JumpIfZero",
             LpsOpCode::JumpIfNonZero(_) => "JumpIfNonZero",
             LpsOpCode::Select => "Select",
-            LpsOpCode::Load(_) => "Load",
+            LpsOpCode::Call(_) => "Call",
             LpsOpCode::Return => "Return",
+            LpsOpCode::Load(_) => "Load",
         }
     }
 }

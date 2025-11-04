@@ -10,6 +10,13 @@ use crate::test_engine::LoadSource;
 use super::program::LpsProgram;
 use super::locals::LocalType;
 
+/// Call frame for function calls
+#[derive(Debug, Clone, Copy)]
+struct CallFrame {
+    return_pc: usize,
+    // TODO: Could add frame pointer for local variables if needed
+}
+
 /// LightPlayer Script Virtual Machine
 /// 
 /// Executes compiled LPS programs. Designed to be reusable - create once,
@@ -22,6 +29,7 @@ pub struct LpsVm {
     pc: usize,
     #[allow(dead_code)]
     locals: Vec<LocalType>,
+    call_stack: Vec<CallFrame>,
 }
 
 impl LpsVm {
@@ -47,6 +55,7 @@ impl LpsVm {
             sp: 0,
             pc: 0,
             locals,
+            call_stack: Vec::new(),
         })
     }
     
@@ -54,6 +63,7 @@ impl LpsVm {
     pub fn run(&mut self, x: Fixed, y: Fixed, time: Fixed) -> Result<Fixed, RuntimeErrorWithContext> {
         self.sp = 0;
         self.pc = 0;
+        self.call_stack.clear();
         
         // Store built-in values for Load operations
         let x_norm = x;
@@ -135,9 +145,24 @@ impl LpsVm {
                     }
                 }
                 
+                LpsOpCode::Call(offset) => {
+                    // Push return address onto call stack
+                    self.call_stack.push(CallFrame {
+                        return_pc: self.pc + 1,
+                    });
+                    // Jump to function
+                    self.pc = *offset as usize;
+                }
+                
                 LpsOpCode::Return => {
-                    // Return top of stack
-                    return Ok(self.pop()?);
+                    // Check if we're returning from a function or exiting main
+                    if let Some(frame) = self.call_stack.pop() {
+                        // Return from function - jump back to caller
+                        self.pc = frame.return_pc;
+                    } else {
+                        // Exiting main - return top of stack as result
+                        return Ok(self.pop()?);
+                    }
                 }
                 
                 // === Load Built-in Variables ===
@@ -479,6 +504,42 @@ mod tests {
         
         let result = vm.run(Fixed::ZERO, Fixed::ZERO, Fixed::ZERO).unwrap();
         assert_eq!(result, Fixed::ONE); // TRUE
+    }
+    
+    #[test]
+    fn test_vm_user_function() {
+        use crate::lpscript::parse_script;
+        
+        let script = "
+            float double(float x) {
+                return x * 2.0;
+            }
+            
+            return double(5.0);
+        ";
+        let program = parse_script(script);
+        let mut vm = LpsVm::new(program, vec![]).unwrap();
+        
+        let result = vm.run(Fixed::ZERO, Fixed::ZERO, Fixed::ZERO).unwrap();
+        assert_eq!(result.to_f32(), 10.0);
+    }
+    
+    #[test]
+    fn test_vm_function_with_multiple_params() {
+        use crate::lpscript::parse_script;
+        
+        let script = "
+            float add(float a, float b) {
+                return a + b;
+            }
+            
+            return add(3.0, 7.0);
+        ";
+        let program = parse_script(script);
+        let mut vm = LpsVm::new(program, vec![]).unwrap();
+        
+        let result = vm.run(Fixed::ZERO, Fixed::ZERO, Fixed::ZERO).unwrap();
+        assert_eq!(result.to_f32(), 10.0);
     }
 }
 

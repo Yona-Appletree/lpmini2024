@@ -404,4 +404,41 @@ mod tests {
         assert!(result.is_ok());
         // Verifies scoping works (inner x shadows outer x)
     }
+    
+    #[test]
+    fn test_compile_script_user_function() {
+        let script = "
+            float double(float x) {
+                return x * 2.0;
+            }
+            
+            float result = double(5.0);
+            return result;
+        ";
+        let result = compile_script(script);
+        assert!(result.is_ok());
+        
+        let program = result.unwrap();
+        // Should have Call opcode
+        let has_call = program.opcodes.iter().any(|op| matches!(op, LpsOpCode::Call(_)));
+        assert!(has_call, "Should have Call opcode for user function");
+    }
+    
+    #[test]
+    fn test_compile_script_recursive_function() {
+        let script = "
+            float factorial(float n) {
+                if (n <= 1.0) {
+                    return 1.0;
+                } else {
+                    return n * factorial(n - 1.0);
+                }
+            }
+            
+            return factorial(5.0);
+        ";
+        let result = compile_script(script);
+        assert!(result.is_ok());
+        // Verifies recursive calls compile
+    }
 }

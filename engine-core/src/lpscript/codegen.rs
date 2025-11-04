@@ -5,7 +5,7 @@ use alloc::vec::Vec;
 use alloc::collections::BTreeMap;
 use alloc::string::String;
 
-use super::ast::{Expr, ExprKind, Stmt, StmtKind, Program};
+use super::ast::{Expr, ExprKind, Stmt, StmtKind, Program, FunctionDef};
 use super::error::Type;
 use super::vm::opcodes::LpsOpCode;
 use crate::test_engine::LoadSource;
@@ -57,7 +57,8 @@ impl CodeGenerator {
     pub fn generate(expr: &Expr) -> Vec<LpsOpCode> {
         let mut code = Vec::new();
         let mut locals = LocalAllocator::new();
-        Self::gen_expr_with_locals(expr, &mut code, &mut locals);
+        let func_offsets = BTreeMap::new(); // Empty for expression mode
+        Self::gen_expr_with_locals(expr, &mut code, &mut locals, &func_offsets);
         code.push(LpsOpCode::Return);
         code
     }
@@ -65,16 +66,71 @@ impl CodeGenerator {
     // Legacy gen_expr for backward compatibility
     fn gen_expr(expr: &Expr, code: &mut Vec<LpsOpCode>) {
         let mut locals = LocalAllocator::new();
-        Self::gen_expr_with_locals(expr, code, &mut locals);
+        let func_offsets = BTreeMap::new();
+        Self::gen_expr_with_locals(expr, code, &mut locals, &func_offsets);
     }
     
     /// Generate opcodes for a program (script mode)
     pub fn generate_program(program: &Program) -> Vec<LpsOpCode> {
         let mut code = Vec::new();
-        let mut locals = LocalAllocator::new();
+        let mut function_offsets = BTreeMap::new();
         
+        // If there are functions, emit a jump to skip them (go to main code)
+        let main_jump_index = if !program.functions.is_empty() {
+            code.push(LpsOpCode::Jump(0)); // Placeholder, will patch later
+            Some(0)
+        } else {
+            None
+        };
+        
+        // Generate code for each function
+        for func in &program.functions {
+            let func_start = code.len();
+            function_offsets.insert(func.name.clone(), func_start as u32);
+            
+            let mut locals = LocalAllocator::new();
+            
+            // Allocate space for parameters (they're passed on stack)
+            for (i, param) in func.params.iter().enumerate() {
+                locals.allocate(param.name.clone());
+                // Parameters are already on stack, need to store them
+                match param.ty {
+                    Type::Fixed | Type::Int32 => code.push(LpsOpCode::StoreLocalFixed(i as u32)),
+                    Type::Vec2 => code.push(LpsOpCode::StoreLocalVec2(i as u32)),
+                    Type::Vec3 => code.push(LpsOpCode::StoreLocalVec3(i as u32)),
+                    Type::Vec4 => code.push(LpsOpCode::StoreLocalVec4(i as u32)),
+                    Type::Void => {}
+                }
+            }
+            
+            // Generate function body
+            for stmt in &func.body {
+                Self::gen_stmt(stmt, &mut code, &mut locals, &function_offsets);
+            }
+            
+            // If no explicit return, add a default one
+            if !matches!(code.last(), Some(LpsOpCode::Return)) {
+                if func.return_type == Type::Void {
+                    code.push(LpsOpCode::Return);
+                } else {
+                    code.push(LpsOpCode::Push(crate::math::Fixed::ZERO));
+                    code.push(LpsOpCode::Return);
+                }
+            }
+        }
+        
+        // Patch the main jump to point here
+        if let Some(jump_idx) = main_jump_index {
+            let main_start = code.len();
+            if let LpsOpCode::Jump(ref mut offset) = code[jump_idx] {
+                *offset = (main_start as i32) - 1;
+            }
+        }
+        
+        // Generate main code
+        let mut locals = LocalAllocator::new();
         for stmt in &program.stmts {
-            Self::gen_stmt(stmt, &mut code, &mut locals);
+            Self::gen_stmt(stmt, &mut code, &mut locals, &function_offsets);
         }
         
         // If no explicit return, add one
@@ -87,14 +143,14 @@ impl CodeGenerator {
     }
     
     /// Generate code for a statement
-    fn gen_stmt(stmt: &Stmt, code: &mut Vec<LpsOpCode>, locals: &mut LocalAllocator) {
+    fn gen_stmt(stmt: &Stmt, code: &mut Vec<LpsOpCode>, locals: &mut LocalAllocator, func_offsets: &BTreeMap<String, u32>) {
         match &stmt.kind {
             StmtKind::VarDecl { ty, name, init } => {
                 let index = locals.allocate(name.clone());
                 
                 if let Some(init_expr) = init {
                     // Generate code to evaluate initializer
-                    Self::gen_expr_with_locals(init_expr, code, locals);
+                    Self::gen_expr_with_locals(init_expr, code, locals, func_offsets);
                     
                     // Store in local variable
                     match ty {
@@ -109,7 +165,7 @@ impl CodeGenerator {
             
             StmtKind::Assignment { name, value } => {
                 // Generate code for value
-                Self::gen_expr_with_locals(value, code, locals);
+                Self::gen_expr_with_locals(value, code, locals, func_offsets);
                 
                 // Store in variable
                 if let Some(index) = locals.get(name) {
@@ -125,32 +181,32 @@ impl CodeGenerator {
             }
             
             StmtKind::Return(expr) => {
-                Self::gen_expr_with_locals(expr, code, locals);
+                Self::gen_expr_with_locals(expr, code, locals, func_offsets);
                 code.push(LpsOpCode::Return);
             }
             
             StmtKind::Expr(expr) => {
-                Self::gen_expr_with_locals(expr, code, locals);
+                Self::gen_expr_with_locals(expr, code, locals, func_offsets);
                 // Pop the result (expression statement doesn't use the value)
                 code.push(LpsOpCode::Drop);
             }
             
             StmtKind::Block(stmts) => {
                 for stmt in stmts {
-                    Self::gen_stmt(stmt, code, locals);
+                    Self::gen_stmt(stmt, code, locals, func_offsets);
                 }
             }
             
             StmtKind::If { condition, then_stmt, else_stmt } => {
                 // Generate: condition → JumpIfZero(else_offset) → then_block → Jump(end_offset) → else_block
-                Self::gen_expr_with_locals(condition, code, locals);
+                Self::gen_expr_with_locals(condition, code, locals, func_offsets);
                 
                 // Placeholder for JumpIfZero - we'll patch the offset later
                 let jump_to_else_index = code.len();
                 code.push(LpsOpCode::JumpIfZero(0)); // Placeholder offset
                 
                 // Generate then block
-                Self::gen_stmt(then_stmt, code, locals);
+                Self::gen_stmt(then_stmt, code, locals, func_offsets);
                 
                 if let Some(else_s) = else_stmt {
                     // Placeholder for Jump past else block
@@ -164,7 +220,7 @@ impl CodeGenerator {
                     }
                     
                     // Generate else block
-                    Self::gen_stmt(else_s, code, locals);
+                    Self::gen_stmt(else_s, code, locals, func_offsets);
                     
                     // Patch the Jump to point here (end)
                     let end = code.len();
@@ -184,12 +240,12 @@ impl CodeGenerator {
                 // Generate: loop_start → condition → JumpIfZero(end) → body → Jump(loop_start)
                 let loop_start = code.len();
                 
-                Self::gen_expr_with_locals(condition, code, locals);
+                Self::gen_expr_with_locals(condition, code, locals, func_offsets);
                 
                 let jump_to_end_index = code.len();
                 code.push(LpsOpCode::JumpIfZero(0)); // Placeholder
                 
-                Self::gen_stmt(body, code, locals);
+                Self::gen_stmt(body, code, locals, func_offsets);
                 
                 // Jump back to loop start
                 let jump_back_offset = (loop_start as i32) - (code.len() as i32) - 1;
@@ -205,23 +261,23 @@ impl CodeGenerator {
             StmtKind::For { init, condition, increment, body } => {
                 // Generate init
                 if let Some(init_stmt) = init {
-                    Self::gen_stmt(init_stmt, code, locals);
+                    Self::gen_stmt(init_stmt, code, locals, func_offsets);
                 }
                 
                 let loop_start = code.len();
                 
                 // Generate condition (if present)
                 if let Some(cond) = condition {
-                    Self::gen_expr_with_locals(cond, code, locals);
+                    Self::gen_expr_with_locals(cond, code, locals, func_offsets);
                     
                     let jump_to_end_index = code.len();
                     code.push(LpsOpCode::JumpIfZero(0)); // Placeholder
                     
-                    Self::gen_stmt(body, code, locals);
+                    Self::gen_stmt(body, code, locals, func_offsets);
                     
                     // Generate increment (if present)
                     if let Some(inc) = increment {
-                        Self::gen_expr_with_locals(inc, code, locals);
+                        Self::gen_expr_with_locals(inc, code, locals, func_offsets);
                         code.push(LpsOpCode::Drop); // Discard increment result
                     }
                     
@@ -236,10 +292,10 @@ impl CodeGenerator {
                     }
                 } else {
                     // Infinite loop (no condition)
-                    Self::gen_stmt(body, code, locals);
+                    Self::gen_stmt(body, code, locals, func_offsets);
                     
                     if let Some(inc) = increment {
-                        Self::gen_expr_with_locals(inc, code, locals);
+                        Self::gen_expr_with_locals(inc, code, locals, func_offsets);
                         code.push(LpsOpCode::Drop);
                     }
                     
@@ -328,7 +384,7 @@ impl CodeGenerator {
         }
     }
     
-    fn gen_expr_with_locals(expr: &Expr, code: &mut Vec<LpsOpCode>, locals: &mut LocalAllocator) {
+    fn gen_expr_with_locals(expr: &Expr, code: &mut Vec<LpsOpCode>, locals: &mut LocalAllocator, func_offsets: &BTreeMap<String, u32>) {
         match &expr.kind {
             ExprKind::Number(n) => {
                 code.push(LpsOpCode::Push((*n).to_fixed()));
@@ -370,43 +426,43 @@ impl CodeGenerator {
             
             // Binary operations - use type information to generate typed opcodes
             ExprKind::Add(left, right) => {
-                Self::gen_expr_with_locals(left, code, locals);
-                Self::gen_expr_with_locals(right, code, locals);
+                Self::gen_expr_with_locals(left, code, locals, func_offsets);
+                Self::gen_expr_with_locals(right, code, locals, func_offsets);
                 Self::gen_binary_op(BinaryOp::Add, left.ty.as_ref().unwrap(), 
                     right.ty.as_ref().unwrap(), expr.ty.as_ref().unwrap(), code);
             }
             
             ExprKind::Sub(left, right) => {
-                Self::gen_expr_with_locals(left, code, locals);
-                Self::gen_expr_with_locals(right, code, locals);
+                Self::gen_expr_with_locals(left, code, locals, func_offsets);
+                Self::gen_expr_with_locals(right, code, locals, func_offsets);
                 Self::gen_binary_op(BinaryOp::Sub, left.ty.as_ref().unwrap(), 
                     right.ty.as_ref().unwrap(), expr.ty.as_ref().unwrap(), code);
             }
             
             ExprKind::Mul(left, right) => {
-                Self::gen_expr_with_locals(left, code, locals);
-                Self::gen_expr_with_locals(right, code, locals);
+                Self::gen_expr_with_locals(left, code, locals, func_offsets);
+                Self::gen_expr_with_locals(right, code, locals, func_offsets);
                 Self::gen_binary_op(BinaryOp::Mul, left.ty.as_ref().unwrap(), 
                     right.ty.as_ref().unwrap(), expr.ty.as_ref().unwrap(), code);
             }
             
             ExprKind::Div(left, right) => {
-                Self::gen_expr_with_locals(left, code, locals);
-                Self::gen_expr_with_locals(right, code, locals);
+                Self::gen_expr_with_locals(left, code, locals, func_offsets);
+                Self::gen_expr_with_locals(right, code, locals, func_offsets);
                 Self::gen_binary_op(BinaryOp::Div, left.ty.as_ref().unwrap(), 
                     right.ty.as_ref().unwrap(), expr.ty.as_ref().unwrap(), code);
             }
             
             ExprKind::Mod(left, right) => {
-                Self::gen_expr_with_locals(left, code, locals);
-                Self::gen_expr_with_locals(right, code, locals);
+                Self::gen_expr_with_locals(left, code, locals, func_offsets);
+                Self::gen_expr_with_locals(right, code, locals, func_offsets);
                 Self::gen_binary_op(BinaryOp::Mod, left.ty.as_ref().unwrap(), 
                     right.ty.as_ref().unwrap(), expr.ty.as_ref().unwrap(), code);
             }
             
             ExprKind::Pow(left, right) => {
-                Self::gen_expr_with_locals(left, code, locals);
-                Self::gen_expr_with_locals(right, code, locals);
+                Self::gen_expr_with_locals(left, code, locals, func_offsets);
+                Self::gen_expr_with_locals(right, code, locals, func_offsets);
                 // Pow is always scalar for now
                 // TODO: Add proper pow implementation
                 code.push(LpsOpCode::Push(crate::math::Fixed::ONE)); // Placeholder
@@ -414,66 +470,66 @@ impl CodeGenerator {
             
             // Comparisons
             ExprKind::Less(left, right) => {
-                Self::gen_expr_with_locals(left, code, locals);
-                Self::gen_expr_with_locals(right, code, locals);
+                Self::gen_expr_with_locals(left, code, locals, func_offsets);
+                Self::gen_expr_with_locals(right, code, locals, func_offsets);
                 code.push(LpsOpCode::LessFixed);
             }
             
             ExprKind::Greater(left, right) => {
-                Self::gen_expr_with_locals(left, code, locals);
-                Self::gen_expr_with_locals(right, code, locals);
+                Self::gen_expr_with_locals(left, code, locals, func_offsets);
+                Self::gen_expr_with_locals(right, code, locals, func_offsets);
                 code.push(LpsOpCode::GreaterFixed);
             }
             
             ExprKind::LessEq(left, right) => {
-                Self::gen_expr_with_locals(left, code, locals);
-                Self::gen_expr_with_locals(right, code, locals);
+                Self::gen_expr_with_locals(left, code, locals, func_offsets);
+                Self::gen_expr_with_locals(right, code, locals, func_offsets);
                 code.push(LpsOpCode::LessEqFixed);
             }
             
             ExprKind::GreaterEq(left, right) => {
-                Self::gen_expr_with_locals(left, code, locals);
-                Self::gen_expr_with_locals(right, code, locals);
+                Self::gen_expr_with_locals(left, code, locals, func_offsets);
+                Self::gen_expr_with_locals(right, code, locals, func_offsets);
                 code.push(LpsOpCode::GreaterEqFixed);
             }
             
             ExprKind::Eq(left, right) => {
-                Self::gen_expr_with_locals(left, code, locals);
-                Self::gen_expr_with_locals(right, code, locals);
+                Self::gen_expr_with_locals(left, code, locals, func_offsets);
+                Self::gen_expr_with_locals(right, code, locals, func_offsets);
                 code.push(LpsOpCode::EqFixed);
             }
             
             ExprKind::NotEq(left, right) => {
-                Self::gen_expr_with_locals(left, code, locals);
-                Self::gen_expr_with_locals(right, code, locals);
+                Self::gen_expr_with_locals(left, code, locals, func_offsets);
+                Self::gen_expr_with_locals(right, code, locals, func_offsets);
                 code.push(LpsOpCode::NotEqFixed);
             }
             
             // Logical operations
             ExprKind::And(left, right) => {
-                Self::gen_expr_with_locals(left, code, locals);
-                Self::gen_expr_with_locals(right, code, locals);
+                Self::gen_expr_with_locals(left, code, locals, func_offsets);
+                Self::gen_expr_with_locals(right, code, locals, func_offsets);
                 code.push(LpsOpCode::AndFixed);
             }
             
             ExprKind::Or(left, right) => {
-                Self::gen_expr_with_locals(left, code, locals);
-                Self::gen_expr_with_locals(right, code, locals);
+                Self::gen_expr_with_locals(left, code, locals, func_offsets);
+                Self::gen_expr_with_locals(right, code, locals, func_offsets);
                 code.push(LpsOpCode::OrFixed);
             }
             
             // Ternary
             ExprKind::Ternary { condition, true_expr, false_expr } => {
-                Self::gen_expr_with_locals(condition, code, locals);
-                Self::gen_expr_with_locals(true_expr, code, locals);
-                Self::gen_expr_with_locals(false_expr, code, locals);
+                Self::gen_expr_with_locals(condition, code, locals, func_offsets);
+                Self::gen_expr_with_locals(true_expr, code, locals, func_offsets);
+                Self::gen_expr_with_locals(false_expr, code, locals, func_offsets);
                 code.push(LpsOpCode::Select);
             }
             
             // Assignment expression
             ExprKind::Assign { target, value } => {
                 // Generate code for the value
-                Self::gen_expr_with_locals(value, code, locals);
+                Self::gen_expr_with_locals(value, code, locals, func_offsets);
                 
                 // Duplicate the value (assignment returns the value)
                 code.push(LpsOpCode::Dup);
@@ -494,7 +550,7 @@ impl CodeGenerator {
             
             // Function calls
             ExprKind::Call { name, args } => {
-                Self::gen_function_call(name, args, code, locals);
+                Self::gen_function_call(name, args, code, locals, func_offsets);
             }
             
             // Vector constructors - push all components from all arguments
@@ -504,14 +560,14 @@ impl CodeGenerator {
             ExprKind::Vec4Constructor(args) => {
                 // Generate code for each argument, which pushes its components
                 for arg in args {
-                    Self::gen_expr_with_locals(arg, code, locals);
+                    Self::gen_expr_with_locals(arg, code, locals, func_offsets);
                 }
                 // Components are now on stack in the correct order
             }
             
             ExprKind::Swizzle { expr: base_expr, components } => {
                 // Generate code for base expression (pushes vector components)
-                Self::gen_expr_with_locals(base_expr, code, locals);
+                Self::gen_expr_with_locals(base_expr, code, locals, func_offsets);
                 
                 // Get base type to know how many components to pop
                 let base_type = base_expr.ty.as_ref().unwrap();
@@ -612,12 +668,23 @@ impl CodeGenerator {
         }
     }
     
-    fn gen_function_call(name: &str, args: &[Expr], code: &mut Vec<LpsOpCode>, locals: &mut LocalAllocator) {
+    fn gen_function_call(name: &str, args: &[Expr], code: &mut Vec<LpsOpCode>, locals: &mut LocalAllocator, func_offsets: &BTreeMap<String, u32>) {
+        // Check if it's a user-defined function
+        if let Some(&offset) = func_offsets.get(name) {
+            // Generate code for arguments (push onto stack)
+            for arg in args {
+                Self::gen_expr_with_locals(arg, code, locals, func_offsets);
+            }
+            // Emit Call opcode with function offset
+            code.push(LpsOpCode::Call(offset));
+            return;
+        }
+        
         // Special case: perlin3(vec3) or perlin3(vec3, octaves)
         // Octaves is embedded in opcode, not pushed to stack
         if name == "perlin3" {
             // First arg is vec3, generate code to push its 3 components
-            Self::gen_expr_with_locals(&args[0], code, locals);
+            Self::gen_expr_with_locals(&args[0], code, locals, func_offsets);
             
             // Extract octaves from 2nd arg or use default
             let octaves = if args.len() >= 2 {
@@ -638,7 +705,7 @@ impl CodeGenerator {
         
         // For all other functions, generate code for all arguments first
         for arg in args {
-            Self::gen_expr_with_locals(arg, code, locals);
+            Self::gen_expr_with_locals(arg, code, locals, func_offsets);
         }
         
         // Emit the appropriate instruction
