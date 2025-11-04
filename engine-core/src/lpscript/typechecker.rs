@@ -8,7 +8,7 @@ use alloc::string::{String, ToString};
 use alloc::vec;
 use alloc::vec::Vec;
 
-use crate::lpscript::ast::{Expr, ExprKind, Program, Stmt, StmtKind, FunctionDef, Parameter};
+use crate::lpscript::ast::{Expr, ExprKind, FunctionDef, Parameter, Program, Stmt, StmtKind};
 use crate::lpscript::error::{Span, Type, TypeError, TypeErrorKind};
 
 /// Function signature for user-defined functions
@@ -30,15 +30,26 @@ impl FunctionTable {
             functions: BTreeMap::new(),
         }
     }
-    
-    fn declare(&mut self, name: String, params: Vec<Type>, return_type: Type) -> Result<(), String> {
+
+    fn declare(
+        &mut self,
+        name: String,
+        params: Vec<Type>,
+        return_type: Type,
+    ) -> Result<(), String> {
         if self.functions.contains_key(&name) {
             return Err(format!("Function '{}' already declared", name));
         }
-        self.functions.insert(name, FunctionSignature { params, return_type });
+        self.functions.insert(
+            name,
+            FunctionSignature {
+                params,
+                return_type,
+            },
+        );
         Ok(())
     }
-    
+
     fn lookup(&self, name: &str) -> Option<&FunctionSignature> {
         self.functions.get(name)
     }
@@ -106,22 +117,23 @@ impl TypeChecker {
     /// Type check a program (script mode)
     pub fn check_program(mut program: Program) -> Result<Program, TypeError> {
         let mut func_table = FunctionTable::new();
-        
+
         // First pass: Register all function signatures
         for func in &program.functions {
             let param_types: Vec<Type> = func.params.iter().map(|p| p.ty.clone()).collect();
-            func_table.declare(func.name.clone(), param_types, func.return_type.clone())
+            func_table
+                .declare(func.name.clone(), param_types, func.return_type.clone())
                 .map_err(|msg| TypeError {
                     kind: TypeErrorKind::UndefinedFunction(msg),
                     span: func.span,
                 })?;
         }
-        
+
         // Second pass: Type check each function body
         for func in &mut program.functions {
             Self::check_function(func, &func_table)?;
         }
-        
+
         // Third pass: Type check top-level statements
         let mut symbols = SymbolTable::new();
         for stmt in &mut program.stmts {
@@ -130,32 +142,37 @@ impl TypeChecker {
 
         Ok(program)
     }
-    
+
     /// Type check a function definition
     fn check_function(func: &mut FunctionDef, func_table: &FunctionTable) -> Result<(), TypeError> {
         let mut symbols = SymbolTable::new();
-        
+
         // Add parameters to symbol table
         for param in &func.params {
-            symbols.declare(param.name.clone(), param.ty.clone())
+            symbols
+                .declare(param.name.clone(), param.ty.clone())
                 .map_err(|msg| TypeError {
                     kind: TypeErrorKind::UndefinedVariable(msg),
                     span: func.span,
                 })?;
         }
-        
+
         // Type check function body
         for stmt in &mut func.body {
             Self::check_stmt(stmt, &mut symbols, func_table)?;
         }
-        
+
         // TODO: Verify all code paths return a value (if return_type != Void)
-        
+
         Ok(())
     }
 
     /// Type check a statement
-    fn check_stmt(stmt: &mut Stmt, symbols: &mut SymbolTable, func_table: &FunctionTable) -> Result<(), TypeError> {
+    fn check_stmt(
+        stmt: &mut Stmt,
+        symbols: &mut SymbolTable,
+        func_table: &FunctionTable,
+    ) -> Result<(), TypeError> {
         match &mut stmt.kind {
             StmtKind::VarDecl { ty, name, init } => {
                 // Type check initializer if present
@@ -274,7 +291,11 @@ impl TypeChecker {
         Ok(())
     }
 
-    fn infer_type(expr: &mut Expr, symbols: &mut SymbolTable, func_table: &FunctionTable) -> Result<(), TypeError> {
+    fn infer_type(
+        expr: &mut Expr,
+        symbols: &mut SymbolTable,
+        func_table: &FunctionTable,
+    ) -> Result<(), TypeError> {
         match &mut expr.kind {
             // Literals
             ExprKind::Number(_) => {
@@ -459,7 +480,7 @@ impl TypeChecker {
                             span: expr.span,
                         });
                     }
-                    
+
                     // Validate argument types
                     for (i, (arg, expected_ty)) in args.iter().zip(sig.params.iter()).enumerate() {
                         let arg_ty = arg.ty.as_ref().unwrap();
@@ -473,7 +494,7 @@ impl TypeChecker {
                             });
                         }
                     }
-                    
+
                     expr.ty = Some(sig.return_type.clone());
                 } else {
                     // Built-in function
