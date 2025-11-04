@@ -98,6 +98,7 @@ impl fmt::Display for ParseError {
 /// Type system representation
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Type {
+    Bool,
     Fixed,
     Int32,
     Vec2,
@@ -109,6 +110,7 @@ pub enum Type {
 impl fmt::Display for Type {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
+            Type::Bool => write!(f, "bool"),
             Type::Fixed => write!(f, "float"),
             Type::Int32 => write!(f, "int"),
             Type::Vec2 => write!(f, "vec2"),

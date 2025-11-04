@@ -36,7 +36,7 @@ pub fn var(name: &str) -> Expr {
 }
 
 // ============================================================================
-// Comparison operators (return Expr, auto-typed to Int32)
+// Comparison operators (return Expr, auto-typed to Bool)
 // ============================================================================
 
 /// Less than: left < right
@@ -45,7 +45,7 @@ pub fn less(left: Expr, right: Expr) -> Expr {
         ExprKind::Less(Box::new(left), Box::new(right)),
         Span::EMPTY,
     );
-    expr.ty = Some(Type::Int32);
+    expr.ty = Some(Type::Bool);
     expr
 }
 
@@ -55,7 +55,7 @@ pub fn greater(left: Expr, right: Expr) -> Expr {
         ExprKind::Greater(Box::new(left), Box::new(right)),
         Span::EMPTY,
     );
-    expr.ty = Some(Type::Int32);
+    expr.ty = Some(Type::Bool);
     expr
 }
 
@@ -65,7 +65,7 @@ pub fn less_eq(left: Expr, right: Expr) -> Expr {
         ExprKind::LessEq(Box::new(left), Box::new(right)),
         Span::EMPTY,
     );
-    expr.ty = Some(Type::Int32);
+    expr.ty = Some(Type::Bool);
     expr
 }
 
@@ -75,7 +75,7 @@ pub fn greater_eq(left: Expr, right: Expr) -> Expr {
         ExprKind::GreaterEq(Box::new(left), Box::new(right)),
         Span::EMPTY,
     );
-    expr.ty = Some(Type::Int32);
+    expr.ty = Some(Type::Bool);
     expr
 }
 
@@ -85,7 +85,7 @@ pub fn eq(left: Expr, right: Expr) -> Expr {
         ExprKind::Eq(Box::new(left), Box::new(right)),
         Span::EMPTY,
     );
-    expr.ty = Some(Type::Int32);
+    expr.ty = Some(Type::Bool);
     expr
 }
 
@@ -95,7 +95,7 @@ pub fn not_eq(left: Expr, right: Expr) -> Expr {
         ExprKind::NotEq(Box::new(left), Box::new(right)),
         Span::EMPTY,
     );
-    expr.ty = Some(Type::Int32);
+    expr.ty = Some(Type::Bool);
     expr
 }
 

@@ -3,3 +3,7 @@
 - not operator (!)
 - remove uv built-in
 - bitwise operators
+- store local should not be "fixed" it should probably be int32 or something:
+  ```
+  Type::Bool | Type::Fixed | Type::Int32 => code.push(LpsOpCode::StoreLocalFixed(i as u32))
+  ```

@@ -24,7 +24,7 @@ pub fn gen_function(
         locals.allocate(param.name.clone());
         // Parameters are already on stack, need to store them
         match param.ty {
-            Type::Fixed | Type::Int32 => code.push(LpsOpCode::StoreLocalFixed(i as u32)),
+            Type::Bool | Type::Fixed | Type::Int32 => code.push(LpsOpCode::StoreLocalFixed(i as u32)),
             Type::Vec2 => code.push(LpsOpCode::StoreLocalVec2(i as u32)),
             Type::Vec3 => code.push(LpsOpCode::StoreLocalVec3(i as u32)),
             Type::Vec4 => code.push(LpsOpCode::StoreLocalVec4(i as u32)),

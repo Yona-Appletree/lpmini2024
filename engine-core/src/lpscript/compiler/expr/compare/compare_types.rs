@@ -9,8 +9,8 @@ use alloc::boxed::Box;
 impl TypeChecker {
     /// Type check comparison operators (<, >, <=, >=, ==, !=)
     /// 
-    /// All comparisons return Int32 (0 or 1) representing false or true.
-    /// Returns the result type (always Type::Int32).
+    /// All comparisons return Bool (true or false).
+    /// Returns the result type (always Type::Bool).
     pub(crate) fn check_comparison(
         left: &mut Box<Expr>,
         right: &mut Box<Expr>,
@@ -21,8 +21,8 @@ impl TypeChecker {
         Self::infer_type(left, symbols, func_table)?;
         Self::infer_type(right, symbols, func_table)?;
 
-        // Comparisons always return Int32 (0 or 1)
-        Ok(Type::Int32)
+        // Comparisons always return Bool
+        Ok(Type::Bool)
     }
 }
 

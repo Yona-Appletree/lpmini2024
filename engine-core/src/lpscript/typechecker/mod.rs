@@ -404,7 +404,7 @@ impl TypeChecker {
                 Self::infer_type(left, symbols, func_table)?;
                 Self::infer_type(right, symbols, func_table)?;
 
-                expr.ty = Some(Type::Fixed);
+                expr.ty = Some(Type::Bool);
             }
 
             // Ternary
@@ -555,7 +555,7 @@ impl TypeChecker {
     /// Get the number of components in a type (for vector constructor validation)
     fn component_count(ty: &Type) -> usize {
         match ty {
-            Type::Fixed | Type::Int32 => 1,
+            Type::Bool | Type::Fixed | Type::Int32 => 1,
             Type::Vec2 => 2,
             Type::Vec3 => 3,
             Type::Vec4 => 4,

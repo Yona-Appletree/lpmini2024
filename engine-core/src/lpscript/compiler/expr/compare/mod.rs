@@ -6,4 +6,4 @@ mod compare_parse;
 mod compare_types;
 
 #[cfg(test)]
-mod compare_test;
+mod compare_tests;
