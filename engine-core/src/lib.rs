@@ -3,14 +3,14 @@
 #[cfg(test)]
 mod test_allocator;
 
-// NOTE: Custom allocator available in test_allocator.rs to enforce memory limits
-// Disabled by default as it needs tuning to avoid false positives
-// To enable: uncomment the lines below and adjust limit as needed
-// #[cfg(test)]
-// use test_allocator::LimitedAllocator;
-// #[cfg(test)]
-// #[global_allocator]
-// static GLOBAL: LimitedAllocator = LimitedAllocator::new(8192); // 8GB limit
+// Memory protection: Prevents runaway allocations from crashing the system
+// Normal tests use <1GB, this catches bugs that would consume 40GB+
+#[cfg(test)]
+use test_allocator::LimitedAllocator;
+
+#[cfg(test)]
+#[global_allocator]
+static GLOBAL: LimitedAllocator = LimitedAllocator::new(8192); // 8GB limit
 
 extern crate alloc;
 

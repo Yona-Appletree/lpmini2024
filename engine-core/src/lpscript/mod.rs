@@ -50,12 +50,14 @@ pub mod vm;
 mod ast;
 mod codegen;
 mod lexer;
-mod parser;
+pub mod parser;
 mod typechecker;
 
 pub use codegen::NativeFunction;
 pub use error::{CompileError, RuntimeError, RuntimeErrorWithContext, Span, Type};
-pub use vm::{LocalAccess, LocalDef, LocalType, LpsProgram, LpsVm, VmLimits, execute_program_lps, LpsOpCode};
+pub use vm::{
+    execute_program_lps, LocalAccess, LocalDef, LocalType, LpsOpCode, LpsProgram, LpsVm, VmLimits,
+};
 
 /// Parse an expression string and generate a compiled LPS program
 ///
@@ -71,12 +73,12 @@ pub fn compile_expr(input: &str) -> Result<LpsProgram, CompileError> {
 
     let mut parser = parser::Parser::new(tokens);
     let ast = parser.parse();
-    
+
     // Type check the AST
     let typed_ast = typechecker::TypeChecker::check(ast)?;
 
     let opcodes = codegen::CodeGenerator::generate(&typed_ast);
-    
+
     Ok(LpsProgram::new("expr".into())
         .with_opcodes(opcodes)
         .with_source(input.into()))
@@ -104,21 +106,23 @@ pub fn compile_script(input: &str) -> Result<LpsProgram, CompileError> {
 
     let mut parser = parser::Parser::new(tokens);
     let program = parser.parse_program();
-    
+
     // Type check the program
     let typed_program = typechecker::TypeChecker::check_program(program)?;
 
     let (opcodes, local_count) = codegen::CodeGenerator::generate_program(&typed_program);
-    
+
     // Create LocalDef entries for all scratch locals
     let locals: Vec<LocalDef> = (0..local_count)
-        .map(|i| LocalDef::new(
-            alloc::format!("local_{}", i),
-            LocalType::Fixed(crate::math::Fixed::ZERO),
-            LocalAccess::Scratch,
-        ))
+        .map(|i| {
+            LocalDef::new(
+                alloc::format!("local_{}", i),
+                LocalType::Fixed(crate::math::Fixed::ZERO),
+                LocalAccess::Scratch,
+            )
+        })
         .collect();
-    
+
     Ok(LpsProgram::new("script".into())
         .with_opcodes(opcodes)
         .with_locals(locals)
@@ -166,9 +170,9 @@ mod tests {
     mod control_flow;
     mod functions;
     mod variables;
-    
-    use super::*;
+
     use super::vm::opcodes::LpsOpCode;
+    use super::*;
     use crate::test_engine::LoadSource;
 
     #[test]
@@ -244,7 +248,7 @@ mod tests {
         let has_and = code.iter().any(|op| matches!(op, LpsOpCode::AndFixed));
         assert!(has_greater && has_less && has_and);
     }
-    
+
     #[test]
     fn test_compile_expr_success() {
         let result = compile_expr("sin(time) + 0.5");
@@ -252,7 +256,7 @@ mod tests {
         let program = result.unwrap();
         assert!(program.opcodes.len() > 0);
     }
-    
+
     #[test]
     fn test_compile_expr_undefined_variable() {
         let result = compile_expr("undefined_var");
@@ -263,7 +267,7 @@ mod tests {
             panic!("Expected TypeCheck error");
         }
     }
-    
+
     #[test]
     fn test_compile_expr_undefined_function() {
         let result = compile_expr("unknown_func(1.0)");
@@ -274,14 +278,14 @@ mod tests {
             panic!("Expected TypeCheck error");
         }
     }
-    
+
     #[test]
     fn test_perlin3_only_pushes_xyz() {
         // Regression test for horizontal stripes bug!
         // perlin3(vec3) should only push 3 args to stack (x, y, z components of vec3)
         // Octaves should be extracted at compile time and embedded in the opcode
         let program = parse_expr("perlin3(vec3(xNorm, yNorm, time), 3)");
-        
+
         // Count Push/Load opcodes before Perlin3
         let mut push_count = 0;
         for op in &program.opcodes {
@@ -292,14 +296,16 @@ mod tests {
                 push_count += 1;
             }
         }
-        
+
         // CRITICAL: Should be exactly 3 (xNorm, yNorm, time)
         // If it's 4, the VM will pop them as (z=octaves, y=z, x=y)
         // causing only Y to vary (horizontal stripes)!
-        assert_eq!(push_count, 3, 
+        assert_eq!(
+            push_count, 3,
             "BUG: perlin3 pushed {} args but VM expects 3. This causes horizontal stripes!",
-            push_count);
-        
+            push_count
+        );
+
         // Verify octaves is embedded in opcode
         let has_perlin = program.opcodes.iter().any(|op| {
             if let LpsOpCode::Perlin3(octaves) = op {
@@ -308,9 +314,12 @@ mod tests {
                 false
             }
         });
-        assert!(has_perlin, "Should have Perlin3(3) opcode with octaves=3 embedded");
+        assert!(
+            has_perlin,
+            "Should have Perlin3(3) opcode with octaves=3 embedded"
+        );
     }
-    
+
     #[test]
     fn test_compile_script_simple() {
         let script = "
@@ -321,12 +330,15 @@ mod tests {
         assert!(result.is_ok());
         let program = result.unwrap();
         assert!(program.opcodes.len() > 0);
-        
+
         // Should have LoadLocalFixed and StoreLocalFixed for variable
-        let has_store = program.opcodes.iter().any(|op| matches!(op, LpsOpCode::StoreLocalFixed(_)));
+        let has_store = program
+            .opcodes
+            .iter()
+            .any(|op| matches!(op, LpsOpCode::StoreLocalFixed(_)));
         assert!(has_store, "Should store local variable");
     }
-    
+
     #[test]
     fn test_compile_script_if_else() {
         let script = "
@@ -339,14 +351,20 @@ mod tests {
         let result = compile_script(script);
         assert!(result.is_ok());
         let program = result.unwrap();
-        
+
         // Should have conditional jumps
-        let has_jump_if_zero = program.opcodes.iter().any(|op| matches!(op, LpsOpCode::JumpIfZero(_)));
-        let has_jump = program.opcodes.iter().any(|op| matches!(op, LpsOpCode::Jump(_)));
+        let has_jump_if_zero = program
+            .opcodes
+            .iter()
+            .any(|op| matches!(op, LpsOpCode::JumpIfZero(_)));
+        let has_jump = program
+            .opcodes
+            .iter()
+            .any(|op| matches!(op, LpsOpCode::Jump(_)));
         assert!(has_jump_if_zero, "Should have conditional jump");
         assert!(has_jump, "Should have unconditional jump");
     }
-    
+
     #[test]
     fn test_compile_script_while_loop() {
         let script = "
@@ -359,13 +377,19 @@ mod tests {
         let result = compile_script(script);
         assert!(result.is_ok());
         let program = result.unwrap();
-        
+
         // Should have loop structure
-        let has_jump_if_zero = program.opcodes.iter().any(|op| matches!(op, LpsOpCode::JumpIfZero(_)));
-        let has_jump = program.opcodes.iter().any(|op| matches!(op, LpsOpCode::Jump(_)));
+        let has_jump_if_zero = program
+            .opcodes
+            .iter()
+            .any(|op| matches!(op, LpsOpCode::JumpIfZero(_)));
+        let has_jump = program
+            .opcodes
+            .iter()
+            .any(|op| matches!(op, LpsOpCode::Jump(_)));
         assert!(has_jump_if_zero && has_jump, "Should have loop jumps");
     }
-    
+
     #[test]
     fn test_compile_script_for_loop_debug() {
         // Simple for loop - just verify it compiles
@@ -377,13 +401,16 @@ mod tests {
         ";
         let result = compile_script(script);
         assert!(result.is_ok());
-        
+
         // Check for loop structure opcodes
         let program = result.unwrap();
-        let has_jumps = program.opcodes.iter().any(|op| matches!(op, LpsOpCode::Jump(_) | LpsOpCode::JumpIfZero(_)));
+        let has_jumps = program
+            .opcodes
+            .iter()
+            .any(|op| matches!(op, LpsOpCode::Jump(_) | LpsOpCode::JumpIfZero(_)));
         assert!(has_jumps, "For loop should generate jump opcodes");
     }
-    
+
     #[test]
     fn test_compile_script_variable_mutation() {
         // Test variable mutation without for loop
@@ -395,7 +422,7 @@ mod tests {
         let result = compile_script(script);
         assert!(result.is_ok());
     }
-    
+
     #[test]
     fn test_compile_script_variable_scoping() {
         let script = "
@@ -409,7 +436,7 @@ mod tests {
         assert!(result.is_ok());
         // Verifies scoping works (inner x shadows outer x)
     }
-    
+
     #[test]
     fn test_compile_script_user_function() {
         let script = "
@@ -422,13 +449,16 @@ mod tests {
         ";
         let result = compile_script(script);
         assert!(result.is_ok());
-        
+
         let program = result.unwrap();
         // Should have Call opcode
-        let has_call = program.opcodes.iter().any(|op| matches!(op, LpsOpCode::Call(_)));
+        let has_call = program
+            .opcodes
+            .iter()
+            .any(|op| matches!(op, LpsOpCode::Call(_)));
         assert!(has_call, "Should have Call opcode for user function");
     }
-    
+
     #[test]
     fn test_compile_script_recursive_function() {
         let script = "
