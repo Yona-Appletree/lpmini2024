@@ -162,6 +162,10 @@ pub fn parse_expr_opcodes(input: &str) -> Vec<OpCode> {
 
 #[cfg(test)]
 mod tests {
+    mod control_flow;
+    mod functions;
+    mod variables;
+    
     use super::*;
     use super::vm::opcodes::LpsOpCode;
     use crate::test_engine::LoadSource;

@@ -389,16 +389,35 @@ impl Parser {
         Stmt::new(StmtKind::Expr(expr), span)
     }
     
-    fn expect(&mut self, expected: TokenKind) {
+    fn expect(&mut self, expected: TokenKind) -> bool {
         if core::mem::discriminant(&self.current().kind) == core::mem::discriminant(&expected) {
             self.advance();
+            true
+        } else {
+            // In debug mode, report what we expected vs what we got
+            #[cfg(debug_assertions)]
+            eprintln!(
+                "[Parser Error] Expected {:?} but found {:?} at position {}",
+                expected,
+                self.current().kind,
+                self.current().span.start
+            );
+            false
         }
-        // TODO: Report error
     }
     
-    fn consume_semicolon(&mut self) {
+    fn consume_semicolon(&mut self) -> bool {
         if matches!(self.current().kind, TokenKind::Semicolon) {
             self.advance();
+            true
+        } else {
+            #[cfg(debug_assertions)]
+            eprintln!(
+                "[Parser Warning] Expected semicolon but found {:?} at position {}",
+                self.current().kind,
+                self.current().span.start
+            );
+            false
         }
     }
     
