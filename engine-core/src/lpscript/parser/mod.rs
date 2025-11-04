@@ -13,8 +13,8 @@ mod stmt;
 mod functions;
 
 pub struct Parser {
-    pub(super) tokens: Vec<Token>,
-    pub(super) pos: usize,
+    pub(in crate::lpscript) tokens: Vec<Token>,
+    pub(in crate::lpscript) pos: usize,
 }
 
 impl Parser {
@@ -22,11 +22,11 @@ impl Parser {
         Parser { tokens, pos: 0 }
     }
 
-    pub(super) fn current(&self) -> &Token {
+    pub(in crate::lpscript) fn current(&self) -> &Token {
         &self.tokens[self.pos]
     }
 
-    pub(super) fn advance(&mut self) {
+    pub(in crate::lpscript) fn advance(&mut self) {
         if self.pos < self.tokens.len() - 1 {
             self.pos += 1;
         }

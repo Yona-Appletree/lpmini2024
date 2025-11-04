@@ -11,6 +11,9 @@ use alloc::vec::Vec;
 use crate::lpscript::ast::{Expr, ExprKind, FunctionDef, Parameter, Program, Stmt, StmtKind};
 use crate::lpscript::error::{Span, Type, TypeError, TypeErrorKind};
 
+// Import comparison type checking from compiler module
+use crate::lpscript::compiler::expr::compare;
+
 /// Function signature for user-defined functions
 #[derive(Debug, Clone)]
 struct FunctionSignature {
@@ -20,18 +23,18 @@ struct FunctionSignature {
 
 /// Function table for tracking user-defined functions
 #[derive(Debug, Clone)]
-struct FunctionTable {
+pub(crate) struct FunctionTable {
     functions: BTreeMap<String, FunctionSignature>,
 }
 
 impl FunctionTable {
-    fn new() -> Self {
+    pub(crate) fn new() -> Self {
         FunctionTable {
             functions: BTreeMap::new(),
         }
     }
 
-    fn declare(
+    pub(crate) fn declare(
         &mut self,
         name: String,
         params: Vec<Type>,
@@ -50,35 +53,35 @@ impl FunctionTable {
         Ok(())
     }
 
-    fn lookup(&self, name: &str) -> Option<&FunctionSignature> {
+    pub(crate) fn lookup(&self, name: &str) -> Option<&FunctionSignature> {
         self.functions.get(name)
     }
 }
 
 /// Symbol table for tracking variables in scope
 #[derive(Debug, Clone)]
-struct SymbolTable {
+pub(crate) struct SymbolTable {
     scopes: Vec<BTreeMap<String, Type>>,
 }
 
 impl SymbolTable {
-    fn new() -> Self {
+    pub(crate) fn new() -> Self {
         SymbolTable {
             scopes: vec![BTreeMap::new()],
         }
     }
 
-    fn push_scope(&mut self) {
+    pub(crate) fn push_scope(&mut self) {
         self.scopes.push(BTreeMap::new());
     }
 
-    fn pop_scope(&mut self) {
+    pub(crate) fn pop_scope(&mut self) {
         if self.scopes.len() > 1 {
             self.scopes.pop();
         }
     }
 
-    fn declare(&mut self, name: String, ty: Type) -> Result<(), String> {
+    pub(crate) fn declare(&mut self, name: String, ty: Type) -> Result<(), String> {
         // Check if already declared in current scope
         if let Some(scope) = self.scopes.last_mut() {
             if scope.contains_key(&name) {
@@ -92,7 +95,7 @@ impl SymbolTable {
         Ok(())
     }
 
-    fn lookup(&self, name: &str) -> Option<Type> {
+    pub(crate) fn lookup(&self, name: &str) -> Option<Type> {
         // Search from innermost to outermost scope
         for scope in self.scopes.iter().rev() {
             if let Some(ty) = scope.get(name) {
@@ -291,7 +294,7 @@ impl TypeChecker {
         Ok(())
     }
 
-    fn infer_type(
+    pub(crate) fn infer_type(
         expr: &mut Expr,
         symbols: &mut SymbolTable,
         func_table: &FunctionTable,
@@ -385,18 +388,15 @@ impl TypeChecker {
                 expr.ty = Some(result_ty);
             }
 
-            // Comparisons return Fixed (0 or 1)
+            // Comparisons return Fixed (0 or 1) - handled in compiler/expr/compare module
             ExprKind::Less(left, right)
             | ExprKind::Greater(left, right)
             | ExprKind::LessEq(left, right)
             | ExprKind::GreaterEq(left, right)
             | ExprKind::Eq(left, right)
             | ExprKind::NotEq(left, right) => {
-                Self::infer_type(left, symbols, func_table)?;
-                Self::infer_type(right, symbols, func_table)?;
-
-                // Comparisons always return Fixed (0 or 1)
-                expr.ty = Some(Type::Fixed);
+                let ty = Self::check_comparison(left, right, symbols, func_table)?;
+                expr.ty = Some(ty);
             }
 
             // Logical operations

@@ -7,13 +7,15 @@ use super::CodeGenerator;
 mod literals;
 mod variable;
 mod binary;
-mod comparison;
 mod logical;
 mod ternary;
 mod assign_expr;
 mod call;
 mod constructors;
 mod swizzle;
+
+// Comparison codegen is now in compiler module
+use crate::lpscript::compiler::expr::compare;
 
 impl<'a> CodeGenerator<'a> {
     /// Generate code for an expression

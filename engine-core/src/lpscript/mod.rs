@@ -49,6 +49,7 @@ pub mod vm;
 
 mod ast;
 mod codegen;
+mod compiler;
 mod lexer;
 pub mod parser;
 mod typechecker;

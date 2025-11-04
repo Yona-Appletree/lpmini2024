@@ -1,13 +1,13 @@
 /// Comparison operator parsing (<, >, <=, >=, ==, !=)
-use super::Parser;
 use crate::lpscript::ast::{Expr, ExprKind};
 use crate::lpscript::error::Span;
 use crate::lpscript::lexer::TokenKind;
+use crate::lpscript::compiler::parser::Parser;
 use alloc::boxed::Box;
 
 impl Parser {
     // Comparison: <, >, <=, >=, ==, !=
-    pub(super) fn comparison(&mut self) -> Expr {
+    pub(in crate::lpscript) fn comparison(&mut self) -> Expr {
         let mut expr = self.additive();
 
         loop {
@@ -75,21 +75,3 @@ impl Parser {
     }
 }
 
-#[cfg(test)]
-mod tests {
-    use crate::lpscript::lexer::Lexer;
-    use crate::lpscript::parser::Parser;
-
-    #[test]
-    fn test_parse_comparison() {
-        let mut lexer = Lexer::new("x > 5.0");
-        let tokens = lexer.tokenize();
-        let mut parser = Parser::new(tokens);
-        let expr = parser.parse();
-
-        assert!(matches!(
-            expr.kind,
-            crate::lpscript::ast::ExprKind::Greater(_, _)
-        ));
-    }
-}

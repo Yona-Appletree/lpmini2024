@@ -7,7 +7,7 @@ use alloc::boxed::Box;
 
 impl Parser {
     // Additive: + -
-    pub(super) fn additive(&mut self) -> Expr {
+    pub(in crate::lpscript) fn additive(&mut self) -> Expr {
         let mut expr = self.multiplicative();
 
         loop {
