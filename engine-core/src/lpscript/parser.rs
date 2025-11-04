@@ -5,7 +5,7 @@ use alloc::boxed::Box;
 use alloc::string::String;
 
 use super::lexer::{Token, TokenKind};
-use super::ast::{Expr, ExprKind, Stmt, StmtKind, Program};
+use super::ast::{Expr, ExprKind, Stmt, StmtKind, Program, FunctionDef, Parameter};
 use crate::lpscript::error::{Span, Type};
 
 pub struct Parser {
@@ -36,22 +36,145 @@ impl Parser {
     /// Parse a full program (script mode)
     pub fn parse_program(&mut self) -> Program {
         let start = self.current().span.start;
+        let mut functions = Vec::new();
         let mut stmts = Vec::new();
         
+        // Parse function definitions first (must come before statements)
+        while self.is_function_definition() {
+            functions.push(self.parse_function_def());
+        }
+        
+        // Parse top-level statements
         while !matches!(self.current().kind, TokenKind::Eof) {
             stmts.push(self.parse_stmt());
         }
         
         let end = if !stmts.is_empty() {
             stmts.last().unwrap().span.end
+        } else if !functions.is_empty() {
+            functions.last().unwrap().span.end
         } else {
             start
         };
         
         Program {
+            functions,
             stmts,
             span: Span::new(start, end),
         }
+    }
+    
+    /// Check if the current position is a function definition
+    /// Function def: type name(params) { body }
+    fn is_function_definition(&mut self) -> bool {
+        // Look ahead: type + identifier + (
+        matches!(
+            self.current().kind,
+            TokenKind::Float | TokenKind::Int | TokenKind::Vec2 | TokenKind::Vec3 | TokenKind::Vec4 | TokenKind::Void
+        ) && {
+            // Look ahead 2 tokens
+            let saved_pos = self.pos;
+            self.advance(); // Skip type
+            let is_ident = matches!(self.current().kind, TokenKind::Ident(_));
+            if is_ident {
+                self.advance(); // Skip name
+                let has_paren = matches!(self.current().kind, TokenKind::LParen);
+                self.pos = saved_pos; // Restore position
+                has_paren
+            } else {
+                self.pos = saved_pos;
+                false
+            }
+        }
+    }
+    
+    /// Parse a function definition
+    fn parse_function_def(&mut self) -> FunctionDef {
+        let start = self.current().span.start;
+        
+        // Parse return type
+        let return_type = self.parse_type();
+        
+        // Parse function name
+        let name = if let TokenKind::Ident(n) = &self.current().kind {
+            let name = n.clone();
+            self.advance();
+            name
+        } else {
+            String::from("error")
+        };
+        
+        // Parse parameter list
+        self.expect(TokenKind::LParen);
+        let params = self.parse_parameters();
+        self.expect(TokenKind::RParen);
+        
+        // Parse body
+        self.expect(TokenKind::LBrace);
+        let mut body = Vec::new();
+        while !matches!(self.current().kind, TokenKind::RBrace | TokenKind::Eof) {
+            body.push(self.parse_stmt());
+        }
+        let end = self.current().span.end;
+        self.expect(TokenKind::RBrace);
+        
+        FunctionDef {
+            name,
+            params,
+            return_type,
+            body,
+            span: Span::new(start, end),
+        }
+    }
+    
+    /// Parse function parameters
+    fn parse_parameters(&mut self) -> Vec<Parameter> {
+        let mut params = Vec::new();
+        
+        // Empty parameter list
+        if matches!(self.current().kind, TokenKind::RParen) {
+            return params;
+        }
+        
+        loop {
+            // Parse parameter type
+            let ty = self.parse_type();
+            
+            // Parse parameter name
+            let name = if let TokenKind::Ident(n) = &self.current().kind {
+                let name = n.clone();
+                self.advance();
+                name
+            } else {
+                String::from("error")
+            };
+            
+            params.push(Parameter { name, ty });
+            
+            // Check for more parameters
+            if matches!(self.current().kind, TokenKind::Comma) {
+                self.advance(); // consume ','
+            } else {
+                break;
+            }
+        }
+        
+        params
+    }
+    
+    /// Parse a type keyword
+    fn parse_type(&mut self) -> Type {
+        let ty = match &self.current().kind {
+            TokenKind::Float => Type::Fixed,
+            TokenKind::Int => Type::Int32,
+            TokenKind::Vec2 => Type::Vec2,
+            TokenKind::Vec3 => Type::Vec3,
+            TokenKind::Vec4 => Type::Vec4,
+            TokenKind::Void => Type::Void,
+            _ => Type::Fixed, // Fallback
+        };
+        self.advance();
+        ty
     }
     
     /// Parse a statement
@@ -217,12 +340,7 @@ impl Parser {
         let start = self.current().span.start;
         
         // Parse type
-        let ty = match &self.current().kind {
-            TokenKind::Float => Type::Fixed,
-            TokenKind::Int => Type::Int32,
-            _ => Type::Fixed, // Fallback
-        };
-        self.advance();
+        let ty = self.parse_type();
         
         // Parse name
         let name = if let TokenKind::Ident(n) = &self.current().kind {
@@ -578,13 +696,39 @@ impl Parser {
                 self.advance();
                 Expr::new(ExprKind::IntNumber(*n), token.span)
             }
+            TokenKind::Vec2 | TokenKind::Vec3 | TokenKind::Vec4 => {
+                let vec_kind = token.kind.clone();
+                let start = token.span.start;
+                self.advance();
+                
+                // Must be followed by '(' for constructor
+                self.expect(TokenKind::LParen);
+                let args = self.parse_args();
+                let end = if matches!(self.current().kind, TokenKind::RParen) {
+                    let span = self.current().span;
+                    self.advance(); // consume ')'
+                    span.end
+                } else {
+                    self.current().span.end
+                };
+                
+                let kind = match vec_kind {
+                    TokenKind::Vec2 => ExprKind::Vec2Constructor(args),
+                    TokenKind::Vec3 => ExprKind::Vec3Constructor(args),
+                    TokenKind::Vec4 => ExprKind::Vec4Constructor(args),
+                    _ => unreachable!(),
+                };
+                
+                Expr::new(kind, Span::new(start, end))
+            }
+            
             TokenKind::Ident(name) => {
                 let name = name.clone();
                 let start = token.span.start;
                 self.advance();
                 
                 if matches!(self.current().kind, TokenKind::LParen) {
-                    // Function call or vector constructor
+                    // Function call
                     self.advance(); // consume '('
                     let args = self.parse_args();
                     let end = if matches!(self.current().kind, TokenKind::RParen) {
@@ -595,13 +739,7 @@ impl Parser {
                         self.current().span.end
                     };
                     
-                    // Check for vector constructors
-                    let kind = match name.as_str() {
-                        "vec2" => ExprKind::Vec2Constructor(args),
-                        "vec3" => ExprKind::Vec3Constructor(args),
-                        "vec4" => ExprKind::Vec4Constructor(args),
-                        _ => ExprKind::Call { name, args },
-                    };
+                    let kind = ExprKind::Call { name, args };
                     
                     Expr::new(kind, Span::new(start, end))
                 } else {

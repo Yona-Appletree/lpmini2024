@@ -59,6 +59,10 @@ pub enum TokenKind {
     Return,
     Float,
     Int,
+    Vec2,
+    Vec3,
+    Vec4,
+    Void,
     
     Eof,
 }
@@ -179,7 +183,10 @@ impl Lexer {
             "return" => TokenKind::Return,
             "float" => TokenKind::Float,
             "int" => TokenKind::Int,
-            // vec2/vec3/vec4 are kept as identifiers (used as both types and constructors)
+            "vec2" => TokenKind::Vec2,
+            "vec3" => TokenKind::Vec3,
+            "vec4" => TokenKind::Vec4,
+            "void" => TokenKind::Void,
             _ => TokenKind::Ident(ident),
         }
     }

@@ -6,9 +6,27 @@ use alloc::boxed::Box;
 
 use crate::lpscript::error::{Span, Type};
 
+/// Function parameter
+#[derive(Debug, Clone)]
+pub struct Parameter {
+    pub name: String,
+    pub ty: Type,
+}
+
+/// Function definition
+#[derive(Debug, Clone)]
+pub struct FunctionDef {
+    pub name: String,
+    pub params: Vec<Parameter>,
+    pub return_type: Type,
+    pub body: Vec<Stmt>,
+    pub span: Span,
+}
+
 /// A complete program (for script mode)
 #[derive(Debug, Clone)]
 pub struct Program {
+    pub functions: Vec<FunctionDef>,
     pub stmts: Vec<Stmt>,
     pub span: Span,
 }

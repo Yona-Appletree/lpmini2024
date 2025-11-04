@@ -8,8 +8,41 @@ use alloc::string::{String, ToString};
 use alloc::vec;
 use alloc::vec::Vec;
 
-use crate::lpscript::ast::{Expr, ExprKind, Program, Stmt, StmtKind};
+use crate::lpscript::ast::{Expr, ExprKind, Program, Stmt, StmtKind, FunctionDef, Parameter};
 use crate::lpscript::error::{Span, Type, TypeError, TypeErrorKind};
+
+/// Function signature for user-defined functions
+#[derive(Debug, Clone)]
+struct FunctionSignature {
+    params: Vec<Type>,
+    return_type: Type,
+}
+
+/// Function table for tracking user-defined functions
+#[derive(Debug, Clone)]
+struct FunctionTable {
+    functions: BTreeMap<String, FunctionSignature>,
+}
+
+impl FunctionTable {
+    fn new() -> Self {
+        FunctionTable {
+            functions: BTreeMap::new(),
+        }
+    }
+    
+    fn declare(&mut self, name: String, params: Vec<Type>, return_type: Type) -> Result<(), String> {
+        if self.functions.contains_key(&name) {
+            return Err(format!("Function '{}' already declared", name));
+        }
+        self.functions.insert(name, FunctionSignature { params, return_type });
+        Ok(())
+    }
+    
+    fn lookup(&self, name: &str) -> Option<&FunctionSignature> {
+        self.functions.get(name)
+    }
+}
 
 /// Symbol table for tracking variables in scope
 #[derive(Debug, Clone)]
@@ -65,28 +98,69 @@ impl TypeChecker {
     /// Type check an expression, returning a typed AST
     pub fn check(mut expr: Expr) -> Result<Expr, TypeError> {
         let mut symbols = SymbolTable::new();
-        Self::infer_type(&mut expr, &mut symbols)?;
+        let func_table = FunctionTable::new(); // Empty for expression mode
+        Self::infer_type(&mut expr, &mut symbols, &func_table)?;
         Ok(expr)
     }
 
     /// Type check a program (script mode)
     pub fn check_program(mut program: Program) -> Result<Program, TypeError> {
+        let mut func_table = FunctionTable::new();
+        
+        // First pass: Register all function signatures
+        for func in &program.functions {
+            let param_types: Vec<Type> = func.params.iter().map(|p| p.ty.clone()).collect();
+            func_table.declare(func.name.clone(), param_types, func.return_type.clone())
+                .map_err(|msg| TypeError {
+                    kind: TypeErrorKind::UndefinedFunction(msg),
+                    span: func.span,
+                })?;
+        }
+        
+        // Second pass: Type check each function body
+        for func in &mut program.functions {
+            Self::check_function(func, &func_table)?;
+        }
+        
+        // Third pass: Type check top-level statements
         let mut symbols = SymbolTable::new();
-
         for stmt in &mut program.stmts {
-            Self::check_stmt(stmt, &mut symbols)?;
+            Self::check_stmt(stmt, &mut symbols, &func_table)?;
         }
 
         Ok(program)
     }
+    
+    /// Type check a function definition
+    fn check_function(func: &mut FunctionDef, func_table: &FunctionTable) -> Result<(), TypeError> {
+        let mut symbols = SymbolTable::new();
+        
+        // Add parameters to symbol table
+        for param in &func.params {
+            symbols.declare(param.name.clone(), param.ty.clone())
+                .map_err(|msg| TypeError {
+                    kind: TypeErrorKind::UndefinedVariable(msg),
+                    span: func.span,
+                })?;
+        }
+        
+        // Type check function body
+        for stmt in &mut func.body {
+            Self::check_stmt(stmt, &mut symbols, func_table)?;
+        }
+        
+        // TODO: Verify all code paths return a value (if return_type != Void)
+        
+        Ok(())
+    }
 
     /// Type check a statement
-    fn check_stmt(stmt: &mut Stmt, symbols: &mut SymbolTable) -> Result<(), TypeError> {
+    fn check_stmt(stmt: &mut Stmt, symbols: &mut SymbolTable, func_table: &FunctionTable) -> Result<(), TypeError> {
         match &mut stmt.kind {
             StmtKind::VarDecl { ty, name, init } => {
                 // Type check initializer if present
                 if let Some(init_expr) = init {
-                    Self::infer_type(init_expr, symbols)?;
+                    Self::infer_type(init_expr, symbols, func_table)?;
 
                     // Check that initializer type matches declared type
                     let init_ty = init_expr.ty.as_ref().unwrap();
@@ -117,7 +191,7 @@ impl TypeChecker {
 
             StmtKind::Assignment { name, value } => {
                 // Type check the value
-                Self::infer_type(value, symbols)?;
+                Self::infer_type(value, symbols, func_table)?;
 
                 // Check that variable exists
                 let var_ty = symbols.lookup(name).ok_or_else(|| TypeError {
@@ -139,17 +213,17 @@ impl TypeChecker {
             }
 
             StmtKind::Return(expr) => {
-                Self::infer_type(expr, symbols)?;
+                Self::infer_type(expr, symbols, func_table)?;
             }
 
             StmtKind::Expr(expr) => {
-                Self::infer_type(expr, symbols)?;
+                Self::infer_type(expr, symbols, func_table)?;
             }
 
             StmtKind::Block(stmts) => {
                 symbols.push_scope();
                 for stmt in stmts {
-                    Self::check_stmt(stmt, symbols)?;
+                    Self::check_stmt(stmt, symbols, func_table)?;
                 }
                 symbols.pop_scope();
             }
@@ -159,16 +233,16 @@ impl TypeChecker {
                 then_stmt,
                 else_stmt,
             } => {
-                Self::infer_type(condition, symbols)?;
-                Self::check_stmt(then_stmt, symbols)?;
+                Self::infer_type(condition, symbols, func_table)?;
+                Self::check_stmt(then_stmt, symbols, func_table)?;
                 if let Some(else_s) = else_stmt {
-                    Self::check_stmt(else_s, symbols)?;
+                    Self::check_stmt(else_s, symbols, func_table)?;
                 }
             }
 
             StmtKind::While { condition, body } => {
-                Self::infer_type(condition, symbols)?;
-                Self::check_stmt(body, symbols)?;
+                Self::infer_type(condition, symbols, func_table)?;
+                Self::check_stmt(body, symbols, func_table)?;
             }
 
             StmtKind::For {
@@ -180,18 +254,18 @@ impl TypeChecker {
                 symbols.push_scope();
 
                 if let Some(init_stmt) = init {
-                    Self::check_stmt(init_stmt, symbols)?;
+                    Self::check_stmt(init_stmt, symbols, func_table)?;
                 }
 
                 if let Some(cond_expr) = condition {
-                    Self::infer_type(cond_expr, symbols)?;
+                    Self::infer_type(cond_expr, symbols, func_table)?;
                 }
 
                 if let Some(inc_expr) = increment {
-                    Self::infer_type(inc_expr, symbols)?;
+                    Self::infer_type(inc_expr, symbols, func_table)?;
                 }
 
-                Self::check_stmt(body, symbols)?;
+                Self::check_stmt(body, symbols, func_table)?;
 
                 symbols.pop_scope();
             }
@@ -200,7 +274,7 @@ impl TypeChecker {
         Ok(())
     }
 
-    fn infer_type(expr: &mut Expr, symbols: &mut SymbolTable) -> Result<(), TypeError> {
+    fn infer_type(expr: &mut Expr, symbols: &mut SymbolTable, func_table: &FunctionTable) -> Result<(), TypeError> {
         match &mut expr.kind {
             // Literals
             ExprKind::Number(_) => {
@@ -244,8 +318,8 @@ impl TypeChecker {
             | ExprKind::Div(left, right)
             | ExprKind::Mod(left, right)
             | ExprKind::Pow(left, right) => {
-                Self::infer_type(left, symbols)?;
-                Self::infer_type(right, symbols)?;
+                Self::infer_type(left, symbols, func_table)?;
+                Self::infer_type(right, symbols, func_table)?;
 
                 let left_ty = left.ty.clone().unwrap();
                 let right_ty = right.ty.clone().unwrap();
@@ -297,8 +371,8 @@ impl TypeChecker {
             | ExprKind::GreaterEq(left, right)
             | ExprKind::Eq(left, right)
             | ExprKind::NotEq(left, right) => {
-                Self::infer_type(left, symbols)?;
-                Self::infer_type(right, symbols)?;
+                Self::infer_type(left, symbols, func_table)?;
+                Self::infer_type(right, symbols, func_table)?;
 
                 // Comparisons always return Fixed (0 or 1)
                 expr.ty = Some(Type::Fixed);
@@ -306,8 +380,8 @@ impl TypeChecker {
 
             // Logical operations
             ExprKind::And(left, right) | ExprKind::Or(left, right) => {
-                Self::infer_type(left, symbols)?;
-                Self::infer_type(right, symbols)?;
+                Self::infer_type(left, symbols, func_table)?;
+                Self::infer_type(right, symbols, func_table)?;
 
                 expr.ty = Some(Type::Fixed);
             }
@@ -318,9 +392,9 @@ impl TypeChecker {
                 true_expr,
                 false_expr,
             } => {
-                Self::infer_type(condition, symbols)?;
-                Self::infer_type(true_expr, symbols)?;
-                Self::infer_type(false_expr, symbols)?;
+                Self::infer_type(condition, symbols, func_table)?;
+                Self::infer_type(true_expr, symbols, func_table)?;
+                Self::infer_type(false_expr, symbols, func_table)?;
 
                 // Result type is the type of true_expr (must match false_expr)
                 let true_ty = true_expr.ty.as_ref().unwrap();
@@ -348,7 +422,7 @@ impl TypeChecker {
                 })?;
 
                 // Type check the value
-                Self::infer_type(value, symbols)?;
+                Self::infer_type(value, symbols, func_table)?;
                 let value_ty = value.ty.as_ref().unwrap();
 
                 // Check type matches
@@ -370,28 +444,58 @@ impl TypeChecker {
             ExprKind::Call { name, args } => {
                 // Type check arguments
                 for arg in args.iter_mut() {
-                    Self::infer_type(arg, symbols)?;
+                    Self::infer_type(arg, symbols, func_table)?;
                 }
 
-                // Determine return type based on function
-                let return_ty = Self::function_return_type(name, args)?;
-                expr.ty = Some(return_ty);
+                // Check if it's a user-defined function first
+                if let Some(sig) = func_table.lookup(name) {
+                    // Validate argument count
+                    if args.len() != sig.params.len() {
+                        return Err(TypeError {
+                            kind: TypeErrorKind::InvalidArgumentCount {
+                                expected: sig.params.len(),
+                                found: args.len(),
+                            },
+                            span: expr.span,
+                        });
+                    }
+                    
+                    // Validate argument types
+                    for (i, (arg, expected_ty)) in args.iter().zip(sig.params.iter()).enumerate() {
+                        let arg_ty = arg.ty.as_ref().unwrap();
+                        if arg_ty != expected_ty {
+                            return Err(TypeError {
+                                kind: TypeErrorKind::Mismatch {
+                                    expected: expected_ty.clone(),
+                                    found: arg_ty.clone(),
+                                },
+                                span: arg.span,
+                            });
+                        }
+                    }
+                    
+                    expr.ty = Some(sig.return_type.clone());
+                } else {
+                    // Built-in function
+                    let return_ty = Self::function_return_type(name, args)?;
+                    expr.ty = Some(return_ty);
+                }
             }
 
             // Vector constructors
             // In GLSL, these can take mixed vec/scalar args: vec3(vec2, float) is valid
             ExprKind::Vec2Constructor(args) => {
-                Self::check_vector_constructor(args, 2, "vec2", expr.span, symbols)?;
+                Self::check_vector_constructor(args, 2, "vec2", expr.span, symbols, func_table)?;
                 expr.ty = Some(Type::Vec2);
             }
 
             ExprKind::Vec3Constructor(args) => {
-                Self::check_vector_constructor(args, 3, "vec3", expr.span, symbols)?;
+                Self::check_vector_constructor(args, 3, "vec3", expr.span, symbols, func_table)?;
                 expr.ty = Some(Type::Vec3);
             }
 
             ExprKind::Vec4Constructor(args) => {
-                Self::check_vector_constructor(args, 4, "vec4", expr.span, symbols)?;
+                Self::check_vector_constructor(args, 4, "vec4", expr.span, symbols, func_table)?;
                 expr.ty = Some(Type::Vec4);
             }
 
@@ -399,7 +503,7 @@ impl TypeChecker {
                 expr: base_expr,
                 components,
             } => {
-                Self::infer_type(base_expr, symbols)?;
+                Self::infer_type(base_expr, symbols, func_table)?;
                 let base_type = base_expr.ty.as_ref().unwrap();
 
                 // Validate swizzle is on a vector type
@@ -445,10 +549,11 @@ impl TypeChecker {
         name: &str,
         span: Span,
         symbols: &mut SymbolTable,
+        func_table: &FunctionTable,
     ) -> Result<(), TypeError> {
         // Type check all arguments
         for arg in args.iter_mut() {
-            Self::infer_type(arg, symbols)?;
+            Self::infer_type(arg, symbols, func_table)?;
         }
 
         // Count total components provided
