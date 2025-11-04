@@ -1,5 +1,15 @@
 #![cfg_attr(not(test), no_std)]
 
+#[cfg(test)]
+mod test_allocator;
+
+#[cfg(test)]
+use test_allocator::LimitedAllocator;
+
+#[cfg(test)]
+#[global_allocator]
+static GLOBAL: LimitedAllocator = LimitedAllocator::new(1024); // 1GB limit for tests
+
 extern crate alloc;
 
 /// Shared sine lookup table to avoid duplication

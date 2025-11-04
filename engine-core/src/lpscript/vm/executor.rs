@@ -64,8 +64,15 @@ impl<'a> LpsVm<'a> {
         inputs: Vec<(usize, LocalType)>,
         limits: VmLimits,
     ) -> Result<Self, RuntimeError> {
+        // Pre-allocate locals - use either program.locals.len() or a reasonable default (64)
+        // This prevents runtime allocations during run()
+        let local_count = if program.locals.len() > 0 {
+            program.locals.len()
+        } else {
+            64 // Default: allocate 64 locals for scripts without explicit local definitions
+        };
         let mut locals = Vec::new();
-        locals.resize(program.locals.len(), LocalType::Fixed(Fixed::ZERO));
+        locals.resize(local_count, LocalType::Fixed(Fixed::ZERO));
 
         // Set input locals
         for (idx, local) in inputs {
