@@ -1,124 +1,259 @@
-/// Integration tests for comparison operators
+/// Integration tests for comparison operators using builder pattern test utilities
 #[cfg(test)]
 mod tests {
-    use crate::lpscript::*;
-    use crate::math::{Fixed, ToFixed};
+    use crate::lpscript::compiler::test_expr::*;
+    use crate::lpscript::compiler::test_util::TestCase;
+    use crate::lpscript::vm::opcodes::LpsOpCode;
+    use crate::math::ToFixed;
+
+    // ========================================================================
+    // Comprehensive tests - one per comparison operator
+    // Each tests AST, opcodes, and execution together
+    // ========================================================================
 
     #[test]
-    fn test_parse_less_than() {
-        let program = parse_expr("x > 5.0");
-        // Should parse without panicking
-        assert!(program.opcodes.len() > 0);
+    fn test_less_than() -> Result<(), String> {
+        // Test with literals: AST + opcodes + result
+        TestCase::new("1.0 < 2.0")
+            .expect_ast(less(num(1.0), num(2.0)))
+            .expect_opcodes(vec![
+                LpsOpCode::Push(1.0.to_fixed()),
+                LpsOpCode::Push(2.0.to_fixed()),
+                LpsOpCode::LessFixed,
+                LpsOpCode::Return,
+            ])
+            .expect_result_bool(true)
+            .run()?;
+
+        // Test with variable: true case
+        TestCase::new("x < 0.5")
+            .with_x(0.3)
+            .expect_result_bool(true)
+            .run()?;
+
+        // Test with variable: false case
+        TestCase::new("x < 0.5")
+            .with_x(0.7)
+            .expect_result_bool(false)
+            .run()
     }
 
     #[test]
-    fn test_parse_all_comparisons() {
-        // Test all comparison operators parse correctly
-        let _ = parse_expr("1.0 < 2.0");
-        let _ = parse_expr("1.0 > 2.0");
-        let _ = parse_expr("1.0 <= 2.0");
-        let _ = parse_expr("1.0 >= 2.0");
-        let _ = parse_expr("1.0 == 2.0");
-        let _ = parse_expr("1.0 != 2.0");
+    fn test_greater_than() -> Result<(), String> {
+        // Test with literals: AST + opcodes + result
+        TestCase::new("5.0 > 3.0")
+            .expect_ast(greater(num(5.0), num(3.0)))
+            .expect_opcodes(vec![
+                LpsOpCode::Push(5.0.to_fixed()),
+                LpsOpCode::Push(3.0.to_fixed()),
+                LpsOpCode::GreaterFixed,
+                LpsOpCode::Return,
+            ])
+            .expect_result_bool(true)
+            .run()?;
+
+        // Test with variable: true case
+        TestCase::new("x > 0.5")
+            .with_x(0.6)
+            .expect_result_bool(true)
+            .run()?;
+
+        // Test with variable: false case
+        TestCase::new("x > 0.5")
+            .with_x(0.4)
+            .expect_result_bool(false)
+            .run()
     }
 
     #[test]
-    fn test_comparison_codegen() {
-        use crate::lpscript::vm::opcodes::LpsOpCode;
-        
-        let program = parse_expr("5.0 > 3.0");
-        // Should have Push, Push, GreaterFixed, Return
-        let has_greater = program.opcodes.iter().any(|op| matches!(op, LpsOpCode::GreaterFixed));
-        assert!(has_greater, "Should generate GreaterFixed opcode");
+    fn test_less_equal() -> Result<(), String> {
+        // Test with literals: AST + opcodes + result
+        TestCase::new("2.0 <= 3.0")
+            .expect_ast(less_eq(num(2.0), num(3.0)))
+            .expect_opcodes(vec![
+                LpsOpCode::Push(2.0.to_fixed()),
+                LpsOpCode::Push(3.0.to_fixed()),
+                LpsOpCode::LessEqFixed,
+                LpsOpCode::Return,
+            ])
+            .expect_result_bool(true)
+            .run()?;
+
+        // Test with variable: equal case (should be true)
+        TestCase::new("x <= 0.5")
+            .with_x(0.5)
+            .expect_result_bool(true)
+            .run()?;
+
+        // Test with variable: less case (should be true)
+        TestCase::new("x <= 0.5")
+            .with_x(0.3)
+            .expect_result_bool(true)
+            .run()?;
+
+        // Test with variable: greater case (should be false)
+        TestCase::new("x <= 0.5")
+            .with_x(0.7)
+            .expect_result_bool(false)
+            .run()
     }
 
     #[test]
-    fn test_comparison_execution() {
-        use crate::lpscript::vm::LpsVm;
-        use crate::lpscript::vm::VmLimits;
+    fn test_greater_equal() -> Result<(), String> {
+        // Test with literals: AST + opcodes + result
+        TestCase::new("5.0 >= 3.0")
+            .expect_ast(greater_eq(num(5.0), num(3.0)))
+            .expect_opcodes(vec![
+                LpsOpCode::Push(5.0.to_fixed()),
+                LpsOpCode::Push(3.0.to_fixed()),
+                LpsOpCode::GreaterEqFixed,
+                LpsOpCode::Return,
+            ])
+            .expect_result_bool(true)
+            .run()?;
 
-        // Test: 0.6 > 0.5 should be 1.0 (true)
-        let program = parse_expr("uv.x > 0.5");
-        let mut vm = LpsVm::new(&program, vec![], VmLimits::default()).unwrap();
-        let result = vm.run(0.6.to_fixed(), Fixed::ZERO, Fixed::ZERO).unwrap();
-        assert_eq!(result.to_f32(), 1.0, "0.6 > 0.5 should be true (1.0)");
+        // Test with variable: equal case (should be true)
+        TestCase::new("x >= 0.5")
+            .with_x(0.5)
+            .expect_result_bool(true)
+            .run()?;
 
-        // Test: 0.4 > 0.5 should be 0.0 (false)
-        let result = vm.run(0.4.to_fixed(), Fixed::ZERO, Fixed::ZERO).unwrap();
-        assert_eq!(result.to_f32(), 0.0, "0.4 > 0.5 should be false (0.0)");
+        // Test with variable: greater case (should be true)
+        TestCase::new("x >= 0.5")
+            .with_x(0.7)
+            .expect_result_bool(true)
+            .run()?;
+
+        // Test with variable: less case (should be false)
+        TestCase::new("x >= 0.5")
+            .with_x(0.3)
+            .expect_result_bool(false)
+            .run()
     }
 
     #[test]
-    fn test_less_than_execution() {
-        use crate::lpscript::vm::LpsVm;
-        use crate::lpscript::vm::VmLimits;
+    fn test_equal() -> Result<(), String> {
+        // Test with literals: AST + opcodes + result
+        TestCase::new("2.0 == 2.0")
+            .expect_ast(eq(num(2.0), num(2.0)))
+            .expect_opcodes(vec![
+                LpsOpCode::Push(2.0.to_fixed()),
+                LpsOpCode::Push(2.0.to_fixed()),
+                LpsOpCode::EqFixed,
+                LpsOpCode::Return,
+            ])
+            .expect_result_bool(true)
+            .run()?;
 
-        let program = parse_expr("uv.x < 0.5");
-        let mut vm = LpsVm::new(&program, vec![], VmLimits::default()).unwrap();
-        
-        let result = vm.run(0.3.to_fixed(), Fixed::ZERO, Fixed::ZERO).unwrap();
-        assert_eq!(result.to_f32(), 1.0, "0.3 < 0.5 should be true");
-        
-        let result = vm.run(0.7.to_fixed(), Fixed::ZERO, Fixed::ZERO).unwrap();
-        assert_eq!(result.to_f32(), 0.0, "0.7 < 0.5 should be false");
+        // Test with variable: equal case
+        TestCase::new("x == 0.5")
+            .with_x(0.5)
+            .expect_result_bool(true)
+            .run()?;
+
+        // Test with variable: not equal case
+        TestCase::new("x == 0.5")
+            .with_x(0.3)
+            .expect_result_bool(false)
+            .run()
     }
 
     #[test]
-    fn test_equality_execution() {
-        use crate::lpscript::vm::LpsVm;
-        use crate::lpscript::vm::VmLimits;
+    fn test_not_equal() -> Result<(), String> {
+        // Test with literals: AST + opcodes + result
+        TestCase::new("2.0 != 3.0")
+            .expect_ast(not_eq(num(2.0), num(3.0)))
+            .expect_opcodes(vec![
+                LpsOpCode::Push(2.0.to_fixed()),
+                LpsOpCode::Push(3.0.to_fixed()),
+                LpsOpCode::NotEqFixed,
+                LpsOpCode::Return,
+            ])
+            .expect_result_bool(true)
+            .run()?;
 
-        let program = parse_expr("uv.x == 0.5");
-        let mut vm = LpsVm::new(&program, vec![], VmLimits::default()).unwrap();
-        
-        let result = vm.run(0.5.to_fixed(), Fixed::ZERO, Fixed::ZERO).unwrap();
-        assert_eq!(result.to_f32(), 1.0, "0.5 == 0.5 should be true");
-        
-        let result = vm.run(0.3.to_fixed(), Fixed::ZERO, Fixed::ZERO).unwrap();
-        assert_eq!(result.to_f32(), 0.0, "0.3 == 0.5 should be false");
+        // Test with variable: not equal case
+        TestCase::new("x != 0.5")
+            .with_x(0.3)
+            .expect_result_bool(true)
+            .run()?;
+
+        // Test with variable: equal case
+        TestCase::new("x != 0.5")
+            .with_x(0.5)
+            .expect_result_bool(false)
+            .run()
+    }
+
+    // ========================================================================
+    // Higher-order tests combining multiple comparisons
+    // ========================================================================
+
+    #[test]
+    fn test_comparison_with_logical_and() -> Result<(), String> {
+        // Test chained comparisons: x in range (0.3, 0.7)
+        TestCase::new("x > 0.3 && x < 0.7")
+            .with_x(0.5)
+            .expect_result_bool(true)
+            .run()?;
+
+        // Value below range
+        TestCase::new("x > 0.3 && x < 0.7")
+            .with_x(0.2)
+            .expect_result_bool(false)
+            .run()?;
+
+        // Value above range
+        TestCase::new("x > 0.3 && x < 0.7")
+            .with_x(0.8)
+            .expect_result_bool(false)
+            .run()
     }
 
     #[test]
-    fn test_not_equal_execution() {
-        use crate::lpscript::vm::LpsVm;
-        use crate::lpscript::vm::VmLimits;
+    fn test_comparison_with_ternary() -> Result<(), String> {
+        // Comparison used in ternary condition
+        TestCase::new("x > 0.5 ? 1.0 : 0.0")
+            .with_x(0.6)
+            .expect_result_fixed(1.0)
+            .run()?;
 
-        let program = parse_expr("uv.x != 0.5");
-        let mut vm = LpsVm::new(&program, vec![], VmLimits::default()).unwrap();
-        
-        let result = vm.run(0.3.to_fixed(), Fixed::ZERO, Fixed::ZERO).unwrap();
-        assert_eq!(result.to_f32(), 1.0, "0.3 != 0.5 should be true");
-        
-        let result = vm.run(0.5.to_fixed(), Fixed::ZERO, Fixed::ZERO).unwrap();
-        assert_eq!(result.to_f32(), 0.0, "0.5 != 0.5 should be false");
+        TestCase::new("x > 0.5 ? 1.0 : 0.0")
+            .with_x(0.4)
+            .expect_result_fixed(0.0)
+            .run()?;
+
+        // Complex: chained comparisons in ternary
+        TestCase::new("x > 0.3 && x < 0.7 ? 10.0 : -10.0")
+            .with_x(0.5)
+            .expect_result_fixed(10.0)
+            .run()?;
+
+        TestCase::new("x > 0.3 && x < 0.7 ? 10.0 : -10.0")
+            .with_x(0.2)
+            .expect_result_fixed(-10.0)
+            .run()
     }
 
     #[test]
-    fn test_comparison_chain() {
-        use crate::lpscript::vm::LpsVm;
-        use crate::lpscript::vm::VmLimits;
+    fn test_multiple_comparison_types() -> Result<(), String> {
+        // Mix different comparison operators
+        TestCase::new("x >= 0.0 && x <= 1.0")
+            .with_x(0.5)
+            .expect_result_bool(true)
+            .run()?;
 
-        // Test chained comparisons with ternary
-        let program = parse_expr("uv.x > 0.3 && uv.x < 0.7 ? 1.0 : 0.0");
-        let mut vm = LpsVm::new(&program, vec![], VmLimits::default()).unwrap();
-        
-        // 0.5 is between 0.3 and 0.7
-        let result = vm.run(0.5.to_fixed(), Fixed::ZERO, Fixed::ZERO).unwrap();
-        assert_eq!(result.to_f32(), 1.0);
-        
-        // 0.2 is not between 0.3 and 0.7
-        let result = vm.run(0.2.to_fixed(), Fixed::ZERO, Fixed::ZERO).unwrap();
-        assert_eq!(result.to_f32(), 0.0);
-    }
+        // Inequality with equality
+        TestCase::new("x != 0.0 && y == 1.0")
+            .with_x(0.5)
+            .with_y(1.0)
+            .expect_result_bool(true)
+            .run()?;
 
-    #[test]
-    fn test_type_checking_comparisons() {
-        // Comparisons should compile successfully and type check
-        let result = compile_expr("1.0 > 2.0");
-        assert!(result.is_ok(), "Simple comparison should type check");
-        
-        let result = compile_expr("uv.x < 0.5");
-        assert!(result.is_ok(), "Variable comparison should type check");
+        TestCase::new("x != 0.0 && y == 1.0")
+            .with_x(0.0)
+            .with_y(1.0)
+            .expect_result_bool(false)
+            .run()
     }
 }
-

@@ -8,3 +8,8 @@ pub mod generator;
 
 pub mod expr;
 
+#[cfg(test)]
+pub mod test_util;
+#[cfg(test)]
+pub mod test_expr;
+
