@@ -5,7 +5,7 @@ use crate::lpscript::error::RuntimeError;
 /// Execute AddVec2: pop 4 (b.y, b.x, a.y, a.x), push 2 ((a+b).y, (a+b).x)
 /// Stack grows upward: [..., a.x, a.y, b.x, b.y] -> [..., result.x, result.y]
 #[inline(always)]
-pub fn exec_add_vec2(stack: &mut [i32; 64], sp: &mut usize) -> Result<(), RuntimeError> {
+pub fn exec_add_vec2(stack: &mut [i32], sp: &mut usize) -> Result<(), RuntimeError> {
     if *sp < 4 {
         return Err(RuntimeError::StackUnderflow { required: 4, actual: *sp });
     }
@@ -33,7 +33,7 @@ pub fn exec_add_vec2(stack: &mut [i32; 64], sp: &mut usize) -> Result<(), Runtim
 
 /// Execute SubVec2: pop 4, push 2
 #[inline(always)]
-pub fn exec_sub_vec2(stack: &mut [i32; 64], sp: &mut usize) -> Result<(), RuntimeError> {
+pub fn exec_sub_vec2(stack: &mut [i32], sp: &mut usize) -> Result<(), RuntimeError> {
     if *sp < 4 {
         return Err(RuntimeError::StackUnderflow { required: 4, actual: *sp });
     }
@@ -59,9 +59,65 @@ pub fn exec_sub_vec2(stack: &mut [i32; 64], sp: &mut usize) -> Result<(), Runtim
     Ok(())
 }
 
+/// Execute MulVec2: component-wise multiplication, pop 4, push 2
+#[inline(always)]
+pub fn exec_mul_vec2(stack: &mut [i32], sp: &mut usize) -> Result<(), RuntimeError> {
+    if *sp < 4 {
+        return Err(RuntimeError::StackUnderflow { required: 4, actual: *sp });
+    }
+    
+    *sp -= 1;
+    let by = Fixed(stack[*sp]);
+    *sp -= 1;
+    let bx = Fixed(stack[*sp]);
+    *sp -= 1;
+    let ay = Fixed(stack[*sp]);
+    *sp -= 1;
+    let ax = Fixed(stack[*sp]);
+    
+    let a = Vec2::new(ax, ay);
+    let b = Vec2::new(bx, by);
+    let result = a.mul_comp(b);
+    
+    stack[*sp] = result.x.0;
+    *sp += 1;
+    stack[*sp] = result.y.0;
+    *sp += 1;
+    
+    Ok(())
+}
+
+/// Execute DivVec2: component-wise division, pop 4, push 2
+#[inline(always)]
+pub fn exec_div_vec2(stack: &mut [i32], sp: &mut usize) -> Result<(), RuntimeError> {
+    if *sp < 4 {
+        return Err(RuntimeError::StackUnderflow { required: 4, actual: *sp });
+    }
+    
+    *sp -= 1;
+    let by = Fixed(stack[*sp]);
+    *sp -= 1;
+    let bx = Fixed(stack[*sp]);
+    *sp -= 1;
+    let ay = Fixed(stack[*sp]);
+    *sp -= 1;
+    let ax = Fixed(stack[*sp]);
+    
+    let a = Vec2::new(ax, ay);
+    let b = Vec2::new(bx, by);
+    let result = a.div_comp(b);
+    
+    stack[*sp] = result.x.0;
+    *sp += 1;
+    stack[*sp] = result.y.0;
+    *sp += 1;
+    
+    Ok(())
+}
+
 /// Execute MulVec2Scalar: pop 3 (scalar, vec.y, vec.x), push 2 (result.y, result.x)
 #[inline(always)]
-pub fn exec_mul_vec2_scalar(stack: &mut [i32; 64], sp: &mut usize) -> Result<(), RuntimeError> {
+pub fn exec_mul_vec2_scalar(stack: &mut [i32], sp: &mut usize) -> Result<(), RuntimeError> {
     if *sp < 3 {
         return Err(RuntimeError::StackUnderflow { required: 3, actual: *sp });
     }
@@ -84,9 +140,34 @@ pub fn exec_mul_vec2_scalar(stack: &mut [i32; 64], sp: &mut usize) -> Result<(),
     Ok(())
 }
 
+/// Execute DivVec2Scalar: pop 3 (scalar, vec.y, vec.x), push 2 (result.y, result.x)
+#[inline(always)]
+pub fn exec_div_vec2_scalar(stack: &mut [i32], sp: &mut usize) -> Result<(), RuntimeError> {
+    if *sp < 3 {
+        return Err(RuntimeError::StackUnderflow { required: 3, actual: *sp });
+    }
+    
+    *sp -= 1;
+    let scalar = Fixed(stack[*sp]);
+    *sp -= 1;
+    let vy = Fixed(stack[*sp]);
+    *sp -= 1;
+    let vx = Fixed(stack[*sp]);
+    
+    let v = Vec2::new(vx, vy);
+    let result = v / scalar;
+    
+    stack[*sp] = result.x.0;
+    *sp += 1;
+    stack[*sp] = result.y.0;
+    *sp += 1;
+    
+    Ok(())
+}
+
 /// Execute Dot2: pop 4 (b.y, b.x, a.y, a.x), push 1 (a·b)
 #[inline(always)]
-pub fn exec_dot2(stack: &mut [i32; 64], sp: &mut usize) -> Result<(), RuntimeError> {
+pub fn exec_dot2(stack: &mut [i32], sp: &mut usize) -> Result<(), RuntimeError> {
     if *sp < 4 {
         return Err(RuntimeError::StackUnderflow { required: 4, actual: *sp });
     }
@@ -112,7 +193,7 @@ pub fn exec_dot2(stack: &mut [i32; 64], sp: &mut usize) -> Result<(), RuntimeErr
 
 /// Execute Length2: pop 2 (v.y, v.x), push 1 (length)
 #[inline(always)]
-pub fn exec_length2(stack: &mut [i32; 64], sp: &mut usize) -> Result<(), RuntimeError> {
+pub fn exec_length2(stack: &mut [i32], sp: &mut usize) -> Result<(), RuntimeError> {
     if *sp < 2 {
         return Err(RuntimeError::StackUnderflow { required: 2, actual: *sp });
     }
@@ -134,7 +215,7 @@ pub fn exec_length2(stack: &mut [i32; 64], sp: &mut usize) -> Result<(), Runtime
 
 /// Execute Normalize2: pop 2 (v.y, v.x), push 2 (normalized.y, normalized.x)
 #[inline(always)]
-pub fn exec_normalize2(stack: &mut [i32; 64], sp: &mut usize) -> Result<(), RuntimeError> {
+pub fn exec_normalize2(stack: &mut [i32], sp: &mut usize) -> Result<(), RuntimeError> {
     if *sp < 2 {
         return Err(RuntimeError::StackUnderflow { required: 2, actual: *sp });
     }
@@ -161,6 +242,35 @@ pub fn exec_normalize2(stack: &mut [i32; 64], sp: &mut usize) -> Result<(), Runt
         stack[*sp] = result.y.0;
         *sp += 1;
     }
+    
+    Ok(())
+}
+
+/// Execute Distance2: pop 4 (two vec2s), push 1 (distance)
+#[inline(always)]
+pub fn exec_distance2(stack: &mut [i32], sp: &mut usize) -> Result<(), RuntimeError> {
+    if *sp < 4 {
+        return Err(RuntimeError::StackUnderflow { required: 4, actual: *sp });
+    }
+    
+    *sp -= 1;
+    let by = Fixed(stack[*sp]);
+    *sp -= 1;
+    let bx = Fixed(stack[*sp]);
+    *sp -= 1;
+    let ay = Fixed(stack[*sp]);
+    *sp -= 1;
+    let ax = Fixed(stack[*sp]);
+    
+    let a = Vec2::new(ax, ay);
+    let b = Vec2::new(bx, by);
+    let dx = a.x - b.x;
+    let dy = a.y - b.y;
+    let dist_sq = (dx * dx) + (dy * dy);
+    let dist = crate::math::sqrt(dist_sq);
+    
+    stack[*sp] = dist.0;
+    *sp += 1;
     
     Ok(())
 }

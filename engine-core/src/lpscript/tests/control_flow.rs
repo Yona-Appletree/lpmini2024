@@ -1,6 +1,7 @@
 /// Comprehensive tests for control flow statements
 use crate::lpscript::*;
 use crate::math::{Fixed, ToFixed};
+use crate::lpscript::vm::VmLimits;
 
 #[test]
 fn test_if_without_else() {
@@ -11,7 +12,7 @@ fn test_if_without_else() {
         return 0.0;
     ";
     let program = parse_script(script);
-    let mut vm = LpsVm::new(program, vec![]).unwrap();
+    let mut vm = LpsVm::new(&program, vec![], VmLimits::default()).unwrap();
     
     let result = vm.run(0.6.to_fixed(), Fixed::ZERO, Fixed::ZERO).unwrap();
     assert_eq!(result.to_f32(), 1.0);
@@ -35,7 +36,7 @@ fn test_nested_if_statements() {
         }
     ";
     let program = parse_script(script);
-    let mut vm = LpsVm::new(program, vec![]).unwrap();
+    let mut vm = LpsVm::new(&program, vec![], VmLimits::default()).unwrap();
     
     let result = vm.run(0.9.to_fixed(), Fixed::ZERO, Fixed::ZERO).unwrap();
     assert_eq!(result.to_f32(), 3.0);
@@ -59,7 +60,7 @@ fn test_while_loop_counter() {
         return sum;
     ";
     let program = parse_script(script);
-    let mut vm = LpsVm::new(program, vec![]).unwrap();
+    let mut vm = LpsVm::new(&program, vec![], VmLimits::default()).unwrap();
     
     let result = vm.run(Fixed::ZERO, Fixed::ZERO, Fixed::ZERO).unwrap();
     // 0 + 1 + 2 + 3 + 4 = 10
@@ -76,7 +77,7 @@ fn test_for_loop_sum() {
         return sum;
     ";
     let program = parse_script(script);
-    let mut vm = LpsVm::new(program, vec![]).unwrap();
+    let mut vm = LpsVm::new(&program, vec![], VmLimits::default()).unwrap();
     
     let result = vm.run(Fixed::ZERO, Fixed::ZERO, Fixed::ZERO).unwrap();
     // 1 + 2 + 3 + 4 = 10
@@ -96,7 +97,7 @@ fn test_for_loop_with_break_condition() {
         return result;
     ";
     let program = parse_script(script);
-    let mut vm = LpsVm::new(program, vec![]).unwrap();
+    let mut vm = LpsVm::new(&program, vec![], VmLimits::default()).unwrap();
     
     let result = vm.run(Fixed::ZERO, Fixed::ZERO, Fixed::ZERO).unwrap();
     assert_eq!(result.to_f32(), 3.0);
@@ -114,7 +115,7 @@ fn test_nested_loops() {
         return count;
     ";
     let program = parse_script(script);
-    let mut vm = LpsVm::new(program, vec![]).unwrap();
+    let mut vm = LpsVm::new(&program, vec![], VmLimits::default()).unwrap();
     
     let result = vm.run(Fixed::ZERO, Fixed::ZERO, Fixed::ZERO).unwrap();
     // 3 * 2 = 6
@@ -136,7 +137,7 @@ fn test_if_else_chain() {
         }
     ";
     let program = parse_script(script);
-    let mut vm = LpsVm::new(program, vec![]).unwrap();
+    let mut vm = LpsVm::new(&program, vec![], VmLimits::default()).unwrap();
     
     let result = vm.run(0.1.to_fixed(), Fixed::ZERO, Fixed::ZERO).unwrap();
     assert_eq!(result.to_f32(), 1.0);

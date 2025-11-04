@@ -5,12 +5,36 @@
 use crate::math::Fixed;
 use crate::test_engine::LoadSource;
 
-pub mod fixed;
+// Fixed-point opcodes (split into basic, advanced, logic)
+pub mod fixed_basic;
+pub mod fixed_advanced;
+pub mod fixed_logic;
+
+// Comparison opcodes
 pub mod comparisons;
+
+// Int32 opcodes
 pub mod int32;
+pub mod int32_compare;
+
+// Vector opcodes
 pub mod vec2;
+pub mod vec3;
+pub mod vec4;
+
+// Stack and control flow
 pub mod stack;
 pub mod control;
+
+// Local variables
+pub mod locals;
+
+// Load built-in variables
+pub mod load;
+
+// Texture and array operations
+pub mod textures;
+pub mod arrays;
 
 /// New typed OpCode enum (not yet in use - will replace test_engine::OpCode during migration)
 #[derive(Debug, Clone, Copy, PartialEq)]

@@ -395,13 +395,7 @@ impl Parser {
             true
         } else {
             // In debug mode, report what we expected vs what we got
-            #[cfg(debug_assertions)]
-            eprintln!(
-                "[Parser Error] Expected {:?} but found {:?} at position {}",
-                expected,
-                self.current().kind,
-                self.current().span.start
-            );
+            // Note: eprintln! not available in no_std
             false
         }
     }
@@ -411,12 +405,7 @@ impl Parser {
             self.advance();
             true
         } else {
-            #[cfg(debug_assertions)]
-            eprintln!(
-                "[Parser Warning] Expected semicolon but found {:?} at position {}",
-                self.current().kind,
-                self.current().span.start
-            );
+            // Note: eprintln! not available in no_std
             false
         }
     }

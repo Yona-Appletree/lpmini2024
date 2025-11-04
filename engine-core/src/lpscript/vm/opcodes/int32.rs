@@ -3,7 +3,7 @@ use crate::lpscript::error::RuntimeError;
 
 /// Execute AddInt32: pop b, a; push a + b
 #[inline(always)]
-pub fn exec_add_int32(stack: &mut [i32; 64], sp: &mut usize) -> Result<(), RuntimeError> {
+pub fn exec_add_int32(stack: &mut [i32], sp: &mut usize) -> Result<(), RuntimeError> {
     if *sp < 2 {
         return Err(RuntimeError::StackUnderflow {
             required: 2,
@@ -23,7 +23,7 @@ pub fn exec_add_int32(stack: &mut [i32; 64], sp: &mut usize) -> Result<(), Runti
 
 /// Execute SubInt32: pop b, a; push a - b
 #[inline(always)]
-pub fn exec_sub_int32(stack: &mut [i32; 64], sp: &mut usize) -> Result<(), RuntimeError> {
+pub fn exec_sub_int32(stack: &mut [i32], sp: &mut usize) -> Result<(), RuntimeError> {
     if *sp < 2 {
         return Err(RuntimeError::StackUnderflow {
             required: 2,
@@ -43,7 +43,7 @@ pub fn exec_sub_int32(stack: &mut [i32; 64], sp: &mut usize) -> Result<(), Runti
 
 /// Execute MulInt32: pop b, a; push a * b
 #[inline(always)]
-pub fn exec_mul_int32(stack: &mut [i32; 64], sp: &mut usize) -> Result<(), RuntimeError> {
+pub fn exec_mul_int32(stack: &mut [i32], sp: &mut usize) -> Result<(), RuntimeError> {
     if *sp < 2 {
         return Err(RuntimeError::StackUnderflow {
             required: 2,
@@ -63,7 +63,7 @@ pub fn exec_mul_int32(stack: &mut [i32; 64], sp: &mut usize) -> Result<(), Runti
 
 /// Execute DivInt32: pop b, a; push a / b
 #[inline(always)]
-pub fn exec_div_int32(stack: &mut [i32; 64], sp: &mut usize) -> Result<(), RuntimeError> {
+pub fn exec_div_int32(stack: &mut [i32], sp: &mut usize) -> Result<(), RuntimeError> {
     if *sp < 2 {
         return Err(RuntimeError::StackUnderflow {
             required: 2,
@@ -88,7 +88,7 @@ pub fn exec_div_int32(stack: &mut [i32; 64], sp: &mut usize) -> Result<(), Runti
 
 /// Execute ModInt32: pop b, a; push a % b
 #[inline(always)]
-pub fn exec_mod_int32(stack: &mut [i32; 64], sp: &mut usize) -> Result<(), RuntimeError> {
+pub fn exec_mod_int32(stack: &mut [i32], sp: &mut usize) -> Result<(), RuntimeError> {
     if *sp < 2 {
         return Err(RuntimeError::StackUnderflow {
             required: 2,
@@ -113,7 +113,7 @@ pub fn exec_mod_int32(stack: &mut [i32; 64], sp: &mut usize) -> Result<(), Runti
 
 /// Execute NegInt32: pop a; push -a
 #[inline(always)]
-pub fn exec_neg_int32(stack: &mut [i32; 64], sp: &mut usize) -> Result<(), RuntimeError> {
+pub fn exec_neg_int32(stack: &mut [i32], sp: &mut usize) -> Result<(), RuntimeError> {
     if *sp < 1 {
         return Err(RuntimeError::StackUnderflow {
             required: 1,
@@ -131,7 +131,7 @@ pub fn exec_neg_int32(stack: &mut [i32; 64], sp: &mut usize) -> Result<(), Runti
 
 /// Execute AbsInt32: pop a; push |a|
 #[inline(always)]
-pub fn exec_abs_int32(stack: &mut [i32; 64], sp: &mut usize) -> Result<(), RuntimeError> {
+pub fn exec_abs_int32(stack: &mut [i32], sp: &mut usize) -> Result<(), RuntimeError> {
     if *sp < 1 {
         return Err(RuntimeError::StackUnderflow {
             required: 1,
@@ -149,7 +149,7 @@ pub fn exec_abs_int32(stack: &mut [i32; 64], sp: &mut usize) -> Result<(), Runti
 
 /// Execute MinInt32: pop b, a; push min(a, b)
 #[inline(always)]
-pub fn exec_min_int32(stack: &mut [i32; 64], sp: &mut usize) -> Result<(), RuntimeError> {
+pub fn exec_min_int32(stack: &mut [i32], sp: &mut usize) -> Result<(), RuntimeError> {
     if *sp < 2 {
         return Err(RuntimeError::StackUnderflow {
             required: 2,
@@ -169,7 +169,7 @@ pub fn exec_min_int32(stack: &mut [i32; 64], sp: &mut usize) -> Result<(), Runti
 
 /// Execute MaxInt32: pop b, a; push max(a, b)
 #[inline(always)]
-pub fn exec_max_int32(stack: &mut [i32; 64], sp: &mut usize) -> Result<(), RuntimeError> {
+pub fn exec_max_int32(stack: &mut [i32], sp: &mut usize) -> Result<(), RuntimeError> {
     if *sp < 2 {
         return Err(RuntimeError::StackUnderflow {
             required: 2,
@@ -189,7 +189,7 @@ pub fn exec_max_int32(stack: &mut [i32; 64], sp: &mut usize) -> Result<(), Runti
 
 /// Execute GreaterInt32: pop b, a; push (a > b ? 1 : 0)
 #[inline(always)]
-pub fn exec_greater_int32(stack: &mut [i32; 64], sp: &mut usize) -> Result<(), RuntimeError> {
+pub fn exec_greater_int32(stack: &mut [i32], sp: &mut usize) -> Result<(), RuntimeError> {
     if *sp < 2 {
         return Err(RuntimeError::StackUnderflow {
             required: 2,
@@ -209,7 +209,7 @@ pub fn exec_greater_int32(stack: &mut [i32; 64], sp: &mut usize) -> Result<(), R
 
 /// Execute LessInt32: pop b, a; push (a < b ? 1 : 0)
 #[inline(always)]
-pub fn exec_less_int32(stack: &mut [i32; 64], sp: &mut usize) -> Result<(), RuntimeError> {
+pub fn exec_less_int32(stack: &mut [i32], sp: &mut usize) -> Result<(), RuntimeError> {
     if *sp < 2 {
         return Err(RuntimeError::StackUnderflow {
             required: 2,

@@ -6,7 +6,7 @@ use crate::lpscript::error::RuntimeError;
 
 /// Execute GreaterFixed: pop b, a; push (a > b ? 1.0 : 0.0)
 #[inline(always)]
-pub fn exec_greater_fixed(stack: &mut [i32; 64], sp: &mut usize) -> Result<(), RuntimeError> {
+pub fn exec_greater_fixed(stack: &mut [i32], sp: &mut usize) -> Result<(), RuntimeError> {
     if *sp < 2 {
         return Err(RuntimeError::StackUnderflow {
             required: 2,
@@ -26,7 +26,7 @@ pub fn exec_greater_fixed(stack: &mut [i32; 64], sp: &mut usize) -> Result<(), R
 
 /// Execute LessFixed: pop b, a; push (a < b ? 1.0 : 0.0)
 #[inline(always)]
-pub fn exec_less_fixed(stack: &mut [i32; 64], sp: &mut usize) -> Result<(), RuntimeError> {
+pub fn exec_less_fixed(stack: &mut [i32], sp: &mut usize) -> Result<(), RuntimeError> {
     if *sp < 2 {
         return Err(RuntimeError::StackUnderflow {
             required: 2,
@@ -46,7 +46,7 @@ pub fn exec_less_fixed(stack: &mut [i32; 64], sp: &mut usize) -> Result<(), Runt
 
 /// Execute GreaterEqFixed: pop b, a; push (a >= b ? 1.0 : 0.0)
 #[inline(always)]
-pub fn exec_greater_eq_fixed(stack: &mut [i32; 64], sp: &mut usize) -> Result<(), RuntimeError> {
+pub fn exec_greater_eq_fixed(stack: &mut [i32], sp: &mut usize) -> Result<(), RuntimeError> {
     if *sp < 2 {
         return Err(RuntimeError::StackUnderflow {
             required: 2,
@@ -66,7 +66,7 @@ pub fn exec_greater_eq_fixed(stack: &mut [i32; 64], sp: &mut usize) -> Result<()
 
 /// Execute LessEqFixed: pop b, a; push (a <= b ? 1.0 : 0.0)
 #[inline(always)]
-pub fn exec_less_eq_fixed(stack: &mut [i32; 64], sp: &mut usize) -> Result<(), RuntimeError> {
+pub fn exec_less_eq_fixed(stack: &mut [i32], sp: &mut usize) -> Result<(), RuntimeError> {
     if *sp < 2 {
         return Err(RuntimeError::StackUnderflow {
             required: 2,
@@ -86,7 +86,7 @@ pub fn exec_less_eq_fixed(stack: &mut [i32; 64], sp: &mut usize) -> Result<(), R
 
 /// Execute EqFixed: pop b, a; push (a == b ? 1.0 : 0.0)
 #[inline(always)]
-pub fn exec_eq_fixed(stack: &mut [i32; 64], sp: &mut usize) -> Result<(), RuntimeError> {
+pub fn exec_eq_fixed(stack: &mut [i32], sp: &mut usize) -> Result<(), RuntimeError> {
     if *sp < 2 {
         return Err(RuntimeError::StackUnderflow {
             required: 2,
@@ -106,7 +106,7 @@ pub fn exec_eq_fixed(stack: &mut [i32; 64], sp: &mut usize) -> Result<(), Runtim
 
 /// Execute NotEqFixed: pop b, a; push (a != b ? 1.0 : 0.0)
 #[inline(always)]
-pub fn exec_not_eq_fixed(stack: &mut [i32; 64], sp: &mut usize) -> Result<(), RuntimeError> {
+pub fn exec_not_eq_fixed(stack: &mut [i32], sp: &mut usize) -> Result<(), RuntimeError> {
     if *sp < 2 {
         return Err(RuntimeError::StackUnderflow {
             required: 2,

@@ -3,7 +3,7 @@ use crate::lpscript::error::RuntimeError;
 
 /// Execute Select (ternary): pop false_val, true_val, condition; push selected
 #[inline(always)]
-pub fn exec_select(stack: &mut [i32; 64], sp: &mut usize) -> Result<(), RuntimeError> {
+pub fn exec_select(stack: &mut [i32], sp: &mut usize) -> Result<(), RuntimeError> {
     if *sp < 3 {
         return Err(RuntimeError::StackUnderflow { required: 3, actual: *sp });
     }
@@ -24,7 +24,7 @@ pub fn exec_select(stack: &mut [i32; 64], sp: &mut usize) -> Result<(), RuntimeE
 /// Execute JumpIfZero: pop value, jump if zero
 /// Returns Some(new_pc) if jump taken, None otherwise
 #[inline(always)]
-pub fn exec_jump_if_zero(stack: &mut [i32; 64], sp: &mut usize, pc: usize, offset: i32) -> Result<Option<usize>, RuntimeError> {
+pub fn exec_jump_if_zero(stack: &mut [i32], sp: &mut usize, pc: usize, offset: i32) -> Result<Option<usize>, RuntimeError> {
     if *sp < 1 {
         return Err(RuntimeError::StackUnderflow { required: 1, actual: *sp });
     }
@@ -41,7 +41,7 @@ pub fn exec_jump_if_zero(stack: &mut [i32; 64], sp: &mut usize, pc: usize, offse
 
 /// Execute JumpIfNonZero: pop value, jump if non-zero  
 #[inline(always)]
-pub fn exec_jump_if_nonzero(stack: &mut [i32; 64], sp: &mut usize, pc: usize, offset: i32) -> Result<Option<usize>, RuntimeError> {
+pub fn exec_jump_if_nonzero(stack: &mut [i32], sp: &mut usize, pc: usize, offset: i32) -> Result<Option<usize>, RuntimeError> {
     if *sp < 1 {
         return Err(RuntimeError::StackUnderflow { required: 1, actual: *sp });
     }

@@ -11,9 +11,6 @@ pub mod math;
 /// Image types (grayscale, RGB)
 pub mod image;
 
-/// Stack-based VM for pixel operations (with instruction tests)
-pub mod pixel_vm;
-
 /// Test engine - modular rendering pipeline for LED effects
 pub mod test_engine;
 

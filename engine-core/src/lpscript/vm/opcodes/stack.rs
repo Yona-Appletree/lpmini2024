@@ -3,7 +3,7 @@ use crate::lpscript::error::RuntimeError;
 
 /// Execute Dup: duplicate top of stack
 #[inline(always)]
-pub fn exec_dup(stack: &mut [i32; 64], sp: &mut usize) -> Result<(), RuntimeError> {
+pub fn exec_dup(stack: &mut [i32], sp: &mut usize) -> Result<(), RuntimeError> {
     if *sp < 1 {
         return Err(RuntimeError::StackUnderflow { required: 1, actual: *sp });
     }
@@ -20,7 +20,7 @@ pub fn exec_dup(stack: &mut [i32; 64], sp: &mut usize) -> Result<(), RuntimeErro
 
 /// Execute Drop: remove top of stack
 #[inline(always)]
-pub fn exec_drop(_stack: &mut [i32; 64], sp: &mut usize) -> Result<(), RuntimeError> {
+pub fn exec_drop(_stack: &mut [i32], sp: &mut usize) -> Result<(), RuntimeError> {
     if *sp < 1 {
         return Err(RuntimeError::StackUnderflow { required: 1, actual: *sp });
     }
@@ -32,7 +32,7 @@ pub fn exec_drop(_stack: &mut [i32; 64], sp: &mut usize) -> Result<(), RuntimeEr
 
 /// Execute Swap: swap top two stack items
 #[inline(always)]
-pub fn exec_swap(stack: &mut [i32; 64], sp: &mut usize) -> Result<(), RuntimeError> {
+pub fn exec_swap(stack: &mut [i32], sp: &mut usize) -> Result<(), RuntimeError> {
     if *sp < 2 {
         return Err(RuntimeError::StackUnderflow { required: 2, actual: *sp });
     }

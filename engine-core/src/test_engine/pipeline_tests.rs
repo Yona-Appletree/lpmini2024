@@ -3,17 +3,15 @@
 mod pipeline_tests {
     use crate::test_engine::{
         FxPipelineConfig, PipelineStep, BufferRef, BufferFormat, 
-        OpCode, Palette, RuntimeOptions, FxPipeline,
+        Palette, RuntimeOptions, FxPipeline, LoadSource,
     };
+    use crate::lpscript::parse_expr;
     use crate::math::{Fixed, ToFixed};
     
     #[test]
     fn test_simple_pipeline() {
         // Create a simple pipeline: generate white everywhere
-        let program = vec![
-            OpCode::Push(Fixed::ONE),
-            OpCode::Return,
-        ];
+        let program = parse_expr("1.0");
         
         let config = FxPipelineConfig::new(
             2,
@@ -43,11 +41,7 @@ mod pipeline_tests {
     #[test]
     fn test_palette_step() {
         // Test that palette conversion works
-        use crate::test_engine::vm::LoadSource;
-        let program = vec![
-            OpCode::Load(LoadSource::XNorm),
-            OpCode::Return,
-        ];
+        let program = parse_expr("xNorm");
         
         let config = FxPipelineConfig::new(
             2,
@@ -82,10 +76,7 @@ mod pipeline_tests {
     
     #[test]
     fn test_extract_rgb_bytes() {
-        let program = vec![
-            OpCode::Push(0.5f32.to_fixed()),
-            OpCode::Return,
-        ];
+        let program = parse_expr("0.5");
         
         let config = FxPipelineConfig::new(
             2,

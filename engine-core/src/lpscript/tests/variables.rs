@@ -1,6 +1,7 @@
 /// Tests for variable declarations, scoping, and mutations
 use crate::lpscript::*;
 use crate::math::{Fixed, ToFixed};
+use crate::lpscript::vm::VmLimits;
 
 #[test]
 fn test_variable_declaration_with_init() {
@@ -9,7 +10,7 @@ fn test_variable_declaration_with_init() {
         return x;
     ";
     let program = parse_script(script);
-    let mut vm = LpsVm::new(program, vec![]).unwrap();
+    let mut vm = LpsVm::new(&program, vec![], VmLimits::default()).unwrap();
 
     let result = vm.run(Fixed::ZERO, Fixed::ZERO, Fixed::ZERO).unwrap();
     assert_eq!(result.to_f32(), 5.0);
@@ -24,7 +25,7 @@ fn test_variable_mutation() {
         return x;
     ";
     let program = parse_script(script);
-    let mut vm = LpsVm::new(program, vec![]).unwrap();
+    let mut vm = LpsVm::new(&program, vec![], VmLimits::default()).unwrap();
 
     let result = vm.run(Fixed::ZERO, Fixed::ZERO, Fixed::ZERO).unwrap();
     // (1 + 2) * 3 = 9
@@ -42,7 +43,7 @@ fn test_block_scoping() {
         return x;  // Outer x is still 1
     ";
     let program = parse_script(script);
-    let mut vm = LpsVm::new(program, vec![]).unwrap();
+    let mut vm = LpsVm::new(&program, vec![], VmLimits::default()).unwrap();
 
     let result = vm.run(Fixed::ZERO, Fixed::ZERO, Fixed::ZERO).unwrap();
     assert_eq!(result.to_f32(), 1.0);
@@ -62,7 +63,7 @@ fn test_nested_scopes() {
         return x;
     ";
     let program = parse_script(script);
-    let mut vm = LpsVm::new(program, vec![]).unwrap();
+    let mut vm = LpsVm::new(&program, vec![], VmLimits::default()).unwrap();
 
     let result = vm.run(Fixed::ZERO, Fixed::ZERO, Fixed::ZERO).unwrap();
     // 1 + 2 + 3 = 6
@@ -80,7 +81,7 @@ fn test_variable_in_loop_scope() {
         return sum;
     ";
     let program = parse_script(script);
-    let mut vm = LpsVm::new(program, vec![]).unwrap();
+    let mut vm = LpsVm::new(&program, vec![], VmLimits::default()).unwrap();
 
     let result = vm.run(Fixed::ZERO, Fixed::ZERO, Fixed::ZERO).unwrap();
     // (0*2) + (1*2) + (2*2) = 0 + 2 + 4 = 6
@@ -97,7 +98,7 @@ fn test_multiple_variables() {
         return a + b + c + d;
     ";
     let program = parse_script(script);
-    let mut vm = LpsVm::new(program, vec![]).unwrap();
+    let mut vm = LpsVm::new(&program, vec![], VmLimits::default()).unwrap();
 
     let result = vm.run(Fixed::ZERO, Fixed::ZERO, Fixed::ZERO).unwrap();
     assert_eq!(result.to_f32(), 10.0);
@@ -111,7 +112,7 @@ fn test_assignment_expression_value() {
         return y;
     ";
     let program = parse_script(script);
-    let mut vm = LpsVm::new(program, vec![]).unwrap();
+    let mut vm = LpsVm::new(&program, vec![], VmLimits::default()).unwrap();
 
     let result = vm.run(Fixed::ZERO, Fixed::ZERO, Fixed::ZERO).unwrap();
     assert_eq!(result.to_f32(), 5.0);
@@ -127,7 +128,7 @@ fn test_chained_assignments() {
         return x + y + z;
     ";
     let program = parse_script(script);
-    let mut vm = LpsVm::new(program, vec![]).unwrap();
+    let mut vm = LpsVm::new(&program, vec![], VmLimits::default()).unwrap();
 
     let result = vm.run(Fixed::ZERO, Fixed::ZERO, Fixed::ZERO).unwrap();
     assert_eq!(result.to_f32(), 21.0);

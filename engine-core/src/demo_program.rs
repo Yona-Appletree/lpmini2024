@@ -5,20 +5,15 @@ use crate::lpscript::parse_expr;
 use crate::math::Fixed;
 use crate::scene::SceneConfig;
 use crate::test_engine::{
-    BufferFormat, BufferRef, FxPipelineConfig, LoadSource, MappingConfig, OpCode, Palette,
+    BufferFormat, BufferRef, FxPipelineConfig, MappingConfig, Palette,
     PipelineStep,
 };
+use crate::test_engine::LoadSource;
 
 /// Create a test pattern with a rotating white line from the center
 pub fn create_test_line_scene(width: usize, height: usize) -> SceneConfig {
     // Simple test: just output the angle as a gradient to verify CenterAngle works
-    let program = vec![
-        OpCode::Load(LoadSource::CenterAngle), // Load angle (0-1)
-        OpCode::Load(LoadSource::TimeNorm),
-        OpCode::Add,
-        OpCode::Frac,
-        OpCode::Return, // Return it as brightness
-    ];
+    let program = parse_expr("fract(centerAngle + timeNorm)");
 
     // Grayscale palette (white = white, black = black)
     let palette = Palette::grayscale();
@@ -48,7 +43,7 @@ pub fn create_test_line_scene(width: usize, height: usize) -> SceneConfig {
 pub fn create_demo_scene(width: usize, height: usize) -> SceneConfig {
     // Demo program: perlin noise with 3 octaves, zoom, and cosine smoothing
     // Using GLSL-style syntax with vec3 constructor and uv variable!
-    let program = parse_expr("cos(perlin3(vec3(uv * 0.3, time), 3))").to_legacy_opcodes();
+    let program = parse_expr("cos(perlin3(vec3(uv * 0.3, time), 3))");
 
     // Create palette
     let palette = Palette::rainbow();
@@ -90,13 +85,12 @@ mod tests {
     #[test]
     fn test_simple_white() {
         // First test: just output white for everything
-        use crate::test_engine::execute_program;
-        let input = vec![Fixed::ZERO; 16 * 16];
+        use crate::lpscript::execute_program_lps;
         let mut output = vec![Fixed::ZERO; 16 * 16];
 
-        let program = vec![OpCode::Push(Fixed::ONE), OpCode::Return];
+        let program = parse_expr("1.0");
 
-        execute_program(&input, &mut output, &program, 16, 16, Fixed::ZERO);
+        execute_program_lps(&program, &mut output, 16, 16, Fixed::ZERO);
 
         // All pixels should be white
         assert_eq!(output[0], Fixed::ONE, "First pixel should be white");
@@ -110,13 +104,12 @@ mod tests {
     #[test]
     fn test_yint_load() {
         // Test that YInt loads correctly
-        use crate::test_engine::execute_program;
-        let input = vec![Fixed::ZERO; 16 * 16];
+        use crate::lpscript::execute_program_lps;
         let mut output = vec![Fixed::ZERO; 16 * 16];
 
-        let program = vec![OpCode::Load(LoadSource::YInt), OpCode::Return];
+        let program = parse_expr("coord.y");
 
-        execute_program(&input, &mut output, &program, 16, 16, Fixed::ZERO);
+        execute_program_lps(&program, &mut output, 16, 16, Fixed::ZERO);
 
         // Row 0 should have Y values of 0.5 in fixed-point
         println!(
@@ -138,29 +131,14 @@ mod tests {
     #[test]
     fn test_normalized_center_line() {
         // Test the normalized Y coordinate approach
-        use crate::test_engine::execute_program;
+        use crate::lpscript::execute_program_lps;
 
         // Test with 16x16 - center should be row 8
-        let input = vec![Fixed::ZERO; 16 * 16];
         let mut output = vec![Fixed::ZERO; 16 * 16];
 
-        let center_min = 0.48f32.to_fixed();
-        let center_max = 0.52f32.to_fixed();
+        let program = parse_expr("(uv.y > 0.48 && uv.y < 0.52) ? 1.0 : 0.0");
 
-        let program = vec![
-            OpCode::Load(LoadSource::YNorm),
-            OpCode::Push(center_min),
-            OpCode::JumpLt(6),
-            OpCode::Load(LoadSource::YNorm),
-            OpCode::Push(center_max),
-            OpCode::JumpGt(3),
-            OpCode::Push(Fixed::ONE),
-            OpCode::Return,
-            OpCode::Push(Fixed::ZERO),
-            OpCode::Return,
-        ];
-
-        execute_program(&input, &mut output, &program, 16, 16, Fixed::ZERO);
+        execute_program_lps(&program, &mut output, 16, 16, Fixed::ZERO);
 
         // Center row (row 7 with +0.5 offset gives Y=7.5, YNorm=7.5/15=0.5) should be white
         assert_eq!(
@@ -173,9 +151,8 @@ mod tests {
         assert_eq!(output[15 * 16], Fixed::ZERO, "Bottom row should be black");
 
         // Test with 8x8 - center should be row 4
-        let input8 = vec![Fixed::ZERO; 8 * 8];
         let mut output8 = vec![Fixed::ZERO; 8 * 8];
-        execute_program(&input8, &mut output8, &program, 8, 8, Fixed::ZERO);
+        execute_program_lps(&program, &mut output8, 8, 8, Fixed::ZERO);
 
         // Center row (row 3 with +0.5 offset gives Y=3.5, YNorm=3.5/7=0.5) should be white
         assert_eq!(

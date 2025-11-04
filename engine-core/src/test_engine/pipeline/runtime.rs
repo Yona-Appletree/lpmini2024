@@ -5,7 +5,7 @@ use alloc::vec::Vec;
 use super::{Buffer, BufferFormat, PipelineStep, PipelineError, RuntimeOptions, BufferRef};
 use super::rgb_utils::{grey_to_i32, i32_to_grey, pack_rgb};
 use super::config::FxPipelineConfig;
-use super::super::vm::{OpCode, execute_program};
+use crate::lpscript::execute_program_lps;
 use crate::math::Fixed;
 use super::super::palette::Palette;
 
@@ -65,18 +65,15 @@ impl FxPipeline {
     /// Execute an expression step
     fn execute_expr_step(
         &mut self,
-        program: &[OpCode],
+        program: &crate::lpscript::LpsProgram,
         output: &BufferRef,
         _params: &[BufferRef],  // TODO: implement param buffer support
         time: Fixed,
         _step_idx: usize,
     ) -> Result<(), PipelineError> {
-        // For now, use empty input buffer (params not yet implemented)
-        let input_buffer: Vec<Fixed> = alloc::vec![Fixed::ZERO; self.width * self.height];
-        
         // Execute VM program into a temporary greyscale buffer
         let mut temp_grey: Vec<Fixed> = alloc::vec![Fixed::ZERO; self.width * self.height];
-        execute_program(&input_buffer, &mut temp_grey, program, self.width, self.height, time);
+        execute_program_lps(program, &mut temp_grey, self.width, self.height, time);
         
         // Write greyscale results to output buffer
         let output_buf = &mut self.buffers[output.buffer_idx];

@@ -55,9 +55,7 @@ mod typechecker;
 
 pub use codegen::NativeFunction;
 pub use error::{CompileError, RuntimeError, RuntimeErrorWithContext, Span, Type};
-pub use vm::{LocalAccess, LocalDef, LocalType, LpsProgram, LpsVm};
-
-use crate::test_engine::OpCode;
+pub use vm::{LocalAccess, LocalDef, LocalType, LpsProgram, LpsVm, VmLimits, execute_program_lps, LpsOpCode};
 
 /// Parse an expression string and generate a compiled LPS program
 ///
@@ -151,13 +149,6 @@ pub fn parse_script(input: &str) -> LpsProgram {
     compile_script(input).unwrap_or_else(|e| {
         panic!("Failed to compile LPS script: {}", e);
     })
-}
-
-/// Legacy API: just get opcodes (for backward compatibility during migration)
-pub fn parse_expr_opcodes(input: &str) -> Vec<OpCode> {
-    compile_expr(input)
-        .expect("Failed to compile expression")
-        .to_legacy_opcodes()
 }
 
 #[cfg(test)]

@@ -222,6 +222,8 @@ pub enum RuntimeError {
     },
     TypeMismatch,
     UnsupportedOpCode,
+    InstructionLimitExceeded,
+    CallStackOverflow { depth: usize },
 }
 
 impl RuntimeError {
@@ -296,6 +298,12 @@ impl fmt::Display for RuntimeError {
             }
             RuntimeError::UnsupportedOpCode => {
                 write!(f, "Unsupported opcode encountered")
+            }
+            RuntimeError::InstructionLimitExceeded => {
+                write!(f, "Instruction limit exceeded (possible infinite loop)")
+            }
+            RuntimeError::CallStackOverflow { depth } => {
+                write!(f, "Call stack overflow at depth {}", depth)
             }
         }
     }
