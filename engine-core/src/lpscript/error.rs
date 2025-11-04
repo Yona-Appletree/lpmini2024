@@ -12,6 +12,8 @@ pub struct Span {
 }
 
 impl Span {
+    pub const EMPTY: Span = Span { start: 0, end: 0 };
+
     pub fn new(start: usize, end: usize) -> Self {
         Span { start, end }
     }
@@ -194,8 +196,13 @@ impl fmt::Display for CodegenError {
 /// Runtime errors (VM execution)
 #[derive(Debug)]
 pub enum RuntimeError {
-    StackUnderflow { required: usize, actual: usize },
-    StackOverflow { sp: usize },
+    StackUnderflow {
+        required: usize,
+        actual: usize,
+    },
+    StackOverflow {
+        sp: usize,
+    },
     LocalTypeMismatch {
         local_idx: usize,
         local_name: String,
@@ -223,7 +230,9 @@ pub enum RuntimeError {
     TypeMismatch,
     UnsupportedOpCode,
     InstructionLimitExceeded,
-    CallStackOverflow { depth: usize },
+    CallStackOverflow {
+        depth: usize,
+    },
 }
 
 impl RuntimeError {
@@ -249,7 +258,11 @@ impl fmt::Display for RuntimeError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             RuntimeError::StackUnderflow { required, actual } => {
-                write!(f, "Stack underflow: need {} items, have {}", required, actual)
+                write!(
+                    f,
+                    "Stack underflow: need {} items, have {}",
+                    required, actual
+                )
             }
             RuntimeError::StackOverflow { sp } => {
                 write!(f, "Stack overflow at sp={}", sp)
@@ -287,11 +300,7 @@ impl fmt::Display for RuntimeError {
                 )
             }
             RuntimeError::ProgramCounterOutOfBounds { pc, max } => {
-                write!(
-                    f,
-                    "Program counter {} out of bounds (max {})",
-                    pc, max
-                )
+                write!(f, "Program counter {} out of bounds (max {})", pc, max)
             }
             RuntimeError::TypeMismatch => {
                 write!(f, "Type mismatch in operation")
@@ -311,7 +320,11 @@ impl fmt::Display for RuntimeError {
 
 impl fmt::Display for RuntimeErrorWithContext {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "Runtime error at PC {} ({}): {}", self.pc, self.opcode, self.error)
+        write!(
+            f,
+            "Runtime error at PC {} ({}): {}",
+            self.pc, self.opcode, self.error
+        )
     }
 }
 

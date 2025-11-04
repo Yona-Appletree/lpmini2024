@@ -3,133 +3,231 @@
 
 /// Helper functions for building expected AST expressions in tests
 /// 
-/// These functions create AST nodes with dummy spans (Span::new(0, 0)) so tests
+/// These functions create AST nodes with dummy spans (Span::EMPTY) so tests
 /// can focus on structure rather than source locations.
+/// Types are included to validate type inference.
 extern crate alloc;
 use alloc::boxed::Box;
 
 use crate::lpscript::ast::{Expr, ExprKind};
-use crate::lpscript::error::Span;
+use crate::lpscript::error::{Span, Type};
 
 // ============================================================================
-// Leaf nodes (return Box<Expr>)
+// Leaf nodes (return Expr with auto-typed)
 // ============================================================================
 
 /// Create an integer literal expression
-pub fn int32(value: i32) -> Box<Expr> {
-    Box::new(Expr::new(ExprKind::IntNumber(value), Span::new(0, 0)))
+pub fn int32(value: i32) -> Expr {
+    let mut expr = Expr::new(ExprKind::IntNumber(value), Span::EMPTY);
+    expr.ty = Some(Type::Int32);
+    expr
 }
 
 /// Create a float literal expression
-pub fn num(value: f32) -> Box<Expr> {
-    Box::new(Expr::new(ExprKind::Number(value), Span::new(0, 0)))
+pub fn num(value: f32) -> Expr {
+    let mut expr = Expr::new(ExprKind::Number(value), Span::EMPTY);
+    expr.ty = Some(Type::Fixed);
+    expr
 }
 
-/// Create a variable reference expression
-pub fn var(name: &str) -> Box<Expr> {
-    Box::new(Expr::new(ExprKind::Variable(name.to_string()), Span::new(0, 0)))
+/// Create a variable reference expression (type must be inferred by context)
+pub fn var(name: &str) -> Expr {
+    Expr::new(ExprKind::Variable(name.to_string()), Span::EMPTY)
 }
 
 // ============================================================================
-// Binary operators (return ExprKind)
+// Comparison operators (return Expr, auto-typed to Int32)
 // ============================================================================
 
 /// Less than: left < right
-pub fn less(left: Box<Expr>, right: Box<Expr>) -> ExprKind {
-    ExprKind::Less(left, right)
+pub fn less(left: Expr, right: Expr) -> Expr {
+    let mut expr = Expr::new(
+        ExprKind::Less(Box::new(left), Box::new(right)),
+        Span::EMPTY,
+    );
+    expr.ty = Some(Type::Int32);
+    expr
 }
 
 /// Greater than: left > right
-pub fn greater(left: Box<Expr>, right: Box<Expr>) -> ExprKind {
-    ExprKind::Greater(left, right)
+pub fn greater(left: Expr, right: Expr) -> Expr {
+    let mut expr = Expr::new(
+        ExprKind::Greater(Box::new(left), Box::new(right)),
+        Span::EMPTY,
+    );
+    expr.ty = Some(Type::Int32);
+    expr
 }
 
 /// Less than or equal: left <= right
-pub fn less_eq(left: Box<Expr>, right: Box<Expr>) -> ExprKind {
-    ExprKind::LessEq(left, right)
+pub fn less_eq(left: Expr, right: Expr) -> Expr {
+    let mut expr = Expr::new(
+        ExprKind::LessEq(Box::new(left), Box::new(right)),
+        Span::EMPTY,
+    );
+    expr.ty = Some(Type::Int32);
+    expr
 }
 
 /// Greater than or equal: left >= right
-pub fn greater_eq(left: Box<Expr>, right: Box<Expr>) -> ExprKind {
-    ExprKind::GreaterEq(left, right)
+pub fn greater_eq(left: Expr, right: Expr) -> Expr {
+    let mut expr = Expr::new(
+        ExprKind::GreaterEq(Box::new(left), Box::new(right)),
+        Span::EMPTY,
+    );
+    expr.ty = Some(Type::Int32);
+    expr
 }
 
 /// Equal: left == right
-pub fn eq(left: Box<Expr>, right: Box<Expr>) -> ExprKind {
-    ExprKind::Eq(left, right)
+pub fn eq(left: Expr, right: Expr) -> Expr {
+    let mut expr = Expr::new(
+        ExprKind::Eq(Box::new(left), Box::new(right)),
+        Span::EMPTY,
+    );
+    expr.ty = Some(Type::Int32);
+    expr
 }
 
 /// Not equal: left != right
-pub fn not_eq(left: Box<Expr>, right: Box<Expr>) -> ExprKind {
-    ExprKind::NotEq(left, right)
+pub fn not_eq(left: Expr, right: Expr) -> Expr {
+    let mut expr = Expr::new(
+        ExprKind::NotEq(Box::new(left), Box::new(right)),
+        Span::EMPTY,
+    );
+    expr.ty = Some(Type::Int32);
+    expr
 }
 
+// ============================================================================
+// Arithmetic operators (return Expr, type parameter required)
+// ============================================================================
+
 /// Add: left + right
-pub fn add(left: Box<Expr>, right: Box<Expr>) -> ExprKind {
-    ExprKind::Add(left, right)
+pub fn add(left: Expr, right: Expr, ty: Type) -> Expr {
+    let mut expr = Expr::new(
+        ExprKind::Add(Box::new(left), Box::new(right)),
+        Span::EMPTY,
+    );
+    expr.ty = Some(ty);
+    expr
 }
 
 /// Subtract: left - right
-pub fn sub(left: Box<Expr>, right: Box<Expr>) -> ExprKind {
-    ExprKind::Sub(left, right)
+pub fn sub(left: Expr, right: Expr, ty: Type) -> Expr {
+    let mut expr = Expr::new(
+        ExprKind::Sub(Box::new(left), Box::new(right)),
+        Span::EMPTY,
+    );
+    expr.ty = Some(ty);
+    expr
 }
 
 /// Multiply: left * right
-pub fn mul(left: Box<Expr>, right: Box<Expr>) -> ExprKind {
-    ExprKind::Mul(left, right)
+pub fn mul(left: Expr, right: Expr, ty: Type) -> Expr {
+    let mut expr = Expr::new(
+        ExprKind::Mul(Box::new(left), Box::new(right)),
+        Span::EMPTY,
+    );
+    expr.ty = Some(ty);
+    expr
 }
 
 /// Divide: left / right
-pub fn div(left: Box<Expr>, right: Box<Expr>) -> ExprKind {
-    ExprKind::Div(left, right)
+pub fn div(left: Expr, right: Expr, ty: Type) -> Expr {
+    let mut expr = Expr::new(
+        ExprKind::Div(Box::new(left), Box::new(right)),
+        Span::EMPTY,
+    );
+    expr.ty = Some(ty);
+    expr
 }
 
 /// Modulo: left % right
-pub fn modulo(left: Box<Expr>, right: Box<Expr>) -> ExprKind {
-    ExprKind::Mod(left, right)
+pub fn modulo(left: Expr, right: Expr, ty: Type) -> Expr {
+    let mut expr = Expr::new(
+        ExprKind::Mod(Box::new(left), Box::new(right)),
+        Span::EMPTY,
+    );
+    expr.ty = Some(ty);
+    expr
 }
 
 /// Power: left ^ right
-pub fn pow(left: Box<Expr>, right: Box<Expr>) -> ExprKind {
-    ExprKind::Pow(left, right)
+pub fn pow(left: Expr, right: Expr, ty: Type) -> Expr {
+    let mut expr = Expr::new(
+        ExprKind::Pow(Box::new(left), Box::new(right)),
+        Span::EMPTY,
+    );
+    expr.ty = Some(ty);
+    expr
 }
 
+// ============================================================================
+// Logical operators (return Expr, type parameter required)
+// ============================================================================
+
 /// Logical AND: left && right
-pub fn and(left: Box<Expr>, right: Box<Expr>) -> ExprKind {
-    ExprKind::And(left, right)
+pub fn and(left: Expr, right: Expr, ty: Type) -> Expr {
+    let mut expr = Expr::new(
+        ExprKind::And(Box::new(left), Box::new(right)),
+        Span::EMPTY,
+    );
+    expr.ty = Some(ty);
+    expr
 }
 
 /// Logical OR: left || right
-pub fn or(left: Box<Expr>, right: Box<Expr>) -> ExprKind {
-    ExprKind::Or(left, right)
+pub fn or(left: Expr, right: Expr, ty: Type) -> Expr {
+    let mut expr = Expr::new(
+        ExprKind::Or(Box::new(left), Box::new(right)),
+        Span::EMPTY,
+    );
+    expr.ty = Some(ty);
+    expr
 }
 
 // ============================================================================
-// Other expressions
+// Other expressions (return Expr, type parameter required)
 // ============================================================================
 
 /// Ternary: condition ? true_expr : false_expr
-pub fn ternary(condition: Box<Expr>, true_expr: Box<Expr>, false_expr: Box<Expr>) -> ExprKind {
-    ExprKind::Ternary {
-        condition,
-        true_expr,
-        false_expr,
-    }
+pub fn ternary(condition: Expr, true_expr: Expr, false_expr: Expr, ty: Type) -> Expr {
+    let mut expr = Expr::new(
+        ExprKind::Ternary {
+            condition: Box::new(condition),
+            true_expr: Box::new(true_expr),
+            false_expr: Box::new(false_expr),
+        },
+        Span::EMPTY,
+    );
+    expr.ty = Some(ty);
+    expr
 }
 
 /// Swizzle: expr.components
-pub fn swizzle(expr: Box<Expr>, components: &str) -> ExprKind {
-    ExprKind::Swizzle {
-        expr,
-        components: components.to_string(),
-    }
+pub fn swizzle(base_expr: Expr, components: &str, ty: Type) -> Expr {
+    let mut expr = Expr::new(
+        ExprKind::Swizzle {
+            expr: Box::new(base_expr),
+            components: components.to_string(),
+        },
+        Span::EMPTY,
+    );
+    expr.ty = Some(ty);
+    expr
 }
 
 /// Assignment: target = value
-pub fn assign(target: &str, value: Box<Expr>) -> ExprKind {
-    ExprKind::Assign {
-        target: target.to_string(),
-        value,
-    }
+pub fn assign(target: &str, value: Expr, ty: Type) -> Expr {
+    let mut expr = Expr::new(
+        ExprKind::Assign {
+            target: target.to_string(),
+            value: Box::new(value),
+        },
+        Span::EMPTY,
+    );
+    expr.ty = Some(ty);
+    expr
 }
 
