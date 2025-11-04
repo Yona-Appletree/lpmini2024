@@ -111,6 +111,18 @@ impl Vec2 {
     #[inline(always)] pub fn st(self) -> Vec2 { self.xy() }
     #[inline(always)] pub fn ts(self) -> Vec2 { self.yx() }
     #[inline(always)] pub fn tt(self) -> Vec2 { self.yy() }
+    
+    /// Component-wise multiply
+    #[inline(always)]
+    pub fn mul_comp(self, rhs: Self) -> Self {
+        Vec2::new(self.x * rhs.x, self.y * rhs.y)
+    }
+    
+    /// Component-wise divide
+    #[inline(always)]
+    pub fn div_comp(self, rhs: Self) -> Self {
+        Vec2::new(self.x / rhs.x, self.y / rhs.y)
+    }
 }
 
 impl Add for Vec2 {

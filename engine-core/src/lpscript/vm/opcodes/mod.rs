@@ -34,9 +34,24 @@ pub enum LpsOpCode {
     MaxFixed,
     SinFixed,
     CosFixed,
+    TanFixed,
+    AtanFixed,     // Single arg atan
+    Atan2Fixed,    // Two arg atan2
     SqrtFixed,
     FloorFixed,
     CeilFixed,
+    FractFixed,    // Fractional part
+    ModFixed,      // Modulo
+    PowFixed,      // Power
+    SignFixed,     // Sign function
+    SaturateFixed, // Clamp to 0..1
+    ClampFixed,    // Clamp to min..max
+    StepFixed,     // Step function
+    LerpFixed,     // Linear interpolation
+    SmoothstepFixed, // Smooth interpolation
+    
+    // Noise functions
+    Perlin3(u8),  // 3D Perlin noise, octaves embedded
 
     // Fixed-point comparisons (return FIXED_ONE or 0)
     GreaterFixed,
@@ -45,6 +60,11 @@ pub enum LpsOpCode {
     LessEqFixed,
     EqFixed,
     NotEqFixed,
+    
+    // Logical operations (treat 0 as false, non-zero as true)
+    AndFixed,
+    OrFixed,
+    NotFixed,
 
     // Int32 arithmetic
     AddInt32,
@@ -154,15 +174,31 @@ impl LpsOpCode {
             LpsOpCode::MaxFixed => "MaxFixed",
             LpsOpCode::SinFixed => "SinFixed",
             LpsOpCode::CosFixed => "CosFixed",
+            LpsOpCode::TanFixed => "TanFixed",
+            LpsOpCode::AtanFixed => "AtanFixed",
+            LpsOpCode::Atan2Fixed => "Atan2Fixed",
             LpsOpCode::SqrtFixed => "SqrtFixed",
             LpsOpCode::FloorFixed => "FloorFixed",
             LpsOpCode::CeilFixed => "CeilFixed",
+            LpsOpCode::FractFixed => "FractFixed",
+            LpsOpCode::ModFixed => "ModFixed",
+            LpsOpCode::PowFixed => "PowFixed",
+            LpsOpCode::SignFixed => "SignFixed",
+            LpsOpCode::SaturateFixed => "SaturateFixed",
+            LpsOpCode::ClampFixed => "ClampFixed",
+            LpsOpCode::StepFixed => "StepFixed",
+            LpsOpCode::LerpFixed => "LerpFixed",
+            LpsOpCode::SmoothstepFixed => "SmoothstepFixed",
+            LpsOpCode::Perlin3(_) => "Perlin3",
             LpsOpCode::GreaterFixed => "GreaterFixed",
             LpsOpCode::LessFixed => "LessFixed",
             LpsOpCode::GreaterEqFixed => "GreaterEqFixed",
             LpsOpCode::LessEqFixed => "LessEqFixed",
             LpsOpCode::EqFixed => "EqFixed",
             LpsOpCode::NotEqFixed => "NotEqFixed",
+            LpsOpCode::AndFixed => "AndFixed",
+            LpsOpCode::OrFixed => "OrFixed",
+            LpsOpCode::NotFixed => "NotFixed",
             LpsOpCode::AddInt32 => "AddInt32",
             LpsOpCode::SubInt32 => "SubInt32",
             LpsOpCode::MulInt32 => "MulInt32",

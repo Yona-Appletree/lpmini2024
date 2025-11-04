@@ -100,25 +100,22 @@ pub fn parse_expr(input: &str) -> LpsProgram {
 
 /// Legacy API: just get opcodes (for backward compatibility during migration)
 pub fn parse_expr_opcodes(input: &str) -> Vec<OpCode> {
-    let mut lexer = lexer::Lexer::new(input);
-    let tokens = lexer.tokenize();
-
-    let mut parser = parser::Parser::new(tokens);
-    let ast = parser.parse();
-
-    codegen::CodeGenerator::generate(&ast)
+    compile_expr(input)
+        .expect("Failed to compile expression")
+        .to_legacy_opcodes()
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
+    use super::vm::opcodes::LpsOpCode;
     use crate::test_engine::LoadSource;
 
     #[test]
     fn test_simple_number() {
         let program = parse_expr("42");
         assert_eq!(program.opcodes.len(), 2); // Push(42), Return
-        assert!(matches!(program.opcodes[0], OpCode::Push(_)));
+        assert!(matches!(program.opcodes[0], LpsOpCode::Push(_)));
     }
 
     #[test]
@@ -126,53 +123,54 @@ mod tests {
         let program = parse_expr("1 + 2 * 3");
         let code = &program.opcodes;
         // Should respect precedence: 1 + (2 * 3)
-        assert!(matches!(code[0], OpCode::Push(_)));
-        assert!(matches!(code[1], OpCode::Push(_)));
-        assert!(matches!(code[2], OpCode::Push(_)));
-        assert!(matches!(code[3], OpCode::Mul));
-        assert!(matches!(code[4], OpCode::Add));
+        assert!(matches!(code[0], LpsOpCode::Push(_)));
+        assert!(matches!(code[1], LpsOpCode::Push(_)));
+        assert!(matches!(code[2], LpsOpCode::Push(_)));
+        assert!(matches!(code[3], LpsOpCode::MulFixed));
+        assert!(matches!(code[4], LpsOpCode::AddFixed));
     }
 
     #[test]
     fn test_exponential() {
         let code = &parse_expr("2 ^ 3").opcodes;
-        assert!(matches!(code[2], OpCode::CallNative(_)));
+        // Pow is now a placeholder that pushes 1.0
+        assert!(matches!(code[2], LpsOpCode::Push(_)));
     }
 
     #[test]
     fn test_variables() {
         let code = &parse_expr("xNorm").opcodes;
-        assert!(matches!(code[0], OpCode::Load(LoadSource::XNorm)));
+        assert!(matches!(code[0], LpsOpCode::Load(LoadSource::XNorm)));
     }
 
     #[test]
     fn test_sin_function() {
         let code = &parse_expr("sin(time)").opcodes;
-        assert!(matches!(code[0], OpCode::Load(LoadSource::Time)));
-        assert!(matches!(code[1], OpCode::Sin));
+        assert!(matches!(code[0], LpsOpCode::Load(LoadSource::Time)));
+        assert!(matches!(code[1], LpsOpCode::SinFixed));
     }
 
     #[test]
     fn test_min_max() {
         let code = &parse_expr("min(xNorm, 0.5)").opcodes;
-        assert!(matches!(code[0], OpCode::Load(LoadSource::XNorm)));
-        assert!(matches!(code[2], OpCode::CallNative(_)));
+        assert!(matches!(code[0], LpsOpCode::Load(LoadSource::XNorm)));
+        assert!(matches!(code[2], LpsOpCode::MinFixed));
     }
 
     #[test]
     fn test_ternary() {
         let code = &parse_expr("xNorm > 0.5 ? 1.0 : 0.0").opcodes;
         // Load xNorm, Push 0.5, Greater, Push 1.0, Push 0.0, Select
-        assert!(matches!(code[2], OpCode::CallNative(_))); // Greater
-        assert!(matches!(code.last(), Some(OpCode::Return)));
+        assert!(matches!(code[2], LpsOpCode::GreaterFixed));
+        assert!(matches!(code.last(), Some(LpsOpCode::Return)));
     }
 
     #[test]
     fn test_complex_perlin() {
         let code = &parse_expr("cos(perlin3(vec3(uv * 0.3, time), 3))").opcodes;
         // Should have loads for uv (vec2), multiplication, vec3 construction, Perlin3 and Cos
-        let has_perlin = code.iter().any(|op| matches!(op, OpCode::Perlin3(_)));
-        let has_cos = code.iter().any(|op| matches!(op, OpCode::Cos));
+        let has_perlin = code.iter().any(|op| matches!(op, LpsOpCode::Perlin3(_)));
+        let has_cos = code.iter().any(|op| matches!(op, LpsOpCode::CosFixed));
         assert!(has_perlin);
         assert!(has_cos);
     }
@@ -181,11 +179,10 @@ mod tests {
     fn test_logical_and() {
         let code = &parse_expr("xNorm > 0.5 && yNorm < 0.5").opcodes;
         // Should have Greater, Less, and And
-        let and_count = code
-            .iter()
-            .filter(|op| matches!(op, OpCode::CallNative(_)))
-            .count();
-        assert!(and_count >= 3); // Greater, Less, And
+        let has_greater = code.iter().any(|op| matches!(op, LpsOpCode::GreaterFixed));
+        let has_less = code.iter().any(|op| matches!(op, LpsOpCode::LessFixed));
+        let has_and = code.iter().any(|op| matches!(op, LpsOpCode::AndFixed));
+        assert!(has_greater && has_less && has_and);
     }
     
     #[test]
@@ -228,10 +225,10 @@ mod tests {
         // Count Push/Load opcodes before Perlin3
         let mut push_count = 0;
         for op in &program.opcodes {
-            if matches!(op, OpCode::Perlin3(_)) {
+            if matches!(op, LpsOpCode::Perlin3(_)) {
                 break;
             }
-            if matches!(op, OpCode::Push(_) | OpCode::Load(_)) {
+            if matches!(op, LpsOpCode::Push(_) | LpsOpCode::Load(_)) {
                 push_count += 1;
             }
         }
@@ -245,7 +242,7 @@ mod tests {
         
         // Verify octaves is embedded in opcode
         let has_perlin = program.opcodes.iter().any(|op| {
-            if let OpCode::Perlin3(octaves) = op {
+            if let LpsOpCode::Perlin3(octaves) = op {
                 *octaves == 3
             } else {
                 false

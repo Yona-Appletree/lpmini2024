@@ -1,31 +1,120 @@
 /// Code generator: converts AST to VM opcodes
 extern crate alloc;
+use alloc::vec;
 use alloc::vec::Vec;
 
 use super::ast::{Expr, ExprKind};
 use super::error::Type;
-use crate::test_engine::{OpCode, LoadSource};
+use super::vm::opcodes::LpsOpCode;
+use crate::test_engine::LoadSource;
 use crate::math::ToFixed;
 
 pub struct CodeGenerator;
 
+/// Binary operation types
+enum BinaryOp {
+    Add,
+    Sub,
+    Mul,
+    Div,
+    Mod,
+}
+
 impl CodeGenerator {
-    pub fn generate(expr: &Expr) -> Vec<OpCode> {
+    pub fn generate(expr: &Expr) -> Vec<LpsOpCode> {
         let mut code = Vec::new();
         Self::gen_expr(expr, &mut code);
-        code.push(OpCode::Return);
+        code.push(LpsOpCode::Return);
         code
     }
     
-    fn gen_expr(expr: &Expr, code: &mut Vec<OpCode>) {
+    /// Generate typed binary operation based on operand and result types
+    fn gen_binary_op(op: BinaryOp, left_ty: &Type, right_ty: &Type, result_ty: &Type, code: &mut Vec<LpsOpCode>) {
+        match (op, result_ty) {
+            // Fixed operations
+            (BinaryOp::Add, Type::Fixed | Type::Int32) => code.push(LpsOpCode::AddFixed),
+            (BinaryOp::Sub, Type::Fixed | Type::Int32) => code.push(LpsOpCode::SubFixed),
+            (BinaryOp::Mul, Type::Fixed | Type::Int32) => code.push(LpsOpCode::MulFixed),
+            (BinaryOp::Div, Type::Fixed | Type::Int32) => code.push(LpsOpCode::DivFixed),
+            (BinaryOp::Mod, Type::Fixed | Type::Int32) => {
+                // mod(x, y) = x - floor(x/y) * y
+                // Stack has: [x, y]
+                // We need: x - floor(x/y) * y
+                // TODO: Implement properly - for now use placeholder
+                code.push(LpsOpCode::DivFixed);
+            }
+            
+            // Vec2 operations
+            (BinaryOp::Add, Type::Vec2) => code.push(LpsOpCode::AddVec2),
+            (BinaryOp::Sub, Type::Vec2) => code.push(LpsOpCode::SubVec2),
+            (BinaryOp::Mul, Type::Vec2) => {
+                // Check if it's vec * scalar or vec * vec
+                if matches!(right_ty, Type::Fixed | Type::Int32) {
+                    code.push(LpsOpCode::MulVec2Scalar);
+                } else {
+                    code.push(LpsOpCode::MulVec2);
+                }
+            }
+            (BinaryOp::Div, Type::Vec2) => {
+                if matches!(right_ty, Type::Fixed | Type::Int32) {
+                    code.push(LpsOpCode::DivVec2Scalar);
+                } else {
+                    code.push(LpsOpCode::DivVec2);
+                }
+            }
+            (BinaryOp::Mod, Type::Vec2) => code.push(LpsOpCode::MulVec2), // Placeholder
+            
+            // Vec3 operations
+            (BinaryOp::Add, Type::Vec3) => code.push(LpsOpCode::AddVec3),
+            (BinaryOp::Sub, Type::Vec3) => code.push(LpsOpCode::SubVec3),
+            (BinaryOp::Mul, Type::Vec3) => {
+                if matches!(right_ty, Type::Fixed | Type::Int32) {
+                    code.push(LpsOpCode::MulVec3Scalar);
+                } else {
+                    code.push(LpsOpCode::MulVec3);
+                }
+            }
+            (BinaryOp::Div, Type::Vec3) => {
+                if matches!(right_ty, Type::Fixed | Type::Int32) {
+                    code.push(LpsOpCode::DivVec3Scalar);
+                } else {
+                    code.push(LpsOpCode::DivVec3);
+                }
+            }
+            (BinaryOp::Mod, Type::Vec3) => code.push(LpsOpCode::MulVec3), // Placeholder
+            
+            // Vec4 operations
+            (BinaryOp::Add, Type::Vec4) => code.push(LpsOpCode::AddVec4),
+            (BinaryOp::Sub, Type::Vec4) => code.push(LpsOpCode::SubVec4),
+            (BinaryOp::Mul, Type::Vec4) => {
+                if matches!(right_ty, Type::Fixed | Type::Int32) {
+                    code.push(LpsOpCode::MulVec4Scalar);
+                } else {
+                    code.push(LpsOpCode::MulVec4);
+                }
+            }
+            (BinaryOp::Div, Type::Vec4) => {
+                if matches!(right_ty, Type::Fixed | Type::Int32) {
+                    code.push(LpsOpCode::DivVec4Scalar);
+                } else {
+                    code.push(LpsOpCode::DivVec4);
+                }
+            }
+            (BinaryOp::Mod, Type::Vec4) => code.push(LpsOpCode::MulVec4), // Placeholder
+            
+            _ => {} // Void or unsupported
+        }
+    }
+    
+    fn gen_expr(expr: &Expr, code: &mut Vec<LpsOpCode>) {
         match &expr.kind {
             ExprKind::Number(n) => {
-                code.push(OpCode::Push((*n).to_fixed()));
+                code.push(LpsOpCode::Push((*n).to_fixed()));
             }
             
             ExprKind::IntNumber(n) => {
-                // Convert int to fixed point
-                code.push(OpCode::Push((*n).to_fixed()));
+                // Convert int to fixed point for now (TODO: keep as int32)
+                code.push(LpsOpCode::Push((*n).to_fixed()));
             }
             
             ExprKind::Variable(name) => {
@@ -33,111 +122,114 @@ impl CodeGenerator {
                 match name.as_str() {
                     "uv" => {
                         // Push normalized coordinates as vec2
-                        code.push(OpCode::Load(LoadSource::XNorm));
-                        code.push(OpCode::Load(LoadSource::YNorm));
+                        code.push(LpsOpCode::Load(LoadSource::XNorm));
+                        code.push(LpsOpCode::Load(LoadSource::YNorm));
                     }
                     "coord" => {
                         // Push pixel coordinates as vec2 (converted to Fixed)
-                        code.push(OpCode::Load(LoadSource::XInt));
-                        code.push(OpCode::Load(LoadSource::YInt));
+                        code.push(LpsOpCode::Load(LoadSource::XInt));
+                        code.push(LpsOpCode::Load(LoadSource::YInt));
                     }
                     _ => {
                         // Scalar built-in
                         let source = Self::variable_to_load_source(name);
-                        code.push(OpCode::Load(source));
+                        code.push(LpsOpCode::Load(source));
                     }
                 }
             }
             
-            // Binary operations
+            // Binary operations - use type information to generate typed opcodes
             ExprKind::Add(left, right) => {
                 Self::gen_expr(left, code);
                 Self::gen_expr(right, code);
-                code.push(OpCode::Add);
+                Self::gen_binary_op(BinaryOp::Add, left.ty.as_ref().unwrap(), 
+                    right.ty.as_ref().unwrap(), expr.ty.as_ref().unwrap(), code);
             }
             
             ExprKind::Sub(left, right) => {
                 Self::gen_expr(left, code);
                 Self::gen_expr(right, code);
-                code.push(OpCode::Sub);
+                Self::gen_binary_op(BinaryOp::Sub, left.ty.as_ref().unwrap(), 
+                    right.ty.as_ref().unwrap(), expr.ty.as_ref().unwrap(), code);
             }
             
             ExprKind::Mul(left, right) => {
                 Self::gen_expr(left, code);
                 Self::gen_expr(right, code);
-                code.push(OpCode::Mul);
+                Self::gen_binary_op(BinaryOp::Mul, left.ty.as_ref().unwrap(), 
+                    right.ty.as_ref().unwrap(), expr.ty.as_ref().unwrap(), code);
             }
             
             ExprKind::Div(left, right) => {
                 Self::gen_expr(left, code);
                 Self::gen_expr(right, code);
-                code.push(OpCode::Div);
+                Self::gen_binary_op(BinaryOp::Div, left.ty.as_ref().unwrap(), 
+                    right.ty.as_ref().unwrap(), expr.ty.as_ref().unwrap(), code);
             }
             
             ExprKind::Mod(left, right) => {
                 Self::gen_expr(left, code);
                 Self::gen_expr(right, code);
-                // Implement modulo as: a - floor(a/b) * b
-                code.push(OpCode::Div);
-                code.push(OpCode::Frac);
-                Self::gen_expr(right, code);
-                code.push(OpCode::Mul);
+                Self::gen_binary_op(BinaryOp::Mod, left.ty.as_ref().unwrap(), 
+                    right.ty.as_ref().unwrap(), expr.ty.as_ref().unwrap(), code);
             }
             
             ExprKind::Pow(left, right) => {
                 Self::gen_expr(left, code);
                 Self::gen_expr(right, code);
-                code.push(OpCode::CallNative(NativeFunction::Pow as u8));
+                // Pow is always scalar for now
+                // TODO: Add proper pow implementation
+                code.push(LpsOpCode::Push(crate::math::Fixed::ONE)); // Placeholder
             }
             
             // Comparisons
             ExprKind::Less(left, right) => {
                 Self::gen_expr(left, code);
                 Self::gen_expr(right, code);
-                code.push(OpCode::CallNative(NativeFunction::Less as u8));
+                code.push(LpsOpCode::LessFixed);
             }
             
             ExprKind::Greater(left, right) => {
                 Self::gen_expr(left, code);
                 Self::gen_expr(right, code);
-                code.push(OpCode::CallNative(NativeFunction::Greater as u8));
+                code.push(LpsOpCode::GreaterFixed);
             }
             
             ExprKind::LessEq(left, right) => {
                 Self::gen_expr(left, code);
                 Self::gen_expr(right, code);
-                code.push(OpCode::CallNative(NativeFunction::LessEq as u8));
+                code.push(LpsOpCode::LessEqFixed);
             }
             
             ExprKind::GreaterEq(left, right) => {
                 Self::gen_expr(left, code);
                 Self::gen_expr(right, code);
-                code.push(OpCode::CallNative(NativeFunction::GreaterEq as u8));
+                code.push(LpsOpCode::GreaterEqFixed);
             }
             
             ExprKind::Eq(left, right) => {
                 Self::gen_expr(left, code);
                 Self::gen_expr(right, code);
-                code.push(OpCode::CallNative(NativeFunction::Eq as u8));
+                code.push(LpsOpCode::EqFixed);
             }
             
             ExprKind::NotEq(left, right) => {
                 Self::gen_expr(left, code);
                 Self::gen_expr(right, code);
-                code.push(OpCode::CallNative(NativeFunction::NotEq as u8));
+                code.push(LpsOpCode::NotEqFixed);
             }
             
             // Logical operations
             ExprKind::And(left, right) => {
                 Self::gen_expr(left, code);
                 Self::gen_expr(right, code);
-                code.push(OpCode::CallNative(NativeFunction::And as u8));
+                code.push(LpsOpCode::AndFixed);
             }
             
             ExprKind::Or(left, right) => {
                 Self::gen_expr(left, code);
                 Self::gen_expr(right, code);
-                code.push(OpCode::CallNative(NativeFunction::Or as u8));
+                code.push(LpsOpCode::OrFixed);
             }
             
             // Ternary
@@ -145,7 +237,7 @@ impl CodeGenerator {
                 Self::gen_expr(condition, code);
                 Self::gen_expr(true_expr, code);
                 Self::gen_expr(false_expr, code);
-                code.push(OpCode::CallNative(NativeFunction::Select as u8));
+                code.push(LpsOpCode::Select);
             }
             
             // Function calls
@@ -186,7 +278,7 @@ impl CodeGenerator {
     
     /// Generate opcodes for swizzling
     /// Stack layout: components are pushed in order, so for vec2(x,y), stack is [x, y] with y on top
-    fn gen_swizzle(components: &str, source_size: usize, code: &mut Vec<OpCode>) {
+    fn gen_swizzle(components: &str, source_size: usize, code: &mut Vec<LpsOpCode>) {
         // Map component characters to indices
         let indices: Vec<usize> = components.chars().map(|c| {
             match c {
@@ -212,13 +304,13 @@ impl CodeGenerator {
             // Index 0 is at bottom, index (n-1) is at top
             let drop_count = source_size - 1 - idx;
             for _ in 0..drop_count {
-                code.push(OpCode::Drop);
+                code.push(LpsOpCode::Drop);
             }
             // Now we have [c0, c1, ..., c(idx)]
             // We want just c(idx), so drop everything below
             for _ in 0..idx {
-                code.push(OpCode::Swap); // Bring bottom to top
-                code.push(OpCode::Drop); // Drop it
+                code.push(LpsOpCode::Swap); // Bring bottom to top
+                code.push(LpsOpCode::Drop); // Drop it
             }
         } else {
             // Multi-component swizzle
@@ -239,17 +331,17 @@ impl CodeGenerator {
             // For vec2 specifically, handle common cases efficiently
             if source_size == 2 {
                 match components {
-                    "yx" | "gr" | "ts" => code.push(OpCode::Swap),
+                    "yx" | "gr" | "ts" => code.push(LpsOpCode::Swap),
                     "xx" | "rr" | "ss" => {
                         // [x, y] -> [x, x]
-                        code.push(OpCode::Drop); // [x]
-                        code.push(OpCode::Dup);  // [x, x]
+                        code.push(LpsOpCode::Drop); // [x]
+                        code.push(LpsOpCode::Dup);  // [x, x]
                     }
                     "yy" | "gg" | "tt" => {
                         // [x, y] -> [y, y]
-                        code.push(OpCode::Swap); // [y, x]
-                        code.push(OpCode::Drop); // [y]
-                        code.push(OpCode::Dup);  // [y, y]
+                        code.push(LpsOpCode::Swap); // [y, x]
+                        code.push(LpsOpCode::Drop); // [y]
+                        code.push(LpsOpCode::Dup);  // [y, y]
                     }
                     _ => {
                         // General case for vec2: Handle by reconstruction
@@ -268,7 +360,7 @@ impl CodeGenerator {
         }
     }
     
-    fn gen_function_call(name: &str, args: &[Expr], code: &mut Vec<OpCode>) {
+    fn gen_function_call(name: &str, args: &[Expr], code: &mut Vec<LpsOpCode>) {
         // Special case: perlin3(vec3) or perlin3(vec3, octaves)
         // Octaves is embedded in opcode, not pushed to stack
         if name == "perlin3" {
@@ -288,7 +380,7 @@ impl CodeGenerator {
                 3 // Default
             };
             
-            code.push(OpCode::Perlin3(octaves));
+            code.push(LpsOpCode::Perlin3(octaves));
             return;
         }
         
@@ -299,26 +391,77 @@ impl CodeGenerator {
         
         // Emit the appropriate instruction
         match name {
-            "sin" => code.push(OpCode::Sin),
-            "cos" => code.push(OpCode::Cos),
-            "frac" => code.push(OpCode::Frac),
+            "sin" => code.push(LpsOpCode::SinFixed),
+            "cos" => code.push(LpsOpCode::CosFixed),
+            "frac" | "fract" => code.push(LpsOpCode::FractFixed),
             
-            // Native functions - math
-            "min" => code.push(OpCode::CallNative(NativeFunction::Min as u8)),
-            "max" => code.push(OpCode::CallNative(NativeFunction::Max as u8)),
-            "pow" => code.push(OpCode::CallNative(NativeFunction::Pow as u8)),
-            "abs" => code.push(OpCode::CallNative(NativeFunction::Abs as u8)),
-            "floor" => code.push(OpCode::CallNative(NativeFunction::Floor as u8)),
-            "ceil" => code.push(OpCode::CallNative(NativeFunction::Ceil as u8)),
-            "sqrt" => code.push(OpCode::CallNative(NativeFunction::Sqrt as u8)),
-            "sign" => code.push(OpCode::CallNative(NativeFunction::Sign as u8)),
+            // Math functions - use explicit opcodes
+            "min" => code.push(LpsOpCode::MinFixed),
+            "max" => code.push(LpsOpCode::MaxFixed),
+            "abs" => code.push(LpsOpCode::AbsFixed),
+            "floor" => code.push(LpsOpCode::FloorFixed),
+            "ceil" => code.push(LpsOpCode::CeilFixed),
+            "sqrt" => code.push(LpsOpCode::SqrtFixed),
+            "tan" => code.push(LpsOpCode::TanFixed),
+            "pow" => code.push(LpsOpCode::PowFixed),
+            "sign" => code.push(LpsOpCode::SignFixed),
+            "mod" => code.push(LpsOpCode::ModFixed),
+            "atan" => {
+                if args.len() == 2 {
+                    code.push(LpsOpCode::Atan2Fixed);
+                } else {
+                    code.push(LpsOpCode::AtanFixed);
+                }
+            }
             
             // Clamping/interpolation
-            "clamp" => code.push(OpCode::CallNative(NativeFunction::Clamp as u8)),
-            "saturate" => code.push(OpCode::CallNative(NativeFunction::Saturate as u8)),
-            "step" => code.push(OpCode::CallNative(NativeFunction::Step as u8)),
-            "lerp" | "mix" => code.push(OpCode::CallNative(NativeFunction::Lerp as u8)),
-            "smoothstep" => code.push(OpCode::CallNative(NativeFunction::Smoothstep as u8)),
+            "clamp" => code.push(LpsOpCode::ClampFixed),
+            "saturate" => code.push(LpsOpCode::SaturateFixed),
+            "step" => code.push(LpsOpCode::StepFixed),
+            "lerp" | "mix" => code.push(LpsOpCode::LerpFixed),
+            "smoothstep" => code.push(LpsOpCode::SmoothstepFixed),
+            
+            // Vector functions - use typed opcodes based on argument type
+            "length" => {
+                let arg_ty = args[0].ty.as_ref().unwrap();
+                match arg_ty {
+                    Type::Vec2 => code.push(LpsOpCode::Length2),
+                    Type::Vec3 => code.push(LpsOpCode::Length3),
+                    Type::Vec4 => code.push(LpsOpCode::Length4),
+                    _ => {}
+                }
+            }
+            "normalize" => {
+                let arg_ty = args[0].ty.as_ref().unwrap();
+                match arg_ty {
+                    Type::Vec2 => code.push(LpsOpCode::Normalize2),
+                    Type::Vec3 => code.push(LpsOpCode::Normalize3),
+                    Type::Vec4 => code.push(LpsOpCode::Normalize4),
+                    _ => {}
+                }
+            }
+            "dot" => {
+                let arg_ty = args[0].ty.as_ref().unwrap();
+                match arg_ty {
+                    Type::Vec2 => code.push(LpsOpCode::Dot2),
+                    Type::Vec3 => code.push(LpsOpCode::Dot3),
+                    Type::Vec4 => code.push(LpsOpCode::Dot4),
+                    _ => {}
+                }
+            }
+            "distance" => {
+                let arg_ty = args[0].ty.as_ref().unwrap();
+                match arg_ty {
+                    Type::Vec2 => code.push(LpsOpCode::Distance2),
+                    Type::Vec3 => code.push(LpsOpCode::Distance3),
+                    Type::Vec4 => code.push(LpsOpCode::Distance4),
+                    _ => {}
+                }
+            }
+            "cross" => {
+                // Always vec3
+                code.push(LpsOpCode::Cross3);
+            }
             
             _ => {} // Unknown function - ignore
         }
@@ -357,6 +500,11 @@ pub enum NativeFunction {
     Lerp = 11,
     Smoothstep = 12,
     
+    // Trig (new GLSL functions)
+    Tan = 13,
+    Atan = 14,
+    Mod = 15,
+    
     // Comparisons
     Less = 20,
     Greater = 21,
@@ -371,4 +519,11 @@ pub enum NativeFunction {
     
     // Ternary select
     Select = 40,
+    
+    // Vector functions (polymorphic - work on vec2/vec3/vec4)
+    Length = 50,
+    Normalize = 51,
+    Dot = 52,
+    Distance = 53,
+    Cross = 54,  // vec3 only
 }

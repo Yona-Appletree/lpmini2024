@@ -54,10 +54,11 @@ pub use vec3::Vec3;
 pub use vec4::Vec4;
 
 // Re-export math utilities
-pub use advanced::sqrt;
+pub use advanced::{atan, atan2, fract, modulo, sqrt};
 pub use clamping::{saturate, sign};
 pub use interpolation::lerp;
 pub use rounding::{ceil, floor, frac};
+pub use trig::{cos, sin, tan};
 
 // Legacy compatibility - maintain old function names
 // Re-export for backwards compatibility

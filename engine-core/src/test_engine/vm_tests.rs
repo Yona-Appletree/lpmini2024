@@ -335,7 +335,7 @@ mod vm_opcode_tests {
         let input = vec![Fixed::ZERO; 16 * 16];
         let mut output = vec![Fixed::ZERO; 16 * 16];
 
-        let program = parse_expr("cos(perlin3(vec3(uv * 0.3, time), 3))").opcodes;
+        let program = parse_expr("cos(perlin3(vec3(uv * 0.3, time), 3))").to_legacy_opcodes();
 
         println!("Parsed opcodes:");
         for (i, op) in program.iter().enumerate() {

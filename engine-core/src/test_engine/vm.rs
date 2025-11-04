@@ -120,6 +120,59 @@ fn execute_native_function(func_id: u8, vm: &mut VM) {
             let result = t_sq * (Fixed::from_i32(3) - Fixed(t.0 << 1));
             vm.push(result);
         }
+        id if id == NativeFunction::Tan as u8 => {
+            use crate::math::tan;
+            let x = vm.pop();
+            vm.push(tan(x));
+        }
+        id if id == NativeFunction::Atan as u8 => {
+            use crate::math::{atan, atan2};
+            // Check stack size to determine if it's atan(y) or atan(y, x)
+            // Actually, we need to handle this based on args count from codegen
+            // For simplicity, check if there are 2 args (this is a hack, will fix properly later)
+            // For now, just implement single-arg atan
+            let y = vm.pop();
+            vm.push(atan(y));
+        }
+        id if id == NativeFunction::Mod as u8 => {
+            use crate::math::modulo;
+            let y = vm.pop();
+            let x = vm.pop();
+            vm.push(modulo(x, y));
+        }
+        id if id == NativeFunction::Length as u8 => {
+            // Pop vector components and calculate length
+            // Type checker ensures we know what type this is
+            // For now, we need a way to know the vector size
+            // This is a design issue - we need type info in opcodes for polymorphic functions
+            // TODO: Add typed Length opcodes (Length2, Length3, Length4)
+            // For now, stub it out
+            let a = vm.pop();
+            vm.push(a); // Placeholder
+        }
+        id if id == NativeFunction::Normalize as u8 => {
+            // Same issue as length - need typed opcodes
+            // TODO: Add Normalize2, Normalize3, Normalize4
+        }
+        id if id == NativeFunction::Dot as u8 => {
+            // Same issue - need typed opcodes
+            // TODO: Add Dot2, Dot3, Dot4
+            let b = vm.pop();
+            let a = vm.pop();
+            vm.push(a * b); // Placeholder
+        }
+        id if id == NativeFunction::Distance as u8 => {
+            // Same issue - need typed opcodes
+            // TODO: Add Distance2, Distance3, Distance4
+            let b = vm.pop();
+            let a = vm.pop();
+            vm.push((a - b).abs()); // Placeholder
+        }
+        id if id == NativeFunction::Cross as u8 => {
+            // vec3 cross product
+            // Pop 6 values (2 vec3s), push 3 values (result vec3)
+            // TODO: Implement properly
+        }
         id if id == NativeFunction::Less as u8 => {
             let b = vm.pop();
             let a = vm.pop();
@@ -203,6 +256,45 @@ pub enum OpCode {
     Cos,
     Frac,        // Get fractional part of a number
     Perlin3(u8), // Perlin noise with N octaves (1-8)
+
+    // Vec2 arithmetic
+    AddVec2,        // pop 4, push 2
+    SubVec2,        // pop 4, push 2
+    MulVec2,        // pop 4, push 2 (component-wise)
+    DivVec2,        // pop 4, push 2 (component-wise)
+    MulVec2Scalar,  // pop 3 (vec2 + scalar), push 2
+    DivVec2Scalar,  // pop 3 (vec2 + scalar), push 2
+    
+    // Vec3 arithmetic
+    AddVec3,        // pop 6, push 3
+    SubVec3,        // pop 6, push 3
+    MulVec3,        // pop 6, push 3 (component-wise)
+    DivVec3,        // pop 6, push 3 (component-wise)
+    MulVec3Scalar,  // pop 4 (vec3 + scalar), push 3
+    DivVec3Scalar,  // pop 4 (vec3 + scalar), push 3
+    
+    // Vec4 arithmetic
+    AddVec4,        // pop 8, push 4
+    SubVec4,        // pop 8, push 4
+    MulVec4,        // pop 8, push 4 (component-wise)
+    DivVec4,        // pop 8, push 4 (component-wise)
+    MulVec4Scalar,  // pop 5 (vec4 + scalar), push 4
+    DivVec4Scalar,  // pop 5 (vec4 + scalar), push 4
+
+    // Vector functions (typed)
+    Dot2,       // pop 4 (two vec2s), push 1 (dot product)
+    Dot3,       // pop 6 (two vec3s), push 1
+    Dot4,       // pop 8 (two vec4s), push 1
+    Length2,    // pop 2 (vec2), push 1 (length)
+    Length3,    // pop 3 (vec3), push 1
+    Length4,    // pop 4 (vec4), push 1
+    Normalize2, // pop 2 (vec2), push 2 (normalized vec2)
+    Normalize3, // pop 3 (vec3), push 3
+    Normalize4, // pop 4 (vec4), push 4
+    Distance2,  // pop 4 (two vec2s), push 1 (distance)
+    Distance3,  // pop 6 (two vec3s), push 1
+    Distance4,  // pop 8 (two vec4s), push 1
+    Cross3,     // pop 6 (two vec3s), push 3 (cross product vec3)
 
     // Native function call (ID determines which function)
     CallNative(u8),
@@ -546,6 +638,408 @@ impl<'a> VM<'a> {
                     return None;
                 }
             }
+            
+            // Vec2 arithmetic
+            OpCode::AddVec2 => {
+                use crate::math::Vec2;
+                let y2 = self.pop();
+                let x2 = self.pop();
+                let y1 = self.pop();
+                let x1 = self.pop();
+                let v1 = Vec2::new(x1, y1);
+                let v2 = Vec2::new(x2, y2);
+                let result = v1 + v2;
+                self.push(result.x);
+                self.push(result.y);
+            }
+            OpCode::SubVec2 => {
+                use crate::math::Vec2;
+                let y2 = self.pop();
+                let x2 = self.pop();
+                let y1 = self.pop();
+                let x1 = self.pop();
+                let v1 = Vec2::new(x1, y1);
+                let v2 = Vec2::new(x2, y2);
+                let result = v1 - v2;
+                self.push(result.x);
+                self.push(result.y);
+            }
+            OpCode::MulVec2 => {
+                use crate::math::Vec2;
+                let y2 = self.pop();
+                let x2 = self.pop();
+                let y1 = self.pop();
+                let x1 = self.pop();
+                let v1 = Vec2::new(x1, y1);
+                let v2 = Vec2::new(x2, y2);
+                let result = v1.mul_comp(v2);
+                self.push(result.x);
+                self.push(result.y);
+            }
+            OpCode::DivVec2 => {
+                use crate::math::Vec2;
+                let y2 = self.pop();
+                let x2 = self.pop();
+                let y1 = self.pop();
+                let x1 = self.pop();
+                let v1 = Vec2::new(x1, y1);
+                let v2 = Vec2::new(x2, y2);
+                let result = v1.div_comp(v2);
+                self.push(result.x);
+                self.push(result.y);
+            }
+            OpCode::MulVec2Scalar => {
+                use crate::math::Vec2;
+                let scalar = self.pop();
+                let y = self.pop();
+                let x = self.pop();
+                let v = Vec2::new(x, y);
+                let result = v * scalar;
+                self.push(result.x);
+                self.push(result.y);
+            }
+            OpCode::DivVec2Scalar => {
+                use crate::math::Vec2;
+                let scalar = self.pop();
+                let y = self.pop();
+                let x = self.pop();
+                let v = Vec2::new(x, y);
+                let result = v / scalar;
+                self.push(result.x);
+                self.push(result.y);
+            }
+            
+            // Vec3 arithmetic (similar to Vec2)
+            OpCode::AddVec3 => {
+                use crate::math::Vec3;
+                let z2 = self.pop();
+                let y2 = self.pop();
+                let x2 = self.pop();
+                let z1 = self.pop();
+                let y1 = self.pop();
+                let x1 = self.pop();
+                let v1 = Vec3::new(x1, y1, z1);
+                let v2 = Vec3::new(x2, y2, z2);
+                let result = v1 + v2;
+                self.push(result.x);
+                self.push(result.y);
+                self.push(result.z);
+            }
+            OpCode::SubVec3 => {
+                use crate::math::Vec3;
+                let z2 = self.pop();
+                let y2 = self.pop();
+                let x2 = self.pop();
+                let z1 = self.pop();
+                let y1 = self.pop();
+                let x1 = self.pop();
+                let v1 = Vec3::new(x1, y1, z1);
+                let v2 = Vec3::new(x2, y2, z2);
+                let result = v1 - v2;
+                self.push(result.x);
+                self.push(result.y);
+                self.push(result.z);
+            }
+            OpCode::MulVec3 => {
+                use crate::math::Vec3;
+                let z2 = self.pop();
+                let y2 = self.pop();
+                let x2 = self.pop();
+                let z1 = self.pop();
+                let y1 = self.pop();
+                let x1 = self.pop();
+                let v1 = Vec3::new(x1, y1, z1);
+                let v2 = Vec3::new(x2, y2, z2);
+                let result = v1.mul_comp(v2);
+                self.push(result.x);
+                self.push(result.y);
+                self.push(result.z);
+            }
+            OpCode::DivVec3 => {
+                use crate::math::Vec3;
+                let z2 = self.pop();
+                let y2 = self.pop();
+                let x2 = self.pop();
+                let z1 = self.pop();
+                let y1 = self.pop();
+                let x1 = self.pop();
+                let v1 = Vec3::new(x1, y1, z1);
+                let v2 = Vec3::new(x2, y2, z2);
+                let result = v1.div_comp(v2);
+                self.push(result.x);
+                self.push(result.y);
+                self.push(result.z);
+            }
+            OpCode::MulVec3Scalar => {
+                use crate::math::Vec3;
+                let scalar = self.pop();
+                let z = self.pop();
+                let y = self.pop();
+                let x = self.pop();
+                let v = Vec3::new(x, y, z);
+                let result = v * scalar;
+                self.push(result.x);
+                self.push(result.y);
+                self.push(result.z);
+            }
+            OpCode::DivVec3Scalar => {
+                use crate::math::Vec3;
+                let scalar = self.pop();
+                let z = self.pop();
+                let y = self.pop();
+                let x = self.pop();
+                let v = Vec3::new(x, y, z);
+                let result = v / scalar;
+                self.push(result.x);
+                self.push(result.y);
+                self.push(result.z);
+            }
+            
+            // Vec4 arithmetic (similar to Vec2/Vec3)
+            OpCode::AddVec4 => {
+                use crate::math::Vec4;
+                let w2 = self.pop();
+                let z2 = self.pop();
+                let y2 = self.pop();
+                let x2 = self.pop();
+                let w1 = self.pop();
+                let z1 = self.pop();
+                let y1 = self.pop();
+                let x1 = self.pop();
+                let v1 = Vec4::new(x1, y1, z1, w1);
+                let v2 = Vec4::new(x2, y2, z2, w2);
+                let result = v1 + v2;
+                self.push(result.x);
+                self.push(result.y);
+                self.push(result.z);
+                self.push(result.w);
+            }
+            OpCode::SubVec4 => {
+                use crate::math::Vec4;
+                let w2 = self.pop();
+                let z2 = self.pop();
+                let y2 = self.pop();
+                let x2 = self.pop();
+                let w1 = self.pop();
+                let z1 = self.pop();
+                let y1 = self.pop();
+                let x1 = self.pop();
+                let v1 = Vec4::new(x1, y1, z1, w1);
+                let v2 = Vec4::new(x2, y2, z2, w2);
+                let result = v1 - v2;
+                self.push(result.x);
+                self.push(result.y);
+                self.push(result.z);
+                self.push(result.w);
+            }
+            OpCode::MulVec4 => {
+                use crate::math::Vec4;
+                let w2 = self.pop();
+                let z2 = self.pop();
+                let y2 = self.pop();
+                let x2 = self.pop();
+                let w1 = self.pop();
+                let z1 = self.pop();
+                let y1 = self.pop();
+                let x1 = self.pop();
+                let v1 = Vec4::new(x1, y1, z1, w1);
+                let v2 = Vec4::new(x2, y2, z2, w2);
+                let result = v1.mul_comp(v2);
+                self.push(result.x);
+                self.push(result.y);
+                self.push(result.z);
+                self.push(result.w);
+            }
+            OpCode::DivVec4 => {
+                use crate::math::Vec4;
+                let w2 = self.pop();
+                let z2 = self.pop();
+                let y2 = self.pop();
+                let x2 = self.pop();
+                let w1 = self.pop();
+                let z1 = self.pop();
+                let y1 = self.pop();
+                let x1 = self.pop();
+                let v1 = Vec4::new(x1, y1, z1, w1);
+                let v2 = Vec4::new(x2, y2, z2, w2);
+                let result = v1.div_comp(v2);
+                self.push(result.x);
+                self.push(result.y);
+                self.push(result.z);
+                self.push(result.w);
+            }
+            OpCode::MulVec4Scalar => {
+                use crate::math::Vec4;
+                let scalar = self.pop();
+                let w = self.pop();
+                let z = self.pop();
+                let y = self.pop();
+                let x = self.pop();
+                let v = Vec4::new(x, y, z, w);
+                let result = v * scalar;
+                self.push(result.x);
+                self.push(result.y);
+                self.push(result.z);
+                self.push(result.w);
+            }
+            OpCode::DivVec4Scalar => {
+                use crate::math::Vec4;
+                let scalar = self.pop();
+                let w = self.pop();
+                let z = self.pop();
+                let y = self.pop();
+                let x = self.pop();
+                let v = Vec4::new(x, y, z, w);
+                let result = v / scalar;
+                self.push(result.x);
+                self.push(result.y);
+                self.push(result.z);
+                self.push(result.w);
+            }
+            
+            // Vector functions (typed)
+            OpCode::Dot2 => {
+                use crate::math::Vec2;
+                let y2 = self.pop();
+                let x2 = self.pop();
+                let y1 = self.pop();
+                let x1 = self.pop();
+                let v1 = Vec2::new(x1, y1);
+                let v2 = Vec2::new(x2, y2);
+                self.push(v1.dot(v2));
+            }
+            OpCode::Dot3 => {
+                use crate::math::Vec3;
+                let z2 = self.pop();
+                let y2 = self.pop();
+                let x2 = self.pop();
+                let z1 = self.pop();
+                let y1 = self.pop();
+                let x1 = self.pop();
+                let v1 = Vec3::new(x1, y1, z1);
+                let v2 = Vec3::new(x2, y2, z2);
+                self.push(v1.dot(v2));
+            }
+            OpCode::Dot4 => {
+                use crate::math::Vec4;
+                let w2 = self.pop();
+                let z2 = self.pop();
+                let y2 = self.pop();
+                let x2 = self.pop();
+                let w1 = self.pop();
+                let z1 = self.pop();
+                let y1 = self.pop();
+                let x1 = self.pop();
+                let v1 = Vec4::new(x1, y1, z1, w1);
+                let v2 = Vec4::new(x2, y2, z2, w2);
+                self.push(v1.dot(v2));
+            }
+            OpCode::Length2 => {
+                use crate::math::Vec2;
+                let y = self.pop();
+                let x = self.pop();
+                let v = Vec2::new(x, y);
+                self.push(v.length());
+            }
+            OpCode::Length3 => {
+                use crate::math::Vec3;
+                let z = self.pop();
+                let y = self.pop();
+                let x = self.pop();
+                let v = Vec3::new(x, y, z);
+                self.push(v.length());
+            }
+            OpCode::Length4 => {
+                use crate::math::Vec4;
+                let w = self.pop();
+                let z = self.pop();
+                let y = self.pop();
+                let x = self.pop();
+                let v = Vec4::new(x, y, z, w);
+                self.push(v.length());
+            }
+            OpCode::Normalize2 => {
+                use crate::math::Vec2;
+                let y = self.pop();
+                let x = self.pop();
+                let v = Vec2::new(x, y).normalize();
+                self.push(v.x);
+                self.push(v.y);
+            }
+            OpCode::Normalize3 => {
+                use crate::math::Vec3;
+                let z = self.pop();
+                let y = self.pop();
+                let x = self.pop();
+                let v = Vec3::new(x, y, z).normalize();
+                self.push(v.x);
+                self.push(v.y);
+                self.push(v.z);
+            }
+            OpCode::Normalize4 => {
+                use crate::math::Vec4;
+                let w = self.pop();
+                let z = self.pop();
+                let y = self.pop();
+                let x = self.pop();
+                let v = Vec4::new(x, y, z, w).normalize();
+                self.push(v.x);
+                self.push(v.y);
+                self.push(v.z);
+                self.push(v.w);
+            }
+            OpCode::Distance2 => {
+                use crate::math::Vec2;
+                let y2 = self.pop();
+                let x2 = self.pop();
+                let y1 = self.pop();
+                let x1 = self.pop();
+                let v1 = Vec2::new(x1, y1);
+                let v2 = Vec2::new(x2, y2);
+                self.push(v1.distance(v2));
+            }
+            OpCode::Distance3 => {
+                use crate::math::Vec3;
+                let z2 = self.pop();
+                let y2 = self.pop();
+                let x2 = self.pop();
+                let z1 = self.pop();
+                let y1 = self.pop();
+                let x1 = self.pop();
+                let v1 = Vec3::new(x1, y1, z1);
+                let v2 = Vec3::new(x2, y2, z2);
+                self.push(v1.distance(v2));
+            }
+            OpCode::Distance4 => {
+                use crate::math::Vec4;
+                let w2 = self.pop();
+                let z2 = self.pop();
+                let y2 = self.pop();
+                let x2 = self.pop();
+                let w1 = self.pop();
+                let z1 = self.pop();
+                let y1 = self.pop();
+                let x1 = self.pop();
+                let v1 = Vec4::new(x1, y1, z1, w1);
+                let v2 = Vec4::new(x2, y2, z2, w2);
+                self.push(v1.distance(v2));
+            }
+            OpCode::Cross3 => {
+                use crate::math::Vec3;
+                let z2 = self.pop();
+                let y2 = self.pop();
+                let x2 = self.pop();
+                let z1 = self.pop();
+                let y1 = self.pop();
+                let x1 = self.pop();
+                let v1 = Vec3::new(x1, y1, z1);
+                let v2 = Vec3::new(x2, y2, z2);
+                let result = v1.cross(v2);
+                self.push(result.x);
+                self.push(result.y);
+                self.push(result.z);
+            }
+            
             OpCode::Return => {
                 return Some(self.pop());
             }
