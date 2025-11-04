@@ -25,6 +25,7 @@ pub fn exec_load_local_fixed(
             if *sp >= 64 {
                 return Err(RuntimeError::StackOverflow { sp: *sp });
             }
+            
             stack[*sp] = val.0;
             *sp += 1;
             Ok(())
@@ -57,6 +58,7 @@ pub fn exec_store_local_fixed(
             max: locals.len(),
         });
     }
+    
     locals[idx as usize] = LocalType::Fixed(val);
 
     Ok(())

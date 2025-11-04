@@ -71,7 +71,8 @@ impl CodeGenerator {
     }
     
     /// Generate opcodes for a program (script mode)
-    pub fn generate_program(program: &Program) -> Vec<LpsOpCode> {
+    /// Returns (opcodes, local_count) tuple
+    pub fn generate_program(program: &Program) -> (Vec<LpsOpCode>, u32) {
         let mut code = Vec::new();
         let mut function_offsets = BTreeMap::new();
         
@@ -139,7 +140,8 @@ impl CodeGenerator {
             code.push(LpsOpCode::Return);
         }
         
-        code
+        // Return opcodes and the total number of locals allocated
+        (code, locals.next_index)
     }
     
     /// Generate code for a statement

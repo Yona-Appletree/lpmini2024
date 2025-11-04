@@ -156,7 +156,7 @@ impl<'a> LpsVm<'a> {
             }
 
             let opcode = &self.program.opcodes[self.pc];
-
+            
             match opcode {
                 // === Stack Operations ===
                 LpsOpCode::Push(val) => {

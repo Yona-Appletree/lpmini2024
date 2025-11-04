@@ -1,13 +1,13 @@
 /// OpCode definitions for LPS VM
-/// 
+///
 /// Design: Hybrid approach - small constants (indices, offsets) embedded in opcodes,
 /// data values flow through stack.
 use crate::math::Fixed;
 use crate::test_engine::LoadSource;
 
 // Fixed-point opcodes (split into basic, advanced, logic)
-pub mod fixed_basic;
 pub mod fixed_advanced;
+pub mod fixed_basic;
 pub mod fixed_logic;
 
 // Comparison opcodes
@@ -23,8 +23,8 @@ pub mod vec3;
 pub mod vec4;
 
 // Stack and control flow
-pub mod stack;
 pub mod control;
+pub mod stack;
 
 // Local variables
 pub mod locals;
@@ -33,8 +33,8 @@ pub mod locals;
 pub mod load;
 
 // Texture and array operations
-pub mod textures;
 pub mod arrays;
+pub mod textures;
 
 /// New typed OpCode enum (not yet in use - will replace test_engine::OpCode during migration)
 #[derive(Debug, Clone, Copy, PartialEq)]
@@ -59,23 +59,23 @@ pub enum LpsOpCode {
     SinFixed,
     CosFixed,
     TanFixed,
-    AtanFixed,     // Single arg atan
-    Atan2Fixed,    // Two arg atan2
+    AtanFixed,  // Single arg atan
+    Atan2Fixed, // Two arg atan2
     SqrtFixed,
     FloorFixed,
     CeilFixed,
-    FractFixed,    // Fractional part
-    ModFixed,      // Modulo
-    PowFixed,      // Power
-    SignFixed,     // Sign function
-    SaturateFixed, // Clamp to 0..1
-    ClampFixed,    // Clamp to min..max
-    StepFixed,     // Step function
-    LerpFixed,     // Linear interpolation
+    FractFixed,      // Fractional part
+    ModFixed,        // Modulo
+    PowFixed,        // Power
+    SignFixed,       // Sign function
+    SaturateFixed,   // Clamp to 0..1
+    ClampFixed,      // Clamp to min..max
+    StepFixed,       // Step function
+    LerpFixed,       // Linear interpolation
     SmoothstepFixed, // Smooth interpolation
-    
+
     // Noise functions
-    Perlin3(u8),  // 3D Perlin noise, octaves embedded
+    Perlin3(u8), // 3D Perlin noise, octaves embedded
 
     // Fixed-point comparisons (return FIXED_ONE or 0)
     GreaterFixed,
@@ -84,7 +84,7 @@ pub enum LpsOpCode {
     LessEqFixed,
     EqFixed,
     NotEqFixed,
-    
+
     // Logical operations (treat 0 as false, non-zero as true)
     AndFixed,
     OrFixed,
@@ -110,41 +110,41 @@ pub enum LpsOpCode {
     NotEqInt32,
 
     // Vec2 operations (operate on stack)
-    AddVec2,        // pop 4, push 2
-    SubVec2,        // pop 4, push 2
-    MulVec2,        // pop 4, push 2 (component-wise)
-    DivVec2,        // pop 4, push 2 (component-wise)
-    MulVec2Scalar,  // pop 3 (vec2 + scalar), push 2
-    DivVec2Scalar,  // pop 3 (vec2 + scalar), push 2
-    Dot2,           // pop 4, push 1
-    Length2,        // pop 2, push 1
-    Normalize2,     // pop 2, push 2
-    Distance2,      // pop 4, push 1
+    AddVec2,       // pop 4, push 2
+    SubVec2,       // pop 4, push 2
+    MulVec2,       // pop 4, push 2 (component-wise)
+    DivVec2,       // pop 4, push 2 (component-wise)
+    MulVec2Scalar, // pop 3 (vec2 + scalar), push 2
+    DivVec2Scalar, // pop 3 (vec2 + scalar), push 2
+    Dot2,          // pop 4, push 1
+    Length2,       // pop 2, push 1
+    Normalize2,    // pop 2, push 2
+    Distance2,     // pop 4, push 1
 
     // Vec3 operations
-    AddVec3,        // pop 6, push 3
-    SubVec3,        // pop 6, push 3
-    MulVec3,        // pop 6, push 3 (component-wise)
-    DivVec3,        // pop 6, push 3 (component-wise)
-    MulVec3Scalar,  // pop 4 (vec3 + scalar), push 3
-    DivVec3Scalar,  // pop 4 (vec3 + scalar), push 3
-    Dot3,           // pop 6, push 1
-    Cross3,         // pop 6, push 3
-    Length3,        // pop 3, push 1
-    Normalize3,     // pop 3, push 3
-    Distance3,      // pop 6, push 1
+    AddVec3,       // pop 6, push 3
+    SubVec3,       // pop 6, push 3
+    MulVec3,       // pop 6, push 3 (component-wise)
+    DivVec3,       // pop 6, push 3 (component-wise)
+    MulVec3Scalar, // pop 4 (vec3 + scalar), push 3
+    DivVec3Scalar, // pop 4 (vec3 + scalar), push 3
+    Dot3,          // pop 6, push 1
+    Cross3,        // pop 6, push 3
+    Length3,       // pop 3, push 1
+    Normalize3,    // pop 3, push 3
+    Distance3,     // pop 6, push 1
 
     // Vec4 operations
-    AddVec4,        // pop 8, push 4
-    SubVec4,        // pop 8, push 4
-    MulVec4,        // pop 8, push 4 (component-wise)
-    DivVec4,        // pop 8, push 4 (component-wise)
-    MulVec4Scalar,  // pop 5 (vec4 + scalar), push 4
-    DivVec4Scalar,  // pop 5 (vec4 + scalar), push 4
-    Dot4,           // pop 8, push 1
-    Length4,        // pop 4, push 1
-    Normalize4,     // pop 4, push 4
-    Distance4,      // pop 8, push 1
+    AddVec4,       // pop 8, push 4
+    SubVec4,       // pop 8, push 4
+    MulVec4,       // pop 8, push 4 (component-wise)
+    DivVec4,       // pop 8, push 4 (component-wise)
+    MulVec4Scalar, // pop 5 (vec4 + scalar), push 4
+    DivVec4Scalar, // pop 5 (vec4 + scalar), push 4
+    Dot4,          // pop 8, push 1
+    Length4,       // pop 4, push 1
+    Normalize4,    // pop 4, push 4
+    Distance4,     // pop 8, push 1
 
     // Texture sampling (local index embedded, UV coords on stack)
     TextureSampleR(u32),    // pop 2 Fixed (UV), push 1 Fixed (R)
@@ -163,8 +163,8 @@ pub enum LpsOpCode {
     StoreLocalVec4(u32),
 
     // Array operations
-    GetElemInt32ArrayFixed,  // pop array_ref, index; push Fixed
-    GetElemInt32ArrayU8,     // pop array_ref, index; push 4 Fixed (RGBA as bytes)
+    GetElemInt32ArrayFixed, // pop array_ref, index; push Fixed
+    GetElemInt32ArrayU8,    // pop array_ref, index; push 4 Fixed (RGBA as bytes)
 
     // Control flow
     Jump(i32),          // Unconditional jump by offset

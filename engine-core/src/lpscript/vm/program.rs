@@ -42,4 +42,9 @@ impl LpsProgram {
         self.source_map = Some(source_map);
         self
     }
+
+    pub fn with_locals(mut self, locals: Vec<LocalDef>) -> Self {
+        self.locals = locals;
+        self
+    }
 }

@@ -108,10 +108,20 @@ pub fn compile_script(input: &str) -> Result<LpsProgram, CompileError> {
     // Type check the program
     let typed_program = typechecker::TypeChecker::check_program(program)?;
 
-    let opcodes = codegen::CodeGenerator::generate_program(&typed_program);
+    let (opcodes, local_count) = codegen::CodeGenerator::generate_program(&typed_program);
+    
+    // Create LocalDef entries for all scratch locals
+    let locals: Vec<LocalDef> = (0..local_count)
+        .map(|i| LocalDef::new(
+            alloc::format!("local_{}", i),
+            LocalType::Fixed(crate::math::Fixed::ZERO),
+            LocalAccess::Scratch,
+        ))
+        .collect();
     
     Ok(LpsProgram::new("script".into())
         .with_opcodes(opcodes)
+        .with_locals(locals)
         .with_source(input.into()))
 }
 

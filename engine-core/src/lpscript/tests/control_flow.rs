@@ -51,7 +51,7 @@ fn test_nested_if_statements() {
 }
 
 #[test]
-#[ignore] // TODO: Fix compiler bug - loops generate infinite bytecode
+#[ignore] // TODO: Fix compiler bug - while loops still generate infinite bytecode  
 fn test_while_loop_counter() {
     let script = "
         float i = 0.0;
