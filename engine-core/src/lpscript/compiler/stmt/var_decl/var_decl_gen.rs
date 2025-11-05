@@ -9,7 +9,7 @@ use crate::lpscript::vm::opcodes::LpsOpCode;
 
 impl<'a> CodeGenerator<'a> {
     pub(crate) fn gen_var_decl(&mut self, ty: &Type, name: &str, init: &Option<Expr>) {
-        let index = self.locals.allocate(String::from(name));
+        let index = self.locals.allocate_typed(String::from(name), ty.clone());
 
         if let Some(init_expr) = init {
             // Generate code to evaluate initializer

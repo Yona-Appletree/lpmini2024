@@ -176,19 +176,34 @@ pub fn compile_script_with_options(
     let optimized_program = optimize::optimize_ast_program(typed_program, options);
 
     // Generate opcodes
-    let (opcodes, local_count) = codegen::CodeGenerator::generate_program(&optimized_program);
+    let (opcodes, local_count, local_types) =
+        codegen::CodeGenerator::generate_program(&optimized_program);
 
     // Optimize opcodes
     let optimized_opcodes = optimize::optimize_opcodes(opcodes, options);
 
-    // Create LocalDef entries for all scratch locals
+    // Create LocalDef entries for all scratch locals with correct types
     let locals: Vec<LocalDef> = (0..local_count)
         .map(|i| {
-            LocalDef::new(
-                alloc::format!("local_{}", i),
-                LocalType::Fixed(crate::math::Fixed::ZERO),
-                LocalAccess::Scratch,
-            )
+            let ty_enum = match local_types.get(&i) {
+                Some(shared::Type::Int32) => LocalType::Int32(0),
+                Some(shared::Type::Vec2) => {
+                    LocalType::Vec2(crate::math::Fixed::ZERO, crate::math::Fixed::ZERO)
+                }
+                Some(shared::Type::Vec3) => LocalType::Vec3(
+                    crate::math::Fixed::ZERO,
+                    crate::math::Fixed::ZERO,
+                    crate::math::Fixed::ZERO,
+                ),
+                Some(shared::Type::Vec4) => LocalType::Vec4(
+                    crate::math::Fixed::ZERO,
+                    crate::math::Fixed::ZERO,
+                    crate::math::Fixed::ZERO,
+                    crate::math::Fixed::ZERO,
+                ),
+                _ => LocalType::Fixed(crate::math::Fixed::ZERO), // Default to Fixed for Bool and Fixed
+            };
+            LocalDef::new(alloc::format!("local_{}", i), ty_enum, LocalAccess::Scratch)
         })
         .collect();
 

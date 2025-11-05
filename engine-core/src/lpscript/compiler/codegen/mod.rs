@@ -68,8 +68,14 @@ impl<'a> CodeGenerator<'a> {
     }
 
     /// Generate opcodes for a program (script mode)
-    /// Returns (opcodes, local_count) tuple
-    pub fn generate_program(program: &Program) -> (Vec<LpsOpCode>, u32) {
+    /// Returns (opcodes, local_count, local_types) tuple
+    pub fn generate_program(
+        program: &Program,
+    ) -> (
+        Vec<LpsOpCode>,
+        u32,
+        alloc::collections::BTreeMap<u32, crate::lpscript::shared::Type>,
+    ) {
         program::gen_program(program, |stmt, code, locals, func_offsets| {
             let mut gen = CodeGenerator::new(code, locals, func_offsets);
             gen.gen_stmt(stmt);

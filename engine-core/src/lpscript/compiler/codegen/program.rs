@@ -10,11 +10,15 @@ use crate::lpscript::compiler::func::gen_function;
 use crate::lpscript::vm::opcodes::LpsOpCode;
 
 /// Generate opcodes for a program (script mode)
-/// Returns (opcodes, local_count) tuple
+/// Returns (opcodes, local_count, local_types) tuple
 pub fn gen_program(
     program: &Program,
     gen_stmt: impl Fn(&Stmt, &mut Vec<LpsOpCode>, &mut LocalAllocator, &BTreeMap<String, u32>) + Copy,
-) -> (Vec<LpsOpCode>, u32) {
+) -> (
+    Vec<LpsOpCode>,
+    u32,
+    BTreeMap<u32, crate::lpscript::shared::Type>,
+) {
     let mut code = Vec::new();
     let mut function_offsets = BTreeMap::new();
 
@@ -44,7 +48,7 @@ pub fn gen_program(
 
     // Generate main code using CodeGenerator
     let mut locals = LocalAllocator::new();
-    let local_count = {
+    let (local_count, local_types) = {
         let mut gen = super::CodeGenerator::new(&mut code, &mut locals, &function_offsets);
         for stmt in &program.stmts {
             gen.gen_stmt(stmt);
@@ -56,9 +60,9 @@ pub fn gen_program(
             gen.code.push(LpsOpCode::Return);
         }
 
-        gen.locals.next_index
+        (gen.locals.next_index, gen.locals.local_types.clone())
     };
 
-    // Return opcodes and the total number of locals allocated
-    (code, local_count)
+    // Return opcodes, local count, and types
+    (code, local_count, local_types)
 }

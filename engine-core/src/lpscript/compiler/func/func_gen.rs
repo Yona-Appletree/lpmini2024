@@ -22,7 +22,7 @@ pub fn gen_function(
     // Allocate space for parameters (they're passed on stack)
     // First, allocate locals for all parameters to reserve their indices
     for param in func.params.iter() {
-        locals.allocate(param.name.clone());
+        locals.allocate_typed(param.name.clone(), param.ty.clone());
     }
 
     // Then, generate store instructions in REVERSE order
@@ -30,9 +30,8 @@ pub fn gen_function(
     for (i, param) in func.params.iter().enumerate().rev() {
         // Parameters are already on stack, need to store them
         match param.ty {
-            Type::Bool | Type::Fixed | Type::Int32 => {
-                code.push(LpsOpCode::StoreLocalFixed(i as u32))
-            }
+            Type::Bool | Type::Fixed => code.push(LpsOpCode::StoreLocalFixed(i as u32)),
+            Type::Int32 => code.push(LpsOpCode::StoreLocalInt32(i as u32)),
             Type::Vec2 => code.push(LpsOpCode::StoreLocalVec2(i as u32)),
             Type::Vec3 => code.push(LpsOpCode::StoreLocalVec3(i as u32)),
             Type::Vec4 => code.push(LpsOpCode::StoreLocalVec4(i as u32)),

@@ -72,7 +72,14 @@ impl<'a> LpsVm<'a> {
         let mut locals = Vec::new();
         locals.resize(local_count, LocalType::Fixed(Fixed::ZERO));
 
-        // Set input locals
+        // Initialize scratch locals from program definitions
+        for (i, local_def) in program.locals.iter().enumerate() {
+            if i < locals.len() {
+                locals[i] = local_def.ty.clone();
+            }
+        }
+
+        // Set input locals (override program defaults)
         for (idx, local) in inputs {
             if idx >= locals.len() {
                 return Err(RuntimeError::LocalOutOfBounds {

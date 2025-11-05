@@ -7,6 +7,7 @@ use alloc::vec::Vec;
 use crate::lpscript::compiler::ast::Program;
 use crate::lpscript::compiler::codegen;
 use crate::lpscript::compiler::{lexer, parser, typechecker};
+use crate::lpscript::shared::Type;
 use crate::lpscript::vm::{LpsOpCode, LpsProgram, LpsVm, VmLimits};
 use crate::math::{Fixed, ToFixed, Vec2, Vec3, Vec4};
 
@@ -150,14 +151,25 @@ impl ScriptTest {
         }
 
         // Generate opcodes and create program
-        let (opcodes, local_count) = codegen::CodeGenerator::generate_program(&typed_program);
+        let (opcodes, local_count, local_types) =
+            codegen::CodeGenerator::generate_program(&typed_program);
 
-        // Create LocalDef entries
+        // Create LocalDef entries with correct types
         let locals: Vec<crate::lpscript::vm::LocalDef> = (0..local_count)
             .map(|i| {
+                use crate::lpscript::vm::LocalType;
+                let ty_enum = match local_types.get(&i) {
+                    Some(Type::Int32) => LocalType::Int32(0),
+                    Some(Type::Vec2) => LocalType::Vec2(Fixed::ZERO, Fixed::ZERO),
+                    Some(Type::Vec3) => LocalType::Vec3(Fixed::ZERO, Fixed::ZERO, Fixed::ZERO),
+                    Some(Type::Vec4) => {
+                        LocalType::Vec4(Fixed::ZERO, Fixed::ZERO, Fixed::ZERO, Fixed::ZERO)
+                    }
+                    _ => LocalType::Fixed(Fixed::ZERO), // Default for Bool and Fixed
+                };
                 crate::lpscript::vm::LocalDef::new(
                     alloc::format!("local_{}", i),
-                    crate::lpscript::vm::LocalType::Fixed(Fixed::ZERO),
+                    ty_enum,
                     crate::lpscript::vm::LocalAccess::Scratch,
                 )
             })
