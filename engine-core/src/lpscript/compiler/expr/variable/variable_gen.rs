@@ -2,11 +2,12 @@
 extern crate alloc;
 
 use crate::lpscript::vm::opcodes::LpsOpCode;
+use crate::lpscript::error::Type;
 use crate::test_engine::LoadSource;
 use crate::lpscript::compiler::generator::CodeGenerator;
 
 impl<'a> CodeGenerator<'a> {
-    pub(crate) fn gen_variable(&mut self, name: &str) {
+    pub(crate) fn gen_variable(&mut self, name: &str, var_type: &Type) {
         // Check if it's a vec2 built-in (uv, coord)
         match name {
             "uv" => {
@@ -22,10 +23,25 @@ impl<'a> CodeGenerator<'a> {
             _ => {
                 // Check if it's a user-defined variable
                 if let Some(index) = self.locals.get(name) {
-                    // Load from local variable
-                    // TODO: Need to know the type to use correct Load opcode
-                    // For now, assume Fixed
-                    self.code.push(LpsOpCode::LoadLocalFixed(index));
+                    // Load from local variable using the correct opcode for the type
+                    match var_type {
+                        Type::Fixed | Type::Int32 | Type::Bool => {
+                            self.code.push(LpsOpCode::LoadLocalFixed(index));
+                        }
+                        Type::Vec2 => {
+                            self.code.push(LpsOpCode::LoadLocalVec2(index));
+                        }
+                        Type::Vec3 => {
+                            self.code.push(LpsOpCode::LoadLocalVec3(index));
+                        }
+                        Type::Vec4 => {
+                            self.code.push(LpsOpCode::LoadLocalVec4(index));
+                        }
+                        _ => {
+                            // Fallback for unsupported types
+                            self.code.push(LpsOpCode::LoadLocalFixed(index));
+                        }
+                    }
                 } else {
                     // Scalar built-in
                     let source = variable_to_load_source(name);

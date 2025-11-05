@@ -9,7 +9,7 @@ impl<'a> CodeGenerator<'a> {
         match &expr.kind {
             ExprKind::Number(n) => self.gen_number(*n),
             ExprKind::IntNumber(n) => self.gen_int_number(*n),
-            ExprKind::Variable(name) => self.gen_variable(name),
+            ExprKind::Variable(name) => self.gen_variable(name, expr.ty.as_ref().unwrap()),
             
             ExprKind::Add(left, right) => self.gen_add(left, right, expr.ty.as_ref().unwrap()),
             ExprKind::Sub(left, right) => self.gen_sub(left, right, expr.ty.as_ref().unwrap()),

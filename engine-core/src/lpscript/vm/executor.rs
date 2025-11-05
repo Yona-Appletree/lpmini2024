@@ -159,7 +159,7 @@ impl<'a> LpsVm<'a> {
             }
 
             let opcode = &self.program.opcodes[self.pc];
-            
+
             match opcode {
                 // === Stack Operations ===
                 LpsOpCode::Push(val) => {
@@ -270,10 +270,8 @@ impl<'a> LpsVm<'a> {
                         self.pc = self.call_stack[self.call_stack_depth].return_pc;
                     } else {
                         // Exiting main - return all stack values as result
-                        let result: Vec<Fixed> = self.stack[0..self.sp]
-                            .iter()
-                            .map(|&i| Fixed(i))
-                            .collect();
+                        let result: Vec<Fixed> =
+                            self.stack[0..self.sp].iter().map(|&i| Fixed(i)).collect();
                         return Ok(result);
                     }
                 }
@@ -898,6 +896,37 @@ impl<'a> LpsVm<'a> {
                     self.pc += 1;
                 }
 
+                // === Swizzle Operations ===
+                LpsOpCode::Swizzle3to2(idx0, idx1) => {
+                    stack::exec_swizzle3to2(&mut self.stack, &mut self.sp, *idx0, *idx1)
+                        .map_err(|e| self.runtime_error(e))?;
+                    self.pc += 1;
+                }
+
+                LpsOpCode::Swizzle3to3(idx0, idx1, idx2) => {
+                    stack::exec_swizzle3to3(&mut self.stack, &mut self.sp, *idx0, *idx1, *idx2)
+                        .map_err(|e| self.runtime_error(e))?;
+                    self.pc += 1;
+                }
+
+                LpsOpCode::Swizzle4to2(idx0, idx1) => {
+                    stack::exec_swizzle4to2(&mut self.stack, &mut self.sp, *idx0, *idx1)
+                        .map_err(|e| self.runtime_error(e))?;
+                    self.pc += 1;
+                }
+
+                LpsOpCode::Swizzle4to3(idx0, idx1, idx2) => {
+                    stack::exec_swizzle4to3(&mut self.stack, &mut self.sp, *idx0, *idx1, *idx2)
+                        .map_err(|e| self.runtime_error(e))?;
+                    self.pc += 1;
+                }
+
+                LpsOpCode::Swizzle4to4(idx0, idx1, idx2, idx3) => {
+                    stack::exec_swizzle4to4(&mut self.stack, &mut self.sp, *idx0, *idx1, *idx2, *idx3)
+                        .map_err(|e| self.runtime_error(e))?;
+                    self.pc += 1;
+                }
+
                 // === Texture Operations ===
                 LpsOpCode::TextureSampleR(idx) => {
                     textures::exec_texture_sample_r(&mut self.stack, &mut self.sp, *idx)
@@ -1160,7 +1189,9 @@ mod tests {
         let program = parse_expr("1.0 + 2.0");
         let mut vm = LpsVm::new(&program, vec![], VmLimits::default()).unwrap();
 
-        let result = vm.run_scalar(Fixed::ZERO, Fixed::ZERO, Fixed::ZERO).unwrap();
+        let result = vm
+            .run_scalar(Fixed::ZERO, Fixed::ZERO, Fixed::ZERO)
+            .unwrap();
         assert_eq!(result.to_f32(), 3.0);
     }
 
@@ -1169,7 +1200,9 @@ mod tests {
         let program = parse_expr("uv.x + uv.y");
         let mut vm = LpsVm::new(&program, vec![], VmLimits::default()).unwrap();
 
-        let result = vm.run_scalar(0.5.to_fixed(), 0.3.to_fixed(), Fixed::ZERO).unwrap();
+        let result = vm
+            .run_scalar(0.5.to_fixed(), 0.3.to_fixed(), Fixed::ZERO)
+            .unwrap();
         assert!((result.to_f32() - 0.8).abs() < 0.01); // Account for fixed-point precision
     }
 
@@ -1178,7 +1211,9 @@ mod tests {
         let program = parse_expr("5.0 > 3.0");
         let mut vm = LpsVm::new(&program, vec![], VmLimits::default()).unwrap();
 
-        let result = vm.run_scalar(Fixed::ZERO, Fixed::ZERO, Fixed::ZERO).unwrap();
+        let result = vm
+            .run_scalar(Fixed::ZERO, Fixed::ZERO, Fixed::ZERO)
+            .unwrap();
         assert_eq!(result, Fixed::ONE); // TRUE
     }
 
@@ -1196,7 +1231,9 @@ mod tests {
         let program = parse_script(script);
         let mut vm = LpsVm::new(&program, vec![], VmLimits::default()).unwrap();
 
-        let result = vm.run_scalar(Fixed::ZERO, Fixed::ZERO, Fixed::ZERO).unwrap();
+        let result = vm
+            .run_scalar(Fixed::ZERO, Fixed::ZERO, Fixed::ZERO)
+            .unwrap();
         assert_eq!(result.to_f32(), 10.0);
     }
 
@@ -1214,7 +1251,9 @@ mod tests {
         let program = parse_script(script);
         let mut vm = LpsVm::new(&program, vec![], VmLimits::default()).unwrap();
 
-        let result = vm.run_scalar(Fixed::ZERO, Fixed::ZERO, Fixed::ZERO).unwrap();
+        let result = vm
+            .run_scalar(Fixed::ZERO, Fixed::ZERO, Fixed::ZERO)
+            .unwrap();
         assert_eq!(result.to_f32(), 10.0);
     }
 
@@ -1279,7 +1318,8 @@ mod tests {
         let program = parse_expr("5.0 > 3.0");
         let mut vm = LpsVm::new(&program, vec![], VmLimits::default()).unwrap();
         assert_eq!(
-            vm.run_scalar(Fixed::ZERO, Fixed::ZERO, Fixed::ZERO).unwrap(),
+            vm.run_scalar(Fixed::ZERO, Fixed::ZERO, Fixed::ZERO)
+                .unwrap(),
             Fixed::ONE
         );
 
@@ -1287,7 +1327,8 @@ mod tests {
         let program = parse_expr("3.0 < 5.0");
         let mut vm = LpsVm::new(&program, vec![], VmLimits::default()).unwrap();
         assert_eq!(
-            vm.run_scalar(Fixed::ZERO, Fixed::ZERO, Fixed::ZERO).unwrap(),
+            vm.run_scalar(Fixed::ZERO, Fixed::ZERO, Fixed::ZERO)
+                .unwrap(),
             Fixed::ONE
         );
 
@@ -1295,7 +1336,8 @@ mod tests {
         let program = parse_expr("5.0 >= 5.0");
         let mut vm = LpsVm::new(&program, vec![], VmLimits::default()).unwrap();
         assert_eq!(
-            vm.run_scalar(Fixed::ZERO, Fixed::ZERO, Fixed::ZERO).unwrap(),
+            vm.run_scalar(Fixed::ZERO, Fixed::ZERO, Fixed::ZERO)
+                .unwrap(),
             Fixed::ONE
         );
 
@@ -1303,7 +1345,8 @@ mod tests {
         let program = parse_expr("3.0 <= 5.0");
         let mut vm = LpsVm::new(&program, vec![], VmLimits::default()).unwrap();
         assert_eq!(
-            vm.run_scalar(Fixed::ZERO, Fixed::ZERO, Fixed::ZERO).unwrap(),
+            vm.run_scalar(Fixed::ZERO, Fixed::ZERO, Fixed::ZERO)
+                .unwrap(),
             Fixed::ONE
         );
 
@@ -1311,7 +1354,8 @@ mod tests {
         let program = parse_expr("5.0 == 5.0");
         let mut vm = LpsVm::new(&program, vec![], VmLimits::default()).unwrap();
         assert_eq!(
-            vm.run_scalar(Fixed::ZERO, Fixed::ZERO, Fixed::ZERO).unwrap(),
+            vm.run_scalar(Fixed::ZERO, Fixed::ZERO, Fixed::ZERO)
+                .unwrap(),
             Fixed::ONE
         );
 
@@ -1319,7 +1363,8 @@ mod tests {
         let program = parse_expr("5.0 != 3.0");
         let mut vm = LpsVm::new(&program, vec![], VmLimits::default()).unwrap();
         assert_eq!(
-            vm.run_scalar(Fixed::ZERO, Fixed::ZERO, Fixed::ZERO).unwrap(),
+            vm.run_scalar(Fixed::ZERO, Fixed::ZERO, Fixed::ZERO)
+                .unwrap(),
             Fixed::ONE
         );
     }

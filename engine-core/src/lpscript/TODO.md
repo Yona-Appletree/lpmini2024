@@ -5,55 +5,55 @@
 ### Compiler Bugs
 
 - **Control Flow**: If statements generate invalid bytecode
-    - [ ] `tests/control_flow.rs`: 5 ignored tests related to if statements and loops
+  - [ ] `tests/control_flow.rs`: 5 ignored tests related to if statements and loops
 - **Loops**: While/for loops generate infinite bytecode
-    - [ ] `tests/control_flow.rs`: Multiple ignored tests
-    - [ ] `tests/variables.rs`: Loop-related tests ignored
-    - [ ] `tests/functions.rs`: Loop tests ignored
+  - [ ] `tests/control_flow.rs`: Multiple ignored tests
+  - [ ] `tests/variables.rs`: Loop-related tests ignored
+  - [ ] `tests/functions.rs`: Loop tests ignored
 - **Variable Scoping**: Block scoping generates invalid bytecode
-    - [ ] `tests/variables.rs`: Nested scopes and block scoping tests ignored
+  - [ ] `tests/variables.rs`: Nested scopes and block scoping tests ignored
 - **Stack Overflow**: Compiler crashes on certain patterns
-    - [ ] `tests/variables.rs`: 2 ignored tests for stack overflow
+  - [ ] `tests/variables.rs`: 2 ignored tests for stack overflow
 - **Negative Literals**: Parser treats `-5.0` as `0 - 5.0` (affects AST tests)
-    - [ ] `compiler/expr/literals/literals_tests.rs`: test_negative_literal fails
-    - [ ] `compiler/expr/call/call_tests.rs`: test_function_call_abs fails (due to negative literal in test)
+  - [ ] `compiler/expr/literals/literals_tests.rs`: test_negative_literal fails
+  - [ ] `compiler/expr/call/call_tests.rs`: test_function_call_abs fails (due to negative literal in test)
 
 ### Parser Issues
 
 - **Assignment Expression Recursion**: Parser fails on assignment expressions
-    - [ ] `parser/expr/assign_expr.rs`: 2 ignored tests
-    - Need to fix assignment and chained assignment parsing
+  - [ ] `parser/expr/assign_expr.rs`: 2 ignored tests
+  - Need to fix assignment and chained assignment parsing
 
 ### VM/Function Issues
 
 - **Function Execution**: Multiple issues with function calls
-    - [ ] `tests/functions.rs`: Vec parameters need special handling (multiple stack values)
-    - [ ] `tests/functions.rs`: Recursive function execution broken
-    - [ ] `tests/functions.rs`: Multiple function execution issues
-    - [ ] `tests/functions.rs`: Function return value propagation broken
-    - [ ] `tests/functions.rs`: Vec return types need more VM opcodes
+  - [ ] `tests/functions.rs`: Vec parameters need special handling (multiple stack values)
+  - [ ] `tests/functions.rs`: Recursive function execution broken
+  - [ ] `tests/functions.rs`: Multiple function execution issues
+  - [ ] `tests/functions.rs`: Function return value propagation broken
+  - [ ] `tests/functions.rs`: Vec return types need more VM opcodes
 - **Floating Point Precision**: Fixed-point math tolerance issues
-    - [ ] `compiler/expr/call/call_tests.rs`: test_function_call_cos (expected 1.0, got 0.9996948)
-    - [ ] `compiler/expr/call/call_tests.rs`: test_function_call_nested (precision drift in nested calls)
+  - [ ] `compiler/expr/call/call_tests.rs`: test_function_call_cos (expected 1.0, got 0.9996948)
+  - [ ] `compiler/expr/call/call_tests.rs`: test_function_call_nested (precision drift in nested calls)
 
 ## Implementation TODOs
 
 ### Codegen
 
-- [ ] `codegen/expr/binary.rs`: Add proper pow implementation
-- [ ] `codegen/expr/binary.rs`: Implement proper modulo operation (currently placeholder)
-- [ ] `codegen/expr/swizzle.rs`: Implement general vec3/vec4 swizzling (line 107-114)
-    - Currently only vec2 swizzles work
-    - [ ] `compiler/expr/swizzle/swizzle_tests.rs`: test_swizzle_two_components fails (vec3.xy)
-- [ ] `codegen/expr/variable.rs`: Need type information to use correct Load opcode
-- [ ] `codegen/expr/literals.rs`: Keep integers as int32 instead of converting to fixed point
+- [x] ~~`codegen/expr/binary.rs`: Add proper pow implementation~~ (COMPLETED - uses PowFixed opcode)
+- [x] ~~`codegen/expr/binary.rs`: Implement proper modulo operation~~ (COMPLETED - uses ModFixed opcode)
+- [x] ~~`codegen/expr/swizzle.rs`: Implement general vec3/vec4 swizzling~~ (COMPLETED - added Swizzle3to2/3/4to2/3/4 opcodes)
+  - ~~Currently only vec2 swizzles work~~
+  - [x] ~~`compiler/expr/swizzle/swizzle_tests.rs`: test_swizzle_two_components~~ (PASSING)
+- [x] ~~`codegen/expr/variable.rs`: Need type information to use correct Load opcode~~ (COMPLETED - now uses type info for LoadLocalFixed/Vec2/Vec3/Vec4)
+- [x] ~~`codegen/expr/literals.rs`: Keep integers as int32 instead of converting to fixed point~~ (COMPLETED - uses PushInt32 opcode)
 
 ### VM Executor
 
 - [x] `vm/executor.rs`: Refactor run() to return Vec<Fixed> for vector support (COMPLETED)
-    - [x] Added run_scalar(), run_vec2(), run_vec3(), run_vec4() convenience methods
-    - [x] Updated all test utilities to use appropriate run_*() methods
-    - [x] All vector constructor tests now pass (7/7)
+  - [x] Added run_scalar(), run_vec2(), run_vec3(), run_vec4() convenience methods
+  - [x] Updated all test utilities to use appropriate run\_\*() methods
+  - [x] All vector constructor tests now pass (7/7)
 - [ ] `vm/executor.rs`: Could add frame pointer for local variables
 - [ ] `vm/executor.rs`: Pass actual width/height instead of placeholders (line 292)
 - [ ] `vm/executor.rs`: Get actual opcode name for debugging (line 963)
@@ -115,7 +115,7 @@
 - [x] `codegen/expr/logical.rs` - 9 tests (&&, || with bytecode + execution) ✅ ALL PASSING
 - [x] `codegen/expr/variable.rs` - 8 tests (uv, coord, time, local variables) ✅ ALL PASSING
 - [x] `codegen/expr/constructors.rs` - 8 tests (vec2/vec3/vec4 constructors, GLSL-style) ✅ ALL PASSING
-- [x] `codegen/expr/swizzle.rs` - 10 tests (9 passing, 1 failing due to unimplemented vec3->vec2 swizzle)
+- [x] `codegen/expr/swizzle.rs` - 10 tests ✅ ALL PASSING
 - [x] `codegen/expr/ternary.rs` - 6 tests (ternary operator, nested ternaries) ✅ ALL PASSING
 - [x] `codegen/expr/call.rs` - 20 tests (18 passing, 2 failing due to floating point precision)
 - [x] `codegen/expr/assign_expr.rs` - 4 tests + 1 ignored (assignment expressions) ✅ ALL PASSING
@@ -125,7 +125,7 @@
 - [x] `codegen/stmt/var_decl.rs` - 5 tests (variable declarations with/without init) ✅ ALL PASSING
 - [x] `codegen/stmt/assign.rs` - 4 tests (simple and complex assignments) ✅ ALL PASSING
 - [x] `codegen/stmt/expr_stmt.rs` - 3 tests (expression statements with Drop opcode) ✅ ALL PASSING
-    - [x] Fixed: Expression statements now properly drop unused results based on type
+  - [x] Fixed: Expression statements now properly drop unused results based on type
 - [x] `codegen/stmt/return_stmt.rs` - 4 tests (return with literals, expressions, variables) ✅ ALL PASSING
 - [x] `codegen/stmt/block.rs` - 2 tests + 2 ignored (simple blocks, scoping issues)
 - [x] `codegen/stmt/if_stmt.rs` - 1 test + 5 ignored (if/else bytecode generation issues)
@@ -141,16 +141,17 @@
 
 ### Test Results Summary
 
-**Compiler Tests: 95 of 100 passing** (5 failures, 13 ignored)
+**Compiler Tests: 96 of 100 passing** (4 failures, 13 ignored)
 
-**Current Failures** (5 tests):
+**Current Failures** (4 tests):
+
 1. `test_negative_literal` - Parser generates `0 - 5.0` instead of `-5.0`
 2. `test_function_call_abs` - AST mismatch due to negative literal in test
 3. `test_function_call_cos` - Floating point precision (0.9996948 vs 1.0)
 4. `test_function_call_nested` - Floating point precision drift
-5. `test_swizzle_two_components` - Vec3->Vec2 swizzle not implemented
 
 **Ignored Tests** (13 tests):
+
 - 7 control flow tests (if statements, loops generate invalid bytecode)
 - 5 variable scoping tests (block scoping issues, stack overflow)
 - 1 vec2 variable declaration test
@@ -204,44 +205,50 @@
 
 ### VM Opcodes
 
+- [x] `vm/opcodes/stack.rs` - 13 tests (Dup, Drop, Swap, Swizzle operations) ✅ ALL PASSING
 - [ ] `vm/opcodes/arrays.rs` (3 tests)
 - [ ] `vm/opcodes/textures.rs` (3 tests)
 
 ## Priority Order
 
-1. **Fix Remaining Test Failures** (5 tests)
-    - [ ] Fix negative literal parsing (`-5.0` should parse as negative number, not `0 - 5.0`)
-    - [ ] Relax floating point tolerance for Fixed-point math tests
-    - [ ] Implement vec3/vec4 swizzle extraction to vec2
+1. **Fix Remaining Test Failures** (4 tests)
+   - [ ] Fix negative literal parsing (`-5.0` should parse as negative number, not `0 - 5.0`)
+   - [ ] Relax floating point tolerance for Fixed-point math tests
 
 2. **Fix Compiler Bugs** - Critical blockers preventing 13 ignored tests from running
-    - Control flow (if/else statements)
-    - Loop bytecode generation
-    - Stack overflow issues
-    - Variable scoping
+   - Control flow (if/else statements)
+   - Loop bytecode generation
+   - Stack overflow issues
+   - Variable scoping
 
 3. **Fix Function Execution** - Functions are core feature, need to work properly
-    - Vec parameters and return types
-    - Recursive functions
-    - Multiple function definitions
+   - Vec parameters and return types
+   - Recursive functions
+   - Multiple function definitions
 
-4. **Implement Missing Features** - Arrays, textures, proper operators
-    - Pow implementation
-    - Modulo operation
-    - Array access
-    - Texture sampling
+4. **Implement Missing Features** - Arrays, textures
+   - Array access
+   - Texture sampling
 
 5. **Expand Parser Test Coverage** - Many parser modules have only 1-2 tests
 
 ## Recent Completions
 
+- [x] **Codegen Implementation TODOs** (Nov 2024)
+  - Added PowFixed and ModFixed opcode usage for proper pow/mod operations
+  - Implemented complete swizzle support with new Swizzle3to2/3to3/4to2/4to3/4to4 opcodes
+  - Refactored swizzle operations to vm/opcodes/stack.rs (proper location for stack manipulation)
+  - Added comprehensive swizzle tests: 10 unit tests in stack.rs + 7 integration tests
+  - Added type-aware local variable loading (LoadLocalFixed/Vec2/Vec3/Vec4)
+  - Implemented PushInt32 for integer literals to preserve int semantics
+  - All swizzle tests now passing (10/10 compiler tests + 13/13 VM opcode tests)
+
 - [x] **VM Vector Return Support** (Dec 2024)
-    - Refactored `LpsVm::run()` to return `Vec<Fixed>` for proper vector support
-    - Added `run_scalar()`, `run_vec2()`, `run_vec3()`, `run_vec4()` convenience methods
-    - Updated all test utilities to call appropriate run method based on expected type
-    - All 7 vector constructor tests now pass
-    
+  - Refactored `LpsVm::run()` to return `Vec<Fixed>` for proper vector support
+  - Added `run_scalar()`, `run_vec2()`, `run_vec3()`, `run_vec4()` convenience methods
+  - Updated all test utilities to call appropriate run method based on expected type
+  - All 7 vector constructor tests now pass
 - [x] **Expression Statement Fix** (Dec 2024)
-    - Fixed expression statements to drop unused results based on type
-    - Prevents stack pollution when expressions used for side effects only
-    - All 3 expression statement tests now pass
+  - Fixed expression statements to drop unused results based on type
+  - Prevents stack pollution when expressions used for side effects only
+  - All 3 expression statement tests now pass

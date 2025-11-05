@@ -146,6 +146,13 @@ pub enum LpsOpCode {
     Normalize4,    // pop 4, push 4
     Distance4,     // pop 8, push 1
 
+    // Swizzle operations (reorder stack values)
+    Swizzle3to2(u8, u8),     // pop 3, push 2 (indices specify which 2 to keep)
+    Swizzle3to3(u8, u8, u8), // pop 3, push 3 (indices specify reordering)
+    Swizzle4to2(u8, u8),     // pop 4, push 2 (indices specify which 2 to keep)
+    Swizzle4to3(u8, u8, u8), // pop 4, push 3 (indices specify which 3 to keep)
+    Swizzle4to4(u8, u8, u8, u8), // pop 4, push 4 (indices specify reordering)
+
     // Texture sampling (local index embedded, UV coords on stack)
     TextureSampleR(u32),    // pop 2 Fixed (UV), push 1 Fixed (R)
     TextureSampleRGBA(u32), // pop 2 Fixed (UV), push 4 Fixed (RGBA)
@@ -268,6 +275,11 @@ impl LpsOpCode {
             LpsOpCode::Length4 => "Length4",
             LpsOpCode::Normalize4 => "Normalize4",
             LpsOpCode::Distance4 => "Distance4",
+            LpsOpCode::Swizzle3to2(_, _) => "Swizzle3to2",
+            LpsOpCode::Swizzle3to3(_, _, _) => "Swizzle3to3",
+            LpsOpCode::Swizzle4to2(_, _) => "Swizzle4to2",
+            LpsOpCode::Swizzle4to3(_, _, _) => "Swizzle4to3",
+            LpsOpCode::Swizzle4to4(_, _, _, _) => "Swizzle4to4",
             LpsOpCode::TextureSampleR(_) => "TextureSampleR",
             LpsOpCode::TextureSampleRGBA(_) => "TextureSampleRGBA",
             LpsOpCode::LoadLocalFixed(_) => "LoadLocalFixed",

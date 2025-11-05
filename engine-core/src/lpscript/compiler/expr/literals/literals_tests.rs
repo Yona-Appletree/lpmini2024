@@ -20,7 +20,7 @@ mod tests {
     fn test_int_literal() -> Result<(), String> {
         ExprTest::new("42")
             .expect_ast(int32(42))
-            .expect_opcodes(vec![LpsOpCode::Push(42.to_fixed()), LpsOpCode::Return])
+            .expect_opcodes(vec![LpsOpCode::PushInt32(42), LpsOpCode::Return])
             .expect_result_fixed(42.0)
             .run()
     }

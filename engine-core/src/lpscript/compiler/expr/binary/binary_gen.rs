@@ -110,9 +110,8 @@ impl<'a> CodeGenerator<'a> {
     ) {
         self.gen_expr(left);
         self.gen_expr(right);
-        // Pow is always scalar for now
-        // TODO: Add proper pow implementation
-        self.code.push(LpsOpCode::Push(crate::math::Fixed::ONE)); // Placeholder
+        // Pow is always scalar for now (pow only works on Fixed types)
+        self.code.push(LpsOpCode::PowFixed);
     }
 }
 
@@ -132,11 +131,8 @@ fn gen_binary_op(
         (BinaryOp::Mul, Type::Fixed | Type::Int32) => code.push(LpsOpCode::MulFixed),
         (BinaryOp::Div, Type::Fixed | Type::Int32) => code.push(LpsOpCode::DivFixed),
         (BinaryOp::Mod, Type::Fixed | Type::Int32) => {
-            // mod(x, y) = x - floor(x/y) * y
-            // Stack has: [x, y]
-            // We need: x - floor(x/y) * y
-            // TODO: Implement properly - for now use placeholder
-            code.push(LpsOpCode::DivFixed);
+            // Modulo operation for fixed-point numbers
+            code.push(LpsOpCode::ModFixed);
         }
 
         // Vec2 operations
@@ -157,7 +153,11 @@ fn gen_binary_op(
                 code.push(LpsOpCode::DivVec2);
             }
         }
-        (BinaryOp::Mod, Type::Vec2) => code.push(LpsOpCode::MulVec2), // Placeholder
+        (BinaryOp::Mod, Type::Vec2) => {
+            // Vec2 modulo not commonly supported, but we can implement component-wise
+            // For now, this is a placeholder - proper implementation would need ModVec2 opcode
+            code.push(LpsOpCode::MulVec2);
+        }
 
         // Vec3 operations
         (BinaryOp::Add, Type::Vec3) => code.push(LpsOpCode::AddVec3),
@@ -176,7 +176,11 @@ fn gen_binary_op(
                 code.push(LpsOpCode::DivVec3);
             }
         }
-        (BinaryOp::Mod, Type::Vec3) => code.push(LpsOpCode::MulVec3), // Placeholder
+        (BinaryOp::Mod, Type::Vec3) => {
+            // Vec3 modulo not commonly supported, but we can implement component-wise
+            // For now, this is a placeholder - proper implementation would need ModVec3 opcode
+            code.push(LpsOpCode::MulVec3);
+        }
 
         // Vec4 operations
         (BinaryOp::Add, Type::Vec4) => code.push(LpsOpCode::AddVec4),
@@ -195,7 +199,11 @@ fn gen_binary_op(
                 code.push(LpsOpCode::DivVec4);
             }
         }
-        (BinaryOp::Mod, Type::Vec4) => code.push(LpsOpCode::MulVec4), // Placeholder
+        (BinaryOp::Mod, Type::Vec4) => {
+            // Vec4 modulo not commonly supported, but we can implement component-wise
+            // For now, this is a placeholder - proper implementation would need ModVec4 opcode
+            code.push(LpsOpCode::MulVec4);
+        }
 
         _ => {} // Void or unsupported
     }
