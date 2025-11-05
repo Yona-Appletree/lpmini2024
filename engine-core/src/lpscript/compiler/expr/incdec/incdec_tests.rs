@@ -41,7 +41,6 @@ mod tests {
     }
 
     #[test]
-    #[ignore] // Compound assignment has issues (pre-existing)
     fn test_compound_assignment_opcodes() {
         let script = "int x = 10; x += 5; return x;";
         let program = compile_script(script).unwrap();
@@ -101,7 +100,6 @@ mod integration_tests {
     }
 
     #[test]
-    #[ignore] // TODO: Compound assignment causes stack overflow - pre-existing bug
     fn test_compound_addition_integration() {
         let script = "
             int x = 10;
@@ -117,7 +115,6 @@ mod integration_tests {
     }
 
     #[test]
-    #[ignore] // TODO: Compound assignment causes stack overflow - pre-existing bug
     fn test_compound_bitwise_and_integration() {
         let script = "
             int x = 15;

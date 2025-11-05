@@ -50,8 +50,11 @@ pub fn execute_program_lps(
         for x in 0..width {
             // Calculate normalized coordinates (0..1 range)
             // Add 0.5 to center pixels (x + 0.5, y + 0.5)
-            let x_norm = Fixed::from_f32((x as f32 + 0.5) / width as f32);
-            let y_norm = Fixed::from_f32((y as f32 + 0.5) / height as f32);
+            // Use fixed-point arithmetic throughout to avoid float math
+            let x_plus_half = Fixed::from_i32(x as i32) + Fixed::HALF;
+            let x_norm = x_plus_half / Fixed::from_i32(width as i32);
+            let y_plus_half = Fixed::from_i32(y as i32) + Fixed::HALF;
+            let y_norm = y_plus_half / Fixed::from_i32(height as i32);
 
             let result = vm.run_scalar(x_norm, y_norm, time).unwrap_or_else(|e| {
                 panic!("Runtime error at pixel ({}, {}): {}", x, y, e);

@@ -259,7 +259,6 @@ mod tests {
     }
 
     #[test]
-    #[ignore] // TODO: Update test for integer-only circular_panel
     fn test_circular_panel_led_81_and_89() {
         // Reproduce the exact issue: LEDs 81 and 89 in circular_panel_7ring mapping
         // are sampling at exact pixel boundaries and returning black

@@ -28,7 +28,6 @@ mod tests {
     }
 
     #[test]
-    #[ignore] // TODO: Stack has wrong number of values - possible if statement codegen issue
     fn test_if_with_variable() {
         let script = "float x = 0.3; if (x > 0.5) { return 1.0; } else { return 0.0; }";
         let program = parse_script(script);

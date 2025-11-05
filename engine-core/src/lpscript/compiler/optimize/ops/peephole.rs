@@ -75,8 +75,12 @@ fn remove_unreachable_after_jumps(opcodes: Vec<LpsOpCode>) -> Vec<LpsOpCode> {
     let mut result = Vec::new();
     let jump_targets = collect_jump_targets(&opcodes);
 
+    // Track mapping from old index to new index
+    let mut index_mapping = alloc::vec![None; opcodes.len()];
+    
     let mut i = 0;
     while i < opcodes.len() {
+        index_mapping[i] = Some(result.len());
         result.push(opcodes[i].clone());
 
         // If this is an unconditional jump or return, skip instructions until next jump target
@@ -92,7 +96,40 @@ fn remove_unreachable_after_jumps(opcodes: Vec<LpsOpCode>) -> Vec<LpsOpCode> {
         }
     }
 
-    result
+    // Patch all jump offsets to account for removed instructions
+    patch_jump_offsets(result, &index_mapping)
+}
+
+/// Patch jump offsets after instructions have been removed
+fn patch_jump_offsets(
+    mut opcodes: Vec<LpsOpCode>,
+    index_mapping: &[Option<usize>],
+) -> Vec<LpsOpCode> {
+    for i in 0..opcodes.len() {
+        match &mut opcodes[i] {
+            LpsOpCode::Jump(offset)
+            | LpsOpCode::JumpIfZero(offset)
+            | LpsOpCode::JumpIfNonZero(offset) => {
+                // Find the original index this instruction was at
+                let original_i = index_mapping
+                    .iter()
+                    .position(|&mapped| mapped == Some(i))
+                    .expect("Should find original index");
+                
+                // Calculate the original target
+                let original_target = (original_i as i32 + 1 + *offset) as usize;
+                
+                // Find the new target index
+                if let Some(Some(new_target)) = index_mapping.get(original_target) {
+                    // Calculate new offset
+                    let new_offset = (*new_target as i32) - (i as i32) - 1;
+                    *offset = new_offset;
+                }
+            }
+            _ => {}
+        }
+    }
+    opcodes
 }
 
 /// Collect all jump targets (instruction indices that are jumped to)
