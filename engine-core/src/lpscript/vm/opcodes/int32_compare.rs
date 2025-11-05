@@ -1,11 +1,11 @@
 /// Int32 comparison opcodes
-use crate::lpscript::vm::error::RuntimeError;
-use crate::lpscript::vm::vm_stack::Stack;
-use crate::math::{Fixed, FIXED_ONE};
+use crate::lpscript::vm::error::LpsVmError;
+use crate::lpscript::vm::value_stack::ValueStack;
+use crate::math::FIXED_ONE;
 
 /// Execute GreaterEqInt32: pop b, a; push (a >= b ? 1.0 : 0.0)
 #[inline(always)]
-pub fn exec_greater_eq_int32(stack: &mut Stack) -> Result<(), RuntimeError> {
+pub fn exec_greater_eq_int32(stack: &mut ValueStack) -> Result<(), LpsVmError> {
     let (a, b) = stack.pop2()?;
     let result = if a >= b { FIXED_ONE } else { 0 };
     stack.push_int32(result)?;
@@ -14,7 +14,7 @@ pub fn exec_greater_eq_int32(stack: &mut Stack) -> Result<(), RuntimeError> {
 
 /// Execute LessEqInt32: pop b, a; push (a <= b ? 1.0 : 0.0)
 #[inline(always)]
-pub fn exec_less_eq_int32(stack: &mut Stack) -> Result<(), RuntimeError> {
+pub fn exec_less_eq_int32(stack: &mut ValueStack) -> Result<(), LpsVmError> {
     let (a, b) = stack.pop2()?;
     let result = if a <= b { FIXED_ONE } else { 0 };
     stack.push_int32(result)?;
@@ -23,7 +23,7 @@ pub fn exec_less_eq_int32(stack: &mut Stack) -> Result<(), RuntimeError> {
 
 /// Execute EqInt32: pop b, a; push (a == b ? 1.0 : 0.0)
 #[inline(always)]
-pub fn exec_eq_int32(stack: &mut Stack) -> Result<(), RuntimeError> {
+pub fn exec_eq_int32(stack: &mut ValueStack) -> Result<(), LpsVmError> {
     let (a, b) = stack.pop2()?;
     let result = if a == b { FIXED_ONE } else { 0 };
     stack.push_int32(result)?;
@@ -32,7 +32,7 @@ pub fn exec_eq_int32(stack: &mut Stack) -> Result<(), RuntimeError> {
 
 /// Execute NotEqInt32: pop b, a; push (a != b ? 1.0 : 0.0)
 #[inline(always)]
-pub fn exec_not_eq_int32(stack: &mut Stack) -> Result<(), RuntimeError> {
+pub fn exec_not_eq_int32(stack: &mut ValueStack) -> Result<(), LpsVmError> {
     let (a, b) = stack.pop2()?;
     let result = if a != b { FIXED_ONE } else { 0 };
     stack.push_int32(result)?;
@@ -45,7 +45,7 @@ mod tests {
 
     #[test]
     fn test_greater_eq() {
-        let mut stack = Stack::new(64);
+        let mut stack = ValueStack::new(64);
         stack.push_int32(5).unwrap();
         stack.push_int32(5).unwrap();
         exec_greater_eq_int32(&mut stack).unwrap();
@@ -54,7 +54,7 @@ mod tests {
 
     #[test]
     fn test_less_eq() {
-        let mut stack = Stack::new(64);
+        let mut stack = ValueStack::new(64);
         stack.push_int32(3).unwrap();
         stack.push_int32(5).unwrap();
         exec_less_eq_int32(&mut stack).unwrap();
@@ -63,7 +63,7 @@ mod tests {
 
     #[test]
     fn test_eq() {
-        let mut stack = Stack::new(64);
+        let mut stack = ValueStack::new(64);
         stack.push_int32(5).unwrap();
         stack.push_int32(5).unwrap();
         exec_eq_int32(&mut stack).unwrap();
@@ -72,7 +72,7 @@ mod tests {
 
     #[test]
     fn test_not_eq() {
-        let mut stack = Stack::new(64);
+        let mut stack = ValueStack::new(64);
         stack.push_int32(5).unwrap();
         stack.push_int32(3).unwrap();
         exec_not_eq_int32(&mut stack).unwrap();

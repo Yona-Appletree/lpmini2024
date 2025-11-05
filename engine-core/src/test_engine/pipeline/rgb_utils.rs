@@ -1,5 +1,5 @@
 /// RGB packing/unpacking utilities for 32-bit buffers
-use crate::math::{Fixed, FIXED_SHIFT, FIXED_ONE};
+use crate::math::{Fixed, FIXED_ONE};
 
 /// Pack RGB into 0x00RRGGBB format
 #[inline(always)]
@@ -32,7 +32,9 @@ pub fn i32_to_grey(val: i32) -> Fixed {
 #[inline(always)]
 pub fn grey_to_rgb_i32(grey: Fixed) -> i32 {
     let clamped = if grey.0 < 0 { 0 } else if grey.0 > FIXED_ONE { FIXED_ONE } else { grey.0 };
-    let byte_val = ((clamped >> (FIXED_SHIFT - 8)) & 0xFF) as u8;
+    // Convert to 0-255 range: (clamped * 255) / FIXED_ONE
+    // Use i64 to avoid overflow
+    let byte_val = ((clamped as i64 * 255) / FIXED_ONE as i64) as u8;
     pack_rgb(byte_val, byte_val, byte_val)
 }
 
@@ -61,7 +63,6 @@ mod tests {
     }
 
     #[test]
-    #[ignore] // TODO: Fix for integer-only min/max
     fn test_grey_to_rgb() {
         // 0.0 should be black
         let black = grey_to_rgb_i32(Fixed::ZERO);

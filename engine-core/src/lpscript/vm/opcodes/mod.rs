@@ -23,8 +23,10 @@ pub mod vec3;
 pub mod vec4;
 
 // Stack and control flow
-pub mod control;
+pub mod control_flow;
 pub mod stack;
+
+pub use control_flow::ReturnAction;
 
 // Local variables
 pub mod locals;

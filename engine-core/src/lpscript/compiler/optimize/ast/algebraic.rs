@@ -98,18 +98,14 @@ pub fn simplify_expr(expr_id: ExprId, pool: AstPool) -> (ExprId, AstPool) {
             (expr_id, pool2)
         }
 
-        // x % 1 = 0 (modulo 1 is always 0)
+        // x % 1 = frac(x) for fractional numbers
+        // Note: We don't optimize this because:
+        // 1. For integers: x % 1 = 0 (simplified)
+        // 2. For floats: x % 1 = frac(x) (not a simple constant)
+        // The simplification would need to generate a frac() call, which isn't simpler
         ExprKind::Mod(left_id, right_id) => {
             let (new_left, mut pool2) = simplify_expr(left_id, pool);
             let (new_right, mut pool3) = simplify_expr(right_id, pool2);
-
-            let right = &pool3.expr(new_right).kind;
-            if matches!(right, &ExprKind::Number(n) if n == 1.0) {
-                // x % 1 = 0
-                if let Ok(zero_id) = pool3.alloc_expr(ExprKind::Number(0.0), span) {
-                    return (zero_id, pool3);
-                }
-            }
 
             pool3.expr_mut(expr_id).kind = ExprKind::Mod(new_left, new_right);
             (expr_id, pool3)

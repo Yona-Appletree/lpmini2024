@@ -4,7 +4,7 @@ use alloc::string::String;
 use core::fmt;
 
 #[derive(Debug)]
-pub enum RuntimeError {
+pub enum LpsVmError {
     StackUnderflow {
         required: usize,
         actual: usize,
@@ -42,9 +42,10 @@ pub enum RuntimeError {
     CallStackOverflow {
         depth: usize,
     },
+    InvalidFunctionIndex,
 }
 
-impl RuntimeError {
+impl LpsVmError {
     /// Add execution context (PC, opcode name) to the error
     pub fn with_context(self, pc: usize, opcode: &'static str) -> RuntimeErrorWithContext {
         RuntimeErrorWithContext {
@@ -58,25 +59,25 @@ impl RuntimeError {
 /// Runtime error with execution context
 #[derive(Debug)]
 pub struct RuntimeErrorWithContext {
-    pub error: RuntimeError,
+    pub error: LpsVmError,
     pub pc: usize,
     pub opcode: &'static str,
 }
 
-impl fmt::Display for RuntimeError {
+impl fmt::Display for LpsVmError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            RuntimeError::StackUnderflow { required, actual } => {
+            LpsVmError::StackUnderflow { required, actual } => {
                 write!(
                     f,
                     "Stack underflow: need {} items, have {}",
                     required, actual
                 )
             }
-            RuntimeError::StackOverflow { sp } => {
+            LpsVmError::StackOverflow { sp } => {
                 write!(f, "Stack overflow at sp={}", sp)
             }
-            RuntimeError::LocalTypeMismatch {
+            LpsVmError::LocalTypeMismatch {
                 local_idx,
                 local_name,
                 expected,
@@ -88,40 +89,43 @@ impl fmt::Display for RuntimeError {
                     local_name, local_idx, expected, found
                 )
             }
-            RuntimeError::LocalOutOfBounds { local_idx, max } => {
+            LpsVmError::LocalOutOfBounds { local_idx, max } => {
                 write!(f, "Local index {} out of bounds (max {})", local_idx, max)
             }
-            RuntimeError::DivisionByZero => {
+            LpsVmError::DivisionByZero => {
                 write!(f, "Division by zero")
             }
-            RuntimeError::InvalidTextureCoords { u, v, texture_idx } => {
+            LpsVmError::InvalidTextureCoords { u, v, texture_idx } => {
                 write!(
                     f,
                     "Invalid texture coordinates ({}, {}) for texture {}",
                     u, v, texture_idx
                 )
             }
-            RuntimeError::InvalidArrayIndex { index, array_size } => {
+            LpsVmError::InvalidArrayIndex { index, array_size } => {
                 write!(
                     f,
                     "Array index {} out of bounds (size {})",
                     index, array_size
                 )
             }
-            RuntimeError::ProgramCounterOutOfBounds { pc, max } => {
+            LpsVmError::ProgramCounterOutOfBounds { pc, max } => {
                 write!(f, "Program counter {} out of bounds (max {})", pc, max)
             }
-            RuntimeError::TypeMismatch => {
+            LpsVmError::TypeMismatch => {
                 write!(f, "Type mismatch in operation")
             }
-            RuntimeError::UnsupportedOpCode => {
+            LpsVmError::UnsupportedOpCode => {
                 write!(f, "Unsupported opcode encountered")
             }
-            RuntimeError::InstructionLimitExceeded => {
+            LpsVmError::InstructionLimitExceeded => {
                 write!(f, "Instruction limit exceeded (possible infinite loop)")
             }
-            RuntimeError::CallStackOverflow { depth } => {
+            LpsVmError::CallStackOverflow { depth } => {
                 write!(f, "Call stack overflow at depth {}", depth)
+            }
+            LpsVmError::InvalidFunctionIndex => {
+                write!(f, "Invalid function index")
             }
         }
     }
@@ -136,4 +140,3 @@ impl fmt::Display for RuntimeErrorWithContext {
         )
     }
 }
-

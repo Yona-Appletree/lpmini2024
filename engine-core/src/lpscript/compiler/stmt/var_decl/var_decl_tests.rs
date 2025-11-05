@@ -1,10 +1,11 @@
 /// Variable declaration tests
 #[cfg(test)]
 mod tests {
-    use crate::lpscript::compiler::stmt::stmt_test_ast::*;
     use crate::lpscript::compiler::stmt::stmt_test_util::ScriptTest;
     use crate::lpscript::shared::Type;
+    use crate::lpscript::vm::lps_vm::LpsVm;
     use crate::lpscript::vm::opcodes::LpsOpCode;
+    use crate::lpscript::vm::vm_limits::VmLimits;
     use crate::math::ToFixed;
 
     #[test]
@@ -105,7 +106,7 @@ mod tests {
 
     #[test]
     fn test_var_decl_vec2() -> Result<(), String> {
-        use crate::lpscript::vm::{LpsVm, VmLimits};
+        use crate::lpscript::vm::{};
         use crate::lpscript::{compile_script_with_options, OptimizeOptions};
 
         let program = compile_script_with_options(
@@ -113,7 +114,7 @@ mod tests {
             &OptimizeOptions::none(),
         )
         .map_err(|e| format!("Compilation failed: {}", e))?;
-        let mut vm = LpsVm::new(&program, vec![], VmLimits::default())
+        let mut vm = LpsVm::new(&program, VmLimits::default())
             .map_err(|e| format!("VM creation failed: {:?}", e))?;
         let result = vm
             .run_scalar(0.5.to_fixed(), 0.5.to_fixed(), 0.0.to_fixed())
@@ -133,7 +134,7 @@ mod tests {
 
     #[test]
     fn test_var_decl_vec3() -> Result<(), String> {
-        use crate::lpscript::vm::{LpsVm, VmLimits};
+        use crate::lpscript::vm::{};
         use crate::lpscript::{compile_script_with_options, OptimizeOptions};
 
         let program = compile_script_with_options(
@@ -141,7 +142,7 @@ mod tests {
             &OptimizeOptions::none(),
         )
         .map_err(|e| format!("Compilation failed: {}", e))?;
-        let mut vm = LpsVm::new(&program, vec![], VmLimits::default())
+        let mut vm = LpsVm::new(&program, VmLimits::default())
             .map_err(|e| format!("VM creation failed: {:?}", e))?;
         let result = vm
             .run_scalar(0.5.to_fixed(), 0.5.to_fixed(), 0.0.to_fixed())
@@ -161,7 +162,7 @@ mod tests {
 
     #[test]
     fn test_var_decl_vec4() -> Result<(), String> {
-        use crate::lpscript::vm::{LpsVm, VmLimits};
+        use crate::lpscript::vm::{};
         use crate::lpscript::{compile_script_with_options, OptimizeOptions};
 
         let program = compile_script_with_options(
@@ -169,7 +170,7 @@ mod tests {
             &OptimizeOptions::none(),
         )
         .map_err(|e| format!("Compilation failed: {}", e))?;
-        let mut vm = LpsVm::new(&program, vec![], VmLimits::default())
+        let mut vm = LpsVm::new(&program, VmLimits::default())
             .map_err(|e| format!("VM creation failed: {:?}", e))?;
         let result = vm
             .run_scalar(0.5.to_fixed(), 0.5.to_fixed(), 0.0.to_fixed())
@@ -189,7 +190,7 @@ mod tests {
 
     #[test]
     fn test_vec2_in_expression() -> Result<(), String> {
-        use crate::lpscript::vm::{LpsVm, VmLimits};
+        use crate::lpscript::vm::{};
         use crate::lpscript::{compile_script_with_options, OptimizeOptions};
 
         let program = compile_script_with_options(
@@ -197,7 +198,7 @@ mod tests {
             &OptimizeOptions::none(),
         )
         .map_err(|e| format!("Compilation failed: {}", e))?;
-        let mut vm = LpsVm::new(&program, vec![], VmLimits::default())
+        let mut vm = LpsVm::new(&program, VmLimits::default())
             .map_err(|e| format!("VM creation failed: {:?}", e))?;
         let result = vm
             .run_scalar(0.5.to_fixed(), 0.5.to_fixed(), 0.0.to_fixed())
@@ -217,7 +218,7 @@ mod tests {
 
     #[test]
     fn test_vec3_in_expression() -> Result<(), String> {
-        use crate::lpscript::vm::{LpsVm, VmLimits};
+        use crate::lpscript::vm::{};
         use crate::lpscript::{compile_script_with_options, OptimizeOptions};
 
         let program = compile_script_with_options(
@@ -225,7 +226,7 @@ mod tests {
             &OptimizeOptions::none(),
         )
         .map_err(|e| format!("Compilation failed: {}", e))?;
-        let mut vm = LpsVm::new(&program, vec![], VmLimits::default())
+        let mut vm = LpsVm::new(&program, VmLimits::default())
             .map_err(|e| format!("VM creation failed: {:?}", e))?;
         let result = vm
             .run_scalar(0.5.to_fixed(), 0.5.to_fixed(), 0.0.to_fixed())
@@ -245,7 +246,7 @@ mod tests {
 
     #[test]
     fn test_vec4_uninitialized() -> Result<(), String> {
-        use crate::lpscript::vm::{LpsVm, VmLimits};
+        use crate::lpscript::vm::{};
         use crate::lpscript::{compile_script_with_options, OptimizeOptions};
 
         let program = compile_script_with_options(
@@ -253,7 +254,7 @@ mod tests {
             &OptimizeOptions::none(),
         )
         .map_err(|e| format!("Compilation failed: {}", e))?;
-        let mut vm = LpsVm::new(&program, vec![], VmLimits::default())
+        let mut vm = LpsVm::new(&program, VmLimits::default())
             .map_err(|e| format!("VM creation failed: {:?}", e))?;
         let result = vm
             .run_scalar(0.5.to_fixed(), 0.5.to_fixed(), 0.0.to_fixed())
@@ -294,5 +295,64 @@ mod tests {
             .with_time(3.0)
             .expect_result_fixed(6.0)
             .run()
+    }
+}
+
+#[cfg(test)]
+mod variable_integration_tests {
+    use crate::lpscript::vm::vm_limits::VmLimits;
+    use crate::lpscript::*;
+    use crate::math::{Fixed, ToFixed};
+
+    #[test]
+    fn test_variable_mutation() {
+        let script = "
+            float x = 1.0;
+            x = x + 2.0;
+            x = x * 3.0;
+            return x;
+        ";
+        let program = parse_script(script);
+        let mut vm = LpsVm::new(&program, VmLimits::default()).unwrap();
+
+        let result = vm
+            .run_scalar(Fixed::ZERO, Fixed::ZERO, Fixed::ZERO)
+            .unwrap();
+        // (1 + 2) * 3 = 9
+        assert_eq!(result.to_f32(), 9.0);
+    }
+
+    #[test]
+    fn test_assignment_expression_value() {
+        let script = "
+            float x = 0.0;
+            float y = (x = 5.0);  // Assignment returns the assigned value
+            return y;
+        ";
+        let program = parse_script(script);
+        let mut vm = LpsVm::new(&program, VmLimits::default()).unwrap();
+
+        let result = vm
+            .run_scalar(Fixed::ZERO, Fixed::ZERO, Fixed::ZERO)
+            .unwrap();
+        assert_eq!(result.to_f32(), 5.0);
+    }
+
+    #[test]
+    fn test_chained_assignments() {
+        let script = "
+            float x = 0.0;
+            float y = 0.0;
+            float z = 0.0;
+            z = y = x = 7.0;  // Right-associative
+            return x + y + z;
+        ";
+        let program = parse_script(script);
+        let mut vm = LpsVm::new(&program, VmLimits::default()).unwrap();
+
+        let result = vm
+            .run_scalar(Fixed::ZERO, Fixed::ZERO, Fixed::ZERO)
+            .unwrap();
+        assert_eq!(result.to_f32(), 21.0);
     }
 }

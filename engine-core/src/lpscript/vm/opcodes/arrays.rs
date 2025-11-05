@@ -1,12 +1,12 @@
 /// Array access opcodes (stub implementations)
-use crate::lpscript::vm::error::RuntimeError;
-use crate::lpscript::vm::vm_stack::Stack;
+use crate::lpscript::vm::error::LpsVmError;
+use crate::lpscript::vm::value_stack::ValueStack;
 use crate::math::Fixed;
 
 /// Execute GetElemInt32ArrayFixed: pop array_ref, index; push Fixed
 /// Stub implementation - returns 0.0
 #[inline(always)]
-pub fn exec_get_elem_int32_array_fixed(stack: &mut Stack) -> Result<(), RuntimeError> {
+pub fn exec_get_elem_int32_array_fixed(stack: &mut ValueStack) -> Result<(), LpsVmError> {
     // Pop index and array_ref
     let (_array_ref, _index) = stack.pop2()?;
 
@@ -20,7 +20,7 @@ pub fn exec_get_elem_int32_array_fixed(stack: &mut Stack) -> Result<(), RuntimeE
 /// Execute GetElemInt32ArrayU8: pop array_ref, index; push 4 Fixed (RGBA as bytes)
 /// Stub implementation - returns (0, 0, 0, 0)
 #[inline(always)]
-pub fn exec_get_elem_int32_array_u8(stack: &mut Stack) -> Result<(), RuntimeError> {
+pub fn exec_get_elem_int32_array_u8(stack: &mut ValueStack) -> Result<(), LpsVmError> {
     // Pop index and array_ref
     let (_array_ref, _index) = stack.pop2()?;
 
@@ -37,7 +37,7 @@ mod tests {
 
     #[test]
     fn test_get_elem_int32_array_fixed_stub() {
-        let mut stack = Stack::new(64);
+        let mut stack = ValueStack::new(64);
 
         // Push array_ref and index
         stack.push_int32(123).unwrap(); // array_ref (stub)
@@ -51,7 +51,7 @@ mod tests {
 
     #[test]
     fn test_get_elem_int32_array_u8_stub() {
-        let mut stack = Stack::new(64);
+        let mut stack = ValueStack::new(64);
 
         // Push array_ref and index
         stack.push_int32(123).unwrap(); // array_ref (stub)
@@ -68,13 +68,13 @@ mod tests {
 
     #[test]
     fn test_array_access_underflow() {
-        let mut stack = Stack::new(64);
+        let mut stack = ValueStack::new(64);
         stack.push_int32(1).unwrap(); // Only 1 item, need 2
 
         let result = exec_get_elem_int32_array_fixed(&mut stack);
         assert!(matches!(
             result,
-            Err(RuntimeError::StackUnderflow {
+            Err(LpsVmError::StackUnderflow {
                 required: 2,
                 actual: 1
             })

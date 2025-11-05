@@ -4,7 +4,20 @@ use super::fixed::Fixed;
 /// Modulo operation (GLSL-compatible: sign follows dividend)
 #[inline]
 pub fn modulo(x: Fixed, y: Fixed) -> Fixed {
-    x - (x / y) * y
+    // If both x and y are integers (no fractional part), use integer modulo for precision
+    if x.frac().0 == 0 && y.frac().0 == 0 {
+        let x_int = x.to_i32();
+        let y_int = y.to_i32();
+        if y_int != 0 {
+            return Fixed::from_i32(x_int % y_int);
+        }
+    }
+    
+    // General case: use the formula x - floor(x/y) * y for better precision
+    // This matches GLSL's mod() behavior
+    let quotient = x / y;
+    let floored = Fixed::from_i32(quotient.to_i32()); // floor(x/y)
+    x - floored * y
 }
 
 /// Fractional part (x - floor(x))

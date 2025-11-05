@@ -10,7 +10,8 @@ use alloc::vec::Vec;
 use crate::lpscript::compiler::ast::{AstPool, ExprId};
 use crate::lpscript::compiler::expr::expr_test_util::ast_eq_ignore_spans_with_pool;
 use crate::lpscript::compiler::{codegen, lexer, parser, typechecker};
-use crate::lpscript::vm::{LpsProgram, LpsVm, VmLimits};
+use crate::lpscript::shared::Type;
+use crate::lpscript::vm::{LpsVm, VmLimits, FunctionDef, LpsProgram};
 use crate::math::{Fixed, ToFixed};
 
 /// Type alias for optimization pass functions (pool-based)
@@ -187,13 +188,21 @@ impl AstOptTest {
         let original_opcodes = codegen::CodeGenerator::generate(pool, original_id);
         let optimized_opcodes = codegen::CodeGenerator::generate(pool, optimized_id);
 
-        let original_program = LpsProgram::new("original".into()).with_opcodes(original_opcodes);
-        let optimized_program = LpsProgram::new("optimized".into()).with_opcodes(optimized_opcodes);
+        // Create main functions for both programs
+        let original_main = FunctionDef::new("main".into(), Type::Void)
+            .with_opcodes(original_opcodes);
+        let optimized_main = FunctionDef::new("main".into(), Type::Void)
+            .with_opcodes(optimized_opcodes);
+        
+        let original_program = LpsProgram::new("original".into())
+            .with_functions(vec![original_main]);
+        let optimized_program = LpsProgram::new("optimized".into())
+            .with_functions(vec![optimized_main]);
 
         // Create VMs
-        let mut original_vm = LpsVm::new(&original_program, Vec::new(), VmLimits::default())
+        let mut original_vm = LpsVm::new(&original_program, VmLimits::default())
             .map_err(|e| format!("Failed to create VM for original: {:?}", e))?;
-        let mut optimized_vm = LpsVm::new(&optimized_program, Vec::new(), VmLimits::default())
+        let mut optimized_vm = LpsVm::new(&optimized_program, VmLimits::default())
             .map_err(|e| format!("Failed to create VM for optimized: {:?}", e))?;
 
         // Run both and compare results
@@ -223,11 +232,6 @@ impl AstOptTest {
 #[cfg(test)]
 mod tests {
     use super::*;
-    // TODO: Re-enable when algebraic optimizer module is updated
-    // use crate::lpscript::compiler::optimize::ast::algebraic;
-    use crate::lpscript::compiler::test_ast::*;
-    use crate::lpscript::shared::Type;
-
     // TODO: Re-enable when algebraic optimizer is updated to use AstPool
     /*
     #[test]

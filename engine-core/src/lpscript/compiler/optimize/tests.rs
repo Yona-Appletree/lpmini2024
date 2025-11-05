@@ -11,29 +11,32 @@ mod optimization_tests {
         let optimized = compile_expr_with_options("2.0 + 3.0", &OptimizeOptions::all()).unwrap();
         let unoptimized = compile_expr_with_options("2.0 + 3.0", &OptimizeOptions::none()).unwrap();
 
-        println!("Optimized opcodes: {:?}", optimized.opcodes);
-        println!("Unoptimized opcodes: {:?}", unoptimized.opcodes);
+        let opt_opcodes = &optimized.main_function().unwrap().opcodes;
+        let unopt_opcodes = &unoptimized.main_function().unwrap().opcodes;
+        
+        println!("Optimized opcodes: {:?}", opt_opcodes);
+        println!("Unoptimized opcodes: {:?}", unopt_opcodes);
 
         // Optimized should have fewer opcodes
-        assert!(optimized.opcodes.len() < unoptimized.opcodes.len());
+        assert!(opt_opcodes.len() < unopt_opcodes.len());
 
         // Optimized should just push 5.0 (may have Return at end for expr mode)
-        assert!(optimized.opcodes.len() <= 2); // Push(5.0) + maybe Return
+        assert!(opt_opcodes.len() <= 2); // Push(5.0) + maybe Return
     }
 
     #[test]
     fn test_constant_folding_math_functions() {
         // sin(0.0) should fold to 0.0
         let program = compile_expr_with_options("sin(0.0)", &OptimizeOptions::all()).unwrap();
-        assert!(program.opcodes.len() <= 2); // Push(0.0) + Return
+        assert!(program.main_function().unwrap().opcodes.len() <= 2); // Push(0.0) + Return
 
         // cos(0.0) should fold to 1.0
         let program = compile_expr_with_options("cos(0.0)", &OptimizeOptions::all()).unwrap();
-        assert!(program.opcodes.len() <= 2); // Push(1.0) + Return
+        assert!(program.main_function().unwrap().opcodes.len() <= 2); // Push(1.0) + Return
 
         // sqrt(4.0) should fold to 2.0
         let program = compile_expr_with_options("sqrt(4.0)", &OptimizeOptions::all()).unwrap();
-        assert!(program.opcodes.len() <= 2); // Push(2.0) + Return
+        assert!(program.main_function().unwrap().opcodes.len() <= 2); // Push(2.0) + Return
     }
 
     #[test]
@@ -44,18 +47,18 @@ mod optimization_tests {
             compile_expr_with_options("time * 1.0", &OptimizeOptions::none()).unwrap();
 
         // Optimized should have fewer opcodes (no multiplication)
-        assert!(optimized.opcodes.len() < unoptimized.opcodes.len());
+        assert!(optimized.main_function().unwrap().opcodes.len() < unoptimized.main_function().unwrap().opcodes.len());
 
         // x + 0.0 should simplify to x
         let optimized = compile_expr_with_options("time + 0.0", &OptimizeOptions::all()).unwrap();
         let unoptimized =
             compile_expr_with_options("time + 0.0", &OptimizeOptions::none()).unwrap();
 
-        assert!(optimized.opcodes.len() < unoptimized.opcodes.len());
+        assert!(optimized.main_function().unwrap().opcodes.len() < unoptimized.main_function().unwrap().opcodes.len());
 
         // x * 0.0 should fold to 0.0
         let program = compile_expr_with_options("time * 0.0", &OptimizeOptions::all()).unwrap();
-        assert!(program.opcodes.len() <= 2); // Push(0.0) + Return
+        assert!(program.main_function().unwrap().opcodes.len() <= 2); // Push(0.0) + Return
     }
 
     #[test]
@@ -67,7 +70,7 @@ mod optimization_tests {
             compile_expr_with_options("1.0 ? time : 0.0", &OptimizeOptions::none()).unwrap();
 
         // Optimized should not include the false branch or select
-        assert!(program.opcodes.len() < unoptimized.opcodes.len());
+        assert!(program.main_function().unwrap().opcodes.len() < unoptimized.main_function().unwrap().opcodes.len());
     }
 
     #[test]
@@ -82,7 +85,7 @@ mod optimization_tests {
         let unoptimized = compile_script_with_options(script, &OptimizeOptions::none()).unwrap();
 
         // Optimized should have fewer opcodes (dead code removed)
-        assert!(optimized.opcodes.len() < unoptimized.opcodes.len());
+        assert!(optimized.main_function().unwrap().opcodes.len() < unoptimized.main_function().unwrap().opcodes.len());
     }
 
     #[test]
@@ -99,7 +102,7 @@ mod optimization_tests {
         let unoptimized = compile_script_with_options(script, &OptimizeOptions::none()).unwrap();
 
         // Optimized should have fewer opcodes (no jump, no else branch)
-        assert!(optimized.opcodes.len() < unoptimized.opcodes.len());
+        assert!(optimized.main_function().unwrap().opcodes.len() < unoptimized.main_function().unwrap().opcodes.len());
     }
 
     #[test]
@@ -109,7 +112,7 @@ mod optimization_tests {
             compile_expr_with_options("(2.0 + 3.0) * 1.0", &OptimizeOptions::all()).unwrap();
 
         // Should be fully optimized to just Push(5.0) + Return
-        assert!(program.opcodes.len() <= 2);
+        assert!(program.main_function().unwrap().opcodes.len() <= 2);
     }
 
     #[test]
@@ -128,11 +131,11 @@ mod optimization_tests {
             let unoptimized = compile_expr_with_options(expr, &OptimizeOptions::none()).unwrap();
 
             // Both should compile successfully
-            assert!(!optimized.opcodes.is_empty());
-            assert!(!unoptimized.opcodes.is_empty());
+            assert!(!optimized.main_function().unwrap().opcodes.is_empty());
+            assert!(!unoptimized.main_function().unwrap().opcodes.is_empty());
 
             // Optimized should be smaller or equal
-            assert!(optimized.opcodes.len() <= unoptimized.opcodes.len());
+            assert!(optimized.main_function().unwrap().opcodes.len() <= unoptimized.main_function().unwrap().opcodes.len());
         }
     }
 
@@ -144,7 +147,7 @@ mod optimization_tests {
         let program = compile_expr_with_options("2.0 + 3.0", &options).unwrap();
 
         // Should NOT be optimized (should have Push 2.0, Push 3.0, Add)
-        assert!(program.opcodes.len() > 1);
+        assert!(program.main_function().unwrap().opcodes.len() > 1);
     }
 
     #[test]
@@ -157,7 +160,7 @@ mod optimization_tests {
         let program = compile_expr_with_options("2.0 + 3.0", &options).unwrap();
 
         // Should be optimized to Push(5.0) + Return
-        assert!(program.opcodes.len() <= 2);
+        assert!(program.main_function().unwrap().opcodes.len() <= 2);
     }
 
     #[test]
@@ -168,7 +171,7 @@ mod optimization_tests {
                 .unwrap();
 
         // Should fold to 3.0 * 7.0 = 21.0, plus Return
-        assert!(program.opcodes.len() <= 2);
+        assert!(program.main_function().unwrap().opcodes.len() <= 2);
     }
 
     #[test]
@@ -176,26 +179,26 @@ mod optimization_tests {
         let program = compile_expr_with_options("2.0 < 3.0", &OptimizeOptions::all()).unwrap();
 
         // Should fold to 1.0 (true) + Return
-        assert!(program.opcodes.len() <= 2);
+        assert!(program.main_function().unwrap().opcodes.len() <= 2);
 
         let program = compile_expr_with_options("5.0 < 3.0", &OptimizeOptions::all()).unwrap();
 
         // Should fold to 0.0 (false) + Return
-        assert!(program.opcodes.len() <= 2);
+        assert!(program.main_function().unwrap().opcodes.len() <= 2);
     }
 
     #[test]
     fn test_logical_constant_folding() {
         // true && false -> false
         let program = compile_expr_with_options("1.0 && 0.0", &OptimizeOptions::all()).unwrap();
-        assert!(program.opcodes.len() <= 2);
+        assert!(program.main_function().unwrap().opcodes.len() <= 2);
 
         // true || false -> true
         let program = compile_expr_with_options("1.0 || 0.0", &OptimizeOptions::all()).unwrap();
-        assert!(program.opcodes.len() <= 2);
+        assert!(program.main_function().unwrap().opcodes.len() <= 2);
 
         // !true -> false
         let program = compile_expr_with_options("!1.0", &OptimizeOptions::all()).unwrap();
-        assert!(program.opcodes.len() <= 2);
+        assert!(program.main_function().unwrap().opcodes.len() <= 2);
     }
 }

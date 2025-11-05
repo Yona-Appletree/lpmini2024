@@ -68,6 +68,7 @@
 /// let program = compile_expr_with_options("x * 1.0", &options).unwrap();
 /// ```
 extern crate alloc;
+use alloc::vec;
 use alloc::vec::Vec;
 
 pub mod shared;
@@ -81,9 +82,12 @@ pub use compiler::optimize::OptimizeOptions;
 use compiler::{codegen, lexer, optimize, parser, typechecker};
 pub use shared::{Span, Type};
 pub use vm::{
-    execute_program_lps, LocalAccess, LocalDef, LocalType, LpsOpCode, LpsProgram, LpsVm,
-    RuntimeError, RuntimeErrorWithContext, VmLimits,
+    LocalVarDef, LocalStack, LpsOpCode, LpsProgram, ParamDef,
+    LpsVmError, RuntimeErrorWithContext,
 };
+pub use vm::execute_program_lps;
+pub use vm::lps_vm::LpsVm;
+pub use vm::vm_limits::VmLimits;
 
 /// Parse an expression string and generate a compiled LPS program
 ///
@@ -116,7 +120,7 @@ pub fn compile_expr_with_options(
     let pool = parser.pool;
 
     // Type check the AST
-    let (typed_ast_id, mut pool) = typechecker::TypeChecker::check(ast_id, pool)?;
+    let (typed_ast_id, pool) = typechecker::TypeChecker::check(ast_id, pool)?;
 
     // Optimize AST
     let (optimized_ast_id, pool) = optimize::optimize_ast_expr(typed_ast_id, pool, options);
@@ -127,8 +131,12 @@ pub fn compile_expr_with_options(
     // Optimize opcodes
     let optimized_opcodes = optimize::optimize_opcodes(opcodes, options);
 
+    // Create main function with no locals (expression mode doesn't use locals)
+    let main_function =
+        vm::FunctionDef::new("main".into(), shared::Type::Void).with_opcodes(optimized_opcodes);
+
     Ok(LpsProgram::new("expr".into())
-        .with_opcodes(optimized_opcodes)
+        .with_functions(vec![main_function])
         .with_source(input.into()))
 }
 
@@ -170,47 +178,37 @@ pub fn compile_script_with_options(
     let parser = parser::Parser::new(tokens);
     let (program, pool) = parser.parse_program()?;
 
-    // Type check the program
-    let (typed_program, pool) = typechecker::TypeChecker::check_program(program, pool)?;
+    // Analyze program to build function metadata table
+    let func_table = compiler::analyzer::FunctionAnalyzer::analyze_program(&program, &pool)?;
+
+    // Type check the program with pre-built function table
+    let (typed_program, pool) =
+        typechecker::TypeChecker::check_program(program, pool, &func_table)?;
 
     // Optimize program AST
     let (optimized_program, pool) = optimize::optimize_ast_program(typed_program, pool, options);
 
-    // Generate opcodes
-    let (opcodes, local_count, local_types) =
-        codegen::CodeGenerator::generate_program(&pool, &optimized_program);
+    // Generate functions using new API with function table
+    let functions = codegen::CodeGenerator::generate_program_with_functions(
+        &pool,
+        &optimized_program,
+        &func_table,
+    );
 
-    // Optimize opcodes
-    let optimized_opcodes = optimize::optimize_opcodes(opcodes, options);
-
-    // Create LocalDef entries for all scratch locals with correct types
-    let locals: Vec<LocalDef> = (0..local_count)
-        .map(|i| {
-            let ty_enum = match local_types.get(&i) {
-                Some(shared::Type::Int32) => LocalType::Int32(0),
-                Some(shared::Type::Vec2) => {
-                    LocalType::Vec2(crate::math::Fixed::ZERO, crate::math::Fixed::ZERO)
-                }
-                Some(shared::Type::Vec3) => LocalType::Vec3(
-                    crate::math::Fixed::ZERO,
-                    crate::math::Fixed::ZERO,
-                    crate::math::Fixed::ZERO,
-                ),
-                Some(shared::Type::Vec4) => LocalType::Vec4(
-                    crate::math::Fixed::ZERO,
-                    crate::math::Fixed::ZERO,
-                    crate::math::Fixed::ZERO,
-                    crate::math::Fixed::ZERO,
-                ),
-                _ => LocalType::Fixed(crate::math::Fixed::ZERO), // Default to Fixed for Bool and Fixed
-            };
-            LocalDef::new(alloc::format!("local_{}", i), ty_enum, LocalAccess::Scratch)
+    // Optimize opcodes for each function
+    let optimized_functions: Vec<vm::FunctionDef> = functions
+        .into_iter()
+        .map(|func| {
+            let optimized_opcodes = optimize::optimize_opcodes(func.opcodes.clone(), options);
+            vm::FunctionDef::new(func.name.clone(), func.return_type.clone())
+                .with_params(func.params.clone())
+                .with_locals(func.locals.clone())
+                .with_opcodes(optimized_opcodes)
         })
         .collect();
 
     Ok(LpsProgram::new("script".into())
-        .with_opcodes(optimized_opcodes)
-        .with_locals(locals)
+        .with_functions(optimized_functions)
         .with_source(input.into()))
 }
 
@@ -248,12 +246,4 @@ pub fn parse_script(input: &str) -> LpsProgram {
     compile_script(input).unwrap_or_else(|e| {
         panic!("Failed to compile LPS script: {}", e);
     })
-}
-
-#[cfg(test)]
-mod tests {
-    mod control_flow;
-    mod functions;
-    mod operators;
-    mod variables;
 }

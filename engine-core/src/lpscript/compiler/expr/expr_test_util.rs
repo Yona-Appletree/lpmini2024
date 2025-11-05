@@ -3,6 +3,7 @@ extern crate alloc;
 use alloc::boxed::Box;
 use alloc::format;
 use alloc::string::String;
+use alloc::vec;
 use alloc::vec::Vec;
 
 use crate::lpscript::compiler::ast::{AstPool, ExprId};
@@ -11,7 +12,9 @@ use crate::lpscript::compiler::optimize::OptimizeOptions;
 use crate::lpscript::compiler::test_ast::AstBuilder;
 use crate::lpscript::compiler::{lexer, optimize, parser, typechecker};
 use crate::lpscript::shared::Type;
-use crate::lpscript::vm::{LocalType, LpsOpCode, LpsProgram, LpsVm, VmLimits};
+use crate::lpscript::vm::{LpsOpCode, LpsProgram};
+use crate::lpscript::vm::lps_vm::LpsVm;
+use crate::lpscript::vm::vm_limits::VmLimits;
 use crate::math::{Fixed, ToFixed, Vec2, Vec3, Vec4};
 
 /// Builder for testing expressions through the compilation pipeline
@@ -21,8 +24,8 @@ use crate::math::{Fixed, ToFixed, Vec2, Vec3, Vec4};
 /// to set these. For script mode tests, you would use `.local_*()` methods instead.
 pub struct ExprTest {
     input: String,
-    locals: Vec<(usize, LocalType)>,
     declared_locals: Vec<(String, Type)>, // For symbol table
+    local_initial_values: Vec<(String, Vec<i32>)>, // Initial values for locals (raw i32 representation)
     expected_ast_builder: Option<Box<dyn FnOnce(&mut AstBuilder) -> ExprId>>,
     expected_opcodes: Option<Vec<LpsOpCode>>,
     expected_result: Option<TestResult>,
@@ -45,8 +48,8 @@ impl ExprTest {
     pub fn new(input: &str) -> Self {
         ExprTest {
             input: String::from(input),
-            locals: Vec::new(),
             declared_locals: Vec::new(),
+            local_initial_values: Vec::new(),
             expected_ast_builder: None,
             expected_opcodes: None,
             expected_result: None,
@@ -58,33 +61,37 @@ impl ExprTest {
         }
     }
 
-    /// Add a Fixed local variable (declares it in symbol table and sets initial value)
-    pub fn local_fixed(mut self, index: usize, name: &str, value: Fixed) -> Self {
-        self.locals.push((index, LocalType::Fixed(value)));
+    /// Add a Fixed local variable with initial value
+    pub fn local_fixed(mut self, _index: usize, name: &str, value: Fixed) -> Self {
         self.declared_locals.push((String::from(name), Type::Fixed));
+        self.local_initial_values
+            .push((String::from(name), vec![value.0]));
         self
     }
 
-    /// Add a Vec2 local variable (declares it in symbol table and sets initial value)
-    pub fn local_vec2(mut self, index: usize, name: &str, value: Vec2) -> Self {
-        self.locals.push((index, LocalType::Vec2(value.x, value.y)));
+    /// Add a Vec2 local variable with initial value
+    pub fn local_vec2(mut self, _index: usize, name: &str, value: Vec2) -> Self {
         self.declared_locals.push((String::from(name), Type::Vec2));
+        self.local_initial_values
+            .push((String::from(name), vec![value.x.0, value.y.0]));
         self
     }
 
-    /// Add a Vec3 local variable (declares it in symbol table and sets initial value)
-    pub fn local_vec3(mut self, index: usize, name: &str, value: Vec3) -> Self {
-        self.locals
-            .push((index, LocalType::Vec3(value.x, value.y, value.z)));
+    /// Add a Vec3 local variable with initial value
+    pub fn local_vec3(mut self, _index: usize, name: &str, value: Vec3) -> Self {
         self.declared_locals.push((String::from(name), Type::Vec3));
+        self.local_initial_values
+            .push((String::from(name), vec![value.x.0, value.y.0, value.z.0]));
         self
     }
 
-    /// Add a Vec4 local variable (declares it in symbol table and sets initial value)
-    pub fn local_vec4(mut self, index: usize, name: &str, value: Vec4) -> Self {
-        self.locals
-            .push((index, LocalType::Vec4(value.x, value.y, value.z, value.w)));
+    /// Add a Vec4 local variable with initial value
+    pub fn local_vec4(mut self, _index: usize, name: &str, value: Vec4) -> Self {
         self.declared_locals.push((String::from(name), Type::Vec4));
+        self.local_initial_values.push((
+            String::from(name),
+            vec![value.x.0, value.y.0, value.z.0, value.w.0],
+        ));
         self
     }
 
@@ -255,23 +262,49 @@ impl ExprTest {
             opcodes = optimize::optimize_opcodes(opcodes, options);
         }
 
+        // Create LocalVarDef entries from declared locals with initial values
+        let local_defs: Vec<crate::lpscript::LocalVarDef> = self
+            .declared_locals
+            .iter()
+            .enumerate()
+            .map(|(idx, (name, ty))| {
+                let mut def = crate::lpscript::LocalVarDef::new(name.clone(), ty.clone());
+                // Set initial value if provided
+                if let Some((_, init_val)) =
+                    self.local_initial_values.iter().find(|(n, _)| n == name)
+                {
+                    def = def.with_initial_value(init_val.clone());
+                }
+                def
+            })
+            .collect();
+
+        // Create main function with locals and opcodes
+        let main_function = crate::lpscript::vm::FunctionDef::new("main".into(), Type::Void)
+            .with_locals(local_defs)
+            .with_opcodes(opcodes);
+
         let program = LpsProgram::new("test".into())
-            .with_opcodes(opcodes)
+            .with_functions(vec![main_function])
             .with_source(self.input.clone().into());
 
         // Check opcodes if expected
         if let Some(expected_opcodes) = &self.expected_opcodes {
-            if &program.opcodes != expected_opcodes {
-                errors.push(format!(
-                    "Opcode mismatch:\nExpected: {:#?}\nActual:   {:#?}",
-                    expected_opcodes, program.opcodes
-                ));
+            if let Some(main_fn) = program.main_function() {
+                if &main_fn.opcodes != expected_opcodes {
+                    errors.push(format!(
+                        "Opcode mismatch:\nExpected: {:#?}\nActual:   {:#?}",
+                        expected_opcodes, main_fn.opcodes
+                    ));
+                }
+            } else {
+                errors.push(String::from("Program has no main function"));
             }
         }
 
         // Check execution result or expected locals
         if self.expected_result.is_some() || !self.expected_locals.is_empty() {
-            match LpsVm::new(&program, self.locals, VmLimits::default()) {
+            match LpsVm::new(&program, VmLimits::default()) {
                 Ok(mut vm) => {
                     // Run with configured x, y, time values (for built-ins like time)
                     if let Some(expected_result) = self.expected_result {
@@ -376,43 +409,25 @@ impl ExprTest {
                         }
                     }
 
-                    // Check expected local values
+                    // Check expected local values using new debugging API
                     for (name, expected) in &self.expected_locals {
-                        // Find the local index by looking it up in declared_locals
-                        if let Some((idx, _)) = self
-                            .declared_locals
-                            .iter()
-                            .enumerate()
-                            .find(|(_, (n, _))| n == name)
-                        {
-                            match vm.get_local(idx) {
-                                Some(LocalType::Fixed(actual)) => {
-                                    let expected_f32 = expected.to_f32();
-                                    let actual_f32 = actual.to_f32();
-                                    let diff = (expected_f32 - actual_f32).abs();
+                        match vm.get_local_by_name(name) {
+                            Some(actual) => {
+                                let expected_f32 = expected.to_f32();
+                                let actual_f32 = actual.to_f32();
+                                let diff = (expected_f32 - actual_f32).abs();
 
-                                    if diff > 0.01 {
-                                        errors.push(format!(
-                                            "Local '{}' mismatch:\nExpected: {}\nActual:   {}\nDiff:     {}",
-                                            name, expected_f32, actual_f32, diff
-                                        ));
-                                    }
-                                }
-                                Some(other) => {
+                                if diff > 0.01 {
                                     errors.push(format!(
-                                        "Local '{}' type mismatch: expected Fixed, got {:?}",
-                                        name, other
-                                    ));
-                                }
-                                None => {
-                                    errors.push(format!(
-                                        "Local '{}' not found at index {}",
-                                        name, idx
+                                        "Local '{}' mismatch:\nExpected: {}\nActual:   {}\nDiff:     {}",
+                                        name, expected_f32, actual_f32, diff
                                     ));
                                 }
                             }
-                        } else {
-                            errors.push(format!("Local '{}' was not declared", name));
+                            None => {
+                                errors
+                                    .push(format!("Local '{}' not found in locals storage", name));
+                            }
                         }
                     }
                 }

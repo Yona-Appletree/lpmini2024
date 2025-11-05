@@ -5,8 +5,11 @@ extern crate alloc;
 
 use crate::lpscript::compiler::ast::{AstPool, ExprId, ExprKind};
 
-// Import libm for math operations in no_std
-use libm::{ceil, cos, floor, powf, sin, sqrt, tan};
+// Import fixed-point math for compile-time constant evaluation
+use crate::math::{ceil, cos, floor, saturate, sin, sqrt, tan, Fixed};
+
+// Import libm for pow (not yet implemented in fixed-point)
+use libm::powf;
 
 /// Fold constants in an expression tree
 pub fn fold_constants(expr_id: ExprId, mut pool: AstPool) -> (ExprId, AstPool) {
@@ -386,15 +389,17 @@ pub fn fold_constants(expr_id: ExprId, mut pool: AstPool) -> (ExprId, AstPool) {
             let (new_arg, mut pool2) = fold_constants(arg_id, pool);
 
             if let ExprKind::Number(n) = &pool2.expr(new_arg).kind {
-                let result_val = match name.as_str() {
-                    "sin" => sin(*n as f64) as f32,
-                    "cos" => cos(*n as f64) as f32,
-                    "tan" => tan(*n as f64) as f32,
-                    "sqrt" => sqrt(*n as f64) as f32,
-                    "abs" => n.abs(),
-                    "floor" => floor(*n as f64) as f32,
-                    "ceil" => ceil(*n as f64) as f32,
-                    "saturate" => n.max(0.0).min(1.0),
+                // Convert to fixed-point for math operations
+                let fixed_arg = Fixed::from_f32(*n);
+                let result_fixed = match name.as_str() {
+                    "sin" => sin(fixed_arg),
+                    "cos" => cos(fixed_arg),
+                    "tan" => tan(fixed_arg),
+                    "sqrt" => sqrt(fixed_arg),
+                    "abs" => fixed_arg.abs(),
+                    "floor" => floor(fixed_arg),
+                    "ceil" => ceil(fixed_arg),
+                    "saturate" => saturate(fixed_arg),
                     _ => {
                         pool2.expr_mut(expr_id).kind = ExprKind::Call {
                             name: name.clone(),
@@ -403,6 +408,8 @@ pub fn fold_constants(expr_id: ExprId, mut pool: AstPool) -> (ExprId, AstPool) {
                         return (expr_id, pool2);
                     }
                 };
+                // Convert back to f32 for AST storage
+                let result_val = result_fixed.to_f32();
 
                 if let Ok(id) = pool2.alloc_expr(ExprKind::Number(result_val), span) {
                     (id, pool2)

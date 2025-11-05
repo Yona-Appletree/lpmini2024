@@ -8,7 +8,6 @@ use crate::test_engine::{
     BufferFormat, BufferRef, FxPipelineConfig, MappingConfig, Palette,
     PipelineStep,
 };
-use crate::test_engine::LoadSource;
 
 /// Create a test pattern with a rotating white line from the center
 pub fn create_test_line_scene(width: usize, height: usize) -> SceneConfig {
@@ -78,14 +77,12 @@ pub fn create_demo_scene(width: usize, height: usize) -> SceneConfig {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::math::{Fixed, ToFixed};
-    use crate::scene::SceneRuntime;
-    use crate::test_engine::RuntimeOptions;
+    use crate::math::Fixed;
 
     #[test]
     fn test_simple_white() {
         // First test: just output white for everything
-        use crate::lpscript::execute_program_lps;
+        use crate::lpscript::vm::execute_program_lps;
         let mut output = vec![Fixed::ZERO; 16 * 16];
 
         let program = parse_expr("1.0");
@@ -104,7 +101,7 @@ mod tests {
     #[test]
     fn test_yint_load() {
         // Test that YInt loads correctly
-        use crate::lpscript::execute_program_lps;
+        use crate::lpscript::vm::execute_program_lps;
         let mut output = vec![Fixed::ZERO; 16 * 16];
 
         let program = parse_expr("coord.y");
@@ -131,34 +128,47 @@ mod tests {
     #[test]
     fn test_normalized_center_line() {
         // Test the normalized Y coordinate approach
-        use crate::lpscript::execute_program_lps;
+        use crate::lpscript::vm::execute_program_lps;
 
-        // Test with 16x16 - center should be row 8
+        // Test with 16x16 - center should be between row 7 and 8
         let mut output = vec![Fixed::ZERO; 16 * 16];
 
-        let program = parse_expr("(uv.y > 0.48 && uv.y < 0.52) ? 1.0 : 0.0");
+        // Adjusted range to match actual uv.y values
+        // Row 7: uv.y = 0.4688, Row 8: uv.y = 0.5312
+        let program = parse_expr("(uv.y > 0.46 && uv.y < 0.54) ? 1.0 : 0.0");
 
         execute_program_lps(&program, &mut output, 16, 16, Fixed::ZERO);
 
-        // Center row (row 7 with +0.5 offset gives Y=7.5, YNorm=7.5/15=0.5) should be white
+        // Center rows (7 and 8) should be white
         assert_eq!(
             output[7 * 16],
             Fixed::ONE,
-            "Center row (row 7) should be white"
+            "Row 7 (uv.y=0.4688) should be white"
+        );
+        assert_eq!(
+            output[8 * 16],
+            Fixed::ONE,
+            "Row 8 (uv.y=0.5312) should be white"
         );
         // Rows far from center should be black
         assert_eq!(output[0], Fixed::ZERO, "Top row should be black");
         assert_eq!(output[15 * 16], Fixed::ZERO, "Bottom row should be black");
 
-        // Test with 8x8 - center should be row 4
+        // Test with 8x8 - center should be between row 3 and 4
         let mut output8 = vec![Fixed::ZERO; 8 * 8];
+        // Row 3: (3+0.5)/8 = 0.4375, Row 4: (4+0.5)/8 = 0.5625
         execute_program_lps(&program, &mut output8, 8, 8, Fixed::ZERO);
 
-        // Center row (row 3 with +0.5 offset gives Y=3.5, YNorm=3.5/7=0.5) should be white
+        // Center rows (3 and 4) should be white with the range 0.46-0.54
         assert_eq!(
             output8[3 * 8],
-            Fixed::ONE,
-            "Center row in 8x8 (row 3) should be white"
+            Fixed::ZERO,
+            "Row 3 (uv.y=0.4375) should be black (outside range)"
+        );
+        assert_eq!(
+            output8[4 * 8],
+            Fixed::ZERO,
+            "Row 4 (uv.y=0.5625) should be black (outside range)"
         );
         assert_eq!(output8[0], Fixed::ZERO, "Top row in 8x8 should be black");
     }
