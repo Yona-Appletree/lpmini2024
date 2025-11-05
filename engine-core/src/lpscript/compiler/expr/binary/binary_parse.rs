@@ -80,21 +80,9 @@ impl Parser {
         expr
     }
 
-    // Exponential: ^ (right-associative)
+    // Exponential: ^ removed (use pow() function instead)
+    // This now just delegates to unary, will be re-added as bitwise XOR in Phase 2
     pub(in crate::lpscript) fn exponential(&mut self) -> Expr {
-        let mut expr = self.unary();
-
-        if matches!(self.current().kind, TokenKind::Caret) {
-            let start = expr.span.start;
-            self.advance();
-            let right = self.exponential(); // Right-associative
-            let end = right.span.end;
-            expr = Expr::new(
-                ExprKind::Pow(Box::new(expr), Box::new(right)),
-                Span::new(start, end),
-            );
-        }
-
-        expr
+        self.unary()
     }
 }

@@ -125,7 +125,14 @@ pub enum ExprKind {
     Mul(Box<Expr>, Box<Expr>),
     Div(Box<Expr>, Box<Expr>),
     Mod(Box<Expr>, Box<Expr>),
-    Pow(Box<Expr>, Box<Expr>),
+    
+    // Bitwise operations (Int32 only)
+    BitwiseAnd(Box<Expr>, Box<Expr>),
+    BitwiseOr(Box<Expr>, Box<Expr>),
+    BitwiseXor(Box<Expr>, Box<Expr>),
+    BitwiseNot(Box<Expr>),
+    LeftShift(Box<Expr>, Box<Expr>),
+    RightShift(Box<Expr>, Box<Expr>),
     
     // Comparisons
     Less(Box<Expr>, Box<Expr>),
@@ -142,6 +149,12 @@ pub enum ExprKind {
     
     // Unary
     Neg(Box<Expr>),
+    
+    // Increment/Decrement (require l-values)
+    PreIncrement(String),
+    PreDecrement(String),
+    PostIncrement(String),
+    PostDecrement(String),
     
     // Ternary
     Ternary {

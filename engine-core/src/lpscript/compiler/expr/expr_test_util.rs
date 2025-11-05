@@ -433,9 +433,6 @@ pub fn ast_eq_ignore_spans(actual: &Expr, expected: &Expr) -> bool {
         (ExprKind::Mod(l1, r1), ExprKind::Mod(l2, r2)) => {
             ast_eq_ignore_spans(l1, l2) && ast_eq_ignore_spans(r1, r2)
         }
-        (ExprKind::Pow(l1, r1), ExprKind::Pow(l2, r2)) => {
-            ast_eq_ignore_spans(l1, l2) && ast_eq_ignore_spans(r1, r2)
-        }
 
         // Comparisons
         (ExprKind::Less(l1, r1), ExprKind::Less(l2, r2)) => {

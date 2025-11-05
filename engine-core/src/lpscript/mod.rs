@@ -3,9 +3,9 @@
 /// This module provides a simple expression language that compiles to VM opcodes.
 ///
 /// # Features
-/// - **Arithmetic**: `+`, `-`, `*`, `/`, `%`, `^` (power)
+/// - **Arithmetic**: `+`, `-`, `*`, `/`, `%`
 /// - **Comparisons**: `<`, `>`, `<=`, `>=`, `==`, `!=`
-/// - **Logical**: `&&`, `||`
+/// - **Logical**: `&&`, `||`, `!`
 /// - **Ternary**: `condition ? true_val : false_val`
 /// - **Vector Swizzling**: `.x`, `.xy`, `.yx`, `.rgba`, `.stpq`, etc.
 ///

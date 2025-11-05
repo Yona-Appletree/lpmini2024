@@ -227,6 +227,128 @@ pub fn exec_less_int32(stack: &mut [i32], sp: &mut usize) -> Result<(), RuntimeE
     Ok(())
 }
 
+/// Execute BitwiseAndInt32: pop b, a; push a & b
+#[inline(always)]
+pub fn exec_bitwise_and_int32(stack: &mut [i32], sp: &mut usize) -> Result<(), RuntimeError> {
+    if *sp < 2 {
+        return Err(RuntimeError::StackUnderflow {
+            required: 2,
+            actual: *sp,
+        });
+    }
+
+    *sp -= 1;
+    let b = stack[*sp];
+    *sp -= 1;
+    let a = stack[*sp];
+    stack[*sp] = a & b;
+    *sp += 1;
+
+    Ok(())
+}
+
+/// Execute BitwiseOrInt32: pop b, a; push a | b
+#[inline(always)]
+pub fn exec_bitwise_or_int32(stack: &mut [i32], sp: &mut usize) -> Result<(), RuntimeError> {
+    if *sp < 2 {
+        return Err(RuntimeError::StackUnderflow {
+            required: 2,
+            actual: *sp,
+        });
+    }
+
+    *sp -= 1;
+    let b = stack[*sp];
+    *sp -= 1;
+    let a = stack[*sp];
+    stack[*sp] = a | b;
+    *sp += 1;
+
+    Ok(())
+}
+
+/// Execute BitwiseXorInt32: pop b, a; push a ^ b
+#[inline(always)]
+pub fn exec_bitwise_xor_int32(stack: &mut [i32], sp: &mut usize) -> Result<(), RuntimeError> {
+    if *sp < 2 {
+        return Err(RuntimeError::StackUnderflow {
+            required: 2,
+            actual: *sp,
+        });
+    }
+
+    *sp -= 1;
+    let b = stack[*sp];
+    *sp -= 1;
+    let a = stack[*sp];
+    stack[*sp] = a ^ b;
+    *sp += 1;
+
+    Ok(())
+}
+
+/// Execute BitwiseNotInt32: pop a; push ~a
+#[inline(always)]
+pub fn exec_bitwise_not_int32(stack: &mut [i32], sp: &mut usize) -> Result<(), RuntimeError> {
+    if *sp < 1 {
+        return Err(RuntimeError::StackUnderflow {
+            required: 1,
+            actual: *sp,
+        });
+    }
+
+    *sp -= 1;
+    let a = stack[*sp];
+    stack[*sp] = !a;
+    *sp += 1;
+
+    Ok(())
+}
+
+/// Execute LeftShiftInt32: pop b, a; push a << b
+#[inline(always)]
+pub fn exec_left_shift_int32(stack: &mut [i32], sp: &mut usize) -> Result<(), RuntimeError> {
+    if *sp < 2 {
+        return Err(RuntimeError::StackUnderflow {
+            required: 2,
+            actual: *sp,
+        });
+    }
+
+    *sp -= 1;
+    let b = stack[*sp];
+    *sp -= 1;
+    let a = stack[*sp];
+    // Clamp shift amount to avoid undefined behavior
+    let shift = (b as u32) & 31;
+    stack[*sp] = a << shift;
+    *sp += 1;
+
+    Ok(())
+}
+
+/// Execute RightShiftInt32: pop b, a; push a >> b
+#[inline(always)]
+pub fn exec_right_shift_int32(stack: &mut [i32], sp: &mut usize) -> Result<(), RuntimeError> {
+    if *sp < 2 {
+        return Err(RuntimeError::StackUnderflow {
+            required: 2,
+            actual: *sp,
+        });
+    }
+
+    *sp -= 1;
+    let b = stack[*sp];
+    *sp -= 1;
+    let a = stack[*sp];
+    // Clamp shift amount to avoid undefined behavior
+    let shift = (b as u32) & 31;
+    stack[*sp] = a >> shift;
+    *sp += 1;
+
+    Ok(())
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

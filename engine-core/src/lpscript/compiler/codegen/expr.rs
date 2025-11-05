@@ -16,7 +16,13 @@ impl<'a> CodeGenerator<'a> {
             ExprKind::Mul(left, right) => self.gen_mul(left, right, expr.ty.as_ref().unwrap()),
             ExprKind::Div(left, right) => self.gen_div(left, right, expr.ty.as_ref().unwrap()),
             ExprKind::Mod(left, right) => self.gen_mod(left, right, expr.ty.as_ref().unwrap()),
-            ExprKind::Pow(left, right) => self.gen_pow(left, right),
+
+            ExprKind::BitwiseAnd(left, right) => self.gen_bitwise_and(left, right),
+            ExprKind::BitwiseOr(left, right) => self.gen_bitwise_or(left, right),
+            ExprKind::BitwiseXor(left, right) => self.gen_bitwise_xor(left, right),
+            ExprKind::BitwiseNot(operand) => self.gen_bitwise_not(operand),
+            ExprKind::LeftShift(left, right) => self.gen_left_shift(left, right),
+            ExprKind::RightShift(left, right) => self.gen_right_shift(left, right),
 
             ExprKind::Less(left, right) => self.gen_less(left, right),
             ExprKind::Greater(left, right) => self.gen_greater(left, right),
@@ -30,6 +36,19 @@ impl<'a> CodeGenerator<'a> {
             ExprKind::Not(operand) => self.gen_not(operand),
 
             ExprKind::Neg(operand) => self.gen_neg(operand),
+
+            ExprKind::PreIncrement(var_name) => {
+                self.gen_pre_increment(var_name, expr.ty.as_ref().unwrap())
+            }
+            ExprKind::PreDecrement(var_name) => {
+                self.gen_pre_decrement(var_name, expr.ty.as_ref().unwrap())
+            }
+            ExprKind::PostIncrement(var_name) => {
+                self.gen_post_increment(var_name, expr.ty.as_ref().unwrap())
+            }
+            ExprKind::PostDecrement(var_name) => {
+                self.gen_post_decrement(var_name, expr.ty.as_ref().unwrap())
+            }
 
             ExprKind::Ternary {
                 condition,

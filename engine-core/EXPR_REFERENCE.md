@@ -11,7 +11,8 @@ The expression language provides a simple, shader-like syntax for generating LED
 - `*` Multiplication
 - `/` Division
 - `%` Modulo
-- `^` Exponentiation (power)
+
+**Note**: For exponentiation, use the `pow(base, exp)` function.
 
 ### Comparisons
 
@@ -30,6 +31,7 @@ Treats non-zero as true, returns 0.0 or 1.0:
 
 - `&&` Logical AND
 - `||` Logical OR
+- `!` Logical NOT
 
 ### Ternary
 

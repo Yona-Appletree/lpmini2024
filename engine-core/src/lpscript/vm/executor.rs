@@ -791,6 +791,43 @@ impl<'a> LpsVm<'a> {
                     self.pc += 1;
                 }
 
+                // === Int32 Bitwise Operations ===
+                LpsOpCode::BitwiseAndInt32 => {
+                    int32::exec_bitwise_and_int32(&mut self.stack, &mut self.sp)
+                        .map_err(|e| self.runtime_error(e))?;
+                    self.pc += 1;
+                }
+
+                LpsOpCode::BitwiseOrInt32 => {
+                    int32::exec_bitwise_or_int32(&mut self.stack, &mut self.sp)
+                        .map_err(|e| self.runtime_error(e))?;
+                    self.pc += 1;
+                }
+
+                LpsOpCode::BitwiseXorInt32 => {
+                    int32::exec_bitwise_xor_int32(&mut self.stack, &mut self.sp)
+                        .map_err(|e| self.runtime_error(e))?;
+                    self.pc += 1;
+                }
+
+                LpsOpCode::BitwiseNotInt32 => {
+                    int32::exec_bitwise_not_int32(&mut self.stack, &mut self.sp)
+                        .map_err(|e| self.runtime_error(e))?;
+                    self.pc += 1;
+                }
+
+                LpsOpCode::LeftShiftInt32 => {
+                    int32::exec_left_shift_int32(&mut self.stack, &mut self.sp)
+                        .map_err(|e| self.runtime_error(e))?;
+                    self.pc += 1;
+                }
+
+                LpsOpCode::RightShiftInt32 => {
+                    int32::exec_right_shift_int32(&mut self.stack, &mut self.sp)
+                        .map_err(|e| self.runtime_error(e))?;
+                    self.pc += 1;
+                }
+
                 // === Vec2 Operations ===
                 LpsOpCode::AddVec2 => {
                     vec2::exec_add_vec2(&mut self.stack, &mut self.sp)

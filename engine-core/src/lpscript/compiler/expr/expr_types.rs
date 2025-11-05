@@ -47,10 +47,25 @@ impl TypeChecker {
             | ExprKind::Sub(left, right)
             | ExprKind::Mul(left, right)
             | ExprKind::Div(left, right)
-            | ExprKind::Mod(left, right)
-            | ExprKind::Pow(left, right) => {
+            | ExprKind::Mod(left, right) => {
                 let result_ty =
                     Self::check_binary_arithmetic(left, right, symbols, func_table, expr.span)?;
+                expr.ty = Some(result_ty);
+            }
+
+            // Bitwise operations (Int32 only)
+            ExprKind::BitwiseAnd(left, right)
+            | ExprKind::BitwiseOr(left, right)
+            | ExprKind::BitwiseXor(left, right)
+            | ExprKind::LeftShift(left, right)
+            | ExprKind::RightShift(left, right) => {
+                let result_ty =
+                    Self::check_bitwise_binary(left, right, symbols, func_table, expr.span)?;
+                expr.ty = Some(result_ty);
+            }
+
+            ExprKind::BitwiseNot(operand) => {
+                let result_ty = Self::check_bitwise_not(operand, symbols, func_table, expr.span)?;
                 expr.ty = Some(result_ty);
             }
 
@@ -81,6 +96,15 @@ impl TypeChecker {
                 Self::infer_type(operand, symbols, func_table)?;
                 // Type of negation is same as operand
                 expr.ty = operand.ty.clone();
+            }
+
+            // Increment/Decrement operators
+            ExprKind::PreIncrement(var_name)
+            | ExprKind::PreDecrement(var_name)
+            | ExprKind::PostIncrement(var_name)
+            | ExprKind::PostDecrement(var_name) => {
+                let result_ty = Self::check_incdec(var_name, symbols, expr.span)?;
+                expr.ty = Some(result_ty);
             }
 
             // Ternary

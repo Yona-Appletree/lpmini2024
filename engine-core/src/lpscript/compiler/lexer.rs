@@ -24,8 +24,10 @@ pub enum TokenKind {
     Minus,
     Star,
     Slash,
-    Percent, // Modulo
-    Caret,   // Exponentiation
+    Percent,   // Modulo
+    Caret,     // Bitwise XOR
+    PlusPlus,  // Increment
+    MinusMinus, // Decrement
 
     // Comparisons
     Less,
@@ -36,9 +38,16 @@ pub enum TokenKind {
     NotEq,
 
     // Logical
-    And,
-    Or,
-    Bang, // Logical not !
+    And,      // &&
+    Or,       // ||
+    Bang,     // Logical not !
+    
+    // Bitwise
+    Ampersand,  // &
+    Pipe,       // |
+    Tilde,      // ~
+    LShift,     // <<
+    RShift,     // >>
 
     // Delimiters
     LParen,
@@ -51,6 +60,18 @@ pub enum TokenKind {
     Colon,    // Ternary :
     Dot,      // Member access / swizzle
     Eq,       // Assignment =
+    
+    // Compound assignments
+    PlusEq,      // +=
+    MinusEq,     // -=
+    StarEq,      // *=
+    SlashEq,     // /=
+    PercentEq,   // %=
+    AmpersandEq, // &=
+    PipeEq,      // |=
+    CaretEq,     // ^=
+    LShiftEq,    // <<=
+    RShiftEq,    // >>=
 
     // Keywords
     If,
@@ -268,11 +289,21 @@ impl Lexer {
                 let kind = match ch {
                     '+' => {
                         self.advance();
-                        TokenKind::Plus
+                        if self.current() == Some('+') {
+                            self.advance();
+                            TokenKind::PlusPlus
+                        } else {
+                            TokenKind::Plus
+                        }
                     }
                     '-' => {
                         self.advance();
-                        TokenKind::Minus
+                        if self.current() == Some('-') {
+                            self.advance();
+                            TokenKind::MinusMinus
+                        } else {
+                            TokenKind::Minus
+                        }
                     }
                     '*' => {
                         self.advance();
@@ -349,6 +380,9 @@ impl Lexer {
                         if self.current() == Some('=') {
                             self.advance();
                             TokenKind::LessEq
+                        } else if self.current() == Some('<') {
+                            self.advance();
+                            TokenKind::LShift
                         } else {
                             TokenKind::Less
                         }
@@ -358,6 +392,9 @@ impl Lexer {
                         if self.current() == Some('=') {
                             self.advance();
                             TokenKind::GreaterEq
+                        } else if self.current() == Some('>') {
+                            self.advance();
+                            TokenKind::RShift
                         } else {
                             TokenKind::Greater
                         }
@@ -386,7 +423,7 @@ impl Lexer {
                             self.advance();
                             TokenKind::And
                         } else {
-                            TokenKind::Eof
+                            TokenKind::Ampersand
                         }
                     }
                     '|' => {
@@ -395,8 +432,12 @@ impl Lexer {
                             self.advance();
                             TokenKind::Or
                         } else {
-                            TokenKind::Eof
+                            TokenKind::Pipe
                         }
+                    }
+                    '~' => {
+                        self.advance();
+                        TokenKind::Tilde
                     }
                     '0'..='9' => {
                         let (num_str, is_float) = self.read_number();

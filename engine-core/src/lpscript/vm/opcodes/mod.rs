@@ -114,6 +114,14 @@ pub enum LpsOpCode {
     LessEqInt32,
     EqInt32,
     NotEqInt32,
+    
+    // Int32 bitwise operations
+    BitwiseAndInt32,
+    BitwiseOrInt32,
+    BitwiseXorInt32,
+    BitwiseNotInt32,
+    LeftShiftInt32,
+    RightShiftInt32,
 
     // Vec2 operations (operate on stack)
     AddVec2,       // pop 4, push 2
@@ -256,6 +264,12 @@ impl LpsOpCode {
             LpsOpCode::LessEqInt32 => "LessEqInt32",
             LpsOpCode::EqInt32 => "EqInt32",
             LpsOpCode::NotEqInt32 => "NotEqInt32",
+            LpsOpCode::BitwiseAndInt32 => "BitwiseAndInt32",
+            LpsOpCode::BitwiseOrInt32 => "BitwiseOrInt32",
+            LpsOpCode::BitwiseXorInt32 => "BitwiseXorInt32",
+            LpsOpCode::BitwiseNotInt32 => "BitwiseNotInt32",
+            LpsOpCode::LeftShiftInt32 => "LeftShiftInt32",
+            LpsOpCode::RightShiftInt32 => "RightShiftInt32",
             LpsOpCode::AddVec2 => "AddVec2",
             LpsOpCode::SubVec2 => "SubVec2",
             LpsOpCode::MulVec2 => "MulVec2",

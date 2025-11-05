@@ -27,12 +27,12 @@ impl Parser {
 
     // Logical AND: &&
     pub(in crate::lpscript) fn logical_and(&mut self) -> Expr {
-        let mut expr = self.comparison();
+        let mut expr = self.bitwise_or();
 
         while matches!(self.current().kind, TokenKind::And) {
             let start = expr.span.start;
             self.advance();
-            let right = self.comparison();
+            let right = self.bitwise_or();
             let end = right.span.end;
             expr = Expr::new(
                 ExprKind::And(Box::new(expr), Box::new(right)),

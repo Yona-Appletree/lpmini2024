@@ -134,12 +134,7 @@ pub fn modulo(left: Expr, right: Expr, ty: Type) -> Expr {
     expr
 }
 
-/// Power: left ^ right
-pub fn pow(left: Expr, right: Expr, ty: Type) -> Expr {
-    let mut expr = Expr::new(ExprKind::Pow(Box::new(left), Box::new(right)), Span::EMPTY);
-    expr.ty = Some(ty);
-    expr
-}
+// Power operator removed - use pow() function instead
 
 // ============================================================================
 // Logical operators (return Expr, type parameter required)

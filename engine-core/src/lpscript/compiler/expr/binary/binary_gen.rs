@@ -77,13 +77,6 @@ impl<'a> CodeGenerator<'a> {
             self.code,
         );
     }
-
-    pub(crate) fn gen_pow(&mut self, left: &Box<Expr>, right: &Box<Expr>) {
-        self.gen_expr(left);
-        self.gen_expr(right);
-        // Pow is always scalar for now (pow only works on Fixed types)
-        self.code.push(LpsOpCode::PowFixed);
-    }
 }
 
 /// Generate typed binary operation based on operand and result types

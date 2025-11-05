@@ -7,11 +7,51 @@ use alloc::boxed::Box;
 
 
 impl Parser {
-    // Unary: - ! (between exponential and postfix in precedence)
+    // Unary: - ! ~ ++ -- (between exponential and postfix in precedence)
     pub(in crate::lpscript) fn unary(&mut self) -> Expr {
         let token = self.current().clone();
 
         match &token.kind {
+            TokenKind::PlusPlus => {
+                self.advance();
+                // Prefix increment must be followed by a variable
+                if let TokenKind::Ident(name) = &self.current().kind {
+                    let name = name.clone();
+                    let end = self.current().span.end;
+                    self.advance();
+                    Expr::new(
+                        ExprKind::PreIncrement(name),
+                        Span::new(token.span.start, end),
+                    )
+                } else {
+                    // Error: prefix increment requires an l-value
+                    // For now, create a dummy expression (will be caught by type checker)
+                    Expr::new(
+                        ExprKind::Number(0.0),
+                        Span::new(token.span.start, self.current().span.end),
+                    )
+                }
+            }
+            TokenKind::MinusMinus => {
+                self.advance();
+                // Prefix decrement must be followed by a variable
+                if let TokenKind::Ident(name) = &self.current().kind {
+                    let name = name.clone();
+                    let end = self.current().span.end;
+                    self.advance();
+                    Expr::new(
+                        ExprKind::PreDecrement(name),
+                        Span::new(token.span.start, end),
+                    )
+                } else {
+                    // Error: prefix decrement requires an l-value
+                    // For now, create a dummy expression (will be caught by type checker)
+                    Expr::new(
+                        ExprKind::Number(0.0),
+                        Span::new(token.span.start, self.current().span.end),
+                    )
+                }
+            }
             TokenKind::Minus => {
                 self.advance();
                 let operand = self.unary(); // Right-associative (can stack: --x)
@@ -37,6 +77,15 @@ impl Parser {
                 let end = operand.span.end;
                 Expr::new(
                     ExprKind::Not(Box::new(operand)),
+                    Span::new(token.span.start, end),
+                )
+            }
+            TokenKind::Tilde => {
+                self.advance();
+                let operand = self.unary();
+                let end = operand.span.end;
+                Expr::new(
+                    ExprKind::BitwiseNot(Box::new(operand)),
                     Span::new(token.span.start, end),
                 )
             }
