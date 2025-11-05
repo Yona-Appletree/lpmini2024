@@ -21,7 +21,7 @@ mod tests {
         ExprTest::new("42")
             .expect_ast(int32(42))
             .expect_opcodes(vec![LpsOpCode::PushInt32(42), LpsOpCode::Return])
-            .expect_result_fixed(42.0)
+            .expect_result_int(42)
             .run()
     }
 
@@ -76,6 +76,6 @@ mod tests {
 
     #[test]
     fn test_int_number_typecheck() -> Result<(), String> {
-        ExprTest::new("42").expect_result_fixed(42.0).run()
+        ExprTest::new("42").expect_result_int(42).run()
     }
 }

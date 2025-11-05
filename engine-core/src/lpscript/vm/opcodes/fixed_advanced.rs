@@ -2,8 +2,8 @@
 use crate::lpscript::vm::error::RuntimeError;
 use crate::lpscript::vm::vm_stack::Stack;
 use crate::math::noise::perlin3;
-use crate::math::{atan, atan2, fract, lerp, modulo, pow, saturate, sign, smoothstep, step, tan};
 use crate::math::Fixed;
+use crate::math::{atan, atan2, fract, lerp, modulo, pow, saturate, sign, smoothstep, step, tan};
 
 #[inline(always)]
 pub fn exec_tan_fixed(stack: &mut Stack) -> Result<(), RuntimeError> {
@@ -37,11 +37,11 @@ pub fn exec_fract_fixed(stack: &mut Stack) -> Result<(), RuntimeError> {
 #[inline(always)]
 pub fn exec_mod_fixed(stack: &mut Stack) -> Result<(), RuntimeError> {
     let (x, y) = stack.pop2()?;
-    
+
     if y == 0 {
         return Err(RuntimeError::DivisionByZero);
     }
-    
+
     let result = modulo(Fixed(x), Fixed(y));
     stack.push_fixed(result)?;
     Ok(())
@@ -50,7 +50,10 @@ pub fn exec_mod_fixed(stack: &mut Stack) -> Result<(), RuntimeError> {
 #[inline(always)]
 pub fn exec_pow_fixed(stack: &mut Stack) -> Result<(), RuntimeError> {
     let (base, exponent) = stack.pop2()?;
-    let result = pow(Fixed(base), exponent);
+    // Convert exponent from Fixed format to raw integer
+    // The exponent is stored as Fixed on stack, but pow() expects raw i32
+    let exp_int = Fixed(exponent).to_i32();
+    let result = pow(Fixed(base), exp_int);
     stack.push_fixed(result)?;
     Ok(())
 }
@@ -102,10 +105,7 @@ pub fn exec_smoothstep_fixed(stack: &mut Stack) -> Result<(), RuntimeError> {
 }
 
 #[inline(always)]
-pub fn exec_perlin3(
-    stack: &mut Stack,
-    octaves: u8,
-) -> Result<(), RuntimeError> {
+pub fn exec_perlin3(stack: &mut Stack, octaves: u8) -> Result<(), RuntimeError> {
     let (x, y, z) = stack.pop3()?;
     let result = perlin3(Fixed(x), Fixed(y), Fixed(z), octaves);
     stack.push_fixed(result)?;

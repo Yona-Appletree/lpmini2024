@@ -780,6 +780,19 @@ impl<'a> LpsVm<'a> {
                     self.pc += 1;
                 }
 
+                // === Type Conversions ===
+                LpsOpCode::Int32ToFixed => {
+                    int32::exec_int32_to_fixed(&mut self.stack)
+                        .map_err(|e| self.runtime_error(e))?;
+                    self.pc += 1;
+                }
+
+                LpsOpCode::FixedToInt32 => {
+                    int32::exec_fixed_to_int32(&mut self.stack)
+                        .map_err(|e| self.runtime_error(e))?;
+                    self.pc += 1;
+                }
+
                 // === Vec2 Operations ===
                 LpsOpCode::AddVec2 => {
                     vec2::exec_add_vec2(&mut self.stack).map_err(|e| self.runtime_error(e))?;

@@ -19,6 +19,7 @@
 
 ## Organization
 
+- [ ] locals should be a struct like the stack
 - [x] compiler/runtime errors need to be separated
 - [ ] lpscript should be a library, runtime and compiler should be separate crates
 

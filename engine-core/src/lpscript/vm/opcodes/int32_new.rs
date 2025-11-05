@@ -161,26 +161,6 @@ pub fn exec_right_shift_int32(stack: &mut Stack) -> Result<(), RuntimeError> {
     Ok(())
 }
 
-/// Execute Int32ToFixed: convert Int32 to Fixed format
-/// pop a (raw int32); push a << 16 (Fixed format)
-#[inline(always)]
-pub fn exec_int32_to_fixed(stack: &mut Stack) -> Result<(), RuntimeError> {
-    let a = stack.pop_int32()?;
-    // Convert from raw int32 to Fixed format by shifting left
-    stack.push_fixed(crate::math::Fixed::from_i32(a))?;
-    Ok(())
-}
-
-/// Execute FixedToInt32: convert Fixed to Int32 format
-/// pop a (Fixed format); push a >> 16 (raw int32)
-#[inline(always)]
-pub fn exec_fixed_to_int32(stack: &mut Stack) -> Result<(), RuntimeError> {
-    let a = stack.pop_fixed()?;
-    // Convert from Fixed format to raw int32 by extracting integer part
-    stack.push_int32(a.to_i32())?;
-    Ok(())
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;

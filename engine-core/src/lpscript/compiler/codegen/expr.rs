@@ -8,7 +8,14 @@ impl<'a> CodeGenerator<'a> {
     pub(in crate::lpscript) fn gen_expr(&mut self, expr: &Expr) {
         match &expr.kind {
             ExprKind::Number(n) => self.gen_number(*n),
-            ExprKind::IntNumber(n) => self.gen_int_number(*n),
+            ExprKind::IntNumber(n) => {
+                self.gen_int_number(*n);
+                // If Int32 was promoted to Fixed, emit conversion
+                if expr.ty == Some(crate::lpscript::shared::Type::Fixed) {
+                    self.code
+                        .push(crate::lpscript::vm::opcodes::LpsOpCode::Int32ToFixed);
+                }
+            }
             ExprKind::Variable(name) => self.gen_variable(name, expr.ty.as_ref().unwrap()),
 
             ExprKind::Add(left, right) => self.gen_add(left, right, expr.ty.as_ref().unwrap()),
