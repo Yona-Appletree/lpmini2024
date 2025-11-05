@@ -33,7 +33,6 @@ fn test_variable_mutation() {
 }
 
 #[test]
-#[ignore] // TODO: Fix compiler bug - block scoping generates invalid bytecode
 fn test_block_scoping() {
     let script = "
         float x = 1.0;
@@ -51,7 +50,6 @@ fn test_block_scoping() {
 }
 
 #[test]
-#[ignore] // TODO: Fix compiler bug - nested scopes generate invalid bytecode
 fn test_nested_scopes() {
     let script = "
         float x = 1.0;
@@ -108,7 +106,6 @@ fn test_multiple_variables() {
 }
 
 #[test]
-#[ignore] // TODO: Fix stack overflow in compiler
 fn test_assignment_expression_value() {
     let script = "
         float x = 0.0;
@@ -123,7 +120,6 @@ fn test_assignment_expression_value() {
 }
 
 #[test]
-#[ignore] // TODO: Fix stack overflow in compiler
 fn test_chained_assignments() {
     let script = "
         float x = 0.0;

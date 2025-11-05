@@ -5,8 +5,15 @@ use crate::lpscript::compiler::generator::CodeGenerator;
 
 impl<'a> CodeGenerator<'a> {
     pub(crate) fn gen_block(&mut self, stmts: &[Stmt]) {
+        // Push a new scope for this block
+        self.locals.push_scope();
+        
+        // Generate code for all statements
         for stmt in stmts {
             self.gen_stmt(stmt);
         }
+        
+        // Pop the scope, restoring any shadowed variables
+        self.locals.pop_scope();
     }
 }

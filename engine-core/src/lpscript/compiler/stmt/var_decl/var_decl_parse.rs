@@ -30,7 +30,7 @@ impl Parser {
         // Parse optional initializer
         let init = if matches!(self.current().kind, TokenKind::Eq) {
             self.advance(); // consume '='
-            Some(self.ternary())
+            Some(self.parse_assignment_expr())
         } else {
             None
         };

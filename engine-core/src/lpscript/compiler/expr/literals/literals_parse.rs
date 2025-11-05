@@ -60,7 +60,7 @@ impl Parser {
             }
             TokenKind::LParen => {
                 self.advance(); // consume '('
-                let expr = self.ternary();
+                let expr = self.parse_assignment_expr();
                 if matches!(self.current().kind, TokenKind::RParen) {
                     self.advance(); // consume ')'
                 }
