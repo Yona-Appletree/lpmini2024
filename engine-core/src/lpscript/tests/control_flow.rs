@@ -15,10 +15,10 @@ fn test_if_without_else() {
     let program = parse_script(script);
     let mut vm = LpsVm::new(&program, vec![], VmLimits::default()).unwrap();
     
-    let result = vm.run(0.6.to_fixed(), Fixed::ZERO, Fixed::ZERO).unwrap();
+    let result = vm.run_scalar(0.6.to_fixed(), Fixed::ZERO, Fixed::ZERO).unwrap();
     assert_eq!(result.to_f32(), 1.0);
     
-    let result = vm.run(0.4.to_fixed(), Fixed::ZERO, Fixed::ZERO).unwrap();
+    let result = vm.run_scalar(0.4.to_fixed(), Fixed::ZERO, Fixed::ZERO).unwrap();
     assert_eq!(result.to_f32(), 0.0);
 }
 
@@ -40,13 +40,13 @@ fn test_nested_if_statements() {
     let program = parse_script(script);
     let mut vm = LpsVm::new(&program, vec![], VmLimits::default()).unwrap();
     
-    let result = vm.run(0.9.to_fixed(), Fixed::ZERO, Fixed::ZERO).unwrap();
+    let result = vm.run_scalar(0.9.to_fixed(), Fixed::ZERO, Fixed::ZERO).unwrap();
     assert_eq!(result.to_f32(), 3.0);
     
-    let result = vm.run(0.6.to_fixed(), Fixed::ZERO, Fixed::ZERO).unwrap();
+    let result = vm.run_scalar(0.6.to_fixed(), Fixed::ZERO, Fixed::ZERO).unwrap();
     assert_eq!(result.to_f32(), 2.0);
     
-    let result = vm.run(0.3.to_fixed(), Fixed::ZERO, Fixed::ZERO).unwrap();
+    let result = vm.run_scalar(0.3.to_fixed(), Fixed::ZERO, Fixed::ZERO).unwrap();
     assert_eq!(result.to_f32(), 1.0);
 }
 
@@ -65,7 +65,7 @@ fn test_while_loop_counter() {
     let program = parse_script(script);
     let mut vm = LpsVm::new(&program, vec![], VmLimits::default()).unwrap();
     
-    let result = vm.run(Fixed::ZERO, Fixed::ZERO, Fixed::ZERO).unwrap();
+    let result = vm.run_scalar(Fixed::ZERO, Fixed::ZERO, Fixed::ZERO).unwrap();
     // 0 + 1 + 2 + 3 + 4 = 10
     assert_eq!(result.to_f32(), 10.0);
 }
@@ -83,7 +83,7 @@ fn test_for_loop_sum() {
     let program = parse_script(script);
     let mut vm = LpsVm::new(&program, vec![], VmLimits::default()).unwrap();
     
-    let result = vm.run(Fixed::ZERO, Fixed::ZERO, Fixed::ZERO).unwrap();
+    let result = vm.run_scalar(Fixed::ZERO, Fixed::ZERO, Fixed::ZERO).unwrap();
     // 1 + 2 + 3 + 4 = 10
     assert_eq!(result.to_f32(), 10.0);
 }
@@ -104,7 +104,7 @@ fn test_for_loop_with_break_condition() {
     let program = parse_script(script);
     let mut vm = LpsVm::new(&program, vec![], VmLimits::default()).unwrap();
     
-    let result = vm.run(Fixed::ZERO, Fixed::ZERO, Fixed::ZERO).unwrap();
+    let result = vm.run_scalar(Fixed::ZERO, Fixed::ZERO, Fixed::ZERO).unwrap();
     assert_eq!(result.to_f32(), 3.0);
 }
 
@@ -123,7 +123,7 @@ fn test_nested_loops() {
     let program = parse_script(script);
     let mut vm = LpsVm::new(&program, vec![], VmLimits::default()).unwrap();
     
-    let result = vm.run(Fixed::ZERO, Fixed::ZERO, Fixed::ZERO).unwrap();
+    let result = vm.run_scalar(Fixed::ZERO, Fixed::ZERO, Fixed::ZERO).unwrap();
     // 3 * 2 = 6
     assert_eq!(result.to_f32(), 6.0);
 }
@@ -146,16 +146,16 @@ fn test_if_else_chain() {
     let program = parse_script(script);
     let mut vm = LpsVm::new(&program, vec![], VmLimits::default()).unwrap();
     
-    let result = vm.run(0.1.to_fixed(), Fixed::ZERO, Fixed::ZERO).unwrap();
+    let result = vm.run_scalar(0.1.to_fixed(), Fixed::ZERO, Fixed::ZERO).unwrap();
     assert_eq!(result.to_f32(), 1.0);
     
-    let result = vm.run(0.3.to_fixed(), Fixed::ZERO, Fixed::ZERO).unwrap();
+    let result = vm.run_scalar(0.3.to_fixed(), Fixed::ZERO, Fixed::ZERO).unwrap();
     assert_eq!(result.to_f32(), 2.0);
     
-    let result = vm.run(0.6.to_fixed(), Fixed::ZERO, Fixed::ZERO).unwrap();
+    let result = vm.run_scalar(0.6.to_fixed(), Fixed::ZERO, Fixed::ZERO).unwrap();
     assert_eq!(result.to_f32(), 3.0);
     
-    let result = vm.run(0.9.to_fixed(), Fixed::ZERO, Fixed::ZERO).unwrap();
+    let result = vm.run_scalar(0.9.to_fixed(), Fixed::ZERO, Fixed::ZERO).unwrap();
     assert_eq!(result.to_f32(), 4.0);
 }
 

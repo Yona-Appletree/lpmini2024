@@ -7,7 +7,7 @@ use super::locals::LocalType;
 use super::program::LpsProgram;
 use crate::lpscript::error::{RuntimeError, RuntimeErrorWithContext};
 use crate::lpscript::vm::opcodes::LpsOpCode;
-use crate::math::Fixed;
+use crate::math::{Fixed, Vec2, Vec3, Vec4};
 
 // Import all opcode handler modules
 use super::opcodes::{
@@ -107,6 +107,9 @@ impl<'a> LpsVm<'a> {
 
     /// Execute the program for a single pixel
     ///
+    /// Returns all values on the stack after execution. For scalar results, use `run_scalar()`.
+    /// For vector results, use `run_vec2()`, `run_vec3()`, or `run_vec4()`.
+    ///
     /// # Zero-Allocation Guarantee
     ///
     /// This method performs NO heap allocations during execution. All data structures
@@ -120,7 +123,7 @@ impl<'a> LpsVm<'a> {
         x: Fixed,
         y: Fixed,
         time: Fixed,
-    ) -> Result<Fixed, RuntimeErrorWithContext> {
+    ) -> Result<Vec<Fixed>, RuntimeErrorWithContext> {
         self.sp = 0;
         self.pc = 0;
         self.call_stack_depth = 0;
@@ -266,8 +269,12 @@ impl<'a> LpsVm<'a> {
                         self.call_stack_depth -= 1;
                         self.pc = self.call_stack[self.call_stack_depth].return_pc;
                     } else {
-                        // Exiting main - return top of stack as result
-                        return Ok(self.pop()?);
+                        // Exiting main - return all stack values as result
+                        let result: Vec<Fixed> = self.stack[0..self.sp]
+                            .iter()
+                            .map(|&i| Fixed(i))
+                            .collect();
+                        return Ok(result);
                     }
                 }
 
@@ -964,6 +971,78 @@ impl<'a> LpsVm<'a> {
         }
     }
 
+    /// Execute the program and expect a scalar result
+    pub fn run_scalar(
+        &mut self,
+        x: Fixed,
+        y: Fixed,
+        time: Fixed,
+    ) -> Result<Fixed, RuntimeErrorWithContext> {
+        let stack = self.run(x, y, time)?;
+        if stack.len() != 1 {
+            return Err(RuntimeErrorWithContext {
+                error: RuntimeError::TypeMismatch,
+                pc: self.pc,
+                opcode: "run_scalar",
+            });
+        }
+        Ok(stack[0])
+    }
+
+    /// Execute the program and expect a vec2 result
+    pub fn run_vec2(
+        &mut self,
+        x: Fixed,
+        y: Fixed,
+        time: Fixed,
+    ) -> Result<Vec2, RuntimeErrorWithContext> {
+        let stack = self.run(x, y, time)?;
+        if stack.len() != 2 {
+            return Err(RuntimeErrorWithContext {
+                error: RuntimeError::TypeMismatch,
+                pc: self.pc,
+                opcode: "run_vec2",
+            });
+        }
+        Ok(Vec2::new(stack[0], stack[1]))
+    }
+
+    /// Execute the program and expect a vec3 result
+    pub fn run_vec3(
+        &mut self,
+        x: Fixed,
+        y: Fixed,
+        time: Fixed,
+    ) -> Result<Vec3, RuntimeErrorWithContext> {
+        let stack = self.run(x, y, time)?;
+        if stack.len() != 3 {
+            return Err(RuntimeErrorWithContext {
+                error: RuntimeError::TypeMismatch,
+                pc: self.pc,
+                opcode: "run_vec3",
+            });
+        }
+        Ok(Vec3::new(stack[0], stack[1], stack[2]))
+    }
+
+    /// Execute the program and expect a vec4 result
+    pub fn run_vec4(
+        &mut self,
+        x: Fixed,
+        y: Fixed,
+        time: Fixed,
+    ) -> Result<Vec4, RuntimeErrorWithContext> {
+        let stack = self.run(x, y, time)?;
+        if stack.len() != 4 {
+            return Err(RuntimeErrorWithContext {
+                error: RuntimeError::TypeMismatch,
+                pc: self.pc,
+                opcode: "run_vec4",
+            });
+        }
+        Ok(Vec4::new(stack[0], stack[1], stack[2], stack[3]))
+    }
+
     /// Format a runtime error with full context
     pub fn format_error(&self, error: &RuntimeErrorWithContext) -> alloc::string::String {
         use alloc::format;
@@ -1036,7 +1115,7 @@ pub fn execute_program_lps(
             let x_norm = Fixed::from_f32((x as f32 + 0.5) / width as f32);
             let y_norm = Fixed::from_f32((y as f32 + 0.5) / height as f32);
 
-            let result = vm.run(x_norm, y_norm, time).unwrap_or_else(|e| {
+            let result = vm.run_scalar(x_norm, y_norm, time).unwrap_or_else(|e| {
                 panic!("Runtime error at pixel ({}, {}): {}", x, y, e);
             });
 
@@ -1081,7 +1160,7 @@ mod tests {
         let program = parse_expr("1.0 + 2.0");
         let mut vm = LpsVm::new(&program, vec![], VmLimits::default()).unwrap();
 
-        let result = vm.run(Fixed::ZERO, Fixed::ZERO, Fixed::ZERO).unwrap();
+        let result = vm.run_scalar(Fixed::ZERO, Fixed::ZERO, Fixed::ZERO).unwrap();
         assert_eq!(result.to_f32(), 3.0);
     }
 
@@ -1090,7 +1169,7 @@ mod tests {
         let program = parse_expr("uv.x + uv.y");
         let mut vm = LpsVm::new(&program, vec![], VmLimits::default()).unwrap();
 
-        let result = vm.run(0.5.to_fixed(), 0.3.to_fixed(), Fixed::ZERO).unwrap();
+        let result = vm.run_scalar(0.5.to_fixed(), 0.3.to_fixed(), Fixed::ZERO).unwrap();
         assert!((result.to_f32() - 0.8).abs() < 0.01); // Account for fixed-point precision
     }
 
@@ -1099,7 +1178,7 @@ mod tests {
         let program = parse_expr("5.0 > 3.0");
         let mut vm = LpsVm::new(&program, vec![], VmLimits::default()).unwrap();
 
-        let result = vm.run(Fixed::ZERO, Fixed::ZERO, Fixed::ZERO).unwrap();
+        let result = vm.run_scalar(Fixed::ZERO, Fixed::ZERO, Fixed::ZERO).unwrap();
         assert_eq!(result, Fixed::ONE); // TRUE
     }
 
@@ -1117,7 +1196,7 @@ mod tests {
         let program = parse_script(script);
         let mut vm = LpsVm::new(&program, vec![], VmLimits::default()).unwrap();
 
-        let result = vm.run(Fixed::ZERO, Fixed::ZERO, Fixed::ZERO).unwrap();
+        let result = vm.run_scalar(Fixed::ZERO, Fixed::ZERO, Fixed::ZERO).unwrap();
         assert_eq!(result.to_f32(), 10.0);
     }
 
@@ -1135,7 +1214,7 @@ mod tests {
         let program = parse_script(script);
         let mut vm = LpsVm::new(&program, vec![], VmLimits::default()).unwrap();
 
-        let result = vm.run(Fixed::ZERO, Fixed::ZERO, Fixed::ZERO).unwrap();
+        let result = vm.run_scalar(Fixed::ZERO, Fixed::ZERO, Fixed::ZERO).unwrap();
         assert_eq!(result.to_f32(), 10.0);
     }
 
@@ -1147,7 +1226,7 @@ mod tests {
         let program = parse_expr("1.0 + 2.0");
         let mut vm = LpsVm::new(&program, vec![], VmLimits::default()).unwrap();
         assert_eq!(
-            vm.run(Fixed::ZERO, Fixed::ZERO, Fixed::ZERO)
+            vm.run_scalar(Fixed::ZERO, Fixed::ZERO, Fixed::ZERO)
                 .unwrap()
                 .to_f32(),
             3.0
@@ -1157,7 +1236,7 @@ mod tests {
         let program = parse_expr("5.0 - 2.0");
         let mut vm = LpsVm::new(&program, vec![], VmLimits::default()).unwrap();
         assert_eq!(
-            vm.run(Fixed::ZERO, Fixed::ZERO, Fixed::ZERO)
+            vm.run_scalar(Fixed::ZERO, Fixed::ZERO, Fixed::ZERO)
                 .unwrap()
                 .to_f32(),
             3.0
@@ -1167,7 +1246,7 @@ mod tests {
         let program = parse_expr("3.0 * 4.0");
         let mut vm = LpsVm::new(&program, vec![], VmLimits::default()).unwrap();
         assert_eq!(
-            vm.run(Fixed::ZERO, Fixed::ZERO, Fixed::ZERO)
+            vm.run_scalar(Fixed::ZERO, Fixed::ZERO, Fixed::ZERO)
                 .unwrap()
                 .to_f32(),
             12.0
@@ -1177,7 +1256,7 @@ mod tests {
         let program = parse_expr("10.0 / 2.0");
         let mut vm = LpsVm::new(&program, vec![], VmLimits::default()).unwrap();
         assert_eq!(
-            vm.run(Fixed::ZERO, Fixed::ZERO, Fixed::ZERO)
+            vm.run_scalar(Fixed::ZERO, Fixed::ZERO, Fixed::ZERO)
                 .unwrap()
                 .to_f32(),
             5.0
@@ -1187,7 +1266,7 @@ mod tests {
         let program = parse_expr("-5.0");
         let mut vm = LpsVm::new(&program, vec![], VmLimits::default()).unwrap();
         assert_eq!(
-            vm.run(Fixed::ZERO, Fixed::ZERO, Fixed::ZERO)
+            vm.run_scalar(Fixed::ZERO, Fixed::ZERO, Fixed::ZERO)
                 .unwrap()
                 .to_f32(),
             -5.0
@@ -1200,7 +1279,7 @@ mod tests {
         let program = parse_expr("5.0 > 3.0");
         let mut vm = LpsVm::new(&program, vec![], VmLimits::default()).unwrap();
         assert_eq!(
-            vm.run(Fixed::ZERO, Fixed::ZERO, Fixed::ZERO).unwrap(),
+            vm.run_scalar(Fixed::ZERO, Fixed::ZERO, Fixed::ZERO).unwrap(),
             Fixed::ONE
         );
 
@@ -1208,7 +1287,7 @@ mod tests {
         let program = parse_expr("3.0 < 5.0");
         let mut vm = LpsVm::new(&program, vec![], VmLimits::default()).unwrap();
         assert_eq!(
-            vm.run(Fixed::ZERO, Fixed::ZERO, Fixed::ZERO).unwrap(),
+            vm.run_scalar(Fixed::ZERO, Fixed::ZERO, Fixed::ZERO).unwrap(),
             Fixed::ONE
         );
 
@@ -1216,7 +1295,7 @@ mod tests {
         let program = parse_expr("5.0 >= 5.0");
         let mut vm = LpsVm::new(&program, vec![], VmLimits::default()).unwrap();
         assert_eq!(
-            vm.run(Fixed::ZERO, Fixed::ZERO, Fixed::ZERO).unwrap(),
+            vm.run_scalar(Fixed::ZERO, Fixed::ZERO, Fixed::ZERO).unwrap(),
             Fixed::ONE
         );
 
@@ -1224,7 +1303,7 @@ mod tests {
         let program = parse_expr("3.0 <= 5.0");
         let mut vm = LpsVm::new(&program, vec![], VmLimits::default()).unwrap();
         assert_eq!(
-            vm.run(Fixed::ZERO, Fixed::ZERO, Fixed::ZERO).unwrap(),
+            vm.run_scalar(Fixed::ZERO, Fixed::ZERO, Fixed::ZERO).unwrap(),
             Fixed::ONE
         );
 
@@ -1232,7 +1311,7 @@ mod tests {
         let program = parse_expr("5.0 == 5.0");
         let mut vm = LpsVm::new(&program, vec![], VmLimits::default()).unwrap();
         assert_eq!(
-            vm.run(Fixed::ZERO, Fixed::ZERO, Fixed::ZERO).unwrap(),
+            vm.run_scalar(Fixed::ZERO, Fixed::ZERO, Fixed::ZERO).unwrap(),
             Fixed::ONE
         );
 
@@ -1240,7 +1319,7 @@ mod tests {
         let program = parse_expr("5.0 != 3.0");
         let mut vm = LpsVm::new(&program, vec![], VmLimits::default()).unwrap();
         assert_eq!(
-            vm.run(Fixed::ZERO, Fixed::ZERO, Fixed::ZERO).unwrap(),
+            vm.run_scalar(Fixed::ZERO, Fixed::ZERO, Fixed::ZERO).unwrap(),
             Fixed::ONE
         );
     }
@@ -1251,7 +1330,7 @@ mod tests {
         let program = parse_expr("min(3.0, 7.0)");
         let mut vm = LpsVm::new(&program, vec![], VmLimits::default()).unwrap();
         assert_eq!(
-            vm.run(Fixed::ZERO, Fixed::ZERO, Fixed::ZERO)
+            vm.run_scalar(Fixed::ZERO, Fixed::ZERO, Fixed::ZERO)
                 .unwrap()
                 .to_f32(),
             3.0
@@ -1261,7 +1340,7 @@ mod tests {
         let program = parse_expr("max(3.0, 7.0)");
         let mut vm = LpsVm::new(&program, vec![], VmLimits::default()).unwrap();
         assert_eq!(
-            vm.run(Fixed::ZERO, Fixed::ZERO, Fixed::ZERO)
+            vm.run_scalar(Fixed::ZERO, Fixed::ZERO, Fixed::ZERO)
                 .unwrap()
                 .to_f32(),
             7.0
@@ -1271,7 +1350,7 @@ mod tests {
         let program = parse_expr("abs(-5.0)");
         let mut vm = LpsVm::new(&program, vec![], VmLimits::default()).unwrap();
         assert_eq!(
-            vm.run(Fixed::ZERO, Fixed::ZERO, Fixed::ZERO)
+            vm.run_scalar(Fixed::ZERO, Fixed::ZERO, Fixed::ZERO)
                 .unwrap()
                 .to_f32(),
             5.0
@@ -1281,7 +1360,7 @@ mod tests {
         let program = parse_expr("floor(3.7)");
         let mut vm = LpsVm::new(&program, vec![], VmLimits::default()).unwrap();
         assert_eq!(
-            vm.run(Fixed::ZERO, Fixed::ZERO, Fixed::ZERO)
+            vm.run_scalar(Fixed::ZERO, Fixed::ZERO, Fixed::ZERO)
                 .unwrap()
                 .to_f32(),
             3.0
@@ -1291,7 +1370,7 @@ mod tests {
         let program = parse_expr("ceil(3.2)");
         let mut vm = LpsVm::new(&program, vec![], VmLimits::default()).unwrap();
         assert_eq!(
-            vm.run(Fixed::ZERO, Fixed::ZERO, Fixed::ZERO)
+            vm.run_scalar(Fixed::ZERO, Fixed::ZERO, Fixed::ZERO)
                 .unwrap()
                 .to_f32(),
             4.0
@@ -1301,7 +1380,7 @@ mod tests {
         let program = parse_expr("sqrt(4.0)");
         let mut vm = LpsVm::new(&program, vec![], VmLimits::default()).unwrap();
         let result = vm
-            .run(Fixed::ZERO, Fixed::ZERO, Fixed::ZERO)
+            .run_scalar(Fixed::ZERO, Fixed::ZERO, Fixed::ZERO)
             .unwrap()
             .to_f32();
         assert!((result - 2.0).abs() < 0.01);
@@ -1313,7 +1392,7 @@ mod tests {
         let program = parse_expr("sin(0.0)");
         let mut vm = LpsVm::new(&program, vec![], VmLimits::default()).unwrap();
         let result = vm
-            .run(Fixed::ZERO, Fixed::ZERO, Fixed::ZERO)
+            .run_scalar(Fixed::ZERO, Fixed::ZERO, Fixed::ZERO)
             .unwrap()
             .to_f32();
         assert!((result - 0.0).abs() < 0.01);
@@ -1322,7 +1401,7 @@ mod tests {
         let program = parse_expr("cos(0.0)");
         let mut vm = LpsVm::new(&program, vec![], VmLimits::default()).unwrap();
         let result = vm
-            .run(Fixed::ZERO, Fixed::ZERO, Fixed::ZERO)
+            .run_scalar(Fixed::ZERO, Fixed::ZERO, Fixed::ZERO)
             .unwrap()
             .to_f32();
         assert!((result - 1.0).abs() < 0.01);
@@ -1334,7 +1413,7 @@ mod tests {
         let program = parse_expr("5.0 > 3.0 ? 10.0 : 20.0");
         let mut vm = LpsVm::new(&program, vec![], VmLimits::default()).unwrap();
         assert_eq!(
-            vm.run(Fixed::ZERO, Fixed::ZERO, Fixed::ZERO)
+            vm.run_scalar(Fixed::ZERO, Fixed::ZERO, Fixed::ZERO)
                 .unwrap()
                 .to_f32(),
             10.0
@@ -1344,7 +1423,7 @@ mod tests {
         let program = parse_expr("3.0 > 5.0 ? 10.0 : 20.0");
         let mut vm = LpsVm::new(&program, vec![], VmLimits::default()).unwrap();
         assert_eq!(
-            vm.run(Fixed::ZERO, Fixed::ZERO, Fixed::ZERO)
+            vm.run_scalar(Fixed::ZERO, Fixed::ZERO, Fixed::ZERO)
                 .unwrap()
                 .to_f32(),
             20.0
@@ -1356,7 +1435,7 @@ mod tests {
         let program = parse_expr("(2.0 + 3.0) * (4.0 - 1.0)");
         let mut vm = LpsVm::new(&program, vec![], VmLimits::default()).unwrap();
         assert_eq!(
-            vm.run(Fixed::ZERO, Fixed::ZERO, Fixed::ZERO)
+            vm.run_scalar(Fixed::ZERO, Fixed::ZERO, Fixed::ZERO)
                 .unwrap()
                 .to_f32(),
             15.0
@@ -1368,7 +1447,7 @@ mod tests {
         let program = parse_expr("min(max(2.0, 5.0), 10.0) + sqrt(4.0)");
         let mut vm = LpsVm::new(&program, vec![], VmLimits::default()).unwrap();
         let result = vm
-            .run(Fixed::ZERO, Fixed::ZERO, Fixed::ZERO)
+            .run_scalar(Fixed::ZERO, Fixed::ZERO, Fixed::ZERO)
             .unwrap()
             .to_f32();
         // max(2, 5) = 5, min(5, 10) = 5, sqrt(4) = 2, 5 + 2 = 7

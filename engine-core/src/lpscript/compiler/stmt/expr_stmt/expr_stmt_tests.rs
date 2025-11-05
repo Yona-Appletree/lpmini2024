@@ -21,6 +21,7 @@ mod tests {
                 LpsOpCode::StoreLocalFixed(0),
                 LpsOpCode::LoadLocalFixed(0),
                 LpsOpCode::SinFixed,
+                LpsOpCode::Drop, // Expression statement drops result
                 LpsOpCode::LoadLocalFixed(0),
                 LpsOpCode::Return,
             ])
@@ -40,9 +41,11 @@ mod tests {
                 LpsOpCode::Push(1.0.to_fixed()),
                 LpsOpCode::Push(2.0.to_fixed()),
                 LpsOpCode::AddFixed,
+                LpsOpCode::Drop, // Expression statement drops result
                 LpsOpCode::Push(3.0.to_fixed()),
                 LpsOpCode::Push(4.0.to_fixed()),
                 LpsOpCode::MulFixed,
+                LpsOpCode::Drop, // Expression statement drops result
                 LpsOpCode::Push(10.0.to_fixed()),
                 LpsOpCode::Return,
             ])
@@ -64,6 +67,7 @@ mod tests {
                 LpsOpCode::LoadLocalFixed(0),
                 LpsOpCode::Push(3.0.to_fixed()),
                 LpsOpCode::AddFixed,
+                LpsOpCode::Drop, // Expression statement drops result
                 LpsOpCode::LoadLocalFixed(0),
                 LpsOpCode::Return,
             ])

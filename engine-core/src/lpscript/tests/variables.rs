@@ -12,7 +12,7 @@ fn test_variable_declaration_with_init() {
     let program = parse_script(script);
     let mut vm = LpsVm::new(&program, vec![], VmLimits::default()).unwrap();
 
-    let result = vm.run(Fixed::ZERO, Fixed::ZERO, Fixed::ZERO).unwrap();
+    let result = vm.run_scalar(Fixed::ZERO, Fixed::ZERO, Fixed::ZERO).unwrap();
     assert_eq!(result.to_f32(), 5.0);
 }
 
@@ -27,7 +27,7 @@ fn test_variable_mutation() {
     let program = parse_script(script);
     let mut vm = LpsVm::new(&program, vec![], VmLimits::default()).unwrap();
 
-    let result = vm.run(Fixed::ZERO, Fixed::ZERO, Fixed::ZERO).unwrap();
+    let result = vm.run_scalar(Fixed::ZERO, Fixed::ZERO, Fixed::ZERO).unwrap();
     // (1 + 2) * 3 = 9
     assert_eq!(result.to_f32(), 9.0);
 }
@@ -46,7 +46,7 @@ fn test_block_scoping() {
     let program = parse_script(script);
     let mut vm = LpsVm::new(&program, vec![], VmLimits::default()).unwrap();
 
-    let result = vm.run(Fixed::ZERO, Fixed::ZERO, Fixed::ZERO).unwrap();
+    let result = vm.run_scalar(Fixed::ZERO, Fixed::ZERO, Fixed::ZERO).unwrap();
     assert_eq!(result.to_f32(), 1.0);
 }
 
@@ -67,7 +67,7 @@ fn test_nested_scopes() {
     let program = parse_script(script);
     let mut vm = LpsVm::new(&program, vec![], VmLimits::default()).unwrap();
 
-    let result = vm.run(Fixed::ZERO, Fixed::ZERO, Fixed::ZERO).unwrap();
+    let result = vm.run_scalar(Fixed::ZERO, Fixed::ZERO, Fixed::ZERO).unwrap();
     // 1 + 2 + 3 = 6
     assert_eq!(result.to_f32(), 6.0);
 }
@@ -86,7 +86,7 @@ fn test_variable_in_loop_scope() {
     let program = parse_script(script);
     let mut vm = LpsVm::new(&program, vec![], VmLimits::default()).unwrap();
 
-    let result = vm.run(Fixed::ZERO, Fixed::ZERO, Fixed::ZERO).unwrap();
+    let result = vm.run_scalar(Fixed::ZERO, Fixed::ZERO, Fixed::ZERO).unwrap();
     // (0*2) + (1*2) + (2*2) = 0 + 2 + 4 = 6
     assert_eq!(result.to_f32(), 6.0);
 }
@@ -103,7 +103,7 @@ fn test_multiple_variables() {
     let program = parse_script(script);
     let mut vm = LpsVm::new(&program, vec![], VmLimits::default()).unwrap();
 
-    let result = vm.run(Fixed::ZERO, Fixed::ZERO, Fixed::ZERO).unwrap();
+    let result = vm.run_scalar(Fixed::ZERO, Fixed::ZERO, Fixed::ZERO).unwrap();
     assert_eq!(result.to_f32(), 10.0);
 }
 
@@ -118,7 +118,7 @@ fn test_assignment_expression_value() {
     let program = parse_script(script);
     let mut vm = LpsVm::new(&program, vec![], VmLimits::default()).unwrap();
 
-    let result = vm.run(Fixed::ZERO, Fixed::ZERO, Fixed::ZERO).unwrap();
+    let result = vm.run_scalar(Fixed::ZERO, Fixed::ZERO, Fixed::ZERO).unwrap();
     assert_eq!(result.to_f32(), 5.0);
 }
 
@@ -135,6 +135,6 @@ fn test_chained_assignments() {
     let program = parse_script(script);
     let mut vm = LpsVm::new(&program, vec![], VmLimits::default()).unwrap();
 
-    let result = vm.run(Fixed::ZERO, Fixed::ZERO, Fixed::ZERO).unwrap();
+    let result = vm.run_scalar(Fixed::ZERO, Fixed::ZERO, Fixed::ZERO).unwrap();
     assert_eq!(result.to_f32(), 21.0);
 }

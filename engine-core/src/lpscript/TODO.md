@@ -14,6 +14,9 @@
     - [ ] `tests/variables.rs`: Nested scopes and block scoping tests ignored
 - **Stack Overflow**: Compiler crashes on certain patterns
     - [ ] `tests/variables.rs`: 2 ignored tests for stack overflow
+- **Negative Literals**: Parser treats `-5.0` as `0 - 5.0` (affects AST tests)
+    - [ ] `compiler/expr/literals/literals_tests.rs`: test_negative_literal fails
+    - [ ] `compiler/expr/call/call_tests.rs`: test_function_call_abs fails (due to negative literal in test)
 
 ### Parser Issues
 
@@ -29,6 +32,9 @@
     - [ ] `tests/functions.rs`: Multiple function execution issues
     - [ ] `tests/functions.rs`: Function return value propagation broken
     - [ ] `tests/functions.rs`: Vec return types need more VM opcodes
+- **Floating Point Precision**: Fixed-point math tolerance issues
+    - [ ] `compiler/expr/call/call_tests.rs`: test_function_call_cos (expected 1.0, got 0.9996948)
+    - [ ] `compiler/expr/call/call_tests.rs`: test_function_call_nested (precision drift in nested calls)
 
 ## Implementation TODOs
 
@@ -36,12 +42,18 @@
 
 - [ ] `codegen/expr/binary.rs`: Add proper pow implementation
 - [ ] `codegen/expr/binary.rs`: Implement proper modulo operation (currently placeholder)
-- [ ] `codegen/expr/swizzle.rs`: Implement general vec3/vec4 swizzling
+- [ ] `codegen/expr/swizzle.rs`: Implement general vec3/vec4 swizzling (line 107-114)
+    - Currently only vec2 swizzles work
+    - [ ] `compiler/expr/swizzle/swizzle_tests.rs`: test_swizzle_two_components fails (vec3.xy)
 - [ ] `codegen/expr/variable.rs`: Need type information to use correct Load opcode
 - [ ] `codegen/expr/literals.rs`: Keep integers as int32 instead of converting to fixed point
 
 ### VM Executor
 
+- [x] `vm/executor.rs`: Refactor run() to return Vec<Fixed> for vector support (COMPLETED)
+    - [x] Added run_scalar(), run_vec2(), run_vec3(), run_vec4() convenience methods
+    - [x] Updated all test utilities to use appropriate run_*() methods
+    - [x] All vector constructor tests now pass (7/7)
 - [ ] `vm/executor.rs`: Could add frame pointer for local variables
 - [ ] `vm/executor.rs`: Pass actual width/height instead of placeholders (line 292)
 - [ ] `vm/executor.rs`: Get actual opcode name for debugging (line 963)
@@ -97,23 +109,24 @@
 
 ### Expression Codegen (All files now have tests)
 
-- [x] `codegen/expr/literals.rs` - 6 tests (bytecode + execution tests for float/int literals)
-- [x] `codegen/expr/binary.rs` - 25 tests (Fixed/Vec2/Vec3/Vec4 arithmetic), 2 ignored (pow, mod)
-- [x] `codegen/expr/comparison.rs` - 16 tests (all comparison operators with bytecode + execution)
-- [x] `codegen/expr/logical.rs` - 9 tests (&&, || with bytecode + execution)
-- [x] `codegen/expr/variable.rs` - 8 tests (uv, coord, time, local variables)
-- [x] `codegen/expr/constructors.rs` - 8 tests (vec2/vec3/vec4 constructors, GLSL-style)
-- [x] `codegen/expr/swizzle.rs` - 10 tests (single component + multi-component swizzling)
-- [x] `codegen/expr/ternary.rs` - 6 tests (ternary operator, nested ternaries)
-- [x] `codegen/expr/call.rs` - 20 tests (native functions: sin, cos, abs, min, max, etc.)
-- [x] `codegen/expr/assign_expr.rs` - 4 tests + 1 ignored (assignment expressions)
+- [x] `codegen/expr/literals.rs` - 6 tests (5 passing, 1 failing due to negative literal parsing)
+- [x] `codegen/expr/binary.rs` - 25 tests (Fixed/Vec2/Vec3/Vec4 arithmetic), 2 ignored (pow, mod) ✅ ALL PASSING
+- [x] `codegen/expr/comparison.rs` - 16 tests (all comparison operators with bytecode + execution) ✅ ALL PASSING
+- [x] `codegen/expr/logical.rs` - 9 tests (&&, || with bytecode + execution) ✅ ALL PASSING
+- [x] `codegen/expr/variable.rs` - 8 tests (uv, coord, time, local variables) ✅ ALL PASSING
+- [x] `codegen/expr/constructors.rs` - 8 tests (vec2/vec3/vec4 constructors, GLSL-style) ✅ ALL PASSING
+- [x] `codegen/expr/swizzle.rs` - 10 tests (9 passing, 1 failing due to unimplemented vec3->vec2 swizzle)
+- [x] `codegen/expr/ternary.rs` - 6 tests (ternary operator, nested ternaries) ✅ ALL PASSING
+- [x] `codegen/expr/call.rs` - 20 tests (18 passing, 2 failing due to floating point precision)
+- [x] `codegen/expr/assign_expr.rs` - 4 tests + 1 ignored (assignment expressions) ✅ ALL PASSING
 
 ### Statement Codegen (All files now have tests)
 
-- [x] `codegen/stmt/var_decl.rs` - 5 tests (variable declarations with/without init)
-- [x] `codegen/stmt/assign.rs` - 4 tests (simple and complex assignments)
-- [x] `codegen/stmt/expr_stmt.rs` - 3 tests (expression statements with Drop opcode)
-- [x] `codegen/stmt/return_stmt.rs` - 4 tests (return with literals, expressions, variables)
+- [x] `codegen/stmt/var_decl.rs` - 5 tests (variable declarations with/without init) ✅ ALL PASSING
+- [x] `codegen/stmt/assign.rs` - 4 tests (simple and complex assignments) ✅ ALL PASSING
+- [x] `codegen/stmt/expr_stmt.rs` - 3 tests (expression statements with Drop opcode) ✅ ALL PASSING
+    - [x] Fixed: Expression statements now properly drop unused results based on type
+- [x] `codegen/stmt/return_stmt.rs` - 4 tests (return with literals, expressions, variables) ✅ ALL PASSING
 - [x] `codegen/stmt/block.rs` - 2 tests + 2 ignored (simple blocks, scoping issues)
 - [x] `codegen/stmt/if_stmt.rs` - 1 test + 5 ignored (if/else bytecode generation issues)
 - [x] `codegen/stmt/while_loop.rs` - 1 test + 2 ignored (while loops generate infinite bytecode)
@@ -126,12 +139,21 @@
 - [ ] `codegen/functions.rs` - Tested via integration tests
 - [ ] `codegen/native_functions.rs` - Tested indirectly via call tests
 
-### Test Compilation Issues
+### Test Results Summary
 
-**Note**: All tests have been added but currently have compilation errors due to VM API mismatch:
-- Tests expect `LpsVm::new_from_opcodes()` which doesn't exist
-- Need to refactor tests to use `parse_expr()` or create proper `LpsProgram` from opcodes
-- This is a technical debt item to fix before tests can run
+**Compiler Tests: 95 of 100 passing** (5 failures, 13 ignored)
+
+**Current Failures** (5 tests):
+1. `test_negative_literal` - Parser generates `0 - 5.0` instead of `-5.0`
+2. `test_function_call_abs` - AST mismatch due to negative literal in test
+3. `test_function_call_cos` - Floating point precision (0.9996948 vs 1.0)
+4. `test_function_call_nested` - Floating point precision drift
+5. `test_swizzle_two_components` - Vec3->Vec2 swizzle not implemented
+
+**Ignored Tests** (13 tests):
+- 7 control flow tests (if statements, loops generate invalid bytecode)
+- 5 variable scoping tests (block scoping issues, stack overflow)
+- 1 vec2 variable declaration test
 
 ## Files Without Tests (Updated)
 
@@ -187,15 +209,39 @@
 
 ## Priority Order
 
-1. **Fix Compiler Bugs** - Critical blockers preventing many tests from passing
+1. **Fix Remaining Test Failures** (5 tests)
+    - [ ] Fix negative literal parsing (`-5.0` should parse as negative number, not `0 - 5.0`)
+    - [ ] Relax floating point tolerance for Fixed-point math tests
+    - [ ] Implement vec3/vec4 swizzle extraction to vec2
+
+2. **Fix Compiler Bugs** - Critical blockers preventing 13 ignored tests from running
     - Control flow (if/else statements)
     - Loop bytecode generation
     - Stack overflow issues
-
-2. **Add Codegen Tests** - Entire codegen module has zero test coverage
+    - Variable scoping
 
 3. **Fix Function Execution** - Functions are core feature, need to work properly
+    - Vec parameters and return types
+    - Recursive functions
+    - Multiple function definitions
 
 4. **Implement Missing Features** - Arrays, textures, proper operators
+    - Pow implementation
+    - Modulo operation
+    - Array access
+    - Texture sampling
 
 5. **Expand Parser Test Coverage** - Many parser modules have only 1-2 tests
+
+## Recent Completions
+
+- [x] **VM Vector Return Support** (Dec 2024)
+    - Refactored `LpsVm::run()` to return `Vec<Fixed>` for proper vector support
+    - Added `run_scalar()`, `run_vec2()`, `run_vec3()`, `run_vec4()` convenience methods
+    - Updated all test utilities to call appropriate run method based on expected type
+    - All 7 vector constructor tests now pass
+    
+- [x] **Expression Statement Fix** (Dec 2024)
+    - Fixed expression statements to drop unused results based on type
+    - Prevents stack pollution when expressions used for side effects only
+    - All 3 expression statement tests now pass

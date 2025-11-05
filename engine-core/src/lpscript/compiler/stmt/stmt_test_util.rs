@@ -181,10 +181,10 @@ impl ScriptTest {
         if let Some(expected_result) = self.expected_result {
             match LpsVm::new(&program, vec![], VmLimits::default()) {
                 Ok(mut vm) => {
-                    match vm.run(self.x, self.y, self.time) {
-                        Ok(result) => {
-                            match expected_result {
-                                TestResult::Fixed(expected) => {
+                    match expected_result {
+                        TestResult::Fixed(expected) => {
+                            match vm.run_scalar(self.x, self.y, self.time) {
+                                Ok(result) => {
                                     let expected_f32 = expected.to_f32();
                                     let actual_f32 = result.to_f32();
                                     let diff = (expected_f32 - actual_f32).abs();
@@ -196,47 +196,77 @@ impl ScriptTest {
                                         ));
                                     }
                                 }
-                                TestResult::Vec2(expected) => {
-                                    // For vec2, check first component
-                                    let expected_f32 = expected.x.to_f32();
-                                    let actual_f32 = result.to_f32();
-                                    let diff = (expected_f32 - actual_f32).abs();
-
-                                    if diff > 0.0001 {
-                                        errors.push(format!(
-                                            "Vec2 result mismatch (first component):\nExpected: {}\nActual:   {}",
-                                            expected_f32, actual_f32
-                                        ));
-                                    }
-                                }
-                                TestResult::Vec3(expected) => {
-                                    let expected_f32 = expected.x.to_f32();
-                                    let actual_f32 = result.to_f32();
-                                    let diff = (expected_f32 - actual_f32).abs();
-
-                                    if diff > 0.0001 {
-                                        errors.push(format!(
-                                            "Vec3 result mismatch (first component):\nExpected: {}\nActual:   {}",
-                                            expected_f32, actual_f32
-                                        ));
-                                    }
-                                }
-                                TestResult::Vec4(expected) => {
-                                    let expected_f32 = expected.x.to_f32();
-                                    let actual_f32 = result.to_f32();
-                                    let diff = (expected_f32 - actual_f32).abs();
-
-                                    if diff > 0.0001 {
-                                        errors.push(format!(
-                                            "Vec4 result mismatch (first component):\nExpected: {}\nActual:   {}",
-                                            expected_f32, actual_f32
-                                        ));
-                                    }
+                                Err(e) => {
+                                    errors.push(format!("Runtime error: {:?}", e));
                                 }
                             }
                         }
-                        Err(e) => {
-                            errors.push(format!("Runtime error: {:?}", e));
+                        TestResult::Vec2(expected) => {
+                            match vm.run_vec2(self.x, self.y, self.time) {
+                                Ok(result) => {
+                                    // Check all components
+                                    let x_diff = (expected.x.to_f32() - result.x.to_f32()).abs();
+                                    let y_diff = (expected.y.to_f32() - result.y.to_f32()).abs();
+
+                                    if x_diff > 0.0001 || y_diff > 0.0001 {
+                                        errors.push(format!(
+                                            "Vec2 result mismatch:\nExpected: ({}, {})\nActual:   ({}, {})",
+                                            expected.x.to_f32(), expected.y.to_f32(),
+                                            result.x.to_f32(), result.y.to_f32()
+                                        ));
+                                    }
+                                }
+                                Err(e) => {
+                                    errors.push(format!("Runtime error: {:?}", e));
+                                }
+                            }
+                        }
+                        TestResult::Vec3(expected) => {
+                            match vm.run_vec3(self.x, self.y, self.time) {
+                                Ok(result) => {
+                                    // Check all components
+                                    let x_diff = (expected.x.to_f32() - result.x.to_f32()).abs();
+                                    let y_diff = (expected.y.to_f32() - result.y.to_f32()).abs();
+                                    let z_diff = (expected.z.to_f32() - result.z.to_f32()).abs();
+
+                                    if x_diff > 0.0001 || y_diff > 0.0001 || z_diff > 0.0001 {
+                                        errors.push(format!(
+                                            "Vec3 result mismatch:\nExpected: ({}, {}, {})\nActual:   ({}, {}, {})",
+                                            expected.x.to_f32(), expected.y.to_f32(), expected.z.to_f32(),
+                                            result.x.to_f32(), result.y.to_f32(), result.z.to_f32()
+                                        ));
+                                    }
+                                }
+                                Err(e) => {
+                                    errors.push(format!("Runtime error: {:?}", e));
+                                }
+                            }
+                        }
+                        TestResult::Vec4(expected) => {
+                            match vm.run_vec4(self.x, self.y, self.time) {
+                                Ok(result) => {
+                                    // Check all components
+                                    let x_diff = (expected.x.to_f32() - result.x.to_f32()).abs();
+                                    let y_diff = (expected.y.to_f32() - result.y.to_f32()).abs();
+                                    let z_diff = (expected.z.to_f32() - result.z.to_f32()).abs();
+                                    let w_diff = (expected.w.to_f32() - result.w.to_f32()).abs();
+
+                                    if x_diff > 0.0001
+                                        || y_diff > 0.0001
+                                        || z_diff > 0.0001
+                                        || w_diff > 0.0001
+                                    {
+                                        errors.push(format!(
+                                            "Vec4 result mismatch:\nExpected: ({}, {}, {}, {})\nActual:   ({}, {}, {}, {})",
+                                            expected.x.to_f32(), expected.y.to_f32(), expected.z.to_f32(), expected.w.to_f32(),
+                                            result.x.to_f32(), result.y.to_f32(), result.z.to_f32(), result.w.to_f32()
+                                        ));
+                                    }
+                                }
+                                Err(e) => {
+                                    errors.push(format!("Runtime error: {:?}", e));
+                                }
+                            }
                         }
                     }
                 }
