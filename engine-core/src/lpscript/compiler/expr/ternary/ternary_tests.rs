@@ -68,4 +68,25 @@ mod tests {
             .expect_result_fixed(20.0)
             .run()
     }
+
+    // ========================================================================
+    // Vector Ternary Tests - NOT SUPPORTED
+    // ========================================================================
+    // Note: Ternary operator with vector results is currently not supported.
+    // The Select opcode only handles single stack values, not multi-component vectors.
+    // This is a known limitation documented in TODO.md.
+    //
+    // GLSL: `condition ? vec2(1,0) : vec2(0,1)` ✓
+    // LPS:  Currently not implemented
+    //
+    // These tests are commented out until Select opcode is extended to support vectors.
+
+    // #[test]
+    // fn test_ternary_vec2_result_true() -> Result<(), String> {
+    //     use crate::math::Vec2;
+    //     ExprTest::new("x > 0.5 ? vec2(1.0, 0.0) : vec2(0.0, 1.0)")
+    //         .with_x(0.7)
+    //         .expect_result_vec2(Vec2::new(1.0.to_fixed(), 0.0.to_fixed()))
+    //         .run()
+    // }
 }

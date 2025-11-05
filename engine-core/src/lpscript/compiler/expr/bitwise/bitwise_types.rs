@@ -26,23 +26,23 @@ impl TypeChecker {
 
         // Both operands must be Int32
         if !matches!(left_ty, Type::Int32) {
-            return Err(TypeError::new(
-                TypeErrorKind::TypeMismatch {
-                    expected: "int".into(),
-                    found: left_ty.to_string().into(),
+            return Err(TypeError {
+                kind: TypeErrorKind::Mismatch {
+                    expected: Type::Int32,
+                    found: left_ty,
                 },
                 span,
-            ));
+            });
         }
 
         if !matches!(right_ty, Type::Int32) {
-            return Err(TypeError::new(
-                TypeErrorKind::TypeMismatch {
-                    expected: "int".into(),
-                    found: right_ty.to_string().into(),
+            return Err(TypeError {
+                kind: TypeErrorKind::Mismatch {
+                    expected: Type::Int32,
+                    found: right_ty,
                 },
                 span,
-            ));
+            });
         }
 
         Ok(Type::Int32)
@@ -63,16 +63,15 @@ impl TypeChecker {
 
         // Operand must be Int32
         if !matches!(operand_ty, Type::Int32) {
-            return Err(TypeError::new(
-                TypeErrorKind::TypeMismatch {
-                    expected: "int".into(),
-                    found: operand_ty.to_string().into(),
+            return Err(TypeError {
+                kind: TypeErrorKind::Mismatch {
+                    expected: Type::Int32,
+                    found: operand_ty,
                 },
                 span,
-            ));
+            });
         }
 
         Ok(Type::Int32)
     }
 }
-

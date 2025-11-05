@@ -10,6 +10,7 @@ pub mod ast;
 pub mod codegen;
 pub mod error;
 pub mod lexer;
+pub mod optimize;
 pub mod parser;
 pub mod symbol_table;
 pub mod test_ast;

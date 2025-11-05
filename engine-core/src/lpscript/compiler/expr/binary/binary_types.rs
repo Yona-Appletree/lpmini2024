@@ -2,8 +2,8 @@
 extern crate alloc;
 
 use crate::lpscript::compiler::ast::Expr;
-use crate::lpscript::compiler::typechecker::{FunctionTable, SymbolTable, TypeChecker};
 use crate::lpscript::compiler::error::{TypeError, TypeErrorKind};
+use crate::lpscript::compiler::typechecker::{FunctionTable, SymbolTable, TypeChecker};
 use crate::lpscript::shared::Type;
 use alloc::boxed::Box;
 
@@ -63,5 +63,115 @@ impl TypeChecker {
         };
 
         Ok(result_ty)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use crate::lpscript::compile_expr;
+    use crate::lpscript::compiler::error::{CompileError, TypeErrorKind};
+
+    // ========================================================================
+    // Type Error Tests - Mismatched Vector Sizes
+    // ========================================================================
+
+    #[test]
+    fn test_vec2_plus_vec3_error() {
+        let result = compile_expr("vec2(1.0, 2.0) + vec3(1.0, 2.0, 3.0)");
+        assert!(result.is_err(), "vec2 + vec3 should be a type error");
+
+        if let Err(CompileError::TypeCheck(err)) = result {
+            assert!(matches!(err.kind, TypeErrorKind::Mismatch { .. }));
+        } else {
+            panic!("Expected TypeCheck error");
+        }
+    }
+
+    #[test]
+    fn test_vec3_mul_vec4_error() {
+        let result = compile_expr("vec3(1.0, 2.0, 3.0) * vec4(1.0, 2.0, 3.0, 4.0)");
+        assert!(result.is_err(), "vec3 * vec4 should be a type error");
+
+        if let Err(CompileError::TypeCheck(err)) = result {
+            assert!(matches!(err.kind, TypeErrorKind::Mismatch { .. }));
+        } else {
+            panic!("Expected TypeCheck error");
+        }
+    }
+
+    #[test]
+    fn test_vec2_minus_vec4_error() {
+        let result = compile_expr("vec2(1.0, 2.0) - vec4(1.0, 2.0, 3.0, 4.0)");
+        assert!(result.is_err(), "vec2 - vec4 should be a type error");
+
+        if let Err(CompileError::TypeCheck(err)) = result {
+            assert!(matches!(err.kind, TypeErrorKind::Mismatch { .. }));
+        } else {
+            panic!("Expected TypeCheck error");
+        }
+    }
+
+    #[test]
+    fn test_vec4_div_vec2_error() {
+        let result = compile_expr("vec4(10.0, 20.0, 30.0, 40.0) / vec2(2.0, 4.0)");
+        assert!(result.is_err(), "vec4 / vec2 should be a type error");
+
+        if let Err(CompileError::TypeCheck(err)) = result {
+            assert!(matches!(err.kind, TypeErrorKind::Mismatch { .. }));
+        } else {
+            panic!("Expected TypeCheck error");
+        }
+    }
+
+    #[test]
+    fn test_vec3_plus_vec2_error() {
+        let result = compile_expr("vec3(1.0, 2.0, 3.0) + vec2(1.0, 2.0)");
+        assert!(result.is_err(), "vec3 + vec2 should be a type error");
+
+        if let Err(CompileError::TypeCheck(err)) = result {
+            assert!(matches!(err.kind, TypeErrorKind::Mismatch { .. }));
+        } else {
+            panic!("Expected TypeCheck error");
+        }
+    }
+
+    #[test]
+    fn test_vec4_minus_vec3_error() {
+        let result = compile_expr("vec4(10.0, 9.0, 8.0, 7.0) - vec3(1.0, 2.0, 3.0)");
+        assert!(result.is_err(), "vec4 - vec3 should be a type error");
+
+        if let Err(CompileError::TypeCheck(err)) = result {
+            assert!(matches!(err.kind, TypeErrorKind::Mismatch { .. }));
+        } else {
+            panic!("Expected TypeCheck error");
+        }
+    }
+
+    // ========================================================================
+    // Type Error Tests - Bool/Void with Vectors
+    // ========================================================================
+
+    #[test]
+    fn test_bool_plus_vec2_error() {
+        let result = compile_expr("(1.0 > 0.5) + vec2(1.0, 2.0)");
+        assert!(result.is_err(), "bool + vec2 should be a type error");
+
+        if let Err(CompileError::TypeCheck(err)) = result {
+            assert!(matches!(err.kind, TypeErrorKind::Mismatch { .. }));
+        } else {
+            panic!("Expected TypeCheck error");
+        }
+    }
+
+    #[test]
+    fn test_vec3_mul_bool_error() {
+        let result = compile_expr("vec3(1.0, 2.0, 3.0) * (2.0 < 1.0)");
+        assert!(result.is_err(), "vec3 * bool should be a type error");
+
+        if let Err(CompileError::TypeCheck(err)) = result {
+            assert!(matches!(err.kind, TypeErrorKind::Mismatch { .. }));
+        } else {
+            panic!("Expected TypeCheck error");
+        }
     }
 }

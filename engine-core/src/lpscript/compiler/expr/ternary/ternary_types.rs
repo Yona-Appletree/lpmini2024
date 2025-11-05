@@ -2,8 +2,8 @@
 extern crate alloc;
 
 use crate::lpscript::compiler::ast::Expr;
-use crate::lpscript::compiler::typechecker::{FunctionTable, SymbolTable, TypeChecker};
 use crate::lpscript::compiler::error::{TypeError, TypeErrorKind};
+use crate::lpscript::compiler::typechecker::{FunctionTable, SymbolTable, TypeChecker};
 use crate::lpscript::shared::Type;
 use alloc::boxed::Box;
 
@@ -38,5 +38,75 @@ impl TypeChecker {
         }
 
         Ok(true_ty.clone())
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use crate::lpscript::compile_expr;
+    use crate::lpscript::compiler::error::{CompileError, TypeErrorKind};
+
+    // ========================================================================
+    // Type Error Tests - Ternary Branch Type Mismatches
+    // ========================================================================
+
+    #[test]
+    fn test_ternary_vec2_vs_vec3_branches() {
+        let result = compile_expr("x > 0.5 ? vec2(1.0, 0.0) : vec3(0.0, 1.0, 2.0)");
+        assert!(
+            result.is_err(),
+            "Ternary with vec2 and vec3 branches should be a type error"
+        );
+
+        if let Err(CompileError::TypeCheck(err)) = result {
+            assert!(matches!(err.kind, TypeErrorKind::Mismatch { .. }));
+        } else {
+            panic!("Expected TypeCheck error");
+        }
+    }
+
+    #[test]
+    fn test_ternary_float_vs_vec2_branches() {
+        let result = compile_expr("x > 0.5 ? 1.0 : vec2(1.0, 2.0)");
+        assert!(
+            result.is_err(),
+            "Ternary with float and vec2 branches should be a type error"
+        );
+
+        if let Err(CompileError::TypeCheck(err)) = result {
+            assert!(matches!(err.kind, TypeErrorKind::Mismatch { .. }));
+        } else {
+            panic!("Expected TypeCheck error");
+        }
+    }
+
+    #[test]
+    fn test_ternary_vec3_vs_float_branches() {
+        let result = compile_expr("x > 0.5 ? vec3(1.0, 2.0, 3.0) : 5.0");
+        assert!(
+            result.is_err(),
+            "Ternary with vec3 and float branches should be a type error"
+        );
+
+        if let Err(CompileError::TypeCheck(err)) = result {
+            assert!(matches!(err.kind, TypeErrorKind::Mismatch { .. }));
+        } else {
+            panic!("Expected TypeCheck error");
+        }
+    }
+
+    #[test]
+    fn test_ternary_vec4_vs_vec2_branches() {
+        let result = compile_expr("x > 0.5 ? vec4(1.0, 2.0, 3.0, 4.0) : vec2(1.0, 2.0)");
+        assert!(
+            result.is_err(),
+            "Ternary with vec4 and vec2 branches should be a type error"
+        );
+
+        if let Err(CompileError::TypeCheck(err)) = result {
+            assert!(matches!(err.kind, TypeErrorKind::Mismatch { .. }));
+        } else {
+            panic!("Expected TypeCheck error");
+        }
     }
 }

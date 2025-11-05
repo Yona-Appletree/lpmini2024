@@ -4,8 +4,11 @@
 ///
 /// # Features
 /// - **Arithmetic**: `+`, `-`, `*`, `/`, `%`
+/// - **Bitwise** (int only): `&`, `|`, `^`, `~`, `<<`, `>>`
 /// - **Comparisons**: `<`, `>`, `<=`, `>=`, `==`, `!=`
 /// - **Logical**: `&&`, `||`, `!`
+/// - **Increment/Decrement**: `++`, `--` (prefix and postfix)
+/// - **Compound Assignment**: `+=`, `-=`, `*=`, `/=`, `%=`, `&=`, `|=`, `^=`, `<<=`, `>>=`
 /// - **Ternary**: `condition ? true_val : false_val`
 /// - **Vector Swizzling**: `.x`, `.xy`, `.yx`, `.rgba`, `.stpq`, etc.
 ///
@@ -25,7 +28,8 @@
 /// ```
 /// use engine_core::lpscript::parse_expr;
 ///
-/// // Simple math
+/// // Simple math (constant expressions are folded at compile time)
+/// let code = parse_expr("2.0 + 3.0"); // Compiles to Push(5.0)
 /// let code = parse_expr("sin(time) * 0.5 + 0.5");
 ///
 /// // Vector swizzling
@@ -38,8 +42,30 @@
 /// // Ternary operator
 /// let code = parse_expr("centerDist < 0.5 ? 1.0 : 0.0");
 ///
-/// // Min/max
+/// // Min/max (folded if all arguments are constant)
+/// let code = parse_expr("max(2.0, 3.0)"); // Compiles to Push(3.0)
 /// let code = parse_expr("max(0.0, min(1.0, uv.x * 2.0))");
+/// ```
+///
+/// # Optimization
+/// The compiler includes automatic optimizations (enabled by default):
+/// - **Constant folding**: `sin(0.0)` → `0.0`, `2.0 + 3.0` → `5.0`
+/// - **Algebraic simplification**: `x * 1.0` → `x`, `x + 0.0` → `x`
+/// - **Dead code elimination**: Remove unreachable statements
+/// - **Peephole optimization**: Eliminate redundant opcode sequences
+///
+/// Control optimization with `OptimizeOptions`:
+/// ```
+/// use engine_core::lpscript::{compile_expr_with_options, OptimizeOptions};
+///
+/// // Disable all optimizations (for debugging)
+/// let program = compile_expr_with_options("2.0 + 3.0", &OptimizeOptions::none()).unwrap();
+///
+/// // Custom optimization settings
+/// let mut options = OptimizeOptions::default();
+/// options.constant_folding = true;
+/// options.algebraic_simplification = false;
+/// let program = compile_expr_with_options("x * 1.0", &options).unwrap();
 /// ```
 extern crate alloc;
 use alloc::vec::Vec;
@@ -50,12 +76,13 @@ pub mod vm;
 mod compiler;
 
 pub use compiler::codegen::NativeFunction;
-use compiler::{codegen, lexer, parser, typechecker};
 pub use compiler::error::CompileError;
+pub use compiler::optimize::OptimizeOptions;
+use compiler::{codegen, lexer, optimize, parser, typechecker};
 pub use shared::{Span, Type};
 pub use vm::{
-    execute_program_lps, LocalAccess, LocalDef, LocalType, LpsOpCode, LpsProgram, LpsVm, VmLimits,
-    RuntimeError, RuntimeErrorWithContext,
+    execute_program_lps, LocalAccess, LocalDef, LocalType, LpsOpCode, LpsProgram, LpsVm,
+    RuntimeError, RuntimeErrorWithContext, VmLimits,
 };
 
 /// Parse an expression string and generate a compiled LPS program
@@ -67,6 +94,20 @@ pub use vm::{
 /// let program = compile_expr("cos(perlin3(vec3(uv * 0.3, time), 3))").unwrap();
 /// ```
 pub fn compile_expr(input: &str) -> Result<LpsProgram, CompileError> {
+    compile_expr_with_options(input, &OptimizeOptions::default())
+}
+
+/// Compile an expression with custom optimization options
+///
+/// # Example
+/// ```
+/// use engine_core::lpscript::OptimizeOptions;
+/// let program = compile_expr_with_options("2.0 + 3.0", &OptimizeOptions::all()).unwrap();
+/// ```
+pub fn compile_expr_with_options(
+    input: &str,
+    options: &OptimizeOptions,
+) -> Result<LpsProgram, CompileError> {
     let mut lexer = lexer::Lexer::new(input);
     let tokens = lexer.tokenize();
 
@@ -76,10 +117,17 @@ pub fn compile_expr(input: &str) -> Result<LpsProgram, CompileError> {
     // Type check the AST
     let typed_ast = typechecker::TypeChecker::check(ast)?;
 
-    let opcodes = codegen::CodeGenerator::generate(&typed_ast);
+    // Optimize AST
+    let optimized_ast = optimize::optimize_ast_expr(typed_ast, options);
+
+    // Generate opcodes
+    let opcodes = codegen::CodeGenerator::generate(&optimized_ast);
+
+    // Optimize opcodes
+    let optimized_opcodes = optimize::optimize_opcodes(opcodes, options);
 
     Ok(LpsProgram::new("expr".into())
-        .with_opcodes(opcodes)
+        .with_opcodes(optimized_opcodes)
         .with_source(input.into()))
 }
 
@@ -100,6 +148,21 @@ pub fn compile_expr(input: &str) -> Result<LpsProgram, CompileError> {
 /// let program = compile_script(script).unwrap();
 /// ```
 pub fn compile_script(input: &str) -> Result<LpsProgram, CompileError> {
+    compile_script_with_options(input, &OptimizeOptions::default())
+}
+
+/// Compile a script with custom optimization options
+///
+/// # Example
+/// ```
+/// use engine_core::lpscript::OptimizeOptions;
+/// let script = "float x = 2.0 + 3.0; return x;";
+/// let program = compile_script_with_options(script, &OptimizeOptions::all()).unwrap();
+/// ```
+pub fn compile_script_with_options(
+    input: &str,
+    options: &OptimizeOptions,
+) -> Result<LpsProgram, CompileError> {
     let mut lexer = lexer::Lexer::new(input);
     let tokens = lexer.tokenize();
 
@@ -109,7 +172,14 @@ pub fn compile_script(input: &str) -> Result<LpsProgram, CompileError> {
     // Type check the program
     let typed_program = typechecker::TypeChecker::check_program(program)?;
 
-    let (opcodes, local_count) = codegen::CodeGenerator::generate_program(&typed_program);
+    // Optimize program AST
+    let optimized_program = optimize::optimize_ast_program(typed_program, options);
+
+    // Generate opcodes
+    let (opcodes, local_count) = codegen::CodeGenerator::generate_program(&optimized_program);
+
+    // Optimize opcodes
+    let optimized_opcodes = optimize::optimize_opcodes(opcodes, options);
 
     // Create LocalDef entries for all scratch locals
     let locals: Vec<LocalDef> = (0..local_count)
@@ -123,7 +193,7 @@ pub fn compile_script(input: &str) -> Result<LpsProgram, CompileError> {
         .collect();
 
     Ok(LpsProgram::new("script".into())
-        .with_opcodes(opcodes)
+        .with_opcodes(optimized_opcodes)
         .with_locals(locals)
         .with_source(input.into()))
 }
@@ -168,5 +238,6 @@ pub fn parse_script(input: &str) -> LpsProgram {
 mod tests {
     mod control_flow;
     mod functions;
+    mod operators;
     mod variables;
 }

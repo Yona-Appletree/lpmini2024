@@ -298,3 +298,104 @@ impl TypeChecker {
         }
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use crate::lpscript::compile_expr;
+    use crate::lpscript::compiler::error::{CompileError, TypeErrorKind};
+
+    // ========================================================================
+    // Type Error Tests - Built-in Function Calls
+    // ========================================================================
+
+    #[test]
+    fn test_cross_with_vec2() {
+        // cross() is vec3 only
+        let result = compile_expr("cross(vec2(1.0, 2.0), vec2(3.0, 4.0))");
+        assert!(result.is_err(), "cross() with vec2 should be a type error");
+        
+        if let Err(CompileError::TypeCheck(err)) = result {
+            assert!(matches!(err.kind, TypeErrorKind::InvalidOperation { .. }));
+        } else {
+            panic!("Expected TypeCheck error");
+        }
+    }
+
+    #[test]
+    fn test_dot_mismatched_vector_sizes() {
+        let result = compile_expr("dot(vec2(1.0, 2.0), vec3(3.0, 4.0, 5.0))");
+        assert!(
+            result.is_err(),
+            "dot() with mismatched vector sizes should be a type error"
+        );
+
+        if let Err(CompileError::TypeCheck(err)) = result {
+            assert!(matches!(err.kind, TypeErrorKind::Mismatch { .. }));
+        } else {
+            panic!("Expected TypeCheck error");
+        }
+    }
+
+    #[test]
+    fn test_length_with_wrong_arg_count() {
+        let result = compile_expr("length(vec2(1.0, 2.0), vec2(3.0, 4.0))");
+        assert!(
+            result.is_err(),
+            "length() with 2 arguments should be a type error"
+        );
+
+        if let Err(CompileError::TypeCheck(err)) = result {
+            assert!(matches!(
+                err.kind,
+                TypeErrorKind::InvalidArgumentCount { .. }
+            ));
+        } else {
+            panic!("Expected TypeCheck error");
+        }
+    }
+
+    #[test]
+    fn test_normalize_with_scalar() {
+        let result = compile_expr("normalize(5.0)");
+        assert!(
+            result.is_err(),
+            "normalize() with scalar should be a type error"
+        );
+
+        if let Err(CompileError::TypeCheck(err)) = result {
+            assert!(matches!(err.kind, TypeErrorKind::InvalidOperation { .. }));
+        } else {
+            panic!("Expected TypeCheck error");
+        }
+    }
+
+    #[test]
+    fn test_perlin3_with_vec2() {
+        let result = compile_expr("perlin3(vec2(1.0, 2.0))");
+        assert!(
+            result.is_err(),
+            "perlin3() with vec2 should be a type error (expects vec3)"
+        );
+
+        if let Err(CompileError::TypeCheck(err)) = result {
+            assert!(matches!(err.kind, TypeErrorKind::Mismatch { .. }));
+        } else {
+            panic!("Expected TypeCheck error");
+        }
+    }
+
+    #[test]
+    fn test_distance_mismatched_types() {
+        let result = compile_expr("distance(vec3(1.0, 2.0, 3.0), vec2(4.0, 5.0))");
+        assert!(
+            result.is_err(),
+            "distance() with mismatched vector sizes should be a type error"
+        );
+
+        if let Err(CompileError::TypeCheck(err)) = result {
+            assert!(matches!(err.kind, TypeErrorKind::Mismatch { .. }));
+        } else {
+            panic!("Expected TypeCheck error");
+        }
+    }
+}

@@ -50,3 +50,117 @@ impl TypeChecker {
         Ok(())
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use crate::lpscript::compiler::error::{CompileError, TypeErrorKind};
+    use crate::lpscript::{compile_script_with_options, OptimizeOptions};
+
+    // ========================================================================
+    // Type Error Tests - Variable Declaration Type Mismatches
+    // ========================================================================
+
+    #[test]
+    fn test_vec2_var_initialized_with_vec3() {
+        let result = compile_script_with_options(
+            "vec2 v = vec3(1.0, 2.0, 3.0); return v.x;",
+            &OptimizeOptions::none(),
+        );
+        assert!(
+            result.is_err(),
+            "vec2 initialized with vec3 should be a type error"
+        );
+
+        if let Err(CompileError::TypeCheck(err)) = result {
+            assert!(matches!(err.kind, TypeErrorKind::Mismatch { .. }));
+        } else {
+            panic!("Expected TypeCheck error");
+        }
+    }
+
+    #[test]
+    fn test_float_var_initialized_with_vec2() {
+        let result = compile_script_with_options(
+            "float x = vec2(1.0, 2.0); return x;",
+            &OptimizeOptions::none(),
+        );
+        assert!(
+            result.is_err(),
+            "float initialized with vec2 should be a type error"
+        );
+
+        if let Err(CompileError::TypeCheck(err)) = result {
+            assert!(matches!(err.kind, TypeErrorKind::Mismatch { .. }));
+        } else {
+            panic!("Expected TypeCheck error");
+        }
+    }
+
+    #[test]
+    fn test_vec3_var_initialized_with_vec2() {
+        let result = compile_script_with_options(
+            "vec3 v = vec2(1.0, 2.0); return v.x;",
+            &OptimizeOptions::none(),
+        );
+        assert!(
+            result.is_err(),
+            "vec3 initialized with vec2 should be a type error"
+        );
+
+        if let Err(CompileError::TypeCheck(err)) = result {
+            assert!(matches!(err.kind, TypeErrorKind::Mismatch { .. }));
+        } else {
+            panic!("Expected TypeCheck error");
+        }
+    }
+
+    #[test]
+    fn test_vec4_var_initialized_with_vec3() {
+        let result = compile_script_with_options(
+            "vec4 v = vec3(1.0, 2.0, 3.0); return v.x;",
+            &OptimizeOptions::none(),
+        );
+        assert!(
+            result.is_err(),
+            "vec4 initialized with vec3 should be a type error"
+        );
+
+        if let Err(CompileError::TypeCheck(err)) = result {
+            assert!(matches!(err.kind, TypeErrorKind::Mismatch { .. }));
+        } else {
+            panic!("Expected TypeCheck error");
+        }
+    }
+
+    #[test]
+    fn test_vec2_assigned_wrong_type() {
+        let result = compile_script_with_options(
+            "vec2 v; v = vec3(1.0, 2.0, 3.0); return v.x;",
+            &OptimizeOptions::none(),
+        );
+        assert!(result.is_err(), "vec2 assigned vec3 should be a type error");
+
+        // This will be caught by assignment type checking, not var decl
+        if let Err(CompileError::TypeCheck(err)) = result {
+            assert!(matches!(err.kind, TypeErrorKind::Mismatch { .. }));
+        } else {
+            panic!("Expected TypeCheck error");
+        }
+    }
+
+    #[test]
+    fn test_vec3_assigned_float() {
+        let result =
+            compile_script_with_options("vec3 v; v = 5.0; return v.x;", &OptimizeOptions::none());
+        assert!(
+            result.is_err(),
+            "vec3 assigned float should be a type error"
+        );
+
+        if let Err(CompileError::TypeCheck(err)) = result {
+            assert!(matches!(err.kind, TypeErrorKind::Mismatch { .. }));
+        } else {
+            panic!("Expected TypeCheck error");
+        }
+    }
+}

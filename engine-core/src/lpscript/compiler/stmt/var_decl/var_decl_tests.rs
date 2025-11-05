@@ -88,11 +88,171 @@ mod tests {
     }
 
     #[test]
-    #[ignore] // Vec2 local variables need more VM work
     fn test_var_decl_vec2() -> Result<(), String> {
-        ScriptTest::new("vec2 v = vec2(1.0, 2.0); return v.x;")
-            .expect_result_fixed(1.0)
-            .run()
+        use crate::lpscript::vm::{LpsVm, VmLimits};
+        use crate::lpscript::{compile_script_with_options, OptimizeOptions};
+
+        let program = compile_script_with_options(
+            "vec2 v = vec2(1.0, 2.0); return v.x;",
+            &OptimizeOptions::none(),
+        )
+        .map_err(|e| format!("Compilation failed: {}", e))?;
+        let mut vm = LpsVm::new(&program, vec![], VmLimits::default())
+            .map_err(|e| format!("VM creation failed: {:?}", e))?;
+        let result = vm
+            .run_scalar(0.5.to_fixed(), 0.5.to_fixed(), 0.0.to_fixed())
+            .map_err(|e| format!("Execution failed: {:?}", e))?;
+
+        let expected = 1.0.to_fixed();
+        let diff = (result.to_f32() - expected.to_f32()).abs();
+        if diff > 0.0001 {
+            return Err(format!(
+                "Expected {}, got {}",
+                expected.to_f32(),
+                result.to_f32()
+            ));
+        }
+        Ok(())
+    }
+
+    #[test]
+    fn test_var_decl_vec3() -> Result<(), String> {
+        use crate::lpscript::vm::{LpsVm, VmLimits};
+        use crate::lpscript::{compile_script_with_options, OptimizeOptions};
+
+        let program = compile_script_with_options(
+            "vec3 v = vec3(1.0, 2.0, 3.0); return v.y;",
+            &OptimizeOptions::none(),
+        )
+        .map_err(|e| format!("Compilation failed: {}", e))?;
+        let mut vm = LpsVm::new(&program, vec![], VmLimits::default())
+            .map_err(|e| format!("VM creation failed: {:?}", e))?;
+        let result = vm
+            .run_scalar(0.5.to_fixed(), 0.5.to_fixed(), 0.0.to_fixed())
+            .map_err(|e| format!("Execution failed: {:?}", e))?;
+
+        let expected = 2.0.to_fixed();
+        let diff = (result.to_f32() - expected.to_f32()).abs();
+        if diff > 0.0001 {
+            return Err(format!(
+                "Expected {}, got {}",
+                expected.to_f32(),
+                result.to_f32()
+            ));
+        }
+        Ok(())
+    }
+
+    #[test]
+    fn test_var_decl_vec4() -> Result<(), String> {
+        use crate::lpscript::vm::{LpsVm, VmLimits};
+        use crate::lpscript::{compile_script_with_options, OptimizeOptions};
+
+        let program = compile_script_with_options(
+            "vec4 v = vec4(1.0, 2.0, 3.0, 4.0); return v.w;",
+            &OptimizeOptions::none(),
+        )
+        .map_err(|e| format!("Compilation failed: {}", e))?;
+        let mut vm = LpsVm::new(&program, vec![], VmLimits::default())
+            .map_err(|e| format!("VM creation failed: {:?}", e))?;
+        let result = vm
+            .run_scalar(0.5.to_fixed(), 0.5.to_fixed(), 0.0.to_fixed())
+            .map_err(|e| format!("Execution failed: {:?}", e))?;
+
+        let expected = 4.0.to_fixed();
+        let diff = (result.to_f32() - expected.to_f32()).abs();
+        if diff > 0.0001 {
+            return Err(format!(
+                "Expected {}, got {}",
+                expected.to_f32(),
+                result.to_f32()
+            ));
+        }
+        Ok(())
+    }
+
+    #[test]
+    fn test_vec2_in_expression() -> Result<(), String> {
+        use crate::lpscript::vm::{LpsVm, VmLimits};
+        use crate::lpscript::{compile_script_with_options, OptimizeOptions};
+
+        let program = compile_script_with_options(
+            "vec2 a = vec2(1.0, 2.0); vec2 b = vec2(3.0, 4.0); vec2 c = a + b; return c.x;",
+            &OptimizeOptions::none(),
+        )
+        .map_err(|e| format!("Compilation failed: {}", e))?;
+        let mut vm = LpsVm::new(&program, vec![], VmLimits::default())
+            .map_err(|e| format!("VM creation failed: {:?}", e))?;
+        let result = vm
+            .run_scalar(0.5.to_fixed(), 0.5.to_fixed(), 0.0.to_fixed())
+            .map_err(|e| format!("Execution failed: {:?}", e))?;
+
+        let expected = 4.0.to_fixed(); // 1.0 + 3.0
+        let diff = (result.to_f32() - expected.to_f32()).abs();
+        if diff > 0.0001 {
+            return Err(format!(
+                "Expected {}, got {}",
+                expected.to_f32(),
+                result.to_f32()
+            ));
+        }
+        Ok(())
+    }
+
+    #[test]
+    fn test_vec3_in_expression() -> Result<(), String> {
+        use crate::lpscript::vm::{LpsVm, VmLimits};
+        use crate::lpscript::{compile_script_with_options, OptimizeOptions};
+
+        let program = compile_script_with_options(
+            "vec3 a = vec3(2.0, 3.0, 4.0); vec3 b = a * 2.0; return b.z;",
+            &OptimizeOptions::none(),
+        )
+        .map_err(|e| format!("Compilation failed: {}", e))?;
+        let mut vm = LpsVm::new(&program, vec![], VmLimits::default())
+            .map_err(|e| format!("VM creation failed: {:?}", e))?;
+        let result = vm
+            .run_scalar(0.5.to_fixed(), 0.5.to_fixed(), 0.0.to_fixed())
+            .map_err(|e| format!("Execution failed: {:?}", e))?;
+
+        let expected = 8.0.to_fixed(); // 4.0 * 2.0
+        let diff = (result.to_f32() - expected.to_f32()).abs();
+        if diff > 0.0001 {
+            return Err(format!(
+                "Expected {}, got {}",
+                expected.to_f32(),
+                result.to_f32()
+            ));
+        }
+        Ok(())
+    }
+
+    #[test]
+    fn test_vec4_uninitialized() -> Result<(), String> {
+        use crate::lpscript::vm::{LpsVm, VmLimits};
+        use crate::lpscript::{compile_script_with_options, OptimizeOptions};
+
+        let program = compile_script_with_options(
+            "vec4 v; v = vec4(5.0, 6.0, 7.0, 8.0); return v.y;",
+            &OptimizeOptions::none(),
+        )
+        .map_err(|e| format!("Compilation failed: {}", e))?;
+        let mut vm = LpsVm::new(&program, vec![], VmLimits::default())
+            .map_err(|e| format!("VM creation failed: {:?}", e))?;
+        let result = vm
+            .run_scalar(0.5.to_fixed(), 0.5.to_fixed(), 0.0.to_fixed())
+            .map_err(|e| format!("Execution failed: {:?}", e))?;
+
+        let expected = 6.0.to_fixed();
+        let diff = (result.to_f32() - expected.to_f32()).abs();
+        if diff > 0.0001 {
+            return Err(format!(
+                "Expected {}, got {}",
+                expected.to_f32(),
+                result.to_f32()
+            ));
+        }
+        Ok(())
     }
 
     #[test]

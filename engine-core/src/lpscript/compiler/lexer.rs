@@ -24,9 +24,9 @@ pub enum TokenKind {
     Minus,
     Star,
     Slash,
-    Percent,   // Modulo
-    Caret,     // Bitwise XOR
-    PlusPlus,  // Increment
+    Percent,    // Modulo
+    Caret,      // Bitwise XOR
+    PlusPlus,   // Increment
     MinusMinus, // Decrement
 
     // Comparisons
@@ -38,16 +38,16 @@ pub enum TokenKind {
     NotEq,
 
     // Logical
-    And,      // &&
-    Or,       // ||
-    Bang,     // Logical not !
-    
+    And,  // &&
+    Or,   // ||
+    Bang, // Logical not !
+
     // Bitwise
-    Ampersand,  // &
-    Pipe,       // |
-    Tilde,      // ~
-    LShift,     // <<
-    RShift,     // >>
+    Ampersand, // &
+    Pipe,      // |
+    Tilde,     // ~
+    LShift,    // <<
+    RShift,    // >>
 
     // Delimiters
     LParen,
@@ -60,7 +60,7 @@ pub enum TokenKind {
     Colon,    // Ternary :
     Dot,      // Member access / swizzle
     Eq,       // Assignment =
-    
+
     // Compound assignments
     PlusEq,      // +=
     MinusEq,     // -=
@@ -292,6 +292,9 @@ impl Lexer {
                         if self.current() == Some('+') {
                             self.advance();
                             TokenKind::PlusPlus
+                        } else if self.current() == Some('=') {
+                            self.advance();
+                            TokenKind::PlusEq
                         } else {
                             TokenKind::Plus
                         }
@@ -301,25 +304,48 @@ impl Lexer {
                         if self.current() == Some('-') {
                             self.advance();
                             TokenKind::MinusMinus
+                        } else if self.current() == Some('=') {
+                            self.advance();
+                            TokenKind::MinusEq
                         } else {
                             TokenKind::Minus
                         }
                     }
                     '*' => {
                         self.advance();
-                        TokenKind::Star
+                        if self.current() == Some('=') {
+                            self.advance();
+                            TokenKind::StarEq
+                        } else {
+                            TokenKind::Star
+                        }
                     }
                     '/' => {
                         self.advance();
-                        TokenKind::Slash
+                        if self.current() == Some('=') {
+                            self.advance();
+                            TokenKind::SlashEq
+                        } else {
+                            TokenKind::Slash
+                        }
                     }
                     '%' => {
                         self.advance();
-                        TokenKind::Percent
+                        if self.current() == Some('=') {
+                            self.advance();
+                            TokenKind::PercentEq
+                        } else {
+                            TokenKind::Percent
+                        }
                     }
                     '^' => {
                         self.advance();
-                        TokenKind::Caret
+                        if self.current() == Some('=') {
+                            self.advance();
+                            TokenKind::CaretEq
+                        } else {
+                            TokenKind::Caret
+                        }
                     }
                     '(' => {
                         self.advance();
@@ -382,7 +408,12 @@ impl Lexer {
                             TokenKind::LessEq
                         } else if self.current() == Some('<') {
                             self.advance();
-                            TokenKind::LShift
+                            if self.current() == Some('=') {
+                                self.advance();
+                                TokenKind::LShiftEq
+                            } else {
+                                TokenKind::LShift
+                            }
                         } else {
                             TokenKind::Less
                         }
@@ -394,7 +425,12 @@ impl Lexer {
                             TokenKind::GreaterEq
                         } else if self.current() == Some('>') {
                             self.advance();
-                            TokenKind::RShift
+                            if self.current() == Some('=') {
+                                self.advance();
+                                TokenKind::RShiftEq
+                            } else {
+                                TokenKind::RShift
+                            }
                         } else {
                             TokenKind::Greater
                         }
@@ -422,6 +458,9 @@ impl Lexer {
                         if self.current() == Some('&') {
                             self.advance();
                             TokenKind::And
+                        } else if self.current() == Some('=') {
+                            self.advance();
+                            TokenKind::AmpersandEq
                         } else {
                             TokenKind::Ampersand
                         }
@@ -431,6 +470,9 @@ impl Lexer {
                         if self.current() == Some('|') {
                             self.advance();
                             TokenKind::Or
+                        } else if self.current() == Some('=') {
+                            self.advance();
+                            TokenKind::PipeEq
                         } else {
                             TokenKind::Pipe
                         }

@@ -434,6 +434,30 @@ pub fn ast_eq_ignore_spans(actual: &Expr, expected: &Expr) -> bool {
             ast_eq_ignore_spans(l1, l2) && ast_eq_ignore_spans(r1, r2)
         }
 
+        // Bitwise operations
+        (ExprKind::BitwiseAnd(l1, r1), ExprKind::BitwiseAnd(l2, r2)) => {
+            ast_eq_ignore_spans(l1, l2) && ast_eq_ignore_spans(r1, r2)
+        }
+        (ExprKind::BitwiseOr(l1, r1), ExprKind::BitwiseOr(l2, r2)) => {
+            ast_eq_ignore_spans(l1, l2) && ast_eq_ignore_spans(r1, r2)
+        }
+        (ExprKind::BitwiseXor(l1, r1), ExprKind::BitwiseXor(l2, r2)) => {
+            ast_eq_ignore_spans(l1, l2) && ast_eq_ignore_spans(r1, r2)
+        }
+        (ExprKind::BitwiseNot(o1), ExprKind::BitwiseNot(o2)) => ast_eq_ignore_spans(o1, o2),
+        (ExprKind::LeftShift(l1, r1), ExprKind::LeftShift(l2, r2)) => {
+            ast_eq_ignore_spans(l1, l2) && ast_eq_ignore_spans(r1, r2)
+        }
+        (ExprKind::RightShift(l1, r1), ExprKind::RightShift(l2, r2)) => {
+            ast_eq_ignore_spans(l1, l2) && ast_eq_ignore_spans(r1, r2)
+        }
+
+        // Increment/Decrement
+        (ExprKind::PreIncrement(v1), ExprKind::PreIncrement(v2)) => v1 == v2,
+        (ExprKind::PreDecrement(v1), ExprKind::PreDecrement(v2)) => v1 == v2,
+        (ExprKind::PostIncrement(v1), ExprKind::PostIncrement(v2)) => v1 == v2,
+        (ExprKind::PostDecrement(v1), ExprKind::PostDecrement(v2)) => v1 == v2,
+
         // Comparisons
         (ExprKind::Less(l1, r1), ExprKind::Less(l2, r2)) => {
             ast_eq_ignore_spans(l1, l2) && ast_eq_ignore_spans(r1, r2)

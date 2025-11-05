@@ -61,10 +61,10 @@ mod parse_tests {
 #[cfg(test)]
 mod return_path_tests {
     use crate::lpscript::compiler::ast::Program;
+    use crate::lpscript::compiler::error::{TypeError, TypeErrorKind};
     use crate::lpscript::compiler::lexer::Lexer;
     use crate::lpscript::compiler::parser::Parser;
     use crate::lpscript::compiler::typechecker::TypeChecker;
-    use crate::lpscript::compiler::error::{TypeError, TypeErrorKind};
 
     fn parse_and_typecheck_program(input: &str) -> Result<Program, TypeError> {
         let mut lexer = Lexer::new(input);
@@ -278,6 +278,249 @@ mod return_path_tests {
             ),
             "Function with only for loop returning should fail: {:?}",
             result
+        );
+    }
+}
+
+#[cfg(test)]
+mod vector_function_tests {
+    use crate::lpscript::vm::{LpsVm, VmLimits};
+    use crate::lpscript::{compile_script_with_options, OptimizeOptions};
+    use crate::math::ToFixed;
+
+    // ========================================================================
+    // Function Integration Tests - Vector Parameters
+    // ========================================================================
+
+    #[test]
+    fn test_function_vec2_parameter() {
+        let program_text = "
+            float sumComponents(vec2 v) {
+                return v.x + v.y;
+            }
+            return sumComponents(vec2(3.0, 4.0));
+        ";
+
+        let program = compile_script_with_options(program_text, &OptimizeOptions::none())
+            .expect("Compilation should succeed");
+        let mut vm =
+            LpsVm::new(&program, vec![], VmLimits::default()).expect("VM creation should succeed");
+        let result = vm
+            .run_scalar(0.5.to_fixed(), 0.5.to_fixed(), 0.0.to_fixed())
+            .expect("Execution should succeed");
+
+        let expected = 7.0.to_fixed(); // 3.0 + 4.0
+        let diff = (result.to_f32() - expected.to_f32()).abs();
+        assert!(
+            diff < 0.0001,
+            "Expected {}, got {}",
+            expected.to_f32(),
+            result.to_f32()
+        );
+    }
+
+    #[test]
+    fn test_function_vec3_parameter() {
+        let program_text = "
+            float maxComponent(vec3 v) {
+                float m = v.x;
+                if (v.y > m) { m = v.y; }
+                if (v.z > m) { m = v.z; }
+                return m;
+            }
+            return maxComponent(vec3(2.0, 5.0, 3.0));
+        ";
+
+        let program = compile_script_with_options(program_text, &OptimizeOptions::none())
+            .expect("Compilation should succeed");
+        let mut vm =
+            LpsVm::new(&program, vec![], VmLimits::default()).expect("VM creation should succeed");
+        let result = vm
+            .run_scalar(0.5.to_fixed(), 0.5.to_fixed(), 0.0.to_fixed())
+            .expect("Execution should succeed");
+
+        let expected = 5.0.to_fixed();
+        let diff = (result.to_f32() - expected.to_f32()).abs();
+        assert!(
+            diff < 0.0001,
+            "Expected {}, got {}",
+            expected.to_f32(),
+            result.to_f32()
+        );
+    }
+
+    #[test]
+    fn test_function_multiple_vec_parameters() {
+        let program_text = "
+            float dotProduct(vec2 a, vec2 b) {
+                return a.x * b.x + a.y * b.y;
+            }
+            return dotProduct(vec2(2.0, 3.0), vec2(4.0, 5.0));
+        ";
+
+        let program = compile_script_with_options(program_text, &OptimizeOptions::none())
+            .expect("Compilation should succeed");
+        let mut vm =
+            LpsVm::new(&program, vec![], VmLimits::default()).expect("VM creation should succeed");
+        let result = vm
+            .run_scalar(0.5.to_fixed(), 0.5.to_fixed(), 0.0.to_fixed())
+            .expect("Execution should succeed");
+
+        let expected = 23.0.to_fixed(); // 2*4 + 3*5 = 8 + 15 = 23
+        let diff = (result.to_f32() - expected.to_f32()).abs();
+        assert!(
+            diff < 0.0001,
+            "Expected {}, got {}",
+            expected.to_f32(),
+            result.to_f32()
+        );
+    }
+
+    // ========================================================================
+    // Function Integration Tests - Vector Return Values
+    // ========================================================================
+
+    #[test]
+    fn test_function_returns_vec2() {
+        let program_text = "
+            vec2 scale(vec2 v, float s) {
+                return v * s;
+            }
+            vec2 result = scale(vec2(2.0, 3.0), 2.0);
+            return result.x + result.y;
+        ";
+
+        let program = compile_script_with_options(program_text, &OptimizeOptions::none())
+            .expect("Compilation should succeed");
+        let mut vm =
+            LpsVm::new(&program, vec![], VmLimits::default()).expect("VM creation should succeed");
+        let result = vm
+            .run_scalar(0.5.to_fixed(), 0.5.to_fixed(), 0.0.to_fixed())
+            .expect("Execution should succeed");
+
+        let expected = 10.0.to_fixed(); // (2*2) + (3*2) = 4 + 6 = 10
+        let diff = (result.to_f32() - expected.to_f32()).abs();
+        assert!(
+            diff < 0.0001,
+            "Expected {}, got {}",
+            expected.to_f32(),
+            result.to_f32()
+        );
+    }
+
+    #[test]
+    fn test_function_returns_vec3() {
+        let program_text = "
+            vec3 addVec3(vec3 a, vec3 b) {
+                return a + b;
+            }
+            vec3 result = addVec3(vec3(1.0, 2.0, 3.0), vec3(4.0, 5.0, 6.0));
+            return result.x + result.y + result.z;
+        ";
+
+        let program = compile_script_with_options(program_text, &OptimizeOptions::none())
+            .expect("Compilation should succeed");
+        let mut vm =
+            LpsVm::new(&program, vec![], VmLimits::default()).expect("VM creation should succeed");
+        let result = vm
+            .run_scalar(0.5.to_fixed(), 0.5.to_fixed(), 0.0.to_fixed())
+            .expect("Execution should succeed");
+
+        let expected = 21.0.to_fixed(); // (1+4) + (2+5) + (3+6) = 5 + 7 + 9 = 21
+        let diff = (result.to_f32() - expected.to_f32()).abs();
+        assert!(
+            diff < 0.0001,
+            "Expected {}, got {}",
+            expected.to_f32(),
+            result.to_f32()
+        );
+    }
+
+    #[test]
+    fn test_function_returns_vec4() {
+        let program_text = "
+            vec4 makeVec4(float x) {
+                return vec4(x, x * 2.0, x * 3.0, x * 4.0);
+            }
+            vec4 result = makeVec4(2.0);
+            return result.w;
+        ";
+
+        let program = compile_script_with_options(program_text, &OptimizeOptions::none())
+            .expect("Compilation should succeed");
+        let mut vm =
+            LpsVm::new(&program, vec![], VmLimits::default()).expect("VM creation should succeed");
+        let result = vm
+            .run_scalar(0.5.to_fixed(), 0.5.to_fixed(), 0.0.to_fixed())
+            .expect("Execution should succeed");
+
+        let expected = 8.0.to_fixed(); // 2.0 * 4.0
+        let diff = (result.to_f32() - expected.to_f32()).abs();
+        assert!(
+            diff < 0.0001,
+            "Expected {}, got {}",
+            expected.to_f32(),
+            result.to_f32()
+        );
+    }
+
+    // ========================================================================
+    // Function Integration Tests - Mixed Types
+    // ========================================================================
+
+    #[test]
+    fn test_function_mixed_scalar_vector_params() {
+        let program_text = "
+            vec2 scaleAndOffset(vec2 v, float scale, float offset) {
+                return v * scale + vec2(offset, offset);
+            }
+            vec2 result = scaleAndOffset(vec2(2.0, 3.0), 2.0, 1.0);
+            return result.x;
+        ";
+
+        let program = compile_script_with_options(program_text, &OptimizeOptions::none())
+            .expect("Compilation should succeed");
+        let mut vm =
+            LpsVm::new(&program, vec![], VmLimits::default()).expect("VM creation should succeed");
+        let result = vm
+            .run_scalar(0.5.to_fixed(), 0.5.to_fixed(), 0.0.to_fixed())
+            .expect("Execution should succeed");
+
+        let expected = 5.0.to_fixed(); // (2.0 * 2.0) + 1.0 = 5.0
+        let diff = (result.to_f32() - expected.to_f32()).abs();
+        assert!(
+            diff < 0.0001,
+            "Expected {}, got {}",
+            expected.to_f32(),
+            result.to_f32()
+        );
+    }
+
+    #[test]
+    fn test_function_scalar_from_vectors() {
+        let program_text = "
+            float distance2D(vec2 a, vec2 b) {
+                vec2 diff = b - a;
+                return sqrt(diff.x * diff.x + diff.y * diff.y);
+            }
+            return distance2D(vec2(0.0, 0.0), vec2(3.0, 4.0));
+        ";
+
+        let program = compile_script_with_options(program_text, &OptimizeOptions::none())
+            .expect("Compilation should succeed");
+        let mut vm =
+            LpsVm::new(&program, vec![], VmLimits::default()).expect("VM creation should succeed");
+        let result = vm
+            .run_scalar(0.5.to_fixed(), 0.5.to_fixed(), 0.0.to_fixed())
+            .expect("Execution should succeed");
+
+        let expected = 5.0.to_fixed(); // sqrt(3^2 + 4^2) = sqrt(25) = 5
+        let diff = (result.to_f32() - expected.to_f32()).abs();
+        assert!(
+            diff < 0.01,
+            "Expected {}, got {}",
+            expected.to_f32(),
+            result.to_f32()
         );
     }
 }

@@ -33,6 +33,35 @@ Treats non-zero as true, returns 0.0 or 1.0:
 - `||` Logical OR
 - `!` Logical NOT
 
+### Bitwise (int only)
+
+- `&` Bitwise AND
+- `|` Bitwise OR
+- `^` Bitwise XOR
+- `~` Bitwise NOT
+- `<<` Left shift
+- `>>` Right shift
+
+### Increment/Decrement
+
+- `++x` Prefix increment (returns new value)
+- `--x` Prefix decrement (returns new value)
+- `x++` Postfix increment (returns old value)
+- `x--` Postfix decrement (returns old value)
+
+### Compound Assignment
+
+- `+=` Add and assign
+- `-=` Subtract and assign
+- `*=` Multiply and assign
+- `/=` Divide and assign
+- `%=` Modulo and assign
+- `&=` Bitwise AND and assign
+- `|=` Bitwise OR and assign
+- `^=` Bitwise XOR and assign
+- `<<=` Left shift and assign
+- `>>=` Right shift and assign
+
 ### Ternary
 
 - `condition ? true_val : false_val`

@@ -179,7 +179,9 @@ impl<'a> LpsVm<'a> {
                 }
 
                 LpsOpCode::PushInt32(val) => {
-                    self.push(Fixed::from_i32(*val))?;
+                    // Push raw Int32 value (not converted to Fixed format)
+                    // Int32 operations work on raw i32 values
+                    self.push(Fixed(*val))?;
                     self.pc += 1;
                 }
 

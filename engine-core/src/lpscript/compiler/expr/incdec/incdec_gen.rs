@@ -13,23 +13,23 @@ impl<'a> CodeGenerator<'a> {
     pub(crate) fn gen_pre_increment(&mut self, var_name: &String, var_ty: &Type) {
         // Load variable
         self.gen_load_variable(var_name, var_ty);
-        
+
         // Push 1 (Fixed or Int32)
         match var_ty {
             Type::Fixed => self.code.push(LpsOpCode::Push(1.0.to_fixed())),
             Type::Int32 => self.code.push(LpsOpCode::PushInt32(1)),
             _ => {} // Shouldn't happen, type checker prevents this
         }
-        
+
         // Add
         match var_ty {
             Type::Fixed | Type::Int32 => self.code.push(LpsOpCode::AddFixed),
             _ => {}
         }
-        
+
         // Duplicate for return value
         self.code.push(LpsOpCode::Dup1);
-        
+
         // Store back to variable
         self.gen_store_variable(var_name, var_ty);
     }
@@ -39,23 +39,23 @@ impl<'a> CodeGenerator<'a> {
     pub(crate) fn gen_pre_decrement(&mut self, var_name: &String, var_ty: &Type) {
         // Load variable
         self.gen_load_variable(var_name, var_ty);
-        
+
         // Push 1 (Fixed or Int32)
         match var_ty {
             Type::Fixed => self.code.push(LpsOpCode::Push(1.0.to_fixed())),
             Type::Int32 => self.code.push(LpsOpCode::PushInt32(1)),
             _ => {}
         }
-        
+
         // Subtract
         match var_ty {
             Type::Fixed | Type::Int32 => self.code.push(LpsOpCode::SubFixed),
             _ => {}
         }
-        
+
         // Duplicate for return value
         self.code.push(LpsOpCode::Dup1);
-        
+
         // Store back to variable
         self.gen_store_variable(var_name, var_ty);
     }
@@ -65,23 +65,23 @@ impl<'a> CodeGenerator<'a> {
     pub(crate) fn gen_post_increment(&mut self, var_name: &String, var_ty: &Type) {
         // Load variable (original value)
         self.gen_load_variable(var_name, var_ty);
-        
+
         // Duplicate for return value
         self.code.push(LpsOpCode::Dup1);
-        
+
         // Push 1 (Fixed or Int32)
         match var_ty {
             Type::Fixed => self.code.push(LpsOpCode::Push(1.0.to_fixed())),
             Type::Int32 => self.code.push(LpsOpCode::PushInt32(1)),
             _ => {}
         }
-        
+
         // Add
         match var_ty {
             Type::Fixed | Type::Int32 => self.code.push(LpsOpCode::AddFixed),
             _ => {}
         }
-        
+
         // Store back to variable
         self.gen_store_variable(var_name, var_ty);
     }
@@ -91,30 +91,30 @@ impl<'a> CodeGenerator<'a> {
     pub(crate) fn gen_post_decrement(&mut self, var_name: &String, var_ty: &Type) {
         // Load variable (original value)
         self.gen_load_variable(var_name, var_ty);
-        
+
         // Duplicate for return value
         self.code.push(LpsOpCode::Dup1);
-        
+
         // Push 1 (Fixed or Int32)
         match var_ty {
             Type::Fixed => self.code.push(LpsOpCode::Push(1.0.to_fixed())),
             Type::Int32 => self.code.push(LpsOpCode::PushInt32(1)),
             _ => {}
         }
-        
+
         // Subtract
         match var_ty {
             Type::Fixed | Type::Int32 => self.code.push(LpsOpCode::SubFixed),
             _ => {}
         }
-        
+
         // Store back to variable
         self.gen_store_variable(var_name, var_ty);
     }
 
     /// Helper to load a variable onto the stack
     fn gen_load_variable(&mut self, var_name: &String, var_ty: &Type) {
-        if let Some(local_idx) = self.local_allocator.get(var_name) {
+        if let Some(local_idx) = self.locals.get(var_name) {
             match var_ty {
                 Type::Fixed => self.code.push(LpsOpCode::LoadLocalFixed(local_idx)),
                 Type::Int32 => self.code.push(LpsOpCode::LoadLocalInt32(local_idx)),
@@ -128,7 +128,7 @@ impl<'a> CodeGenerator<'a> {
 
     /// Helper to store a value from the stack into a variable
     fn gen_store_variable(&mut self, var_name: &String, var_ty: &Type) {
-        if let Some(local_idx) = self.local_allocator.get(var_name) {
+        if let Some(local_idx) = self.locals.get(var_name) {
             match var_ty {
                 Type::Fixed => self.code.push(LpsOpCode::StoreLocalFixed(local_idx)),
                 Type::Int32 => self.code.push(LpsOpCode::StoreLocalInt32(local_idx)),
@@ -140,4 +140,3 @@ impl<'a> CodeGenerator<'a> {
         }
     }
 }
-

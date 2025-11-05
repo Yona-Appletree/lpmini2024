@@ -25,8 +25,11 @@ impl<'a> CodeGenerator<'a> {
                 if let Some(index) = self.locals.get(name) {
                     // Load from local variable using the correct opcode for the type
                     match var_type {
-                        Type::Fixed | Type::Int32 | Type::Bool => {
+                        Type::Fixed | Type::Bool => {
                             self.code.push(LpsOpCode::LoadLocalFixed(index));
+                        }
+                        Type::Int32 => {
+                            self.code.push(LpsOpCode::LoadLocalInt32(index));
                         }
                         Type::Vec2 => {
                             self.code.push(LpsOpCode::LoadLocalVec2(index));

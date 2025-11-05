@@ -26,9 +26,8 @@ impl<'a> CodeGenerator<'a> {
         // Store in the variable
         if let Some(index) = self.locals.get(target) {
             match ty {
-                Type::Fixed | Type::Int32 | Type::Bool => {
-                    self.code.push(LpsOpCode::StoreLocalFixed(index))
-                }
+                Type::Fixed | Type::Bool => self.code.push(LpsOpCode::StoreLocalFixed(index)),
+                Type::Int32 => self.code.push(LpsOpCode::StoreLocalInt32(index)),
                 Type::Vec2 => self.code.push(LpsOpCode::StoreLocalVec2(index)),
                 Type::Vec3 => self.code.push(LpsOpCode::StoreLocalVec3(index)),
                 Type::Vec4 => self.code.push(LpsOpCode::StoreLocalVec4(index)),

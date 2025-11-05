@@ -43,15 +43,24 @@ impl<'a> CodeGenerator<'a> {
     }
 
     pub(crate) fn gen_mul(&mut self, left: &Box<Expr>, right: &Box<Expr>, result_ty: &Type) {
-        self.gen_expr(left);
-        self.gen_expr(right);
-        gen_binary_op(
-            BinaryOp::Mul,
-            left.ty.as_ref().unwrap(),
-            right.ty.as_ref().unwrap(),
-            result_ty,
-            self.code,
-        );
+        let left_ty = left.ty.as_ref().unwrap();
+        let right_ty = right.ty.as_ref().unwrap();
+
+        // Special case: scalar * vector needs to be reordered to vector * scalar
+        // because MulVecNScalar expects [..., vec_components, scalar] on stack
+        if matches!(left_ty, Type::Fixed | Type::Int32)
+            && matches!(right_ty, Type::Vec2 | Type::Vec3 | Type::Vec4)
+        {
+            // Generate right (vector) first, then left (scalar)
+            self.gen_expr(right);
+            self.gen_expr(left);
+        } else {
+            // Normal order
+            self.gen_expr(left);
+            self.gen_expr(right);
+        }
+
+        gen_binary_op(BinaryOp::Mul, left_ty, right_ty, result_ty, self.code);
     }
 
     pub(crate) fn gen_div(&mut self, left: &Box<Expr>, right: &Box<Expr>, result_ty: &Type) {
@@ -82,12 +91,11 @@ impl<'a> CodeGenerator<'a> {
 /// Generate typed binary operation based on operand and result types
 fn gen_binary_op(
     op: BinaryOp,
-    _left_ty: &Type,
+    left_ty: &Type,
     right_ty: &Type,
     result_ty: &Type,
     code: &mut Vec<LpsOpCode>,
 ) {
-    let _ = _left_ty; // Silence unused variable warning
     match (op, result_ty) {
         // Fixed operations
         (BinaryOp::Add, Type::Fixed | Type::Int32) => code.push(LpsOpCode::AddFixed),
@@ -104,7 +112,10 @@ fn gen_binary_op(
         (BinaryOp::Sub, Type::Vec2) => code.push(LpsOpCode::SubVec2),
         (BinaryOp::Mul, Type::Vec2) => {
             // Check if it's vec * scalar or vec * vec
-            if matches!(right_ty, Type::Fixed | Type::Int32) {
+            // Note: scalar * vec is handled by reordering in gen_mul()
+            if matches!(right_ty, Type::Fixed | Type::Int32)
+                || matches!(left_ty, Type::Fixed | Type::Int32)
+            {
                 code.push(LpsOpCode::MulVec2Scalar);
             } else {
                 code.push(LpsOpCode::MulVec2);
@@ -127,7 +138,10 @@ fn gen_binary_op(
         (BinaryOp::Add, Type::Vec3) => code.push(LpsOpCode::AddVec3),
         (BinaryOp::Sub, Type::Vec3) => code.push(LpsOpCode::SubVec3),
         (BinaryOp::Mul, Type::Vec3) => {
-            if matches!(right_ty, Type::Fixed | Type::Int32) {
+            // Note: scalar * vec is handled by reordering in gen_mul()
+            if matches!(right_ty, Type::Fixed | Type::Int32)
+                || matches!(left_ty, Type::Fixed | Type::Int32)
+            {
                 code.push(LpsOpCode::MulVec3Scalar);
             } else {
                 code.push(LpsOpCode::MulVec3);
@@ -150,7 +164,10 @@ fn gen_binary_op(
         (BinaryOp::Add, Type::Vec4) => code.push(LpsOpCode::AddVec4),
         (BinaryOp::Sub, Type::Vec4) => code.push(LpsOpCode::SubVec4),
         (BinaryOp::Mul, Type::Vec4) => {
-            if matches!(right_ty, Type::Fixed | Type::Int32) {
+            // Note: scalar * vec is handled by reordering in gen_mul()
+            if matches!(right_ty, Type::Fixed | Type::Int32)
+                || matches!(left_ty, Type::Fixed | Type::Int32)
+            {
                 code.push(LpsOpCode::MulVec4Scalar);
             } else {
                 code.push(LpsOpCode::MulVec4);

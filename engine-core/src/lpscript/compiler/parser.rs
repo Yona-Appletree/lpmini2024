@@ -114,8 +114,22 @@ impl Parser {
                 let start = self.current().span.start;
                 self.advance();
 
-                if matches!(self.current().kind, TokenKind::Eq) {
-                    // Assignment statement
+                // Check for assignment or compound assignment operators
+                if matches!(
+                    self.current().kind,
+                    TokenKind::Eq
+                        | TokenKind::PlusEq
+                        | TokenKind::MinusEq
+                        | TokenKind::StarEq
+                        | TokenKind::SlashEq
+                        | TokenKind::PercentEq
+                        | TokenKind::AmpersandEq
+                        | TokenKind::PipeEq
+                        | TokenKind::CaretEq
+                        | TokenKind::LShiftEq
+                        | TokenKind::RShiftEq
+                ) {
+                    // Assignment statement (simple or compound)
                     self.parse_assignment_stmt(name, start)
                 } else {
                     // Put back the token and parse as expression statement
