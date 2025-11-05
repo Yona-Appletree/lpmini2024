@@ -57,10 +57,29 @@ impl<'a> LpsVm<'a> {
         self.locals.get_fixed_by_name(name)
     }
 
-    /// Execute the program for a single pixel
+    /// Execute the program with full coordinate information
+    ///
+    /// Accepts both normalized and pixel coordinates for complete builtin variable support.
+    pub fn run_with_coords(
+        &mut self,
+        x_norm: Fixed,
+        y_norm: Fixed,
+        x_int: Fixed,
+        y_int: Fixed,
+        time: Fixed,
+        width: usize,
+        height: usize,
+    ) -> Result<Vec<Fixed>, RuntimeErrorWithContext> {
+        self.run_impl(x_norm, y_norm, x_int, y_int, time, width, height)
+    }
+    
+    /// Execute the program for a single pixel (normalized coords only)
     ///
     /// Returns all values on the stack after execution. For scalar results, use `run_scalar()`.
     /// For vector results, use `run_vec2()`, `run_vec3()`, or `run_vec4()`.
+    ///
+    /// Note: This version doesn't support coord.x/coord.y builtins.
+    /// Use `run_with_coords()` for full coordinate support.
     ///
     /// # Zero-Allocation Guarantee
     ///
@@ -76,6 +95,20 @@ impl<'a> LpsVm<'a> {
         y: Fixed,
         time: Fixed,
     ) -> Result<Vec<Fixed>, RuntimeErrorWithContext> {
+        // Call run_with_coords with zero pixel coordinates
+        self.run_with_coords(x, y, Fixed::ZERO, Fixed::ZERO, time, 0, 0)
+    }
+    
+    fn run_impl(
+        &mut self,
+        x_norm: Fixed,
+        y_norm: Fixed,
+        x_int: Fixed,
+        y_int: Fixed,
+        time: Fixed,
+        width: usize,
+        height: usize,
+    ) -> Result<Vec<Fixed>, RuntimeErrorWithContext> {
         self.stack.reset();
         self.pc = 0;
         self.call_stack.reset(0);
@@ -87,12 +120,6 @@ impl<'a> LpsVm<'a> {
             self.locals.reset_locals(main_local_count, &main_fn.locals)
                 .map_err(|e| self.runtime_error(e))?;
         }
-
-        // Store built-in values for Load operations
-        let x_norm = x;
-        let y_norm = y;
-        let x_int = Fixed::from_i32(x.to_i32()); // Convert normalized to int coords
-        let y_int = Fixed::from_i32(y.to_i32());
 
         // Limit instruction count to prevent infinite loops
         let mut instruction_count = 0;
@@ -140,7 +167,7 @@ impl<'a> LpsVm<'a> {
 
             // Dispatch the opcode - returns Some(result) if program should exit
             if let Some(result) =
-                self.dispatch_opcode(opcode, x_norm, y_norm, x_int, y_int, time)?
+                self.dispatch_opcode(opcode, x_norm, y_norm, x_int, y_int, time, width, height)?
             {
                 return Ok(result);
             }
@@ -167,14 +194,36 @@ impl<'a> LpsVm<'a> {
 }
 
 impl<'a> LpsVm<'a> {
-    /// Execute the program and expect a scalar result
+    /// Execute the program and expect a scalar result (with pixel coordinates)
+    pub fn run_scalar_with_coords(
+        &mut self,
+        x_norm: Fixed,
+        y_norm: Fixed,
+        x_int: Fixed,
+        y_int: Fixed,
+        time: Fixed,
+        width: usize,
+        height: usize,
+    ) -> Result<Fixed, RuntimeErrorWithContext> {
+        let stack = self.run_with_coords(x_norm, y_norm, x_int, y_int, time, width, height)?;
+        if stack.len() != 1 {
+            return Err(RuntimeErrorWithContext {
+                error: LpsVmError::TypeMismatch,
+                pc: self.pc,
+                opcode: "run_scalar",
+            });
+        }
+        Ok(stack[0])
+    }
+    
+    /// Execute the program and expect a scalar result (normalized coords only)
     pub fn run_scalar(
         &mut self,
-        x: Fixed,
-        y: Fixed,
+        x_norm: Fixed,
+        y_norm: Fixed,
         time: Fixed,
     ) -> Result<Fixed, RuntimeErrorWithContext> {
-        let stack = self.run(x, y, time)?;
+        let stack = self.run(x_norm, y_norm, time)?;
         if stack.len() != 1 {
             return Err(RuntimeErrorWithContext {
                 error: LpsVmError::TypeMismatch,

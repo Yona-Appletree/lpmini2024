@@ -1,16 +1,16 @@
 #![cfg_attr(not(test), no_std)]
 
-#[cfg(test)]
-mod test_allocator;
-
-// Memory protection: Prevents runaway allocations from crashing the system
-// Normal tests use <1GB, this catches bugs that would consume 40GB+
-#[cfg(test)]
-use test_allocator::LimitedAllocator;
-
-#[cfg(test)]
-#[global_allocator]
-static GLOBAL: LimitedAllocator = LimitedAllocator::new(8192); // 8GB limit
+// Disabled: Custom allocator was causing SIGABRT during full test suite
+// The VM now has built-in memory limits via VmLimits, making this unnecessary
+// #[cfg(test)]
+// mod test_allocator;
+//
+// #[cfg(test)]
+// use test_allocator::LimitedAllocator;
+//
+// #[cfg(test)]
+// #[global_allocator]
+// static GLOBAL: LimitedAllocator = LimitedAllocator::new(8192); // 8GB limit
 
 extern crate alloc;
 

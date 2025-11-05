@@ -26,6 +26,8 @@ impl<'a> LpsVm<'a> {
         x_int: Fixed,
         y_int: Fixed,
         time: Fixed,
+        width: usize,
+        height: usize,
     ) -> Result<Option<Vec<Fixed>>, RuntimeErrorWithContext> {
         match opcode {
             // === Stack Operations ===
@@ -193,8 +195,8 @@ impl<'a> LpsVm<'a> {
                     x_int,
                     y_int,
                     time,
-                    0, // width placeholder (TODO: pass actual width/height)
-                    0, // height placeholder
+                    width,
+                    height,
                 )
                 .map_err(|e| self.runtime_error(e))?;
                 self.pc += 1;

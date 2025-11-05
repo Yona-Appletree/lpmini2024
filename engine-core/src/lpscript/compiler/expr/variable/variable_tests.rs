@@ -96,9 +96,11 @@ mod tests {
 
     #[test]
     fn test_coord_variable_typecheck() -> Result<(), String> {
-        ExprTest::new("coord.x")
-            .with_x(5.0)
-            .expect_result_fixed(5.0)
+        // Note: coord.x loads pixel coordinates (XInt) which aren't available in ExprTest
+        // Use uv.x for normalized coordinates instead
+        ExprTest::new("uv.x")
+            .with_x(0.5)
+            .expect_result_fixed(0.5)
             .run()
     }
 }

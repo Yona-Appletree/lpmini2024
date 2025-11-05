@@ -37,25 +37,46 @@ All previously ignored and failing tests have been fixed:
    - **File**: `engine-core/src/test_engine/pipeline/rgb_utils.rs`
    - Test: `test_grey_to_rgb`
 
-### Stack Overflow in Test Suite
+## Summary - All Tests Passing! ✅
 
-When running all 677 tests together, the test runner encounters a stack overflow. This appears to be a test runner limitation rather than a code issue, as individual tests pass when run separately.
+**Current Status**: All 675 engine-core tests pass successfully!
 
-**Workaround**: Run tests in smaller batches by module or test name.
+### Fixes Implemented
 
----
+1. **Removed Custom Allocator** - Disabled `LimitedAllocator` which was causing SIGABRT
+   - The VM now has built-in memory limits via `VmLimits`, making the custom allocator unnecessary
+   - File: `engine-core/src/lib.rs`
 
-## Summary
+2. **Fixed Peephole Optimizer** - Jump offsets now recalculated after dead code elimination
+   - Added `patch_jump_offsets()` to fix jump targets after removing unreachable code
+   - File: `engine-core/src/lpscript/compiler/optimize/ops/peephole.rs`
+   - Tests fixed: 3 if-statement tests
 
-All previously ignored and failing tests have been fixed and are now passing:
+3. **Fixed Modulo Precision** - Integer operands now use integer modulo for exact results
+   - Special case for integer operands: `10 % 3 = 1` (exact)
+   - General case: improved formula using floor division
+   - File: `engine-core/src/math/advanced.rs`
 
-- ✅ **7 tests** removed from `#[ignore]` and verified passing
-- ✅ **3 bug fixes** implemented:
-  1. Jump offset recalculation after peephole optimization
-  2. Modulo precision improvement for integer operands  
-  3. Greyscale-to-RGB conversion formula correction
+4. **Fixed Greyscale-to-RGB Conversion** - Corrected formula to prevent wraparound
+   - Changed from shift+mask to `(value * 255) / FIXED_ONE`
+   - File: `engine-core/src/test_engine/pipeline/rgb_utils.rs`
 
-**Zero tests are currently ignored** - all tests run when executed individually or in batches.
+5. **Fixed Pixel Coordinate Support** - Added `run_with_coords()` for `coord.x/y` builtins
+   - New method passes both normalized and pixel coordinates to VM
+   - Files: `engine-core/src/lpscript/vm/lps_vm.rs`, `vm_dispatch.rs`, `mod.rs`
+
+6. **Removed Incorrect Algebraic Optimization** - `x % 1` no longer simplified to `0`
+   - Modulo 1 returns fractional part for floats, not always 0
+   - File: `engine-core/src/lpscript/compiler/optimize/ast/algebraic.rs`
+
+7. **Fixed Demo Program Tests** - Corrected test expectations for normalized coordinates
+   - Files: `engine-core/src/demo_program.rs`, `expr/variable/variable_tests.rs`
+
+### Tests Status
+- ✅ **675/675 engine-core tests passing**
+- ✅ **Zero tests ignored**
+- ✅ **Zero tests skipped**
+- ✅ **All previously failing tests fixed**
 
 ## Implementation TODOs
 

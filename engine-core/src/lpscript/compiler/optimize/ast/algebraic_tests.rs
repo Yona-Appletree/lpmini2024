@@ -158,10 +158,11 @@ mod algebraic_simplification_tests {
 
     #[test]
     fn test_x_mod_one() {
-        // x % 1 → 0 (any number mod 1 is 0)
+        // x % 1 = frac(x) for fractional numbers, 0 for integers
+        // We don't optimize this because the result depends on the input value
+        // Just verify it doesn't break
         AstOptTest::new("time % 1.0")
             .with_pass(algebraic::simplify_expr)
-            .expect_ast(|b| b.num(0.0))
             .expect_semantics_preserved()
             .with_time(42.5)
             .run()

@@ -56,9 +56,20 @@ pub fn execute_program_lps(
             let y_plus_half = Fixed::from_i32(y as i32) + Fixed::HALF;
             let y_norm = y_plus_half / Fixed::from_i32(height as i32);
 
-            let result = vm.run_scalar(x_norm, y_norm, time).unwrap_or_else(|e| {
-                panic!("Runtime error at pixel ({}, {}): {}", x, y, e);
-            });
+            // Pass both normalized AND pixel coordinates
+            let result = vm
+                .run_scalar_with_coords(
+                    x_norm,
+                    y_norm,
+                    x_plus_half,
+                    y_plus_half,
+                    time,
+                    width,
+                    height,
+                )
+                .unwrap_or_else(|e| {
+                    panic!("Runtime error at pixel ({}, {}): {}", x, y, e);
+                });
 
             let idx = y * width + x;
             if idx < output.len() {
