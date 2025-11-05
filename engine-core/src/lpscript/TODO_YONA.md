@@ -8,10 +8,11 @@
   int32 or fixed, like in the stack.
 - [ ] arrays
 - [ ] texture sampling
-
-## Safety
-
 - [ ] compiler limits since we're on embedded
+
+## Bugs
+
+- [ ] Compiler uses floats in some places instead of Fixed.
 
 ## Nice to have features
 

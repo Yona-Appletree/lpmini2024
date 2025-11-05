@@ -1,428 +1,467 @@
-/// Constant folding optimization
+/// Constant folding optimization (pool-based API)
 ///
 /// Evaluates expressions with constant operands at compile time.
 extern crate alloc;
-use alloc::boxed::Box;
-use alloc::vec::Vec;
 
-use crate::lpscript::compiler::ast::{Expr, ExprKind};
-use crate::lpscript::shared::Span;
+use crate::lpscript::compiler::ast::{AstPool, ExprId, ExprKind};
 
 // Import libm for math operations in no_std
 use libm::{ceil, cos, floor, powf, sin, sqrt, tan};
 
 /// Fold constants in an expression tree
-pub fn fold_expr(expr: Expr) -> Expr {
+pub fn fold_constants(expr_id: ExprId, mut pool: AstPool) -> (ExprId, AstPool) {
+    let expr = pool.expr(expr_id);
     let span = expr.span;
     let ty = expr.ty.clone();
+    let kind = expr.kind.clone();
 
-    let kind = match expr.kind {
-        // Recursively fold subexpressions first
-        ExprKind::Add(left, right) => {
-            fold_binary_op(*left, *right, span, |a, b| a + b, ExprKind::Add)
-        }
-        ExprKind::Sub(left, right) => {
-            fold_binary_op(*left, *right, span, |a, b| a - b, ExprKind::Sub)
-        }
-        ExprKind::Mul(left, right) => {
-            fold_binary_op(*left, *right, span, |a, b| a * b, ExprKind::Mul)
-        }
-        ExprKind::Div(left, right) => fold_binary_op(
-            *left,
-            *right,
-            span,
-            |a, b| {
-                if b == 0.0 {
-                    f32::INFINITY
-                } else {
-                    a / b
+    match kind {
+        // Binary arithmetic - fold if both operands are constants
+        ExprKind::Add(left_id, right_id) => {
+            let (new_left, mut pool2) = fold_constants(left_id, pool);
+            let (new_right, mut pool3) = fold_constants(right_id, pool2);
+
+            match (&pool3.expr(new_left).kind, &pool3.expr(new_right).kind) {
+                (ExprKind::Number(a), ExprKind::Number(b)) => {
+                    if let Ok(id) = pool3.alloc_expr(ExprKind::Number(a + b), span) {
+                        pool3.expr_mut(id).ty = ty.clone();
+                        (id, pool3)
+                    } else {
+                        (expr_id, pool3)
+                    }
                 }
-            },
-            ExprKind::Div,
-        ),
-        ExprKind::Mod(left, right) => fold_binary_op(
-            *left,
-            *right,
-            span,
-            |a, b| {
-                if b == 0.0 {
-                    0.0
-                } else {
-                    a % b
+                (ExprKind::IntNumber(a), ExprKind::IntNumber(b)) => {
+                    if let Ok(id) = pool3.alloc_expr(ExprKind::IntNumber(a + b), span) {
+                        pool3.expr_mut(id).ty = ty.clone();
+                        (id, pool3)
+                    } else {
+                        (expr_id, pool3)
+                    }
                 }
-            },
-            ExprKind::Mod,
-        ),
-
-        // Comparisons (return 1.0 for true, 0.0 for false)
-        ExprKind::Less(left, right) => {
-            fold_comparison(*left, *right, span, |a, b| a < b, ExprKind::Less)
-        }
-        ExprKind::Greater(left, right) => {
-            fold_comparison(*left, *right, span, |a, b| a > b, ExprKind::Greater)
-        }
-        ExprKind::LessEq(left, right) => {
-            fold_comparison(*left, *right, span, |a, b| a <= b, ExprKind::LessEq)
-        }
-        ExprKind::GreaterEq(left, right) => {
-            fold_comparison(*left, *right, span, |a, b| a >= b, ExprKind::GreaterEq)
-        }
-        ExprKind::Eq(left, right) => {
-            fold_comparison(*left, *right, span, |a, b| a == b, ExprKind::Eq)
-        }
-        ExprKind::NotEq(left, right) => {
-            fold_comparison(*left, *right, span, |a, b| a != b, ExprKind::NotEq)
+                _ => {
+                    // Update the Add node with potentially optimized children
+                    pool3.expr_mut(expr_id).kind = ExprKind::Add(new_left, new_right);
+                    (expr_id, pool3)
+                }
+            }
         }
 
-        // Logical operations
-        ExprKind::And(left, right) => fold_logical_and(*left, *right, span),
-        ExprKind::Or(left, right) => fold_logical_or(*left, *right, span),
-        ExprKind::Not(operand) => fold_not(*operand, span),
+        ExprKind::Sub(left_id, right_id) => {
+            let (new_left, mut pool2) = fold_constants(left_id, pool);
+            let (new_right, mut pool3) = fold_constants(right_id, pool2);
+
+            match (&pool3.expr(new_left).kind, &pool3.expr(new_right).kind) {
+                (ExprKind::Number(a), ExprKind::Number(b)) => {
+                    if let Ok(id) = pool3.alloc_expr(ExprKind::Number(a - b), span) {
+                        pool3.expr_mut(id).ty = ty.clone();
+                        (id, pool3)
+                    } else {
+                        (expr_id, pool3)
+                    }
+                }
+                _ => {
+                    pool3.expr_mut(expr_id).kind = ExprKind::Sub(new_left, new_right);
+                    (expr_id, pool3)
+                }
+            }
+        }
+
+        ExprKind::Mul(left_id, right_id) => {
+            let (new_left, mut pool2) = fold_constants(left_id, pool);
+            let (new_right, mut pool3) = fold_constants(right_id, pool2);
+
+            match (&pool3.expr(new_left).kind, &pool3.expr(new_right).kind) {
+                (ExprKind::Number(a), ExprKind::Number(b)) => {
+                    if let Ok(id) = pool3.alloc_expr(ExprKind::Number(a * b), span) {
+                        pool3.expr_mut(id).ty = ty.clone();
+                        (id, pool3)
+                    } else {
+                        (expr_id, pool3)
+                    }
+                }
+                (ExprKind::IntNumber(a), ExprKind::IntNumber(b)) => {
+                    if let Ok(id) = pool3.alloc_expr(ExprKind::IntNumber(a * b), span) {
+                        pool3.expr_mut(id).ty = ty.clone();
+                        (id, pool3)
+                    } else {
+                        (expr_id, pool3)
+                    }
+                }
+                _ => {
+                    pool3.expr_mut(expr_id).kind = ExprKind::Mul(new_left, new_right);
+                    (expr_id, pool3)
+                }
+            }
+        }
+
+        ExprKind::Div(left_id, right_id) => {
+            let (new_left, mut pool2) = fold_constants(left_id, pool);
+            let (new_right, mut pool3) = fold_constants(right_id, pool2);
+
+            match (&pool3.expr(new_left).kind, &pool3.expr(new_right).kind) {
+                (ExprKind::Number(a), ExprKind::Number(b)) if *b != 0.0 => {
+                    if let Ok(id) = pool3.alloc_expr(ExprKind::Number(a / b), span) {
+                        pool3.expr_mut(id).ty = ty.clone();
+                        (id, pool3)
+                    } else {
+                        (expr_id, pool3)
+                    }
+                }
+                _ => {
+                    pool3.expr_mut(expr_id).kind = ExprKind::Div(new_left, new_right);
+                    (expr_id, pool3)
+                }
+            }
+        }
 
         // Unary negation
-        ExprKind::Neg(operand) => fold_neg(*operand, span),
+        ExprKind::Neg(operand_id) => {
+            let (new_operand, mut pool2) = fold_constants(operand_id, pool);
+            match &pool2.expr(new_operand).kind {
+                ExprKind::Number(n) => {
+                    if let Ok(id) = pool2.alloc_expr(ExprKind::Number(-n), span) {
+                        (id, pool2)
+                    } else {
+                        (expr_id, pool2)
+                    }
+                }
+                _ => {
+                    pool2.expr_mut(expr_id).kind = ExprKind::Neg(new_operand);
+                    (expr_id, pool2)
+                }
+            }
+        }
 
-        // Ternary operator
+        // Comparisons
+        ExprKind::Greater(left_id, right_id) => {
+            let (new_left, mut pool2) = fold_constants(left_id, pool);
+            let (new_right, mut pool3) = fold_constants(right_id, pool2);
+
+            match (&pool3.expr(new_left).kind, &pool3.expr(new_right).kind) {
+                (ExprKind::Number(a), ExprKind::Number(b)) => {
+                    let result_val = if a > b { 1.0 } else { 0.0 };
+                    if let Ok(id) = pool3.alloc_expr(ExprKind::Number(result_val), span) {
+                        pool3.expr_mut(id).ty = ty.clone();
+                        (id, pool3)
+                    } else {
+                        (expr_id, pool3)
+                    }
+                }
+                _ => {
+                    pool3.expr_mut(expr_id).kind = ExprKind::Greater(new_left, new_right);
+                    (expr_id, pool3)
+                }
+            }
+        }
+
+        ExprKind::Less(left_id, right_id) => {
+            let (new_left, mut pool2) = fold_constants(left_id, pool);
+            let (new_right, mut pool3) = fold_constants(right_id, pool2);
+
+            match (&pool3.expr(new_left).kind, &pool3.expr(new_right).kind) {
+                (ExprKind::Number(a), ExprKind::Number(b)) => {
+                    let result_val = if a < b { 1.0 } else { 0.0 };
+                    if let Ok(id) = pool3.alloc_expr(ExprKind::Number(result_val), span) {
+                        pool3.expr_mut(id).ty = ty.clone();
+                        (id, pool3)
+                    } else {
+                        (expr_id, pool3)
+                    }
+                }
+                _ => {
+                    pool3.expr_mut(expr_id).kind = ExprKind::Less(new_left, new_right);
+                    (expr_id, pool3)
+                }
+            }
+        }
+
+        // Ternary: condition ? true_expr : false_expr
         ExprKind::Ternary {
             condition,
             true_expr,
             false_expr,
-        } => fold_ternary(*condition, *true_expr, *false_expr, span),
+        } => {
+            let (new_cond, mut pool2) = fold_constants(condition, pool);
+            let (new_true, mut pool3) = fold_constants(true_expr, pool2);
+            let (new_false, mut pool4) = fold_constants(false_expr, pool3);
 
-        // Function calls (fold arguments, and if all are constants, evaluate)
-        ExprKind::Call { name, args } => fold_call(name, args, span),
-
-        // Vector constructors (fold arguments)
-        ExprKind::Vec2Constructor(args) => {
-            let args = args.into_iter().map(fold_expr).collect();
-            ExprKind::Vec2Constructor(args)
-        }
-        ExprKind::Vec3Constructor(args) => {
-            let args = args.into_iter().map(fold_expr).collect();
-            ExprKind::Vec3Constructor(args)
-        }
-        ExprKind::Vec4Constructor(args) => {
-            let args = args.into_iter().map(fold_expr).collect();
-            ExprKind::Vec4Constructor(args)
-        }
-
-        // Swizzle (fold inner expression)
-        ExprKind::Swizzle { expr, components } => {
-            let expr = Box::new(fold_expr(*expr));
-            ExprKind::Swizzle { expr, components }
-        }
-
-        // Assignment (fold value)
-        ExprKind::Assign { target, value } => {
-            let value = Box::new(fold_expr(*value));
-            ExprKind::Assign { target, value }
-        }
-
-        // Bitwise operations (fold operands, no constant folding for now)
-        ExprKind::BitwiseAnd(left, right) => {
-            let left = Box::new(fold_expr(*left));
-            let right = Box::new(fold_expr(*right));
-            ExprKind::BitwiseAnd(left, right)
-        }
-        ExprKind::BitwiseOr(left, right) => {
-            let left = Box::new(fold_expr(*left));
-            let right = Box::new(fold_expr(*right));
-            ExprKind::BitwiseOr(left, right)
-        }
-        ExprKind::BitwiseXor(left, right) => {
-            let left = Box::new(fold_expr(*left));
-            let right = Box::new(fold_expr(*right));
-            ExprKind::BitwiseXor(left, right)
-        }
-        ExprKind::BitwiseNot(operand) => {
-            let operand = Box::new(fold_expr(*operand));
-            ExprKind::BitwiseNot(operand)
-        }
-        ExprKind::LeftShift(left, right) => {
-            let left = Box::new(fold_expr(*left));
-            let right = Box::new(fold_expr(*right));
-            ExprKind::LeftShift(left, right)
-        }
-        ExprKind::RightShift(left, right) => {
-            let left = Box::new(fold_expr(*left));
-            let right = Box::new(fold_expr(*right));
-            ExprKind::RightShift(left, right)
-        }
-
-        // Increment/Decrement - no folding (they modify state)
-        ExprKind::PreIncrement(_)
-        | ExprKind::PreDecrement(_)
-        | ExprKind::PostIncrement(_)
-        | ExprKind::PostDecrement(_) => expr.kind,
-
-        // Literals and variables - no folding needed
-        ExprKind::Number(_) | ExprKind::IntNumber(_) | ExprKind::Variable(_) => expr.kind,
-    };
-
-    Expr { kind, span, ty }
-}
-
-/// Fold binary arithmetic operation
-fn fold_binary_op<F, C>(left: Expr, right: Expr, _span: Span, op: F, constructor: C) -> ExprKind
-where
-    F: FnOnce(f32, f32) -> f32,
-    C: FnOnce(Box<Expr>, Box<Expr>) -> ExprKind,
-{
-    let left = fold_expr(left);
-    let right = fold_expr(right);
-
-    match (&left.kind, &right.kind) {
-        (ExprKind::Number(a), ExprKind::Number(b)) => ExprKind::Number(op(*a, *b)),
-        (ExprKind::IntNumber(a), ExprKind::IntNumber(b)) => {
-            // For integer operations, convert to float, compute, and convert back
-            let result = op(*a as f32, *b as f32);
-            ExprKind::IntNumber(result as i32)
-        }
-        _ => constructor(Box::new(left), Box::new(right)),
-    }
-}
-
-/// Fold comparison operation
-fn fold_comparison<F, C>(left: Expr, right: Expr, _span: Span, op: F, constructor: C) -> ExprKind
-where
-    F: FnOnce(f32, f32) -> bool,
-    C: FnOnce(Box<Expr>, Box<Expr>) -> ExprKind,
-{
-    let left = fold_expr(left);
-    let right = fold_expr(right);
-
-    match (&left.kind, &right.kind) {
-        (ExprKind::Number(a), ExprKind::Number(b)) => {
-            ExprKind::Number(if op(*a, *b) { 1.0 } else { 0.0 })
-        }
-        (ExprKind::IntNumber(a), ExprKind::IntNumber(b)) => {
-            ExprKind::Number(if op(*a as f32, *b as f32) { 1.0 } else { 0.0 })
-        }
-        _ => constructor(Box::new(left), Box::new(right)),
-    }
-}
-
-/// Fold logical AND
-fn fold_logical_and(left: Expr, right: Expr, _span: Span) -> ExprKind {
-    let left = fold_expr(left);
-    let right = fold_expr(right);
-
-    // Check if left is a constant
-    if let Some(left_val) = get_constant_bool(&left) {
-        if !left_val {
-            // false && x = false
-            return ExprKind::Number(0.0);
-        } else {
-            // true && x = x
-            return right.kind;
-        }
-    }
-
-    // Check if right is a constant
-    if let Some(right_val) = get_constant_bool(&right) {
-        if !right_val {
-            // x && false = false
-            return ExprKind::Number(0.0);
-        } else {
-            // x && true = x
-            return left.kind;
-        }
-    }
-
-    ExprKind::And(Box::new(left), Box::new(right))
-}
-
-/// Fold logical OR
-fn fold_logical_or(left: Expr, right: Expr, _span: Span) -> ExprKind {
-    let left = fold_expr(left);
-    let right = fold_expr(right);
-
-    // Check if left is a constant
-    if let Some(left_val) = get_constant_bool(&left) {
-        if left_val {
-            // true || x = true
-            return ExprKind::Number(1.0);
-        } else {
-            // false || x = x
-            return right.kind;
-        }
-    }
-
-    // Check if right is a constant
-    if let Some(right_val) = get_constant_bool(&right) {
-        if right_val {
-            // x || true = true
-            return ExprKind::Number(1.0);
-        } else {
-            // x || false = x
-            return left.kind;
-        }
-    }
-
-    ExprKind::Or(Box::new(left), Box::new(right))
-}
-
-/// Fold logical NOT
-fn fold_not(operand: Expr, _span: Span) -> ExprKind {
-    let operand = fold_expr(operand);
-
-    if let Some(val) = get_constant_bool(&operand) {
-        return ExprKind::Number(if val { 0.0 } else { 1.0 });
-    }
-
-    ExprKind::Not(Box::new(operand))
-}
-
-/// Fold negation
-fn fold_neg(operand: Expr, _span: Span) -> ExprKind {
-    let operand = fold_expr(operand);
-
-    match operand.kind {
-        ExprKind::Number(x) => ExprKind::Number(-x),
-        ExprKind::IntNumber(x) => ExprKind::IntNumber(-x),
-        _ => ExprKind::Neg(Box::new(operand)),
-    }
-}
-
-/// Fold ternary operator
-fn fold_ternary(condition: Expr, true_expr: Expr, false_expr: Expr, _span: Span) -> ExprKind {
-    let condition = fold_expr(condition);
-    let true_expr = fold_expr(true_expr);
-    let false_expr = fold_expr(false_expr);
-
-    // If condition is constant, select the appropriate branch
-    if let Some(cond_val) = get_constant_bool(&condition) {
-        if cond_val {
-            return true_expr.kind;
-        } else {
-            return false_expr.kind;
-        }
-    }
-
-    ExprKind::Ternary {
-        condition: Box::new(condition),
-        true_expr: Box::new(true_expr),
-        false_expr: Box::new(false_expr),
-    }
-}
-
-/// Fold function calls with constant arguments
-fn fold_call(name: alloc::string::String, args: Vec<Expr>, _span: Span) -> ExprKind {
-    let args: Vec<_> = args.into_iter().map(fold_expr).collect();
-
-    // Try to evaluate if all arguments are constant
-    match name.as_str() {
-        "sin" if args.len() == 1 => {
-            if let ExprKind::Number(x) = args[0].kind {
-                return ExprKind::Number(sin(x as f64) as f32);
+            // If condition is constant, return the appropriate branch
+            match &pool4.expr(new_cond).kind {
+                ExprKind::Number(n) if *n != 0.0 => (new_true, pool4), // true
+                ExprKind::Number(_) => (new_false, pool4),             // false (0.0)
+                _ => {
+                    pool4.expr_mut(expr_id).kind = ExprKind::Ternary {
+                        condition: new_cond,
+                        true_expr: new_true,
+                        false_expr: new_false,
+                    };
+                    (expr_id, pool4)
+                }
             }
         }
-        "cos" if args.len() == 1 => {
-            if let ExprKind::Number(x) = args[0].kind {
-                return ExprKind::Number(cos(x as f64) as f32);
+
+        // Logical And: a && b
+        ExprKind::And(left_id, right_id) => {
+            let (new_left, mut pool2) = fold_constants(left_id, pool);
+            let (new_right, mut pool3) = fold_constants(right_id, pool2);
+
+            match (&pool3.expr(new_left).kind, &pool3.expr(new_right).kind) {
+                (ExprKind::Number(a), ExprKind::Number(b)) => {
+                    let result_val = if *a != 0.0 && *b != 0.0 { 1.0 } else { 0.0 };
+                    if let Ok(id) = pool3.alloc_expr(ExprKind::Number(result_val), span) {
+                        pool3.expr_mut(id).ty = ty.clone();
+                        (id, pool3)
+                    } else {
+                        (expr_id, pool3)
+                    }
+                }
+                (ExprKind::Number(a), _) if *a == 0.0 => {
+                    // false && x = false
+                    (new_left, pool3)
+                }
+                (_, ExprKind::Number(b)) if *b == 0.0 => {
+                    // x && false = false
+                    (new_right, pool3)
+                }
+                _ => {
+                    pool3.expr_mut(expr_id).kind = ExprKind::And(new_left, new_right);
+                    (expr_id, pool3)
+                }
             }
         }
-        "tan" if args.len() == 1 => {
-            if let ExprKind::Number(x) = args[0].kind {
-                return ExprKind::Number(tan(x as f64) as f32);
+
+        // Logical Or: a || b
+        ExprKind::Or(left_id, right_id) => {
+            let (new_left, mut pool2) = fold_constants(left_id, pool);
+            let (new_right, mut pool3) = fold_constants(right_id, pool2);
+
+            match (&pool3.expr(new_left).kind, &pool3.expr(new_right).kind) {
+                (ExprKind::Number(a), ExprKind::Number(b)) => {
+                    let result_val = if *a != 0.0 || *b != 0.0 { 1.0 } else { 0.0 };
+                    if let Ok(id) = pool3.alloc_expr(ExprKind::Number(result_val), span) {
+                        pool3.expr_mut(id).ty = ty.clone();
+                        (id, pool3)
+                    } else {
+                        (expr_id, pool3)
+                    }
+                }
+                (ExprKind::Number(a), _) if *a != 0.0 => {
+                    // true || x = true
+                    (new_left, pool3)
+                }
+                (_, ExprKind::Number(b)) if *b != 0.0 => {
+                    // x || true = true
+                    (new_right, pool3)
+                }
+                _ => {
+                    pool3.expr_mut(expr_id).kind = ExprKind::Or(new_left, new_right);
+                    (expr_id, pool3)
+                }
             }
         }
-        "abs" if args.len() == 1 => {
-            if let ExprKind::Number(x) = args[0].kind {
-                return ExprKind::Number(if x < 0.0 { -x } else { x });
+
+        // Logical Not: !a
+        ExprKind::Not(operand_id) => {
+            let (new_operand, mut pool2) = fold_constants(operand_id, pool);
+            match &pool2.expr(new_operand).kind {
+                ExprKind::Number(n) => {
+                    let result_val = if *n == 0.0 { 1.0 } else { 0.0 };
+                    if let Ok(id) = pool2.alloc_expr(ExprKind::Number(result_val), span) {
+                        (id, pool2)
+                    } else {
+                        (expr_id, pool2)
+                    }
+                }
+                _ => {
+                    pool2.expr_mut(expr_id).kind = ExprKind::Not(new_operand);
+                    (expr_id, pool2)
+                }
             }
         }
-        "floor" if args.len() == 1 => {
-            if let ExprKind::Number(x) = args[0].kind {
-                return ExprKind::Number(floor(x as f64) as f32);
+
+        // Binary math functions (min, max, pow, mod)
+        ExprKind::Call { ref name, ref args } if args.len() == 2 => {
+            let arg1_id = args[0];
+            let arg2_id = args[1];
+            let (new_arg1, mut pool2) = fold_constants(arg1_id, pool);
+            let (new_arg2, mut pool3) = fold_constants(arg2_id, pool2);
+
+            match (&pool3.expr(new_arg1).kind, &pool3.expr(new_arg2).kind) {
+                (ExprKind::Number(a), ExprKind::Number(b)) => {
+                    let result_val = match name.as_str() {
+                        "min" => a.min(*b),
+                        "max" => a.max(*b),
+                        "pow" => powf(*a, *b),
+                        "mod" => {
+                            if *b != 0.0 {
+                                a % b
+                            } else {
+                                pool3.expr_mut(expr_id).kind = ExprKind::Call {
+                                    name: name.clone(),
+                                    args: alloc::vec![new_arg1, new_arg2],
+                                };
+                                return (expr_id, pool3);
+                            }
+                        }
+                        _ => {
+                            pool3.expr_mut(expr_id).kind = ExprKind::Call {
+                                name: name.clone(),
+                                args: alloc::vec![new_arg1, new_arg2],
+                            };
+                            return (expr_id, pool3);
+                        }
+                    };
+
+                    if let Ok(id) = pool3.alloc_expr(ExprKind::Number(result_val), span) {
+                        pool3.expr_mut(id).ty = ty.clone();
+                        (id, pool3)
+                    } else {
+                        (expr_id, pool3)
+                    }
+                }
+                _ => {
+                    pool3.expr_mut(expr_id).kind = ExprKind::Call {
+                        name: name.clone(),
+                        args: alloc::vec![new_arg1, new_arg2],
+                    };
+                    (expr_id, pool3)
+                }
             }
         }
-        "ceil" if args.len() == 1 => {
-            if let ExprKind::Number(x) = args[0].kind {
-                return ExprKind::Number(ceil(x as f64) as f32);
+
+        // Ternary math functions (clamp, lerp, smoothstep)
+        ExprKind::Call { ref name, ref args } if args.len() == 3 => {
+            let arg1_id = args[0];
+            let arg2_id = args[1];
+            let arg3_id = args[2];
+            let (new_arg1, mut pool2) = fold_constants(arg1_id, pool);
+            let (new_arg2, mut pool3) = fold_constants(arg2_id, pool2);
+            let (new_arg3, mut pool4) = fold_constants(arg3_id, pool3);
+
+            match (
+                &pool4.expr(new_arg1).kind,
+                &pool4.expr(new_arg2).kind,
+                &pool4.expr(new_arg3).kind,
+            ) {
+                (ExprKind::Number(a), ExprKind::Number(b), ExprKind::Number(c)) => {
+                    let result_val = match name.as_str() {
+                        "clamp" => a.max(*b).min(*c),      // clamp(x, min, max)
+                        "lerp" | "mix" => a + (c - a) * b, // lerp(a, b, c) = a + (c - a) * b
+                        "smoothstep" => {
+                            // smoothstep(edge0, edge1, x) - complex, skip for now
+                            pool4.expr_mut(expr_id).kind = ExprKind::Call {
+                                name: name.clone(),
+                                args: alloc::vec![new_arg1, new_arg2, new_arg3],
+                            };
+                            return (expr_id, pool4);
+                        }
+                        _ => {
+                            pool4.expr_mut(expr_id).kind = ExprKind::Call {
+                                name: name.clone(),
+                                args: alloc::vec![new_arg1, new_arg2, new_arg3],
+                            };
+                            return (expr_id, pool4);
+                        }
+                    };
+
+                    if let Ok(id) = pool4.alloc_expr(ExprKind::Number(result_val), span) {
+                        (id, pool4)
+                    } else {
+                        (expr_id, pool4)
+                    }
+                }
+                _ => {
+                    pool4.expr_mut(expr_id).kind = ExprKind::Call {
+                        name: name.clone(),
+                        args: alloc::vec![new_arg1, new_arg2, new_arg3],
+                    };
+                    (expr_id, pool4)
+                }
             }
         }
-        "sqrt" if args.len() == 1 => {
-            if let ExprKind::Number(x) = args[0].kind {
-                return ExprKind::Number(sqrt(x as f64) as f32);
-            }
-        }
-        "sign" if args.len() == 1 => {
-            if let ExprKind::Number(x) = args[0].kind {
-                let s = if x > 0.0 {
-                    1.0
-                } else if x < 0.0 {
-                    -1.0
-                } else {
-                    0.0
+
+        // Unary math functions (sin, cos, etc.)
+        ExprKind::Call { ref name, ref args } if args.len() == 1 => {
+            let arg_id = args[0];
+            let (new_arg, mut pool2) = fold_constants(arg_id, pool);
+
+            if let ExprKind::Number(n) = &pool2.expr(new_arg).kind {
+                let result_val = match name.as_str() {
+                    "sin" => sin(*n as f64) as f32,
+                    "cos" => cos(*n as f64) as f32,
+                    "tan" => tan(*n as f64) as f32,
+                    "sqrt" => sqrt(*n as f64) as f32,
+                    "abs" => n.abs(),
+                    "floor" => floor(*n as f64) as f32,
+                    "ceil" => ceil(*n as f64) as f32,
+                    "saturate" => n.max(0.0).min(1.0),
+                    _ => {
+                        pool2.expr_mut(expr_id).kind = ExprKind::Call {
+                            name: name.clone(),
+                            args: alloc::vec![new_arg],
+                        };
+                        return (expr_id, pool2);
+                    }
                 };
-                return ExprKind::Number(s);
-            }
-        }
-        "saturate" if args.len() == 1 => {
-            if let ExprKind::Number(x) = args[0].kind {
-                let result = if x < 0.0 {
-                    0.0
-                } else if x > 1.0 {
-                    1.0
-                } else {
-                    x
-                };
-                return ExprKind::Number(result);
-            }
-        }
-        "min" if args.len() == 2 => {
-            if let (ExprKind::Number(a), ExprKind::Number(b)) = (&args[0].kind, &args[1].kind) {
-                return ExprKind::Number(if a < b { *a } else { *b });
-            }
-        }
-        "max" if args.len() == 2 => {
-            if let (ExprKind::Number(a), ExprKind::Number(b)) = (&args[0].kind, &args[1].kind) {
-                return ExprKind::Number(if a > b { *a } else { *b });
-            }
-        }
-        "pow" if args.len() == 2 => {
-            if let (ExprKind::Number(a), ExprKind::Number(b)) = (&args[0].kind, &args[1].kind) {
-                return ExprKind::Number(powf(*a, *b));
-            }
-        }
-        "clamp" if args.len() == 3 => {
-            if let (ExprKind::Number(x), ExprKind::Number(min_val), ExprKind::Number(max_val)) =
-                (&args[0].kind, &args[1].kind, &args[2].kind)
-            {
-                let clamped = if *x < *min_val {
-                    *min_val
-                } else if *x > *max_val {
-                    *max_val
-                } else {
-                    *x
-                };
-                return ExprKind::Number(clamped);
-            }
-        }
-        "lerp" | "mix" if args.len() == 3 => {
-            if let (ExprKind::Number(a), ExprKind::Number(b), ExprKind::Number(t)) =
-                (&args[0].kind, &args[1].kind, &args[2].kind)
-            {
-                return ExprKind::Number(a + (b - a) * t);
-            }
-        }
-        "step" if args.len() == 2 => {
-            if let (ExprKind::Number(edge), ExprKind::Number(x)) = (&args[0].kind, &args[1].kind) {
-                return ExprKind::Number(if x < edge { 0.0 } else { 1.0 });
-            }
-        }
-        _ => {}
-    }
 
-    ExprKind::Call { name, args }
-}
+                if let Ok(id) = pool2.alloc_expr(ExprKind::Number(result_val), span) {
+                    (id, pool2)
+                } else {
+                    (expr_id, pool2)
+                }
+            } else {
+                pool2.expr_mut(expr_id).kind = ExprKind::Call {
+                    name: name.clone(),
+                    args: alloc::vec![new_arg],
+                };
+                (expr_id, pool2)
+            }
+        }
 
-/// Get boolean value from constant expression (0.0 = false, non-zero = true)
-fn get_constant_bool(expr: &Expr) -> Option<bool> {
-    match &expr.kind {
-        ExprKind::Number(x) => Some(*x != 0.0),
-        ExprKind::IntNumber(x) => Some(*x != 0),
-        _ => None,
+        // Recursively fold vector constructors
+        ExprKind::Vec2Constructor(ref args) => {
+            let mut new_args = alloc::vec::Vec::new();
+            let mut current_pool = pool;
+
+            for &arg_id in args {
+                let (new_arg, next_pool) = fold_constants(arg_id, current_pool);
+                new_args.push(new_arg);
+                current_pool = next_pool;
+            }
+
+            current_pool.expr_mut(expr_id).kind = ExprKind::Vec2Constructor(new_args);
+            (expr_id, current_pool)
+        }
+
+        ExprKind::Vec3Constructor(ref args) => {
+            let mut new_args = alloc::vec::Vec::new();
+            let mut current_pool = pool;
+
+            for &arg_id in args {
+                let (new_arg, next_pool) = fold_constants(arg_id, current_pool);
+                new_args.push(new_arg);
+                current_pool = next_pool;
+            }
+
+            current_pool.expr_mut(expr_id).kind = ExprKind::Vec3Constructor(new_args);
+            (expr_id, current_pool)
+        }
+
+        ExprKind::Vec4Constructor(ref args) => {
+            let mut new_args = alloc::vec::Vec::new();
+            let mut current_pool = pool;
+
+            for &arg_id in args {
+                let (new_arg, next_pool) = fold_constants(arg_id, current_pool);
+                new_args.push(new_arg);
+                current_pool = next_pool;
+            }
+
+            current_pool.expr_mut(expr_id).kind = ExprKind::Vec4Constructor(new_args);
+            (expr_id, current_pool)
+        }
+
+        // All other expressions - return as-is
+        _ => (expr_id, pool),
     }
 }

@@ -4,8 +4,7 @@
 
 mod ternary_gen;
 mod ternary_parse;
-// TODO: Update ternary_types to use pool-based API
-// mod ternary_types;
+// mod ternary_types; // Old Box-based type checker (tests disabled - use ternary_tests.rs)
 
 #[cfg(test)]
 mod ternary_tests;

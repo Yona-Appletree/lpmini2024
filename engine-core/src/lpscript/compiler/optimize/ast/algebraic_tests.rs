@@ -3,8 +3,6 @@
 mod algebraic_simplification_tests {
     use crate::lpscript::compiler::optimize::ast::algebraic;
     use crate::lpscript::compiler::optimize::ast_test_util::AstOptTest;
-    use crate::lpscript::compiler::test_ast::*;
-    use crate::lpscript::shared::Type;
 
     // ============================================================================
     // Addition identities
@@ -15,11 +13,7 @@ mod algebraic_simplification_tests {
         // x + 0 → x
         AstOptTest::new("time + 0.0")
             .with_pass(algebraic::simplify_expr)
-            .expect_ast({
-                let mut expr = var("time");
-                expr.ty = Some(Type::Fixed);
-                expr
-            })
+            .expect_ast(|b| b.var("time"))
             .expect_semantics_preserved()
             .with_time(42.0)
             .run()
@@ -31,11 +25,7 @@ mod algebraic_simplification_tests {
         // 0 + x → x
         AstOptTest::new("0.0 + time")
             .with_pass(algebraic::simplify_expr)
-            .expect_ast({
-                let mut expr = var("time");
-                expr.ty = Some(Type::Fixed);
-                expr
-            })
+            .expect_ast(|b| b.var("time"))
             .expect_semantics_preserved()
             .with_time(42.0)
             .run()
@@ -62,11 +52,7 @@ mod algebraic_simplification_tests {
         // x - 0 → x
         AstOptTest::new("time - 0.0")
             .with_pass(algebraic::simplify_expr)
-            .expect_ast({
-                let mut expr = var("time");
-                expr.ty = Some(Type::Fixed);
-                expr
-            })
+            .expect_ast(|b| b.var("time"))
             .expect_semantics_preserved()
             .with_time(42.0)
             .run()
@@ -93,11 +79,7 @@ mod algebraic_simplification_tests {
         // x * 1 → x
         AstOptTest::new("time * 1.0")
             .with_pass(algebraic::simplify_expr)
-            .expect_ast({
-                let mut expr = var("time");
-                expr.ty = Some(Type::Fixed);
-                expr
-            })
+            .expect_ast(|b| b.var("time"))
             .expect_semantics_preserved()
             .with_time(42.0)
             .run()
@@ -109,11 +91,7 @@ mod algebraic_simplification_tests {
         // 1 * x → x
         AstOptTest::new("1.0 * time")
             .with_pass(algebraic::simplify_expr)
-            .expect_ast({
-                let mut expr = var("time");
-                expr.ty = Some(Type::Fixed);
-                expr
-            })
+            .expect_ast(|b| b.var("time"))
             .expect_semantics_preserved()
             .with_time(42.0)
             .run()
@@ -125,7 +103,7 @@ mod algebraic_simplification_tests {
         // x * 0 → 0
         AstOptTest::new("time * 0.0")
             .with_pass(algebraic::simplify_expr)
-            .expect_ast(num(0.0))
+            .expect_ast(|b| b.num(0.0))
             .expect_semantics_preserved()
             .with_time(42.0)
             .run()
@@ -137,7 +115,7 @@ mod algebraic_simplification_tests {
         // 0 * x → 0
         AstOptTest::new("0.0 * time")
             .with_pass(algebraic::simplify_expr)
-            .expect_ast(num(0.0))
+            .expect_ast(|b| b.num(0.0))
             .expect_semantics_preserved()
             .with_time(42.0)
             .run()
@@ -167,11 +145,7 @@ mod algebraic_simplification_tests {
         // x / 1 → x
         AstOptTest::new("time / 1.0")
             .with_pass(algebraic::simplify_expr)
-            .expect_ast({
-                let mut expr = var("time");
-                expr.ty = Some(Type::Fixed);
-                expr
-            })
+            .expect_ast(|b| b.var("time"))
             .expect_semantics_preserved()
             .with_time(42.0)
             .run()
@@ -187,7 +161,7 @@ mod algebraic_simplification_tests {
         // x % 1 → 0 (any number mod 1 is 0)
         AstOptTest::new("time % 1.0")
             .with_pass(algebraic::simplify_expr)
-            .expect_ast(num(0.0))
+            .expect_ast(|b| b.num(0.0))
             .expect_semantics_preserved()
             .with_time(42.5)
             .run()
@@ -316,11 +290,7 @@ mod algebraic_simplification_tests {
         // Use -(-time) for explicit double negation
         AstOptTest::new("-(-time)")
             .with_pass(algebraic::simplify_expr)
-            .expect_ast({
-                let mut expr = var("time");
-                expr.ty = Some(Type::Fixed);
-                expr
-            })
+            .expect_ast(|b| b.var("time"))
             .expect_semantics_preserved()
             .with_time(42.0)
             .run()
@@ -336,11 +306,7 @@ mod algebraic_simplification_tests {
         // (x + 0) + 0 → x (requires recursive simplification)
         AstOptTest::new("(time + 0.0) + 0.0")
             .with_pass(algebraic::simplify_expr)
-            .expect_ast({
-                let mut expr = var("time");
-                expr.ty = Some(Type::Fixed);
-                expr
-            })
+            .expect_ast(|b| b.var("time"))
             .expect_semantics_preserved()
             .with_time(42.0)
             .run()
@@ -352,11 +318,7 @@ mod algebraic_simplification_tests {
         // (x * 1) * 1 → x
         AstOptTest::new("(time * 1.0) * 1.0")
             .with_pass(algebraic::simplify_expr)
-            .expect_ast({
-                let mut expr = var("time");
-                expr.ty = Some(Type::Fixed);
-                expr
-            })
+            .expect_ast(|b| b.var("time"))
             .expect_semantics_preserved()
             .with_time(42.0)
             .run()

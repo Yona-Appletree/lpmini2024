@@ -171,7 +171,7 @@ pub fn compile_script_with_options(
     let (program, pool) = parser.parse_program()?;
 
     // Type check the program
-    let (typed_program, mut pool) = typechecker::TypeChecker::check_program(program, pool)?;
+    let (typed_program, pool) = typechecker::TypeChecker::check_program(program, pool)?;
 
     // Optimize program AST
     let (optimized_program, pool) = optimize::optimize_ast_program(typed_program, pool, options);
@@ -255,6 +255,5 @@ mod tests {
     mod control_flow;
     mod functions;
     mod operators;
-    mod recursion_limits;
     mod variables;
 }

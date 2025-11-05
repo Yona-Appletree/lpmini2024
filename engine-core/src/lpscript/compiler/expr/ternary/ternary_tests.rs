@@ -22,9 +22,10 @@ mod tests {
                 LpsOpCode::Push(1.0.to_fixed()),
                 LpsOpCode::Push(0.5.to_fixed()),
                 LpsOpCode::GreaterFixed,
-                LpsOpCode::Push(1.0.to_fixed()),
-                LpsOpCode::Push(0.0.to_fixed()),
-                LpsOpCode::Select,
+                LpsOpCode::JumpIfZero(2),       // If false, jump over true branch
+                LpsOpCode::Push(1.0.to_fixed()),  // True value
+                LpsOpCode::Jump(1),              // Jump over false branch
+                LpsOpCode::Push(0.0.to_fixed()),  // False value
                 LpsOpCode::Return,
             ])
             .expect_result_fixed(1.0) // true ? 1.0 : 0.0 = 1.0

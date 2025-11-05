@@ -3,8 +3,7 @@
 /// These operators work on Fixed and Int32 types and can be used as prefix or postfix.
 
 mod incdec_parse;
-// TODO: Update incdec_types to use pool-based API
-// mod incdec_types;
+// mod incdec_types; // Old Box-based type checker (tests disabled - use incdec_tests.rs)
 mod incdec_gen;
 
 #[cfg(test)]

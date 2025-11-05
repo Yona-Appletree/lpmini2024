@@ -1,146 +1,166 @@
 /// AST-level optimizations
 extern crate alloc;
-use alloc::boxed::Box;
-use alloc::format;
 
-use crate::lpscript::compiler::ast::{Expr, Program, Stmt};
+use crate::lpscript::compiler::ast::{AstPool, ExprId, Program, StmtId};
 use crate::lpscript::compiler::optimize::OptimizeOptions;
 
 pub mod algebraic;
 pub mod constant_fold;
-pub mod dead_code;
+// pub mod dead_code; // TODO: Update to pool-based API
 
 #[cfg(test)]
 mod algebraic_tests;
 #[cfg(test)]
 mod constant_fold_tests;
 
-/// Optimize an expression, running multiple passes until fixed point
-pub fn optimize_expr(mut expr: Expr, options: &OptimizeOptions) -> Expr {
+/// Optimize an expression using pool-based API
+pub fn optimize_expr_id(
+    mut expr_id: ExprId,
+    mut pool: AstPool,
+    options: &OptimizeOptions,
+) -> (ExprId, AstPool) {
     for _ in 0..options.max_ast_passes {
-        let before = format!("{:?}", expr);
+        let initial_expr_count = pool.exprs.len();
 
-        // Apply optimization passes in order
+        // Apply constant folding if enabled
         if options.constant_folding {
-            expr = constant_fold::fold_expr(expr);
+            (expr_id, pool) = constant_fold::fold_constants(expr_id, pool);
         }
 
+        // Apply algebraic simplification if enabled
         if options.algebraic_simplification {
-            expr = algebraic::simplify_expr(expr);
+            (expr_id, pool) = algebraic::simplify_expr(expr_id, pool);
         }
-
-        let after = format!("{:?}", expr);
 
         // Stop if no changes (fixed point reached)
-        if before == after {
+        if pool.exprs.len() == initial_expr_count {
             break;
         }
     }
 
-    expr
+    (expr_id, pool)
 }
 
-/// Optimize a program (statements + expressions)
-pub fn optimize_program(mut program: Program, options: &OptimizeOptions) -> Program {
+/// Optimize a program using pool-based API
+pub fn optimize_program_id(
+    mut program: Program,
+    mut pool: AstPool,
+    options: &OptimizeOptions,
+) -> (Program, AstPool) {
+    if options.max_ast_passes == 0 {
+        return (program, pool);
+    }
+
+    // Optimize each statement in the program
     for _ in 0..options.max_ast_passes {
-        let before = format!("{:?}", program);
+        let initial_count = pool.exprs.len() + pool.stmts.len();
 
-        // Optimize statements
-        if options.constant_folding
-            || options.algebraic_simplification
-            || options.dead_code_elimination
-        {
-            program.stmts = program
-                .stmts
-                .into_iter()
-                .map(|stmt| optimize_stmt(stmt, options))
-                .collect();
+        // Optimize all statements
+        for &stmt_id in &program.stmts {
+            (pool) = optimize_stmt_id(stmt_id, pool, options);
         }
-
-        // Apply dead code elimination at statement level
-        if options.dead_code_elimination {
-            program.stmts = dead_code::eliminate_dead_stmts(program.stmts);
-        }
-
-        let after = format!("{:?}", program);
 
         // Stop if no changes
-        if before == after {
+        if pool.exprs.len() + pool.stmts.len() == initial_count {
             break;
         }
     }
 
-    program
+    (program, pool)
 }
 
-/// Optimize a single statement (recursive)
-fn optimize_stmt(stmt: Stmt, options: &OptimizeOptions) -> Stmt {
-    let kind = match stmt.kind {
-        crate::lpscript::compiler::ast::StmtKind::VarDecl { ty, name, init } => {
-            let init = init.map(|e| optimize_expr(e, options));
-            crate::lpscript::compiler::ast::StmtKind::VarDecl { ty, name, init }
+/// Optimize a statement (recursive, mutates pool)
+fn optimize_stmt_id(stmt_id: StmtId, mut pool: AstPool, options: &OptimizeOptions) -> AstPool {
+    use crate::lpscript::compiler::ast::StmtKind;
+
+    let stmt = pool.stmt(stmt_id);
+    let kind = stmt.kind.clone();
+
+    match kind {
+        StmtKind::VarDecl { ty, name, init } => {
+            if let Some(init_id) = init {
+                let (new_init, new_pool) = optimize_expr_id(init_id, pool, options);
+                pool = new_pool;
+                pool.stmt_mut(stmt_id).kind = StmtKind::VarDecl {
+                    ty,
+                    name,
+                    init: Some(new_init),
+                };
+            }
         }
-        crate::lpscript::compiler::ast::StmtKind::Return(expr) => {
-            let expr = optimize_expr(expr, options);
-            crate::lpscript::compiler::ast::StmtKind::Return(expr)
+        StmtKind::Return(expr_id) => {
+            let (new_expr, new_pool) = optimize_expr_id(expr_id, pool, options);
+            pool = new_pool;
+            pool.stmt_mut(stmt_id).kind = StmtKind::Return(new_expr);
         }
-        crate::lpscript::compiler::ast::StmtKind::Expr(expr) => {
-            let expr = optimize_expr(expr, options);
-            crate::lpscript::compiler::ast::StmtKind::Expr(expr)
+        StmtKind::Expr(expr_id) => {
+            let (new_expr, new_pool) = optimize_expr_id(expr_id, pool, options);
+            pool = new_pool;
+            pool.stmt_mut(stmt_id).kind = StmtKind::Expr(new_expr);
         }
-        crate::lpscript::compiler::ast::StmtKind::Block(stmts) => {
-            let stmts = stmts
-                .into_iter()
-                .map(|s| optimize_stmt(s, options))
-                .collect();
-            crate::lpscript::compiler::ast::StmtKind::Block(stmts)
+        StmtKind::Block(stmts) => {
+            for &s_id in &stmts {
+                pool = optimize_stmt_id(s_id, pool, options);
+            }
         }
-        crate::lpscript::compiler::ast::StmtKind::If {
+        StmtKind::If {
             condition,
             then_stmt,
             else_stmt,
         } => {
-            let condition = optimize_expr(condition, options);
-            let then_stmt = Box::new(optimize_stmt(*then_stmt, options));
-            let else_stmt = else_stmt.map(|s| Box::new(optimize_stmt(*s, options)));
-
-            // If condition is constant, we can simplify
-            if options.dead_code_elimination {
-                return dead_code::simplify_if(condition, then_stmt, else_stmt, stmt.span);
+            let (new_cond, new_pool) = optimize_expr_id(condition, pool, options);
+            pool = new_pool;
+            pool = optimize_stmt_id(then_stmt, pool, options);
+            if let Some(else_id) = else_stmt {
+                pool = optimize_stmt_id(else_id, pool, options);
             }
-
-            crate::lpscript::compiler::ast::StmtKind::If {
-                condition,
+            pool.stmt_mut(stmt_id).kind = StmtKind::If {
+                condition: new_cond,
                 then_stmt,
                 else_stmt,
-            }
+            };
         }
-        crate::lpscript::compiler::ast::StmtKind::While { condition, body } => {
-            let condition = optimize_expr(condition, options);
-            let body = Box::new(optimize_stmt(*body, options));
-            crate::lpscript::compiler::ast::StmtKind::While { condition, body }
+        StmtKind::While { condition, body } => {
+            let (new_cond, new_pool) = optimize_expr_id(condition, pool, options);
+            pool = new_pool;
+            pool = optimize_stmt_id(body, pool, options);
+            pool.stmt_mut(stmt_id).kind = StmtKind::While {
+                condition: new_cond,
+                body,
+            };
         }
-        crate::lpscript::compiler::ast::StmtKind::For {
+        StmtKind::For {
             init,
             condition,
             increment,
             body,
         } => {
-            let init = init.map(|s| Box::new(optimize_stmt(*s, options)));
-            let condition = condition.map(|e| optimize_expr(e, options));
-            let increment = increment.map(|e| optimize_expr(e, options));
-            let body = Box::new(optimize_stmt(*body, options));
-            crate::lpscript::compiler::ast::StmtKind::For {
-                init,
-                condition,
-                increment,
-                body,
+            if let Some(init_id) = init {
+                pool = optimize_stmt_id(init_id, pool, options);
             }
+            let new_cond = if let Some(cond_id) = condition {
+                let (new_cond, new_pool) = optimize_expr_id(cond_id, pool, options);
+                pool = new_pool;
+                Some(new_cond)
+            } else {
+                None
+            };
+            let new_inc = if let Some(inc_id) = increment {
+                let (new_inc, new_pool) = optimize_expr_id(inc_id, pool, options);
+                pool = new_pool;
+                Some(new_inc)
+            } else {
+                None
+            };
+            pool = optimize_stmt_id(body, pool, options);
+            pool.stmt_mut(stmt_id).kind = StmtKind::For {
+                init,
+                condition: new_cond,
+                increment: new_inc,
+                body,
+            };
         }
-    };
-
-    Stmt {
-        kind,
-        span: stmt.span,
     }
+
+    pool
 }

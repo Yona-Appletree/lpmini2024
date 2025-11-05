@@ -215,7 +215,15 @@ impl<'a> CodeGenerator<'a> {
             StmtKind::Expr(expr_id) => {
                 self.gen_expr_id(pool, *expr_id);
                 // Expression statements discard their result
-                self.code.push(LpsOpCode::Drop1);
+                // Drop appropriate number of stack values based on expression type
+                let expr_ty = pool.expr(*expr_id).ty.as_ref();
+                let drop_op = match expr_ty {
+                    Some(crate::lpscript::shared::Type::Vec2) => LpsOpCode::Drop2,
+                    Some(crate::lpscript::shared::Type::Vec3) => LpsOpCode::Drop3,
+                    Some(crate::lpscript::shared::Type::Vec4) => LpsOpCode::Drop4,
+                    _ => LpsOpCode::Drop1,
+                };
+                self.code.push(drop_op);
             }
             StmtKind::Block(stmts) => {
                 self.gen_block_id(pool, stmts);

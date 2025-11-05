@@ -14,7 +14,8 @@ use crate::lpscript::vm::{LpsProgram, LpsVm, VmLimits};
 use crate::math::{Fixed, ToFixed};
 
 /// Type alias for optimization pass functions (pool-based)
-pub type OptPassFn = fn(ExprId, &mut AstPool) -> ExprId;
+/// Takes ownership of pool and returns both new ExprId and pool
+pub type OptPassFn = fn(ExprId, AstPool) -> (ExprId, AstPool);
 
 /// Builder for testing AST optimization passes
 ///
@@ -143,12 +144,13 @@ impl AstOptTest {
         };
 
         // Apply optimization pass if specified
-        let optimized_ast_id = if let Some(pass) = self.pass {
-            pass(typed_ast_id, &mut pool)
+        let (optimized_ast_id, optimized_pool) = if let Some(pass) = self.pass {
+            pass(typed_ast_id, pool)
         } else {
             errors.push("No optimization pass specified - use .with_pass()".to_string());
             return Err(errors.join("\n\n"));
         };
+        pool = optimized_pool;
 
         // Check AST structure if expected
         if let Some(builder_fn) = self.expected_ast_builder.take() {
@@ -284,7 +286,7 @@ mod tests {
     fn test_with_vm_params() {
         // Test with custom VM parameters
         AstOptTest::new("x + y")
-            .with_pass(|expr_id, _pool| expr_id) // Identity pass (no optimization)
+            .with_pass(|expr_id, pool| (expr_id, pool)) // Identity pass (no optimization)
             .expect_semantics_preserved()
             .with_vm_params(3.0, 4.0, 0.0)
             .run()

@@ -18,8 +18,7 @@ use alloc::vec::Vec;
 use super::ast::{Expr, Program};
 use crate::lpscript::vm::opcodes::LpsOpCode;
 
-// TODO: Update AST optimization to use pool-based API
-// pub mod ast;
+pub mod ast;
 pub mod ops;
 
 #[cfg(test)]
@@ -89,8 +88,7 @@ pub fn optimize_ast_expr(
         return (expr_id, pool);
     }
 
-    // For now, return as-is - full optimization would transform the AST
-    (expr_id, pool)
+    ast::optimize_expr_id(expr_id, pool, options)
 }
 
 /// Optimize a program AST (with statements)
@@ -105,8 +103,7 @@ pub fn optimize_ast_program(
         return (program, pool);
     }
 
-    // For now, return as-is - full optimization would transform the AST
-    (program, pool)
+    ast::optimize_program_id(program, pool, options)
 }
 
 /// Optimize a sequence of opcodes

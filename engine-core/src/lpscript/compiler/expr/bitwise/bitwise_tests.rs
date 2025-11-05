@@ -144,4 +144,22 @@ mod tests {
             .expect_result_int(12)
             .run()
     }
+
+    #[test]
+    fn test_bitwise_complex() -> Result<(), String> {
+        // Complex expression with multiple bitwise operators
+        // (12 & 10) | (5 ^ 3) = 8 | 6 = 14
+        ExprTest::new("(12 & 10) | (5 ^ 3)")
+            .expect_ast(|b| {
+                let twelve = b.int32(12);
+                let ten = b.int32(10);
+                let left = b.bitwise_and(twelve, ten, Type::Int32);
+                let five = b.int32(5);
+                let three = b.int32(3);
+                let right = b.bitwise_xor(five, three, Type::Int32);
+                b.bitwise_or(left, right, Type::Int32)
+            })
+            .expect_result_int(14)
+            .run()
+    }
 }
