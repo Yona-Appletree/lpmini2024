@@ -79,7 +79,6 @@ fn test_nested_scopes() {
 }
 
 #[test]
-#[ignore] // TODO: Fix compiler bug - loops generate infinite bytecode (not fixed yet - hangs during compile)
 fn test_variable_in_loop_scope() {
     let script = "
         float sum = 0.0;

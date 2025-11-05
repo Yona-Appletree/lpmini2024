@@ -71,15 +71,14 @@
   - Need to add validation that all code paths return correct type
   - 4 tests ignored
 
-#### Loop Variable Bug (1 test) - INVESTIGATED
+#### ✅ Loop Variable Bug - FIXED
 
 - `tests/variables.rs` - For loops with variable declarations in body
-  - 1 test ignored: `test_variable_in_loop_scope`
-  - **Issue**: Declaring variables inside for loop body causes infinite bytecode generation during compilation
-  - **Symptoms**: Memory usage grows exponentially (11MB -> 22MB -> 44MB -> 88MB...)
-  - **Likely cause**: Infinite recursion in AST optimizer or codegen when handling scoped variables in loops
-  - **Workaround**: Don't declare variables inside for loop bodies
-  - **Status**: Complex pre-existing bug requiring deep debugging of optimizer/codegen interaction
+  - **Issue**: Declaring variables inside for loop body caused infinite bytecode generation during compilation
+  - **Symptoms**: Memory usage grew exponentially (11MB -> 22MB -> 44MB -> 88MB...)
+  - **Root Cause**: Recursive AST structure with owned nodes caused exponential memory growth when Debug formatting or cloning during optimization
+  - **Fix**: Refactored to arena-based AST with IDs instead of owned nodes (AstPool pattern)
+  - **Status**: ✅ FIXED - Test now passes without memory issues
 
 #### Test Engine Updates Needed (2 tests)
 
