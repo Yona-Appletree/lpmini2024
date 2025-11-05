@@ -9,7 +9,6 @@ use super::lexer::{Token, TokenKind};
 use crate::lpscript::error::{Span, Type};
 
 mod expr;
-mod stmt;
 mod functions;
 
 pub struct Parser {
@@ -96,6 +95,38 @@ impl Parser {
         };
         self.advance();
         ty
+    }
+
+    pub(in crate::lpscript) fn parse_stmt(&mut self) -> Stmt {
+        match &self.current().kind {
+            TokenKind::Float | TokenKind::Int | TokenKind::Vec2 | TokenKind::Vec3 | TokenKind::Vec4 => {
+                self.parse_var_decl()
+            }
+            TokenKind::Return => self.parse_return_stmt(),
+            TokenKind::If => self.parse_if_stmt(),
+            TokenKind::While => self.parse_while_stmt(),
+            TokenKind::For => self.parse_for_stmt(),
+            TokenKind::LBrace => self.parse_block(),
+            TokenKind::Ident(name) => {
+                let name = name.clone();
+                let start = self.current().span.start;
+                self.advance();
+                
+                if matches!(self.current().kind, TokenKind::Eq) {
+                    // Assignment statement
+                    self.parse_assignment_stmt(name, start)
+                } else {
+                    // Put back the token and parse as expression statement
+                    self.pos -= 1;
+                    self.parse_expr_stmt()
+                }
+            }
+            _ => self.parse_expr_stmt(),
+        }
+    }
+
+    pub(in crate::lpscript) fn parse(&mut self) -> Expr {
+        self.parse_assignment_expr()
     }
 }
 

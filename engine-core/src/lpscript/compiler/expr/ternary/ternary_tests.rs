@@ -1,0 +1,71 @@
+/// Ternary expression tests
+#[cfg(test)]
+mod tests {
+    use crate::lpscript::compiler::expr::expr_test_util::ExprTest;
+    use crate::lpscript::compiler::test_ast::*;
+    use crate::lpscript::error::Type;
+    use crate::lpscript::vm::opcodes::LpsOpCode;
+    use crate::math::ToFixed;
+
+    #[test]
+    fn test_ternary_basic() -> Result<(), String> {
+        ExprTest::new("1.0 > 0.5 ? 1.0 : 0.0")
+            .expect_ast(ternary(
+                greater(num(1.0), num(0.5)),
+                num(1.0),
+                num(0.0),
+                Type::Fixed,
+            ))
+            .expect_opcodes(vec![
+                LpsOpCode::Push(1.0.to_fixed()),
+                LpsOpCode::Push(0.5.to_fixed()),
+                LpsOpCode::GreaterFixed,
+                LpsOpCode::Push(1.0.to_fixed()),
+                LpsOpCode::Push(0.0.to_fixed()),
+                LpsOpCode::Select,
+                LpsOpCode::Return,
+            ])
+            .expect_result_fixed(1.0) // true ? 1.0 : 0.0 = 1.0
+            .run()?;
+
+        // Test false condition
+        ExprTest::new("1.0 < 0.5 ? 1.0 : 0.0")
+            .expect_result_fixed(0.0) // false ? 1.0 : 0.0 = 0.0
+            .run()
+    }
+
+    #[test]
+    fn test_ternary_with_variables() -> Result<(), String> {
+        ExprTest::new("x > 0.5 ? 10.0 : -10.0")
+            .with_x(0.7)
+            .expect_result_fixed(10.0)
+            .run()?;
+
+        ExprTest::new("x > 0.5 ? 10.0 : -10.0")
+            .with_x(0.3)
+            .expect_result_fixed(-10.0)
+            .run()
+    }
+
+    #[test]
+    fn test_ternary_nested() -> Result<(), String> {
+        ExprTest::new("1.0 > 0.5 ? (2.0 > 1.0 ? 1.0 : 2.0) : 3.0")
+            .expect_result_fixed(1.0) // true ? (true ? 1.0 : 2.0) : 3.0 = 1.0
+            .run()?;
+
+        ExprTest::new("0.0 > 0.5 ? 10.0 : (1.0 > 0.5 ? 20.0 : 30.0)")
+            .expect_result_fixed(20.0) // false ? 10.0 : (true ? 20.0 : 30.0) = 20.0
+            .run()
+    }
+
+    #[test]
+    fn test_ternary_with_comparison() -> Result<(), String> {
+        ExprTest::new("(1.0 == 1.0) ? 10.0 : 20.0")
+            .expect_result_fixed(10.0)
+            .run()?;
+
+        ExprTest::new("(1.0 != 1.0) ? 10.0 : 20.0")
+            .expect_result_fixed(20.0)
+            .run()
+    }
+}

@@ -1,15 +1,9 @@
-/// Compiler module - groups all compiler phases by feature
+/// Compiler module
 ///
-/// This is a new organization that groups parsing, code generation, and type checking
-/// by language feature rather than by compiler phase.
-
-pub mod parser;
-pub mod generator;
-
+/// Organizes compilation into feature-grouped submodules.
 pub mod expr;
+pub mod stmt;
 
-#[cfg(test)]
-pub mod test_util;
-#[cfg(test)]
-pub mod test_expr;
-
+pub mod generator;
+pub mod parser;
+pub mod test_ast;

@@ -1,8 +1,8 @@
 /// Integration tests for comparison operators using builder pattern test utilities
 #[cfg(test)]
 mod tests {
-    use crate::lpscript::compiler::test_expr::*;
-    use crate::lpscript::compiler::test_util::TestCase;
+    use crate::lpscript::compiler::expr::expr_test_util::ExprTest;
+    use crate::lpscript::compiler::test_ast::*;
     use crate::lpscript::vm::opcodes::LpsOpCode;
     use crate::math::ToFixed;
 
@@ -14,7 +14,7 @@ mod tests {
     #[test]
     fn test_less_than() -> Result<(), String> {
         // Test with literals: AST + opcodes + result
-        TestCase::new("1.0 < 2.0")
+        ExprTest::new("1.0 < 2.0")
             .expect_ast(less(num(1.0), num(2.0)))
             .expect_opcodes(vec![
                 LpsOpCode::Push(1.0.to_fixed()),
@@ -26,13 +26,13 @@ mod tests {
             .run()?;
 
         // Test with variable: true case
-        TestCase::new("x < 0.5")
+        ExprTest::new("x < 0.5")
             .with_x(0.3)
             .expect_result_bool(true)
             .run()?;
 
         // Test with variable: false case
-        TestCase::new("x < 0.5")
+        ExprTest::new("x < 0.5")
             .with_x(0.7)
             .expect_result_bool(false)
             .run()
@@ -41,7 +41,7 @@ mod tests {
     #[test]
     fn test_greater_than() -> Result<(), String> {
         // Test with literals: AST + opcodes + result
-        TestCase::new("5.0 > 3.0")
+        ExprTest::new("5.0 > 3.0")
             .expect_ast(greater(num(5.0), num(3.0)))
             .expect_opcodes(vec![
                 LpsOpCode::Push(5.0.to_fixed()),
@@ -53,13 +53,13 @@ mod tests {
             .run()?;
 
         // Test with variable: true case
-        TestCase::new("x > 0.5")
+        ExprTest::new("x > 0.5")
             .with_x(0.6)
             .expect_result_bool(true)
             .run()?;
 
         // Test with variable: false case
-        TestCase::new("x > 0.5")
+        ExprTest::new("x > 0.5")
             .with_x(0.4)
             .expect_result_bool(false)
             .run()
@@ -68,7 +68,7 @@ mod tests {
     #[test]
     fn test_less_equal() -> Result<(), String> {
         // Test with literals: AST + opcodes + result
-        TestCase::new("2.0 <= 3.0")
+        ExprTest::new("2.0 <= 3.0")
             .expect_ast(less_eq(num(2.0), num(3.0)))
             .expect_opcodes(vec![
                 LpsOpCode::Push(2.0.to_fixed()),
@@ -80,19 +80,19 @@ mod tests {
             .run()?;
 
         // Test with variable: equal case (should be true)
-        TestCase::new("x <= 0.5")
+        ExprTest::new("x <= 0.5")
             .with_x(0.5)
             .expect_result_bool(true)
             .run()?;
 
         // Test with variable: less case (should be true)
-        TestCase::new("x <= 0.5")
+        ExprTest::new("x <= 0.5")
             .with_x(0.3)
             .expect_result_bool(true)
             .run()?;
 
         // Test with variable: greater case (should be false)
-        TestCase::new("x <= 0.5")
+        ExprTest::new("x <= 0.5")
             .with_x(0.7)
             .expect_result_bool(false)
             .run()
@@ -101,7 +101,7 @@ mod tests {
     #[test]
     fn test_greater_equal() -> Result<(), String> {
         // Test with literals: AST + opcodes + result
-        TestCase::new("5.0 >= 3.0")
+        ExprTest::new("5.0 >= 3.0")
             .expect_ast(greater_eq(num(5.0), num(3.0)))
             .expect_opcodes(vec![
                 LpsOpCode::Push(5.0.to_fixed()),
@@ -113,19 +113,19 @@ mod tests {
             .run()?;
 
         // Test with variable: equal case (should be true)
-        TestCase::new("x >= 0.5")
+        ExprTest::new("x >= 0.5")
             .with_x(0.5)
             .expect_result_bool(true)
             .run()?;
 
         // Test with variable: greater case (should be true)
-        TestCase::new("x >= 0.5")
+        ExprTest::new("x >= 0.5")
             .with_x(0.7)
             .expect_result_bool(true)
             .run()?;
 
         // Test with variable: less case (should be false)
-        TestCase::new("x >= 0.5")
+        ExprTest::new("x >= 0.5")
             .with_x(0.3)
             .expect_result_bool(false)
             .run()
@@ -134,7 +134,7 @@ mod tests {
     #[test]
     fn test_equal() -> Result<(), String> {
         // Test with literals: AST + opcodes + result
-        TestCase::new("2.0 == 2.0")
+        ExprTest::new("2.0 == 2.0")
             .expect_ast(eq(num(2.0), num(2.0)))
             .expect_opcodes(vec![
                 LpsOpCode::Push(2.0.to_fixed()),
@@ -146,13 +146,13 @@ mod tests {
             .run()?;
 
         // Test with variable: equal case
-        TestCase::new("x == 0.5")
+        ExprTest::new("x == 0.5")
             .with_x(0.5)
             .expect_result_bool(true)
             .run()?;
 
         // Test with variable: not equal case
-        TestCase::new("x == 0.5")
+        ExprTest::new("x == 0.5")
             .with_x(0.3)
             .expect_result_bool(false)
             .run()
@@ -161,7 +161,7 @@ mod tests {
     #[test]
     fn test_not_equal() -> Result<(), String> {
         // Test with literals: AST + opcodes + result
-        TestCase::new("2.0 != 3.0")
+        ExprTest::new("2.0 != 3.0")
             .expect_ast(not_eq(num(2.0), num(3.0)))
             .expect_opcodes(vec![
                 LpsOpCode::Push(2.0.to_fixed()),
@@ -173,13 +173,13 @@ mod tests {
             .run()?;
 
         // Test with variable: not equal case
-        TestCase::new("x != 0.5")
+        ExprTest::new("x != 0.5")
             .with_x(0.3)
             .expect_result_bool(true)
             .run()?;
 
         // Test with variable: equal case
-        TestCase::new("x != 0.5")
+        ExprTest::new("x != 0.5")
             .with_x(0.5)
             .expect_result_bool(false)
             .run()
@@ -192,19 +192,19 @@ mod tests {
     #[test]
     fn test_comparison_with_logical_and() -> Result<(), String> {
         // Test chained comparisons: x in range (0.3, 0.7)
-        TestCase::new("x > 0.3 && x < 0.7")
+        ExprTest::new("x > 0.3 && x < 0.7")
             .with_x(0.5)
             .expect_result_bool(true)
             .run()?;
 
         // Value below range
-        TestCase::new("x > 0.3 && x < 0.7")
+        ExprTest::new("x > 0.3 && x < 0.7")
             .with_x(0.2)
             .expect_result_bool(false)
             .run()?;
 
         // Value above range
-        TestCase::new("x > 0.3 && x < 0.7")
+        ExprTest::new("x > 0.3 && x < 0.7")
             .with_x(0.8)
             .expect_result_bool(false)
             .run()
@@ -213,23 +213,23 @@ mod tests {
     #[test]
     fn test_comparison_with_ternary() -> Result<(), String> {
         // Comparison used in ternary condition
-        TestCase::new("x > 0.5 ? 1.0 : 0.0")
+        ExprTest::new("x > 0.5 ? 1.0 : 0.0")
             .with_x(0.6)
             .expect_result_fixed(1.0)
             .run()?;
 
-        TestCase::new("x > 0.5 ? 1.0 : 0.0")
+        ExprTest::new("x > 0.5 ? 1.0 : 0.0")
             .with_x(0.4)
             .expect_result_fixed(0.0)
             .run()?;
 
         // Complex: chained comparisons in ternary
-        TestCase::new("x > 0.3 && x < 0.7 ? 10.0 : -10.0")
+        ExprTest::new("x > 0.3 && x < 0.7 ? 10.0 : -10.0")
             .with_x(0.5)
             .expect_result_fixed(10.0)
             .run()?;
 
-        TestCase::new("x > 0.3 && x < 0.7 ? 10.0 : -10.0")
+        ExprTest::new("x > 0.3 && x < 0.7 ? 10.0 : -10.0")
             .with_x(0.2)
             .expect_result_fixed(-10.0)
             .run()
@@ -238,19 +238,19 @@ mod tests {
     #[test]
     fn test_multiple_comparison_types() -> Result<(), String> {
         // Mix different comparison operators
-        TestCase::new("x >= 0.0 && x <= 1.0")
+        ExprTest::new("x >= 0.0 && x <= 1.0")
             .with_x(0.5)
             .expect_result_bool(true)
             .run()?;
 
         // Inequality with equality
-        TestCase::new("x != 0.0 && y == 1.0")
+        ExprTest::new("x != 0.0 && y == 1.0")
             .with_x(0.5)
             .with_y(1.0)
             .expect_result_bool(true)
             .run()?;
 
-        TestCase::new("x != 0.0 && y == 1.0")
+        ExprTest::new("x != 0.0 && y == 1.0")
             .with_x(0.0)
             .with_y(1.0)
             .expect_result_bool(false)

@@ -171,7 +171,7 @@ impl TypeChecker {
     }
 
     /// Type check a statement
-    fn check_stmt(
+    pub(crate) fn check_stmt(
         stmt: &mut Stmt,
         symbols: &mut SymbolTable,
         func_table: &FunctionTable,
@@ -685,7 +685,7 @@ impl TypeChecker {
         }
     }
 
-    fn function_return_type(name: &str, args: &[Expr]) -> Result<Type, TypeError> {
+    pub(crate) fn function_return_type(name: &str, args: &[Expr]) -> Result<Type, TypeError> {
         match name {
             // Math functions: Fixed -> Fixed
             "sin" | "cos" | "tan" | "abs" | "floor" | "ceil" | "sqrt" | "sign" | "frac"
