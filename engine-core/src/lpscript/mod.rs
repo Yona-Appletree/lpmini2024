@@ -68,6 +68,7 @@
 /// let program = compile_expr_with_options("x * 1.0", &options).unwrap();
 /// ```
 extern crate alloc;
+use alloc::vec;
 use alloc::vec::Vec;
 
 pub mod shared;
@@ -180,28 +181,23 @@ pub fn compile_script_with_options(
     // Optimize program AST
     let (optimized_program, pool) = optimize::optimize_ast_program(typed_program, pool, options);
 
-    // Generate opcodes
-    let (opcodes, local_count, local_types) =
-        codegen::CodeGenerator::generate_program(&pool, &optimized_program);
+    // Generate functions using new API
+    let functions = codegen::CodeGenerator::generate_program_with_functions(&pool, &optimized_program);
 
-    // Optimize opcodes
-    let optimized_opcodes = optimize::optimize_opcodes(opcodes, options);
-
-    // Create LocalVarDef entries for all locals
-    let locals: Vec<vm::LocalVarDef> = (0..local_count)
-        .map(|i| {
-            let ty = local_types.get(&i).cloned().unwrap_or(shared::Type::Fixed);
-            vm::LocalVarDef::new(alloc::format!("local_{}", i), ty)
+    // Optimize opcodes for each function
+    let optimized_functions: Vec<vm::FunctionDef> = functions
+        .into_iter()
+        .map(|func| {
+            let optimized_opcodes = optimize::optimize_opcodes(func.opcodes.clone(), options);
+            vm::FunctionDef::new(func.name.clone(), func.return_type.clone())
+                .with_params(func.params.clone())
+                .with_locals(func.locals.clone())
+                .with_opcodes(optimized_opcodes)
         })
         .collect();
 
-    // Create main function with all the code
-    let main_function = vm::FunctionDef::new("main".into(), shared::Type::Void)
-        .with_locals(locals)
-        .with_opcodes(optimized_opcodes);
-
     Ok(LpsProgram::new("script".into())
-        .with_functions(vec![main_function])
+        .with_functions(optimized_functions)
         .with_source(input.into()))
 }
 

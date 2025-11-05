@@ -200,7 +200,7 @@ impl ScriptTest {
                     ));
                 }
             } else {
-                errors.push("Program has no main function".to_string());
+                errors.push(String::from("Program has no main function"));
             }
         }
 

@@ -67,7 +67,18 @@ impl<'a> CodeGenerator<'a> {
         code
     }
 
-    /// Generate opcodes for a program (script mode)
+    /// Generate functions for a program (new API)
+    pub fn generate_program_with_functions(
+        pool: &crate::lpscript::compiler::ast::AstPool,
+        program: &Program,
+    ) -> Vec<crate::lpscript::vm::FunctionDef> {
+        program::gen_program_with_functions(pool, program, |pool, stmt_id, code, locals, func_offsets| {
+            let mut gen = CodeGenerator::new(code, locals, func_offsets);
+            gen.gen_stmt_id(pool, stmt_id);
+        })
+    }
+
+    /// Generate opcodes for a program (script mode) - Legacy API
     /// Returns (opcodes, local_count, local_types) tuple
     pub fn generate_program(
         pool: &crate::lpscript::compiler::ast::AstPool,

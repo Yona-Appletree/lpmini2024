@@ -3,6 +3,7 @@ extern crate alloc;
 use alloc::boxed::Box;
 use alloc::format;
 use alloc::string::String;
+use alloc::vec;
 use alloc::vec::Vec;
 
 use crate::lpscript::compiler::ast::{AstPool, ExprId};
@@ -295,7 +296,7 @@ impl ExprTest {
                     ));
                 }
             } else {
-                errors.push("Program has no main function".to_string());
+                errors.push(String::from("Program has no main function"));
             }
         }
 
