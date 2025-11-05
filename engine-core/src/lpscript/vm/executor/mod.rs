@@ -1,6 +1,5 @@
 /// LPS VM executor - runs compiled programs
 extern crate alloc;
-use alloc::vec;
 use alloc::vec::Vec;
 
 use super::call_stack::CallStack;
@@ -42,6 +41,7 @@ pub struct LpsVm<'a> {
     pub(super) locals: LocalsStorage,
     pub(super) call_stack: CallStack,
     pub(super) limits: VmLimits,
+    pub(super) current_fn_idx: usize,  // Track which function we're executing
 }
 
 impl<'a> LpsVm<'a> {
@@ -64,6 +64,7 @@ impl<'a> LpsVm<'a> {
             locals,
             call_stack: CallStack::new(limits.max_call_stack_depth),
             limits,
+            current_fn_idx: 0,  // Start in main
         })
     }
 
@@ -104,6 +105,7 @@ impl<'a> LpsVm<'a> {
         self.stack.reset();
         self.pc = 0;
         self.call_stack.reset(0);
+        self.current_fn_idx = 0;  // Reset to main
 
         // Store built-in values for Load operations
         let x_norm = x;
@@ -125,19 +127,19 @@ impl<'a> LpsVm<'a> {
             }
 
             // Get opcode from current function (new system) or legacy flat array
-            let opcode = if let Some(main_fn) = self.program.main_function() {
-                // New function-based system
-                if self.pc >= main_fn.opcodes.len() {
+            let opcode = if let Some(func) = self.program.function(self.current_fn_idx) {
+                // New function-based system - fetch from current function
+                if self.pc >= func.opcodes.len() {
                     return Err(RuntimeErrorWithContext {
                         error: RuntimeError::ProgramCounterOutOfBounds {
                             pc: self.pc,
-                            max: main_fn.opcodes.len(),
+                            max: func.opcodes.len(),
                         },
                         pc: self.pc,
                         opcode: "EOF",
                     });
                 }
-                &main_fn.opcodes[self.pc]
+                &func.opcodes[self.pc]
             } else {
                 // Legacy flat opcodes system (for backward compat)
                 #[allow(deprecated)]
@@ -174,8 +176,8 @@ impl<'a> LpsVm<'a> {
 
     /// Get the length of the current function's opcodes (helper for bounds checking)
     pub(super) fn current_function_len(&self) -> usize {
-        if let Some(main_fn) = self.program.main_function() {
-            main_fn.opcodes.len()
+        if let Some(func) = self.program.function(self.current_fn_idx) {
+            func.opcodes.len()
         } else {
             #[allow(deprecated)]
             self.program.opcodes.len()
@@ -235,7 +237,6 @@ pub fn execute_program_lps(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::math::ToFixed;
 
     #[test]
     fn test_vm_creation() {

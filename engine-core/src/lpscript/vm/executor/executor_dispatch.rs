@@ -8,8 +8,8 @@ use alloc::vec::Vec;
 use super::LpsVm;
 use crate::lpscript::vm::error::{RuntimeError, RuntimeErrorWithContext};
 use crate::lpscript::vm::opcodes::{
-    arrays, comparisons, control, fixed_advanced, fixed_basic, fixed_logic, int32, int32_compare,
-    load, locals, textures, vec2, vec3, vec4, LpsOpCode, ReturnAction,
+    arrays, comparisons, control_flow, fixed_advanced, fixed_basic, fixed_logic, int32,
+    int32_compare, load, locals, textures, vec2, vec3, vec4, LpsOpCode, ReturnAction,
 };
 use crate::math::Fixed;
 
@@ -101,22 +101,17 @@ impl<'a> LpsVm<'a> {
 
             // === Control Flow ===
             LpsOpCode::Jump(offset) => {
-                let new_pc = (self.pc as i32) + offset + 1;
                 let max_pc = self.current_function_len();
-                if new_pc < 0 || new_pc as usize >= max_pc {
-                    return Err(self.runtime_error(RuntimeError::ProgramCounterOutOfBounds {
-                        pc: new_pc as usize,
-                        max: max_pc,
-                    }));
-                }
-                self.pc = new_pc as usize;
+                self.pc = control_flow::exec_jump(self.pc, *offset, max_pc)
+                    .map_err(|e| self.runtime_error(e))?;
                 Ok(None)
             }
 
             LpsOpCode::JumpIfZero(offset) => {
                 let offset = *offset;
-                if let Some(new_pc) = control::exec_jump_if_zero(&mut self.stack, self.pc, offset)
-                    .map_err(|e| self.runtime_error(e))?
+                if let Some(new_pc) =
+                    control_flow::exec_jump_if_zero(&mut self.stack, self.pc, offset)
+                        .map_err(|e| self.runtime_error(e))?
                 {
                     let max_pc = self.current_function_len();
                     if new_pc >= max_pc {
@@ -135,7 +130,7 @@ impl<'a> LpsVm<'a> {
             LpsOpCode::JumpIfNonZero(offset) => {
                 let offset = *offset;
                 if let Some(new_pc) =
-                    control::exec_jump_if_nonzero(&mut self.stack, self.pc, offset)
+                    control_flow::exec_jump_if_nonzero(&mut self.stack, self.pc, offset)
                         .map_err(|e| self.runtime_error(e))?
                 {
                     let max_pc = self.current_function_len();
@@ -152,36 +147,29 @@ impl<'a> LpsVm<'a> {
                 Ok(None)
             }
 
-            LpsOpCode::Call(offset) => {
-                // TODO: Update for new function-based system
-                // For now, use temporary compatibility values
-                let return_pc = self.pc + 1;
-                let return_fn_idx = 0; // Placeholder
-                let new_frame_base = self.locals.local_count(); // Use current local count as frame base
-                let current_locals_sp = self.locals.local_count();
-                let new_fn_idx = 0; // Placeholder
+            LpsOpCode::Call(fn_idx) => {
+                let (new_pc, new_fn_idx) = control_flow::exec_call(
+                    self.program,
+                    self.pc,
+                    self.current_fn_idx,
+                    *fn_idx as usize,
+                    &mut self.locals,
+                    &mut self.call_stack,
+                )
+                .map_err(|e| self.runtime_error(e))?;
 
-                self.call_stack
-                    .push_frame(
-                        return_pc,
-                        return_fn_idx,
-                        new_frame_base,
-                        current_locals_sp,
-                        new_fn_idx,
-                    )
-                    .map_err(|e| self.runtime_error(e))?;
-
-                // Jump to function (old offset-based system)
-                self.pc = *offset as usize;
+                self.pc = new_pc;
+                self.current_fn_idx = new_fn_idx;
                 Ok(None)
             }
 
             LpsOpCode::Return => {
-                match control::exec_return(&self.stack, &mut self.call_stack)
+                match control_flow::exec_return(&self.stack, &mut self.call_stack, &mut self.locals)
                     .map_err(|e| self.runtime_error(e))?
                 {
-                    ReturnAction::Continue(return_pc) => {
+                    ReturnAction::Continue(return_pc, return_fn_idx) => {
                         self.pc = return_pc;
+                        self.current_fn_idx = return_fn_idx; // Switch back to caller
                         Ok(None)
                     }
                     ReturnAction::Exit(values) => Ok(Some(values)),
@@ -190,7 +178,7 @@ impl<'a> LpsVm<'a> {
 
             // === Select (Ternary) ===
             LpsOpCode::Select => {
-                control::exec_select(&mut self.stack).map_err(|e| self.runtime_error(e))?;
+                control_flow::exec_select(&mut self.stack).map_err(|e| self.runtime_error(e))?;
                 self.pc += 1;
                 Ok(None)
             }

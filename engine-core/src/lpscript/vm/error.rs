@@ -42,6 +42,7 @@ pub enum RuntimeError {
     CallStackOverflow {
         depth: usize,
     },
+    InvalidFunctionIndex,
 }
 
 impl RuntimeError {
@@ -122,6 +123,9 @@ impl fmt::Display for RuntimeError {
             }
             RuntimeError::CallStackOverflow { depth } => {
                 write!(f, "Call stack overflow at depth {}", depth)
+            }
+            RuntimeError::InvalidFunctionIndex => {
+                write!(f, "Invalid function index")
             }
         }
     }
