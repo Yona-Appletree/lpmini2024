@@ -64,7 +64,7 @@ mod return_path_tests {
     use crate::lpscript::compiler::lexer::Lexer;
     use crate::lpscript::compiler::parser::Parser;
     use crate::lpscript::compiler::typechecker::TypeChecker;
-    use crate::lpscript::error::{TypeError, TypeErrorKind};
+    use crate::lpscript::compiler::error::{TypeError, TypeErrorKind};
 
     fn parse_and_typecheck_program(input: &str) -> Result<Program, TypeError> {
         let mut lexer = Lexer::new(input);

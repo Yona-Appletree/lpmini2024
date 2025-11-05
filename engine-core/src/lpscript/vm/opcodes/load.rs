@@ -1,5 +1,5 @@
 /// Load coordinate/builtin variable operations
-use crate::lpscript::error::RuntimeError;
+use crate::lpscript::vm::error::RuntimeError;
 use crate::math::{Fixed, FIXED_ONE, FIXED_SHIFT};
 use crate::test_engine::LoadSource;
 

@@ -2,7 +2,7 @@
 extern crate alloc;
 use crate::lpscript::compiler::ast::{Expr, Stmt};
 use crate::lpscript::compiler::typechecker::{FunctionTable, SymbolTable, TypeChecker};
-use crate::lpscript::error::TypeError;
+use crate::lpscript::compiler::error::TypeError;
 use alloc::boxed::Box;
 
 impl TypeChecker {
@@ -14,6 +14,8 @@ impl TypeChecker {
         symbols: &mut SymbolTable,
         func_table: &FunctionTable,
     ) -> Result<(), TypeError> {
+        symbols.push_scope();
+
         if let Some(init_stmt) = init {
             Self::check_stmt(init_stmt, symbols, func_table)?;
         }
@@ -27,6 +29,8 @@ impl TypeChecker {
         }
 
         Self::check_stmt(body, symbols, func_table)?;
+
+        symbols.pop_scope();
 
         Ok(())
     }

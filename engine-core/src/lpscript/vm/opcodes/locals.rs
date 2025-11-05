@@ -1,5 +1,5 @@
 /// Local variable operations
-use crate::lpscript::error::RuntimeError;
+use crate::lpscript::vm::error::RuntimeError;
 use crate::lpscript::vm::locals::LocalType;
 use crate::math::Fixed;
 extern crate alloc;

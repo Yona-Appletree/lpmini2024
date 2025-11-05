@@ -1,6 +1,6 @@
 /// Vec2 opcodes - vectors are represented as consecutive stack slots
 use crate::math::{Fixed, Vec2};
-use crate::lpscript::error::RuntimeError;
+use crate::lpscript::vm::error::RuntimeError;
 
 /// Execute AddVec2: pop 4 (b.y, b.x, a.y, a.x), push 2 ((a+b).y, (a+b).x)
 /// Stack grows upward: [..., a.x, a.y, b.x, b.y] -> [..., result.x, result.y]

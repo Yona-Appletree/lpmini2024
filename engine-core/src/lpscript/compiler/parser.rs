@@ -4,7 +4,7 @@ use alloc::vec::Vec;
 
 use crate::lpscript::compiler::ast::{Expr, Program, Stmt};
 use crate::lpscript::compiler::lexer::{Token, TokenKind};
-use crate::lpscript::error::{Span, Type};
+use crate::lpscript::shared::{Span, Type};
 
 // Function parsing is now in compiler::func::func_parse
 // Include it here to add impl methods to Parser

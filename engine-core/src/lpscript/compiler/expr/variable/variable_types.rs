@@ -3,7 +3,8 @@ extern crate alloc;
 use alloc::string::String;
 
 use crate::lpscript::compiler::typechecker::{SymbolTable, TypeChecker};
-use crate::lpscript::error::{Type, TypeError, TypeErrorKind};
+use crate::lpscript::compiler::error::{TypeError, TypeErrorKind};
+use crate::lpscript::shared::Type;
 
 impl TypeChecker {
     /// Type check variable reference
@@ -12,7 +13,7 @@ impl TypeChecker {
     pub(crate) fn check_variable(
         name: &str,
         symbols: &SymbolTable,
-        span: crate::lpscript::error::Span,
+        span: crate::lpscript::shared::Span,
     ) -> Result<Type, TypeError> {
         // Check built-ins first, then symbol table
         let var_type = match name {

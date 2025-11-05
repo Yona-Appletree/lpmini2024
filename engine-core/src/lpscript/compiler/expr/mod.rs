@@ -5,6 +5,7 @@ pub mod call;
 pub mod compare;
 pub mod constructors;
 pub mod expr_test_util;
+pub(crate) mod expr_types;
 pub mod literals;
 pub mod logical;
 pub mod swizzle;

@@ -3,7 +3,7 @@ extern crate alloc;
 
 use crate::lpscript::compiler::ast::{Expr, ExprKind};
 use crate::lpscript::compiler::codegen::CodeGenerator;
-use crate::lpscript::error::Type;
+use crate::lpscript::shared::Type;
 use crate::lpscript::vm::opcodes::LpsOpCode;
 
 impl<'a> CodeGenerator<'a> {

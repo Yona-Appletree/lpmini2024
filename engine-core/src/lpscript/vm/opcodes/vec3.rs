@@ -1,6 +1,6 @@
 /// Vec3 opcodes - vectors are represented as consecutive stack slots
 use crate::math::{Fixed, Vec3};
-use crate::lpscript::error::RuntimeError;
+use crate::lpscript::vm::error::RuntimeError;
 
 /// Execute AddVec3: pop 6 (b.z, b.y, b.x, a.z, a.y, a.x), push 3 ((a+b).z, (a+b).y, (a+b).x)
 /// Stack grows upward: [..., a.x, a.y, a.z, b.x, b.y, b.z] -> [..., result.x, result.y, result.z]

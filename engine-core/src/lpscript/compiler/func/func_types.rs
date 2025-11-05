@@ -7,7 +7,8 @@ use alloc::vec::Vec;
 
 use crate::lpscript::compiler::ast::{FunctionDef, Stmt, StmtKind};
 use crate::lpscript::compiler::typechecker::{SymbolTable, TypeChecker};
-use crate::lpscript::error::{Type, TypeError, TypeErrorKind};
+use crate::lpscript::compiler::error::{TypeError, TypeErrorKind};
+use crate::lpscript::shared::Type;
 
 /// Function signature for user-defined functions
 #[derive(Debug, Clone)]

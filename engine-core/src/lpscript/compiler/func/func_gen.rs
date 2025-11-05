@@ -7,7 +7,7 @@ use alloc::vec::Vec;
 use crate::lpscript::compiler::ast::{FunctionDef, Stmt};
 use crate::lpscript::compiler::codegen::local_allocator::LocalAllocator;
 use crate::lpscript::compiler::codegen::CodeGenerator;
-use crate::lpscript::error::Type;
+use crate::lpscript::shared::Type;
 use crate::lpscript::vm::opcodes::LpsOpCode;
 
 /// Generate code for a single function definition

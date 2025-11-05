@@ -2,7 +2,7 @@
 extern crate alloc;
 use crate::lpscript::compiler::ast::Expr;
 use crate::lpscript::compiler::typechecker::{FunctionTable, SymbolTable, TypeChecker};
-use crate::lpscript::error::TypeError;
+use crate::lpscript::compiler::error::TypeError;
 
 impl TypeChecker {
     pub(crate) fn check_expr_stmt(

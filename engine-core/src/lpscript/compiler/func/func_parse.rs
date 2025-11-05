@@ -1,8 +1,8 @@
 use crate::lpscript::compiler::ast::{FunctionDef, Parameter};
 /// Function definition parsing methods
 use crate::lpscript::compiler::parser::Parser;
-use crate::lpscript::error::Span;
 use crate::lpscript::lexer::TokenKind;
+use crate::lpscript::shared::Span;
 use alloc::string::String;
 use alloc::vec::Vec;
 

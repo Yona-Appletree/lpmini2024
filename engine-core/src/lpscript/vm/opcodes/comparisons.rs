@@ -2,7 +2,7 @@
 /// 
 /// These return FIXED_ONE (1.0) for true, 0 for false to match GLSL semantics
 use crate::math::{Fixed, FIXED_ONE};
-use crate::lpscript::error::RuntimeError;
+use crate::lpscript::vm::error::RuntimeError;
 
 /// Execute GreaterFixed: pop b, a; push (a > b ? 1.0 : 0.0)
 #[inline(always)]

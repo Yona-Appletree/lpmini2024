@@ -1,6 +1,6 @@
 /// Vec4 opcodes - vectors are represented as consecutive stack slots
 use crate::math::{Fixed, Vec4};
-use crate::lpscript::error::RuntimeError;
+use crate::lpscript::vm::error::RuntimeError;
 
 /// Execute AddVec4: pop 8, push 4
 /// Stack: [..., a.x, a.y, a.z, a.w, b.x, b.y, b.z, b.w] -> [..., result.x, result.y, result.z, result.w]

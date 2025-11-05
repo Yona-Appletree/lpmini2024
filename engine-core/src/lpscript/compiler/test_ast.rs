@@ -12,7 +12,7 @@ use alloc::string::String;
 use alloc::vec::Vec;
 
 use crate::lpscript::compiler::ast::{Expr, ExprKind};
-use crate::lpscript::error::{Span, Type};
+use crate::lpscript::shared::{Span, Type};
 
 // ============================================================================
 // Leaf nodes (return Expr with auto-typed)

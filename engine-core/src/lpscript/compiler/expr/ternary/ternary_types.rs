@@ -3,7 +3,8 @@ extern crate alloc;
 
 use crate::lpscript::compiler::ast::Expr;
 use crate::lpscript::compiler::typechecker::{FunctionTable, SymbolTable, TypeChecker};
-use crate::lpscript::error::{Type, TypeError, TypeErrorKind};
+use crate::lpscript::compiler::error::{TypeError, TypeErrorKind};
+use crate::lpscript::shared::Type;
 use alloc::boxed::Box;
 
 impl TypeChecker {
@@ -16,7 +17,7 @@ impl TypeChecker {
         false_expr: &mut Box<Expr>,
         symbols: &mut SymbolTable,
         func_table: &FunctionTable,
-        span: crate::lpscript::error::Span,
+        span: crate::lpscript::shared::Span,
     ) -> Result<Type, TypeError> {
         Self::infer_type(condition, symbols, func_table)?;
         Self::infer_type(true_expr, symbols, func_table)?;

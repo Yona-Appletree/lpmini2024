@@ -2,7 +2,7 @@
 extern crate alloc;
 
 use crate::lpscript::compiler::typechecker::TypeChecker;
-use crate::lpscript::error::Type;
+use crate::lpscript::shared::Type;
 
 impl TypeChecker {
     /// Type check number literal

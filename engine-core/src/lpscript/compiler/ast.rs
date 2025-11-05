@@ -4,7 +4,7 @@ use alloc::vec::Vec;
 use alloc::string::String;
 use alloc::boxed::Box;
 
-use crate::lpscript::error::{Span, Type};
+use crate::lpscript::shared::{Span, Type};
 
 /// Function parameter
 #[derive(Debug, Clone)]

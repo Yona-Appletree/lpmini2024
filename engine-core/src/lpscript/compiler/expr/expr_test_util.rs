@@ -7,7 +7,7 @@ use alloc::vec::Vec;
 use crate::lpscript::compiler::ast::{Expr, ExprKind};
 use crate::lpscript::compiler::codegen;
 use crate::lpscript::compiler::{lexer, parser, typechecker};
-use crate::lpscript::error::Type;
+use crate::lpscript::shared::Type;
 use crate::lpscript::vm::{LocalType, LpsOpCode, LpsProgram, LpsVm, VmLimits};
 use crate::math::{Fixed, ToFixed, Vec2, Vec3, Vec4};
 

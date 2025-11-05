@@ -1,7 +1,7 @@
 /// Logical operations for fixed-point values
 /// 
 /// These treat non-zero as true, zero as false, and return FIXED_ONE for true, 0 for false
-use crate::lpscript::error::RuntimeError;
+use crate::lpscript::vm::error::RuntimeError;
 use crate::math::FIXED_ONE;
 
 /// Execute AndFixed: pop b, a; push (a && b ? 1.0 : 0.0)

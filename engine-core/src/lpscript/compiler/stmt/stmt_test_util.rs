@@ -423,7 +423,7 @@ fn stmt_eq_ignore_spans(
 mod tests {
     use super::*;
     use crate::lpscript::compiler::stmt::stmt_test_ast::*;
-    use crate::lpscript::error::Type;
+    use crate::lpscript::shared::Type;
 
     #[test]
     fn test_script_simple_var_decl() {

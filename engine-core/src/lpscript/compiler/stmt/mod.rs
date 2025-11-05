@@ -6,6 +6,7 @@ pub mod expr_stmt;
 pub mod for_loop;
 pub mod if_stmt;
 pub mod return_stmt;
+pub(crate) mod stmt_types;
 pub mod var_decl;
 pub mod while_loop;
 

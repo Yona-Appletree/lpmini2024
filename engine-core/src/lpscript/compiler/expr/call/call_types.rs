@@ -5,26 +5,59 @@ use alloc::string::ToString;
 use alloc::vec;
 
 use crate::lpscript::compiler::ast::Expr;
+use crate::lpscript::compiler::error::{TypeError, TypeErrorKind};
 use crate::lpscript::compiler::typechecker::{FunctionTable, SymbolTable, TypeChecker};
-use crate::lpscript::error::{Span, Type, TypeError, TypeErrorKind};
+use crate::lpscript::shared::{Span, Type};
 
 impl TypeChecker {
     /// Type check function call
     ///
     /// Infers the return type based on the function signature.
+    /// Handles both user-defined and built-in functions.
     pub(crate) fn check_function_call(
         name: &str,
         args: &mut [Expr],
         symbols: &mut SymbolTable,
         func_table: &FunctionTable,
+        span: Span,
     ) -> Result<Type, TypeError> {
         // Type check all arguments first
         for arg in args.iter_mut() {
             Self::infer_type(arg, symbols, func_table)?;
         }
 
-        // Infer function return type (calls existing function_return_type method)
-        Self::function_return_type(name, args)
+        // Check if it's a user-defined function first
+        if let Some(sig) = func_table.lookup(name) {
+            // Validate argument count
+            if args.len() != sig.params.len() {
+                return Err(TypeError {
+                    kind: TypeErrorKind::InvalidArgumentCount {
+                        expected: sig.params.len(),
+                        found: args.len(),
+                    },
+                    span,
+                });
+            }
+
+            // Validate argument types
+            for (arg, expected_ty) in args.iter().zip(sig.params.iter()) {
+                let arg_ty = arg.ty.as_ref().unwrap();
+                if arg_ty != expected_ty {
+                    return Err(TypeError {
+                        kind: TypeErrorKind::Mismatch {
+                            expected: expected_ty.clone(),
+                            found: arg_ty.clone(),
+                        },
+                        span: arg.span,
+                    });
+                }
+            }
+
+            Ok(sig.return_type.clone())
+        } else {
+            // Built-in function
+            Self::function_return_type(name, args)
+        }
     }
 
     /// Determine return type of built-in functions

@@ -8,7 +8,7 @@ use alloc::string::String;
 use alloc::vec::Vec;
 
 use crate::lpscript::compiler::ast::{Expr, ExprKind, Program, Stmt, StmtKind};
-use crate::lpscript::error::{Span, Type};
+use crate::lpscript::shared::{Span, Type};
 
 // Re-export expression helpers for building statement contents
 pub use crate::lpscript::compiler::test_ast::*;

@@ -3,7 +3,8 @@ extern crate alloc;
 
 use crate::lpscript::compiler::ast::Expr;
 use crate::lpscript::compiler::typechecker::{FunctionTable, SymbolTable, TypeChecker};
-use crate::lpscript::error::{Type, TypeError};
+use crate::lpscript::compiler::error::TypeError;
+use crate::lpscript::shared::Type;
 use alloc::boxed::Box;
 
 impl TypeChecker {

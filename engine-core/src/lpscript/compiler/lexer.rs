@@ -3,7 +3,7 @@ extern crate alloc;
 use alloc::string::String;
 use alloc::vec::Vec;
 
-use crate::lpscript::error::Span;
+use crate::lpscript::shared::Span;
 
 /// Token with span information
 #[derive(Debug, Clone, PartialEq)]

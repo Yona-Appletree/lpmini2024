@@ -1,7 +1,7 @@
 /// Return statement parsing
 use crate::lpscript::compiler::ast::{Stmt, StmtKind};
 use crate::lpscript::compiler::parser::Parser;
-use crate::lpscript::error::Span;
+use crate::lpscript::shared::Span;
 
 
 impl Parser {

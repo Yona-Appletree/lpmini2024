@@ -44,16 +44,18 @@
 extern crate alloc;
 use alloc::vec::Vec;
 
-pub mod error;
+pub mod shared;
 pub mod vm;
 
 mod compiler;
 
 pub use compiler::codegen::NativeFunction;
 use compiler::{codegen, lexer, parser, typechecker};
-pub use error::{CompileError, RuntimeError, RuntimeErrorWithContext, Span, Type};
+pub use compiler::error::CompileError;
+pub use shared::{Span, Type};
 pub use vm::{
     execute_program_lps, LocalAccess, LocalDef, LocalType, LpsOpCode, LpsProgram, LpsVm, VmLimits,
+    RuntimeError, RuntimeErrorWithContext,
 };
 
 /// Parse an expression string and generate a compiled LPS program

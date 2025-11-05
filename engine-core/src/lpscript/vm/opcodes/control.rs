@@ -1,5 +1,5 @@
 /// Control flow opcodes with error handling
-use crate::lpscript::error::RuntimeError;
+use crate::lpscript::vm::error::RuntimeError;
 
 /// Execute Select (ternary): pop false_val, true_val, condition; push selected
 #[inline(always)]

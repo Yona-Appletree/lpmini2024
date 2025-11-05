@@ -5,7 +5,7 @@ use alloc::vec::Vec;
 
 use super::locals::LocalDef;
 use super::opcodes::LpsOpCode;
-use crate::lpscript::error::Span;
+use crate::lpscript::shared::Span;
 
 /// A compiled LightPlayer Script program
 #[derive(Debug, Clone)]

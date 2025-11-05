@@ -3,7 +3,7 @@
 mod tests {
     use crate::lpscript::compiler::expr::expr_test_util::ExprTest;
     use crate::lpscript::compiler::test_ast::*;
-    use crate::lpscript::error::Type;
+    use crate::lpscript::shared::Type;
     use crate::lpscript::vm::opcodes::LpsOpCode;
     use crate::math::{ToFixed, Vec2, Vec3, Vec4};
 

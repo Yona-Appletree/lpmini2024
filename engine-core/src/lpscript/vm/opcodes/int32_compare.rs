@@ -1,7 +1,7 @@
 /// Int32 comparison opcodes
 /// 
 /// These return 1 for true, 0 for false (not FIXED_ONE, but integer 1)
-use crate::lpscript::error::RuntimeError;
+use crate::lpscript::vm::error::RuntimeError;
 
 /// Execute GreaterEqInt32: pop b, a; push (a >= b ? 1 : 0)
 #[inline(always)]

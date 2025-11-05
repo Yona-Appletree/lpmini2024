@@ -1,5 +1,5 @@
 /// Int32 arithmetic opcodes
-use crate::lpscript::error::RuntimeError;
+use crate::lpscript::vm::error::RuntimeError;
 
 /// Execute AddInt32: pop b, a; push a + b
 #[inline(always)]

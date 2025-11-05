@@ -4,7 +4,7 @@ use alloc::string::String;
 
 use crate::lpscript::compiler::ast::Expr;
 use crate::lpscript::compiler::typechecker::{FunctionTable, SymbolTable, TypeChecker};
-use crate::lpscript::error::{TypeError, TypeErrorKind};
+use crate::lpscript::compiler::error::{TypeError, TypeErrorKind};
 
 impl TypeChecker {
     /// Type check assignment statement
@@ -13,7 +13,7 @@ impl TypeChecker {
         value: &mut Expr,
         symbols: &mut SymbolTable,
         func_table: &FunctionTable,
-        span: crate::lpscript::error::Span,
+        span: crate::lpscript::shared::Span,
     ) -> Result<(), TypeError> {
         // Check that variable exists
         let var_ty = symbols.lookup(name).ok_or_else(|| TypeError {

@@ -10,6 +10,10 @@
 - get rid of LoadSource and such
 - outputs like glsl
 
+## Nice to have features
+
+- debugging outputs
+
 ## Organization
 
 - compiler/runtime errors need to be separated
@@ -25,7 +29,13 @@
 - test for protections against stack overflows, memory usage, etc.
 - test expressions with vector types
 - test functions with vector types
+- integration tests against real glsl shaders
 
 ## Error handling
 
 - needs testing and probably a lot of work
+
+## Other
+
+- how big is this on the esp32?
+- some performance testing

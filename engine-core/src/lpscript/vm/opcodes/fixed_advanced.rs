@@ -1,5 +1,5 @@
 /// Advanced fixed-point math opcodes
-use crate::lpscript::error::RuntimeError;
+use crate::lpscript::vm::error::RuntimeError;
 use crate::math::noise::perlin3;
 use crate::math::{atan, atan2, fract, lerp, modulo, pow, saturate, sign, smoothstep, step, tan};
 use crate::math::Fixed;

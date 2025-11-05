@@ -2,7 +2,7 @@
 use crate::lpscript::compiler::ast::{Stmt, StmtKind};
 use crate::lpscript::compiler::lexer::TokenKind;
 use crate::lpscript::compiler::parser::Parser;
-use crate::lpscript::error::Span;
+use crate::lpscript::shared::Span;
 use alloc::vec::Vec;
 
 

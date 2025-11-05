@@ -5,7 +5,7 @@ use alloc::format;
 use alloc::string::String;
 use alloc::vec::Vec;
 
-use crate::lpscript::error::Type;
+use crate::lpscript::shared::Type;
 
 /// Function signature for user-defined functions
 #[derive(Debug, Clone)]

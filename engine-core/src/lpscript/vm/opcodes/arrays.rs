@@ -1,5 +1,5 @@
 /// Array access opcodes (stub implementations)
-use crate::lpscript::error::RuntimeError;
+use crate::lpscript::vm::error::RuntimeError;
 use crate::math::Fixed;
 
 /// Execute GetElemInt32ArrayFixed: pop array_ref, index; push Fixed

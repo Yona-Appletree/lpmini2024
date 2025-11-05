@@ -1,5 +1,5 @@
 /// Stack manipulation opcodes with error handling
-use crate::lpscript::error::RuntimeError;
+use crate::lpscript::vm::error::RuntimeError;
 
 /// Execute Dup1: duplicate top 1 stack value (for Fixed/Int32)
 #[inline(always)]

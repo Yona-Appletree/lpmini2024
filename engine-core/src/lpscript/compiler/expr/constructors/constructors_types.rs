@@ -6,8 +6,9 @@ use alloc::vec;
 use alloc::vec::Vec;
 
 use crate::lpscript::compiler::ast::Expr;
+use crate::lpscript::compiler::error::{TypeError, TypeErrorKind};
 use crate::lpscript::compiler::typechecker::{FunctionTable, SymbolTable, TypeChecker};
-use crate::lpscript::error::{Span, Type, TypeError, TypeErrorKind};
+use crate::lpscript::shared::{Span, Type};
 
 impl TypeChecker {
     /// Get the number of components in a type (for vector constructor validation)
@@ -68,7 +69,7 @@ impl TypeChecker {
         expected_components: usize,
         symbols: &mut SymbolTable,
         func_table: &FunctionTable,
-        span: crate::lpscript::error::Span,
+        span: crate::lpscript::shared::Span,
     ) -> Result<Type, TypeError> {
         // Type check all arguments
         for arg in args.iter_mut() {

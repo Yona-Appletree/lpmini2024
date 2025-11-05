@@ -1,4 +1,4 @@
-use crate::lpscript::error::RuntimeError;
+use crate::lpscript::vm::error::RuntimeError;
 use crate::math::trig::{cos, sin};
 /// Basic fixed-point arithmetic opcodes with error handling
 use crate::math::Fixed;

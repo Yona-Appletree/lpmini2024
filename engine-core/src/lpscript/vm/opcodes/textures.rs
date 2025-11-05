@@ -1,5 +1,5 @@
 /// Texture sampling opcodes (stub implementations)
-use crate::lpscript::error::RuntimeError;
+use crate::lpscript::vm::error::RuntimeError;
 use crate::math::Fixed;
 
 /// Execute TextureSampleR: pop 2 Fixed (UV), push 1 Fixed (R)

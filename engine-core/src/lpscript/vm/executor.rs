@@ -5,7 +5,7 @@ use alloc::vec::Vec;
 
 use super::locals::LocalType;
 use super::program::LpsProgram;
-use crate::lpscript::error::{RuntimeError, RuntimeErrorWithContext};
+use crate::lpscript::vm::error::{RuntimeError, RuntimeErrorWithContext};
 use crate::lpscript::vm::opcodes::LpsOpCode;
 use crate::math::{Fixed, Vec2, Vec3, Vec4};
 

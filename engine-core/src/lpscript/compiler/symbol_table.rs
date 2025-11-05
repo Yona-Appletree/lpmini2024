@@ -6,7 +6,7 @@ use alloc::string::String;
 use alloc::vec;
 use alloc::vec::Vec;
 
-use crate::lpscript::error::Type;
+use crate::lpscript::shared::Type;
 
 /// Symbol table for tracking variables in scope
 #[derive(Debug, Clone)]
