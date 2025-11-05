@@ -313,7 +313,7 @@ mod tests {
         // cross() is vec3 only
         let result = compile_expr("cross(vec2(1.0, 2.0), vec2(3.0, 4.0))");
         assert!(result.is_err(), "cross() with vec2 should be a type error");
-        
+
         if let Err(CompileError::TypeCheck(err)) = result {
             assert!(matches!(err.kind, TypeErrorKind::InvalidOperation { .. }));
         } else {

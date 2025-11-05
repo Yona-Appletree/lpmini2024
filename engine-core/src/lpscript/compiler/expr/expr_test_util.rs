@@ -6,7 +6,8 @@ use alloc::vec::Vec;
 
 use crate::lpscript::compiler::ast::{Expr, ExprKind};
 use crate::lpscript::compiler::codegen;
-use crate::lpscript::compiler::{lexer, parser, typechecker};
+use crate::lpscript::compiler::optimize::OptimizeOptions;
+use crate::lpscript::compiler::{lexer, optimize, parser, typechecker};
 use crate::lpscript::shared::Type;
 use crate::lpscript::vm::{LocalType, LpsOpCode, LpsProgram, LpsVm, VmLimits};
 use crate::math::{Fixed, ToFixed, Vec2, Vec3, Vec4};
@@ -24,6 +25,7 @@ pub struct ExprTest {
     expected_opcodes: Option<Vec<LpsOpCode>>,
     expected_result: Option<TestResult>,
     expected_locals: Vec<(String, Fixed)>, // Expected local values after execution
+    optimize_options: Option<OptimizeOptions>, // If set, apply optimizations to opcodes
     x: Fixed,
     y: Fixed,
     time: Fixed,
@@ -47,6 +49,7 @@ impl ExprTest {
             expected_opcodes: None,
             expected_result: None,
             expected_locals: Vec::new(),
+            optimize_options: None, // No optimization by default
             x: 0.5.to_fixed(),
             y: 0.5.to_fixed(),
             time: Fixed::ZERO,
@@ -107,6 +110,21 @@ impl ExprTest {
         self.x = x.to_fixed();
         self.y = y.to_fixed();
         self.time = time.to_fixed();
+        self
+    }
+
+    /// Enable opcode optimization with custom options
+    /// By default, no optimizations are applied
+    pub fn with_optimization(mut self, options: OptimizeOptions) -> Self {
+        self.optimize_options = Some(options);
+        self
+    }
+
+    /// Convenience method to enable only peephole optimization
+    pub fn with_peephole_optimization(mut self) -> Self {
+        let mut options = OptimizeOptions::none();
+        options.peephole_optimization = true;
+        self.optimize_options = Some(options);
         self
     }
 
@@ -227,8 +245,14 @@ impl ExprTest {
             .enumerate()
             .map(|(idx, (name, _))| (name.clone(), idx as u32))
             .collect();
-        let opcodes =
+        let mut opcodes =
             codegen::CodeGenerator::generate_with_locals(&typed_ast, local_names_and_indices);
+
+        // Apply opcode optimization if configured
+        if let Some(ref options) = self.optimize_options {
+            opcodes = optimize::optimize_opcodes(opcodes, options);
+        }
+
         let program = LpsProgram::new("test".into())
             .with_opcodes(opcodes)
             .with_source(self.input.clone().into());
@@ -405,6 +429,7 @@ impl ExprTest {
 }
 
 /// Compare AST expressions ignoring spans but checking types
+/// This is public so it can be used by other test utilities
 pub fn ast_eq_ignore_spans(actual: &Expr, expected: &Expr) -> bool {
     // Check types match (both Some and equal, or both None)
     if actual.ty != expected.ty {

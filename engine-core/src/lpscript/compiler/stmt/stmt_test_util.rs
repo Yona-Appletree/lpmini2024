@@ -328,17 +328,6 @@ fn stmt_eq_ignore_spans(
                 }
         }
 
-        (
-            StmtKind::Assignment {
-                name: n1,
-                value: v1,
-            },
-            StmtKind::Assignment {
-                name: n2,
-                value: v2,
-            },
-        ) => n1 == n2 && ast_eq_ignore_spans(v1, v2),
-
         (StmtKind::Return(e1), StmtKind::Return(e2)) => ast_eq_ignore_spans(e1, e2),
 
         (StmtKind::Expr(e1), StmtKind::Expr(e2)) => ast_eq_ignore_spans(e1, e2),

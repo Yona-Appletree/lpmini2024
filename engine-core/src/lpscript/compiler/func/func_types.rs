@@ -124,7 +124,7 @@ impl TypeChecker {
             StmtKind::While { .. } | StmtKind::For { .. } => false,
 
             // Other statements don't return
-            StmtKind::VarDecl { .. } | StmtKind::Assignment { .. } | StmtKind::Expr(_) => false,
+            StmtKind::VarDecl { .. } | StmtKind::Expr(_) => false,
         }
     }
 }

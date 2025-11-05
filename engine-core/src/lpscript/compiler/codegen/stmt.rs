@@ -8,7 +8,6 @@ impl<'a> CodeGenerator<'a> {
     pub(in crate::lpscript) fn gen_stmt(&mut self, stmt: &Stmt) {
         match &stmt.kind {
             StmtKind::VarDecl { ty, name, init } => self.gen_var_decl(ty, name, init),
-            StmtKind::Assignment { name, value } => self.gen_assignment(name, value),
             StmtKind::Return(expr) => self.gen_return(expr),
             StmtKind::Expr(expr) => self.gen_expr_stmt(expr),
             StmtKind::Block(stmts) => self.gen_block(stmts),

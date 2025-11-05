@@ -32,17 +32,6 @@ pub fn var_decl(ty: Type, name: &str, init: Option<Expr>) -> Stmt {
     )
 }
 
-/// Create an assignment statement
-pub fn assign_stmt(name: &str, value: Expr) -> Stmt {
-    Stmt::new(
-        StmtKind::Assignment {
-            name: String::from(name),
-            value,
-        },
-        Span::EMPTY,
-    )
-}
-
 /// Create a return statement
 pub fn return_stmt(expr: Expr) -> Stmt {
     Stmt::new(StmtKind::Return(expr), Span::EMPTY)

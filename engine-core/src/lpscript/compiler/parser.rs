@@ -109,34 +109,6 @@ impl Parser {
             TokenKind::While => self.parse_while_stmt(),
             TokenKind::For => self.parse_for_stmt(),
             TokenKind::LBrace => self.parse_block(),
-            TokenKind::Ident(name) => {
-                let name = name.clone();
-                let start = self.current().span.start;
-                self.advance();
-
-                // Check for assignment or compound assignment operators
-                if matches!(
-                    self.current().kind,
-                    TokenKind::Eq
-                        | TokenKind::PlusEq
-                        | TokenKind::MinusEq
-                        | TokenKind::StarEq
-                        | TokenKind::SlashEq
-                        | TokenKind::PercentEq
-                        | TokenKind::AmpersandEq
-                        | TokenKind::PipeEq
-                        | TokenKind::CaretEq
-                        | TokenKind::LShiftEq
-                        | TokenKind::RShiftEq
-                ) {
-                    // Assignment statement (simple or compound)
-                    self.parse_assignment_stmt(name, start)
-                } else {
-                    // Put back the token and parse as expression statement
-                    self.pos -= 1;
-                    self.parse_expr_stmt()
-                }
-            }
             _ => self.parse_expr_stmt(),
         }
     }

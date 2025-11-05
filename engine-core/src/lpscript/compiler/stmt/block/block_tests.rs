@@ -31,7 +31,15 @@ mod tests {
                 var_decl(Type::Fixed, "x", Some(num(1.0))),
                 block(vec![
                     var_decl(Type::Fixed, "y", Some(num(2.0))),
-                    assign_stmt("x", add(typed_var("x", Type::Fixed), typed_var("y", Type::Fixed), Type::Fixed)),
+                    expr_stmt(assign(
+                        "x",
+                        add(
+                            typed_var("x", Type::Fixed),
+                            typed_var("y", Type::Fixed),
+                            Type::Fixed,
+                        ),
+                        Type::Fixed,
+                    )),
                 ]),
                 return_stmt(typed_var("x", Type::Fixed)),
             ])]))
@@ -43,7 +51,9 @@ mod tests {
                 LpsOpCode::LoadLocalFixed(0),
                 LpsOpCode::LoadLocalFixed(1),
                 LpsOpCode::AddFixed,
+                LpsOpCode::Dup1,
                 LpsOpCode::StoreLocalFixed(0),
+                LpsOpCode::Drop1,
                 LpsOpCode::LoadLocalFixed(0),
                 LpsOpCode::Return,
             ])
@@ -57,7 +67,15 @@ mod tests {
             .expect_ast(program(vec![block(vec![
                 var_decl(Type::Fixed, "a", Some(num(1.0))),
                 var_decl(Type::Fixed, "b", Some(num(2.0))),
-                var_decl(Type::Fixed, "c", Some(add(typed_var("a", Type::Fixed), typed_var("b", Type::Fixed), Type::Fixed))),
+                var_decl(
+                    Type::Fixed,
+                    "c",
+                    Some(add(
+                        typed_var("a", Type::Fixed),
+                        typed_var("b", Type::Fixed),
+                        Type::Fixed,
+                    )),
+                ),
                 return_stmt(typed_var("c", Type::Fixed)),
             ])]))
             .expect_opcodes(vec![
@@ -80,10 +98,7 @@ mod tests {
     fn test_empty_block() -> Result<(), String> {
         ScriptTest::new("{ } return 42.0;")
             .expect_ast(program(vec![block(vec![]), return_stmt(num(42.0))]))
-            .expect_opcodes(vec![
-                LpsOpCode::Push(42.0.to_fixed()),
-                LpsOpCode::Return,
-            ])
+            .expect_opcodes(vec![LpsOpCode::Push(42.0.to_fixed()), LpsOpCode::Return])
             .expect_result_fixed(42.0)
             .run()
     }

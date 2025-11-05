@@ -17,10 +17,6 @@ impl TypeChecker {
                 Self::check_var_decl(ty, name, init, symbols, func_table, stmt.span)?;
             }
 
-            StmtKind::Assignment { name, value } => {
-                Self::check_assignment(name, value, symbols, func_table, stmt.span)?;
-            }
-
             StmtKind::Return(expr) => {
                 Self::check_return(expr, symbols, func_table)?;
             }
@@ -58,4 +54,3 @@ impl TypeChecker {
         Ok(())
     }
 }
-

@@ -29,12 +29,14 @@ mod tests {
         ScriptTest::new("float x; x = 10.0; return x;")
             .expect_ast(program(vec![
                 var_decl(Type::Fixed, "x", None),
-                assign_stmt("x", num(10.0)),
+                expr_stmt(assign("x", num(10.0), Type::Fixed)),
                 return_stmt(typed_var("x", Type::Fixed)),
             ]))
             .expect_opcodes(vec![
                 LpsOpCode::Push(10.0.to_fixed()),
+                LpsOpCode::Dup1,
                 LpsOpCode::StoreLocalFixed(0),
+                LpsOpCode::Drop1,
                 LpsOpCode::LoadLocalFixed(0),
                 LpsOpCode::Return,
             ])

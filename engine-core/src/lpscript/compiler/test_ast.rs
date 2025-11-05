@@ -137,6 +137,67 @@ pub fn modulo(left: Expr, right: Expr, ty: Type) -> Expr {
 // Power operator removed - use pow() function instead
 
 // ============================================================================
+// Bitwise operators (return Expr, type parameter required)
+// ============================================================================
+
+/// Bitwise AND: left & right
+pub fn bitwise_and(left: Expr, right: Expr, ty: Type) -> Expr {
+    let mut expr = Expr::new(
+        ExprKind::BitwiseAnd(Box::new(left), Box::new(right)),
+        Span::EMPTY,
+    );
+    expr.ty = Some(ty);
+    expr
+}
+
+/// Bitwise OR: left | right
+pub fn bitwise_or(left: Expr, right: Expr, ty: Type) -> Expr {
+    let mut expr = Expr::new(
+        ExprKind::BitwiseOr(Box::new(left), Box::new(right)),
+        Span::EMPTY,
+    );
+    expr.ty = Some(ty);
+    expr
+}
+
+/// Bitwise XOR: left ^ right
+pub fn bitwise_xor(left: Expr, right: Expr, ty: Type) -> Expr {
+    let mut expr = Expr::new(
+        ExprKind::BitwiseXor(Box::new(left), Box::new(right)),
+        Span::EMPTY,
+    );
+    expr.ty = Some(ty);
+    expr
+}
+
+/// Bitwise NOT: ~operand
+pub fn bitwise_not(operand: Expr, ty: Type) -> Expr {
+    let mut expr = Expr::new(ExprKind::BitwiseNot(Box::new(operand)), Span::EMPTY);
+    expr.ty = Some(ty);
+    expr
+}
+
+/// Left shift: left << right
+pub fn left_shift(left: Expr, right: Expr, ty: Type) -> Expr {
+    let mut expr = Expr::new(
+        ExprKind::LeftShift(Box::new(left), Box::new(right)),
+        Span::EMPTY,
+    );
+    expr.ty = Some(ty);
+    expr
+}
+
+/// Right shift: left >> right
+pub fn right_shift(left: Expr, right: Expr, ty: Type) -> Expr {
+    let mut expr = Expr::new(
+        ExprKind::RightShift(Box::new(left), Box::new(right)),
+        Span::EMPTY,
+    );
+    expr.ty = Some(ty);
+    expr
+}
+
+// ============================================================================
 // Logical operators (return Expr, type parameter required)
 // ============================================================================
 
