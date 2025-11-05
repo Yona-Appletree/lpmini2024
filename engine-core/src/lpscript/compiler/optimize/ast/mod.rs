@@ -6,9 +6,14 @@ use alloc::format;
 use crate::lpscript::compiler::ast::{Expr, Program, Stmt};
 use crate::lpscript::compiler::optimize::OptimizeOptions;
 
-mod algebraic;
-mod constant_fold;
-mod dead_code;
+pub mod algebraic;
+pub mod constant_fold;
+pub mod dead_code;
+
+#[cfg(test)]
+mod algebraic_tests;
+#[cfg(test)]
+mod constant_fold_tests;
 
 /// Optimize an expression, running multiple passes until fixed point
 pub fn optimize_expr(mut expr: Expr, options: &OptimizeOptions) -> Expr {
@@ -74,10 +79,6 @@ fn optimize_stmt(stmt: Stmt, options: &OptimizeOptions) -> Stmt {
         crate::lpscript::compiler::ast::StmtKind::VarDecl { ty, name, init } => {
             let init = init.map(|e| optimize_expr(e, options));
             crate::lpscript::compiler::ast::StmtKind::VarDecl { ty, name, init }
-        }
-        crate::lpscript::compiler::ast::StmtKind::Assignment { name, value } => {
-            let value = optimize_expr(value, options);
-            crate::lpscript::compiler::ast::StmtKind::Assignment { name, value }
         }
         crate::lpscript::compiler::ast::StmtKind::Return(expr) => {
             let expr = optimize_expr(expr, options);

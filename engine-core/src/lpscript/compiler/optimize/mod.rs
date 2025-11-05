@@ -22,6 +22,8 @@ pub mod ast;
 pub mod ops;
 
 #[cfg(test)]
+pub mod ast_test_util;
+#[cfg(test)]
 mod tests;
 
 /// Configuration for optimization passes
