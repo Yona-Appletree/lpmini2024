@@ -1,31 +1,18 @@
 /// Array access opcodes (stub implementations)
 use crate::lpscript::vm::error::RuntimeError;
+use crate::lpscript::vm::vm_stack::Stack;
 use crate::math::Fixed;
 
 /// Execute GetElemInt32ArrayFixed: pop array_ref, index; push Fixed
 /// Stub implementation - returns 0.0
 #[inline(always)]
-pub fn exec_get_elem_int32_array_fixed(
-    stack: &mut [i32],
-    sp: &mut usize,
-) -> Result<(), RuntimeError> {
-    if *sp < 2 {
-        return Err(RuntimeError::StackUnderflow {
-            required: 2,
-            actual: *sp,
-        });
-    }
-
+pub fn exec_get_elem_int32_array_fixed(stack: &mut Stack) -> Result<(), RuntimeError> {
     // Pop index and array_ref
-    *sp -= 1;
-    let _index = stack[*sp];
-    *sp -= 1;
-    let _array_ref = stack[*sp];
+    let (_array_ref, _index) = stack.pop2()?;
 
     // TODO: Implement actual array access
     // For now, return stub value (0.0)
-    stack[*sp] = Fixed::ZERO.0;
-    *sp += 1;
+    stack.push_fixed(Fixed::ZERO)?;
 
     Ok(())
 }
@@ -33,33 +20,13 @@ pub fn exec_get_elem_int32_array_fixed(
 /// Execute GetElemInt32ArrayU8: pop array_ref, index; push 4 Fixed (RGBA as bytes)
 /// Stub implementation - returns (0, 0, 0, 0)
 #[inline(always)]
-pub fn exec_get_elem_int32_array_u8(
-    stack: &mut [i32],
-    sp: &mut usize,
-) -> Result<(), RuntimeError> {
-    if *sp < 2 {
-        return Err(RuntimeError::StackUnderflow {
-            required: 2,
-            actual: *sp,
-        });
-    }
-
+pub fn exec_get_elem_int32_array_u8(stack: &mut Stack) -> Result<(), RuntimeError> {
     // Pop index and array_ref
-    *sp -= 1;
-    let _index = stack[*sp];
-    *sp -= 1;
-    let _array_ref = stack[*sp];
+    let (_array_ref, _index) = stack.pop2()?;
 
     // TODO: Implement actual array access
     // For now, return stub values (0, 0, 0, 0)
-    stack[*sp] = Fixed::ZERO.0;
-    *sp += 1;
-    stack[*sp] = Fixed::ZERO.0;
-    *sp += 1;
-    stack[*sp] = Fixed::ZERO.0;
-    *sp += 1;
-    stack[*sp] = Fixed::ZERO.0;
-    *sp += 1;
+    stack.push4(Fixed::ZERO.0, Fixed::ZERO.0, Fixed::ZERO.0, Fixed::ZERO.0)?;
 
     Ok(())
 }
@@ -70,47 +37,41 @@ mod tests {
 
     #[test]
     fn test_get_elem_int32_array_fixed_stub() {
-        let mut stack = [0i32; 64];
-        let mut sp = 0;
+        let mut stack = Stack::new(64);
 
         // Push array_ref and index
-        stack[sp] = 123; // array_ref (stub)
-        sp += 1;
-        stack[sp] = 5; // index
-        sp += 1;
+        stack.push_int32(123).unwrap(); // array_ref (stub)
+        stack.push_int32(5).unwrap(); // index
 
-        exec_get_elem_int32_array_fixed(&mut stack, &mut sp).unwrap();
+        exec_get_elem_int32_array_fixed(&mut stack).unwrap();
 
-        assert_eq!(sp, 1);
-        assert_eq!(Fixed(stack[0]).to_f32(), 0.0);
+        assert_eq!(stack.sp(), 1);
+        assert_eq!(Fixed(stack.raw_slice()[0]).to_f32(), 0.0);
     }
 
     #[test]
     fn test_get_elem_int32_array_u8_stub() {
-        let mut stack = [0i32; 64];
-        let mut sp = 0;
+        let mut stack = Stack::new(64);
 
         // Push array_ref and index
-        stack[sp] = 123; // array_ref (stub)
-        sp += 1;
-        stack[sp] = 5; // index
-        sp += 1;
+        stack.push_int32(123).unwrap(); // array_ref (stub)
+        stack.push_int32(5).unwrap(); // index
 
-        exec_get_elem_int32_array_u8(&mut stack, &mut sp).unwrap();
+        exec_get_elem_int32_array_u8(&mut stack).unwrap();
 
-        assert_eq!(sp, 4);
-        assert_eq!(Fixed(stack[0]).to_f32(), 0.0);
-        assert_eq!(Fixed(stack[1]).to_f32(), 0.0);
-        assert_eq!(Fixed(stack[2]).to_f32(), 0.0);
-        assert_eq!(Fixed(stack[3]).to_f32(), 0.0);
+        assert_eq!(stack.sp(), 4);
+        assert_eq!(Fixed(stack.raw_slice()[0]).to_f32(), 0.0);
+        assert_eq!(Fixed(stack.raw_slice()[1]).to_f32(), 0.0);
+        assert_eq!(Fixed(stack.raw_slice()[2]).to_f32(), 0.0);
+        assert_eq!(Fixed(stack.raw_slice()[3]).to_f32(), 0.0);
     }
 
     #[test]
     fn test_array_access_underflow() {
-        let mut stack = [0i32; 64];
-        let mut sp = 1; // Only 1 item, need 2
+        let mut stack = Stack::new(64);
+        stack.push_int32(1).unwrap(); // Only 1 item, need 2
 
-        let result = exec_get_elem_int32_array_fixed(&mut stack, &mut sp);
+        let result = exec_get_elem_int32_array_fixed(&mut stack);
         assert!(matches!(
             result,
             Err(RuntimeError::StackUnderflow {

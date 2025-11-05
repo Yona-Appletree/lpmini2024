@@ -5,6 +5,7 @@ use alloc::vec::Vec;
 
 use super::locals::LocalType;
 use super::program::LpsProgram;
+use super::vm_stack::Stack;
 use crate::lpscript::vm::error::{RuntimeError, RuntimeErrorWithContext};
 use crate::lpscript::vm::opcodes::LpsOpCode;
 use crate::math::{Fixed, Vec2, Vec3, Vec4};
@@ -12,7 +13,7 @@ use crate::math::{Fixed, Vec2, Vec3, Vec4};
 // Import all opcode handler modules
 use super::opcodes::{
     arrays, comparisons, control, fixed_advanced, fixed_basic, fixed_logic, int32, int32_compare,
-    load, locals, stack, textures, vec2, vec3, vec4,
+    load, locals, textures, vec2, vec3, vec4,
 };
 
 /// Configuration limits for the VM
@@ -46,8 +47,7 @@ struct CallFrame {
 /// then call run() for each pixel.
 pub struct LpsVm<'a> {
     pub program: &'a LpsProgram,
-    stack: Vec<i32>,
-    sp: usize,
+    stack: Stack,
     #[allow(dead_code)]
     pc: usize,
     #[allow(dead_code)]
@@ -85,8 +85,7 @@ impl<'a> LpsVm<'a> {
 
         Ok(LpsVm {
             program,
-            stack: vec![0; limits.max_stack_size],
-            sp: 0,
+            stack: Stack::new(limits.max_stack_size),
             pc: 0,
             locals,
             frame_base: 0,
@@ -135,7 +134,7 @@ impl<'a> LpsVm<'a> {
         y: Fixed,
         time: Fixed,
     ) -> Result<Vec<Fixed>, RuntimeErrorWithContext> {
-        self.sp = 0;
+        self.stack.reset();
         self.pc = 0;
         self.call_stack_depth = 0;
 
@@ -174,68 +173,63 @@ impl<'a> LpsVm<'a> {
             match opcode {
                 // === Stack Operations ===
                 LpsOpCode::Push(val) => {
-                    self.push(*val)?;
+                    self.stack
+                        .push_fixed(*val)
+                        .map_err(|e| self.runtime_error(e))?;
                     self.pc += 1;
                 }
 
                 LpsOpCode::PushInt32(val) => {
                     // Push raw Int32 value (not converted to Fixed format)
                     // Int32 operations work on raw i32 values
-                    self.push(Fixed(*val))?;
+                    self.stack
+                        .push_int32(*val)
+                        .map_err(|e| self.runtime_error(e))?;
                     self.pc += 1;
                 }
 
                 LpsOpCode::Dup1 => {
-                    stack::exec_dup1(&mut self.stack, &mut self.sp)
-                        .map_err(|e| self.runtime_error(e))?;
+                    self.stack.dup1().map_err(|e| self.runtime_error(e))?;
                     self.pc += 1;
                 }
 
                 LpsOpCode::Dup2 => {
-                    stack::exec_dup2(&mut self.stack, &mut self.sp)
-                        .map_err(|e| self.runtime_error(e))?;
+                    self.stack.dup2().map_err(|e| self.runtime_error(e))?;
                     self.pc += 1;
                 }
 
                 LpsOpCode::Dup3 => {
-                    stack::exec_dup3(&mut self.stack, &mut self.sp)
-                        .map_err(|e| self.runtime_error(e))?;
+                    self.stack.dup3().map_err(|e| self.runtime_error(e))?;
                     self.pc += 1;
                 }
 
                 LpsOpCode::Dup4 => {
-                    stack::exec_dup4(&mut self.stack, &mut self.sp)
-                        .map_err(|e| self.runtime_error(e))?;
+                    self.stack.dup4().map_err(|e| self.runtime_error(e))?;
                     self.pc += 1;
                 }
 
                 LpsOpCode::Drop1 => {
-                    stack::exec_drop1(&mut self.stack, &mut self.sp)
-                        .map_err(|e| self.runtime_error(e))?;
+                    self.stack.drop1().map_err(|e| self.runtime_error(e))?;
                     self.pc += 1;
                 }
 
                 LpsOpCode::Drop2 => {
-                    stack::exec_drop2(&mut self.stack, &mut self.sp)
-                        .map_err(|e| self.runtime_error(e))?;
+                    self.stack.drop2().map_err(|e| self.runtime_error(e))?;
                     self.pc += 1;
                 }
 
                 LpsOpCode::Drop3 => {
-                    stack::exec_drop3(&mut self.stack, &mut self.sp)
-                        .map_err(|e| self.runtime_error(e))?;
+                    self.stack.drop3().map_err(|e| self.runtime_error(e))?;
                     self.pc += 1;
                 }
 
                 LpsOpCode::Drop4 => {
-                    stack::exec_drop4(&mut self.stack, &mut self.sp)
-                        .map_err(|e| self.runtime_error(e))?;
+                    self.stack.drop4().map_err(|e| self.runtime_error(e))?;
                     self.pc += 1;
                 }
 
                 LpsOpCode::Swap => {
-                    stack::exec_swap(&mut self.stack, &mut self.sp)
-                        .map_err(|e| self.runtime_error(e))?;
+                    self.stack.swap().map_err(|e| self.runtime_error(e))?;
                     self.pc += 1;
                 }
 
@@ -254,7 +248,7 @@ impl<'a> LpsVm<'a> {
                 LpsOpCode::JumpIfZero(offset) => {
                     let offset = *offset;
                     if let Some(new_pc) =
-                        control::exec_jump_if_zero(&mut self.stack, &mut self.sp, self.pc, offset)
+                        control::exec_jump_if_zero(&mut self.stack, self.pc, offset)
                             .map_err(|e| self.runtime_error(e))?
                     {
                         if new_pc >= self.program.opcodes.len() {
@@ -273,13 +267,9 @@ impl<'a> LpsVm<'a> {
 
                 LpsOpCode::JumpIfNonZero(offset) => {
                     let offset = *offset;
-                    if let Some(new_pc) = control::exec_jump_if_nonzero(
-                        &mut self.stack,
-                        &mut self.sp,
-                        self.pc,
-                        offset,
-                    )
-                    .map_err(|e| self.runtime_error(e))?
+                    if let Some(new_pc) =
+                        control::exec_jump_if_nonzero(&mut self.stack, self.pc, offset)
+                            .map_err(|e| self.runtime_error(e))?
                     {
                         if new_pc >= self.program.opcodes.len() {
                             return Err(self.runtime_error(
@@ -341,16 +331,17 @@ impl<'a> LpsVm<'a> {
                         self.frame_base = frame.frame_base; // Restore previous frame
                     } else {
                         // Exiting main - return all stack values as result
-                        let result: Vec<Fixed> =
-                            self.stack[0..self.sp].iter().map(|&i| Fixed(i)).collect();
+                        let result: Vec<Fixed> = self.stack.raw_slice()[0..self.stack.sp()]
+                            .iter()
+                            .map(|&i| Fixed(i))
+                            .collect();
                         return Ok(result);
                     }
                 }
 
                 // === Select (Ternary) ===
                 LpsOpCode::Select => {
-                    control::exec_select(&mut self.stack, &mut self.sp)
-                        .map_err(|e| self.runtime_error(e))?;
+                    control::exec_select(&mut self.stack).map_err(|e| self.runtime_error(e))?;
                     self.pc += 1;
                 }
 
@@ -358,7 +349,6 @@ impl<'a> LpsVm<'a> {
                 LpsOpCode::Load(source) => {
                     load::exec_load(
                         &mut self.stack,
-                        &mut self.sp,
                         *source,
                         x_norm,
                         y_norm,
@@ -376,7 +366,6 @@ impl<'a> LpsVm<'a> {
                 LpsOpCode::LoadLocalFixed(idx) => {
                     locals::exec_load_local_fixed(
                         &mut self.stack,
-                        &mut self.sp,
                         &self.locals,
                         self.frame_base as u32 + *idx,
                     )
@@ -386,20 +375,14 @@ impl<'a> LpsVm<'a> {
 
                 LpsOpCode::StoreLocalFixed(idx) => {
                     let idx = self.frame_base as u32 + *idx;
-                    locals::exec_store_local_fixed(
-                        &mut self.stack,
-                        &mut self.sp,
-                        &mut self.locals,
-                        idx,
-                    )
-                    .map_err(|e| self.runtime_error(e))?;
+                    locals::exec_store_local_fixed(&mut self.stack, &mut self.locals, idx)
+                        .map_err(|e| self.runtime_error(e))?;
                     self.pc += 1;
                 }
 
                 LpsOpCode::LoadLocalInt32(idx) => {
                     locals::exec_load_local_int32(
                         &mut self.stack,
-                        &mut self.sp,
                         &self.locals,
                         self.frame_base as u32 + *idx,
                     )
@@ -409,20 +392,14 @@ impl<'a> LpsVm<'a> {
 
                 LpsOpCode::StoreLocalInt32(idx) => {
                     let idx = self.frame_base as u32 + *idx;
-                    locals::exec_store_local_int32(
-                        &mut self.stack,
-                        &mut self.sp,
-                        &mut self.locals,
-                        idx,
-                    )
-                    .map_err(|e| self.runtime_error(e))?;
+                    locals::exec_store_local_int32(&mut self.stack, &mut self.locals, idx)
+                        .map_err(|e| self.runtime_error(e))?;
                     self.pc += 1;
                 }
 
                 LpsOpCode::LoadLocalVec2(idx) => {
                     locals::exec_load_local_vec2(
                         &mut self.stack,
-                        &mut self.sp,
                         &self.locals,
                         self.frame_base as u32 + *idx,
                     )
@@ -432,20 +409,14 @@ impl<'a> LpsVm<'a> {
 
                 LpsOpCode::StoreLocalVec2(idx) => {
                     let idx = self.frame_base as u32 + *idx;
-                    locals::exec_store_local_vec2(
-                        &mut self.stack,
-                        &mut self.sp,
-                        &mut self.locals,
-                        idx,
-                    )
-                    .map_err(|e| self.runtime_error(e))?;
+                    locals::exec_store_local_vec2(&mut self.stack, &mut self.locals, idx)
+                        .map_err(|e| self.runtime_error(e))?;
                     self.pc += 1;
                 }
 
                 LpsOpCode::LoadLocalVec3(idx) => {
                     locals::exec_load_local_vec3(
                         &mut self.stack,
-                        &mut self.sp,
                         &self.locals,
                         self.frame_base as u32 + *idx,
                     )
@@ -455,20 +426,14 @@ impl<'a> LpsVm<'a> {
 
                 LpsOpCode::StoreLocalVec3(idx) => {
                     let idx = self.frame_base as u32 + *idx;
-                    locals::exec_store_local_vec3(
-                        &mut self.stack,
-                        &mut self.sp,
-                        &mut self.locals,
-                        idx,
-                    )
-                    .map_err(|e| self.runtime_error(e))?;
+                    locals::exec_store_local_vec3(&mut self.stack, &mut self.locals, idx)
+                        .map_err(|e| self.runtime_error(e))?;
                     self.pc += 1;
                 }
 
                 LpsOpCode::LoadLocalVec4(idx) => {
                     locals::exec_load_local_vec4(
                         &mut self.stack,
-                        &mut self.sp,
                         &self.locals,
                         self.frame_base as u32 + *idx,
                     )
@@ -478,684 +443,600 @@ impl<'a> LpsVm<'a> {
 
                 LpsOpCode::StoreLocalVec4(idx) => {
                     let idx = self.frame_base as u32 + *idx;
-                    locals::exec_store_local_vec4(
-                        &mut self.stack,
-                        &mut self.sp,
-                        &mut self.locals,
-                        idx,
-                    )
-                    .map_err(|e| self.runtime_error(e))?;
+                    locals::exec_store_local_vec4(&mut self.stack, &mut self.locals, idx)
+                        .map_err(|e| self.runtime_error(e))?;
                     self.pc += 1;
                 }
 
                 // === Basic Fixed-point Arithmetic ===
                 LpsOpCode::AddFixed => {
-                    fixed_basic::exec_add_fixed(&mut self.stack, &mut self.sp)
+                    fixed_basic::exec_add_fixed(&mut self.stack)
                         .map_err(|e| self.runtime_error(e))?;
                     self.pc += 1;
                 }
 
                 LpsOpCode::SubFixed => {
-                    fixed_basic::exec_sub_fixed(&mut self.stack, &mut self.sp)
+                    fixed_basic::exec_sub_fixed(&mut self.stack)
                         .map_err(|e| self.runtime_error(e))?;
                     self.pc += 1;
                 }
 
                 LpsOpCode::MulFixed => {
-                    fixed_basic::exec_mul_fixed(&mut self.stack, &mut self.sp)
+                    fixed_basic::exec_mul_fixed(&mut self.stack)
                         .map_err(|e| self.runtime_error(e))?;
                     self.pc += 1;
                 }
 
                 LpsOpCode::DivFixed => {
-                    fixed_basic::exec_div_fixed(&mut self.stack, &mut self.sp)
+                    fixed_basic::exec_div_fixed(&mut self.stack)
                         .map_err(|e| self.runtime_error(e))?;
                     self.pc += 1;
                 }
 
                 LpsOpCode::NegFixed => {
-                    fixed_basic::exec_neg_fixed(&mut self.stack, &mut self.sp)
+                    fixed_basic::exec_neg_fixed(&mut self.stack)
                         .map_err(|e| self.runtime_error(e))?;
                     self.pc += 1;
                 }
 
                 LpsOpCode::AbsFixed => {
-                    fixed_basic::exec_abs_fixed(&mut self.stack, &mut self.sp)
+                    fixed_basic::exec_abs_fixed(&mut self.stack)
                         .map_err(|e| self.runtime_error(e))?;
                     self.pc += 1;
                 }
 
                 LpsOpCode::MinFixed => {
-                    fixed_basic::exec_min_fixed(&mut self.stack, &mut self.sp)
+                    fixed_basic::exec_min_fixed(&mut self.stack)
                         .map_err(|e| self.runtime_error(e))?;
                     self.pc += 1;
                 }
 
                 LpsOpCode::MaxFixed => {
-                    fixed_basic::exec_max_fixed(&mut self.stack, &mut self.sp)
+                    fixed_basic::exec_max_fixed(&mut self.stack)
                         .map_err(|e| self.runtime_error(e))?;
                     self.pc += 1;
                 }
 
                 LpsOpCode::SinFixed => {
-                    fixed_basic::exec_sin_fixed(&mut self.stack, &mut self.sp)
+                    fixed_basic::exec_sin_fixed(&mut self.stack)
                         .map_err(|e| self.runtime_error(e))?;
                     self.pc += 1;
                 }
 
                 LpsOpCode::CosFixed => {
-                    fixed_basic::exec_cos_fixed(&mut self.stack, &mut self.sp)
+                    fixed_basic::exec_cos_fixed(&mut self.stack)
                         .map_err(|e| self.runtime_error(e))?;
                     self.pc += 1;
                 }
 
                 LpsOpCode::SqrtFixed => {
-                    fixed_basic::exec_sqrt_fixed(&mut self.stack, &mut self.sp)
+                    fixed_basic::exec_sqrt_fixed(&mut self.stack)
                         .map_err(|e| self.runtime_error(e))?;
                     self.pc += 1;
                 }
 
                 LpsOpCode::FloorFixed => {
-                    fixed_basic::exec_floor_fixed(&mut self.stack, &mut self.sp)
+                    fixed_basic::exec_floor_fixed(&mut self.stack)
                         .map_err(|e| self.runtime_error(e))?;
                     self.pc += 1;
                 }
 
                 LpsOpCode::CeilFixed => {
-                    fixed_basic::exec_ceil_fixed(&mut self.stack, &mut self.sp)
+                    fixed_basic::exec_ceil_fixed(&mut self.stack)
                         .map_err(|e| self.runtime_error(e))?;
                     self.pc += 1;
                 }
 
                 // === Advanced Fixed-point Math ===
                 LpsOpCode::TanFixed => {
-                    fixed_advanced::exec_tan_fixed(&mut self.stack, &mut self.sp)
+                    fixed_advanced::exec_tan_fixed(&mut self.stack)
                         .map_err(|e| self.runtime_error(e))?;
                     self.pc += 1;
                 }
 
                 LpsOpCode::AtanFixed => {
-                    fixed_advanced::exec_atan_fixed(&mut self.stack, &mut self.sp)
+                    fixed_advanced::exec_atan_fixed(&mut self.stack)
                         .map_err(|e| self.runtime_error(e))?;
                     self.pc += 1;
                 }
 
                 LpsOpCode::Atan2Fixed => {
-                    fixed_advanced::exec_atan2_fixed(&mut self.stack, &mut self.sp)
+                    fixed_advanced::exec_atan2_fixed(&mut self.stack)
                         .map_err(|e| self.runtime_error(e))?;
                     self.pc += 1;
                 }
 
                 LpsOpCode::FractFixed => {
-                    fixed_advanced::exec_fract_fixed(&mut self.stack, &mut self.sp)
+                    fixed_advanced::exec_fract_fixed(&mut self.stack)
                         .map_err(|e| self.runtime_error(e))?;
                     self.pc += 1;
                 }
 
                 LpsOpCode::ModFixed => {
-                    fixed_advanced::exec_mod_fixed(&mut self.stack, &mut self.sp)
+                    fixed_advanced::exec_mod_fixed(&mut self.stack)
                         .map_err(|e| self.runtime_error(e))?;
                     self.pc += 1;
                 }
 
                 LpsOpCode::PowFixed => {
-                    fixed_advanced::exec_pow_fixed(&mut self.stack, &mut self.sp)
+                    fixed_advanced::exec_pow_fixed(&mut self.stack)
                         .map_err(|e| self.runtime_error(e))?;
                     self.pc += 1;
                 }
 
                 LpsOpCode::SignFixed => {
-                    fixed_advanced::exec_sign_fixed(&mut self.stack, &mut self.sp)
+                    fixed_advanced::exec_sign_fixed(&mut self.stack)
                         .map_err(|e| self.runtime_error(e))?;
                     self.pc += 1;
                 }
 
                 LpsOpCode::SaturateFixed => {
-                    fixed_advanced::exec_saturate_fixed(&mut self.stack, &mut self.sp)
+                    fixed_advanced::exec_saturate_fixed(&mut self.stack)
                         .map_err(|e| self.runtime_error(e))?;
                     self.pc += 1;
                 }
 
                 LpsOpCode::ClampFixed => {
-                    fixed_advanced::exec_clamp_fixed(&mut self.stack, &mut self.sp)
+                    fixed_advanced::exec_clamp_fixed(&mut self.stack)
                         .map_err(|e| self.runtime_error(e))?;
                     self.pc += 1;
                 }
 
                 LpsOpCode::StepFixed => {
-                    fixed_advanced::exec_step_fixed(&mut self.stack, &mut self.sp)
+                    fixed_advanced::exec_step_fixed(&mut self.stack)
                         .map_err(|e| self.runtime_error(e))?;
                     self.pc += 1;
                 }
 
                 LpsOpCode::LerpFixed => {
-                    fixed_advanced::exec_lerp_fixed(&mut self.stack, &mut self.sp)
+                    fixed_advanced::exec_lerp_fixed(&mut self.stack)
                         .map_err(|e| self.runtime_error(e))?;
                     self.pc += 1;
                 }
 
                 LpsOpCode::SmoothstepFixed => {
-                    fixed_advanced::exec_smoothstep_fixed(&mut self.stack, &mut self.sp)
+                    fixed_advanced::exec_smoothstep_fixed(&mut self.stack)
                         .map_err(|e| self.runtime_error(e))?;
                     self.pc += 1;
                 }
 
                 LpsOpCode::Perlin3(octaves) => {
-                    fixed_advanced::exec_perlin3(&mut self.stack, &mut self.sp, *octaves)
+                    fixed_advanced::exec_perlin3(&mut self.stack, *octaves)
                         .map_err(|e| self.runtime_error(e))?;
                     self.pc += 1;
                 }
 
                 // === Fixed-point Logic ===
                 LpsOpCode::AndFixed => {
-                    fixed_logic::exec_and_fixed(&mut self.stack, &mut self.sp)
+                    fixed_logic::exec_and_fixed(&mut self.stack)
                         .map_err(|e| self.runtime_error(e))?;
                     self.pc += 1;
                 }
 
                 LpsOpCode::OrFixed => {
-                    fixed_logic::exec_or_fixed(&mut self.stack, &mut self.sp)
+                    fixed_logic::exec_or_fixed(&mut self.stack)
                         .map_err(|e| self.runtime_error(e))?;
                     self.pc += 1;
                 }
 
                 LpsOpCode::NotFixed => {
-                    fixed_logic::exec_not_fixed(&mut self.stack, &mut self.sp)
+                    fixed_logic::exec_not_fixed(&mut self.stack)
                         .map_err(|e| self.runtime_error(e))?;
                     self.pc += 1;
                 }
 
                 // === Fixed-point Comparisons ===
                 LpsOpCode::GreaterFixed => {
-                    comparisons::exec_greater_fixed(&mut self.stack, &mut self.sp)
+                    comparisons::exec_greater_fixed(&mut self.stack)
                         .map_err(|e| self.runtime_error(e))?;
                     self.pc += 1;
                 }
 
                 LpsOpCode::LessFixed => {
-                    comparisons::exec_less_fixed(&mut self.stack, &mut self.sp)
+                    comparisons::exec_less_fixed(&mut self.stack)
                         .map_err(|e| self.runtime_error(e))?;
                     self.pc += 1;
                 }
 
                 LpsOpCode::GreaterEqFixed => {
-                    comparisons::exec_greater_eq_fixed(&mut self.stack, &mut self.sp)
+                    comparisons::exec_greater_eq_fixed(&mut self.stack)
                         .map_err(|e| self.runtime_error(e))?;
                     self.pc += 1;
                 }
 
                 LpsOpCode::LessEqFixed => {
-                    comparisons::exec_less_eq_fixed(&mut self.stack, &mut self.sp)
+                    comparisons::exec_less_eq_fixed(&mut self.stack)
                         .map_err(|e| self.runtime_error(e))?;
                     self.pc += 1;
                 }
 
                 LpsOpCode::EqFixed => {
-                    comparisons::exec_eq_fixed(&mut self.stack, &mut self.sp)
+                    comparisons::exec_eq_fixed(&mut self.stack)
                         .map_err(|e| self.runtime_error(e))?;
                     self.pc += 1;
                 }
 
                 LpsOpCode::NotEqFixed => {
-                    comparisons::exec_not_eq_fixed(&mut self.stack, &mut self.sp)
+                    comparisons::exec_not_eq_fixed(&mut self.stack)
                         .map_err(|e| self.runtime_error(e))?;
                     self.pc += 1;
                 }
 
                 // === Int32 Arithmetic ===
                 LpsOpCode::AddInt32 => {
-                    int32::exec_add_int32(&mut self.stack, &mut self.sp)
-                        .map_err(|e| self.runtime_error(e))?;
+                    int32::exec_add_int32(&mut self.stack).map_err(|e| self.runtime_error(e))?;
                     self.pc += 1;
                 }
 
                 LpsOpCode::SubInt32 => {
-                    int32::exec_sub_int32(&mut self.stack, &mut self.sp)
-                        .map_err(|e| self.runtime_error(e))?;
+                    int32::exec_sub_int32(&mut self.stack).map_err(|e| self.runtime_error(e))?;
                     self.pc += 1;
                 }
 
                 LpsOpCode::MulInt32 => {
-                    int32::exec_mul_int32(&mut self.stack, &mut self.sp)
-                        .map_err(|e| self.runtime_error(e))?;
+                    int32::exec_mul_int32(&mut self.stack).map_err(|e| self.runtime_error(e))?;
                     self.pc += 1;
                 }
 
                 LpsOpCode::DivInt32 => {
-                    int32::exec_div_int32(&mut self.stack, &mut self.sp)
-                        .map_err(|e| self.runtime_error(e))?;
+                    int32::exec_div_int32(&mut self.stack).map_err(|e| self.runtime_error(e))?;
                     self.pc += 1;
                 }
 
                 LpsOpCode::ModInt32 => {
-                    int32::exec_mod_int32(&mut self.stack, &mut self.sp)
-                        .map_err(|e| self.runtime_error(e))?;
+                    int32::exec_mod_int32(&mut self.stack).map_err(|e| self.runtime_error(e))?;
                     self.pc += 1;
                 }
 
                 LpsOpCode::NegInt32 => {
-                    int32::exec_neg_int32(&mut self.stack, &mut self.sp)
-                        .map_err(|e| self.runtime_error(e))?;
+                    int32::exec_neg_int32(&mut self.stack).map_err(|e| self.runtime_error(e))?;
                     self.pc += 1;
                 }
 
                 LpsOpCode::AbsInt32 => {
-                    int32::exec_abs_int32(&mut self.stack, &mut self.sp)
-                        .map_err(|e| self.runtime_error(e))?;
+                    int32::exec_abs_int32(&mut self.stack).map_err(|e| self.runtime_error(e))?;
                     self.pc += 1;
                 }
 
                 LpsOpCode::MinInt32 => {
-                    int32::exec_min_int32(&mut self.stack, &mut self.sp)
-                        .map_err(|e| self.runtime_error(e))?;
+                    int32::exec_min_int32(&mut self.stack).map_err(|e| self.runtime_error(e))?;
                     self.pc += 1;
                 }
 
                 LpsOpCode::MaxInt32 => {
-                    int32::exec_max_int32(&mut self.stack, &mut self.sp)
-                        .map_err(|e| self.runtime_error(e))?;
+                    int32::exec_max_int32(&mut self.stack).map_err(|e| self.runtime_error(e))?;
                     self.pc += 1;
                 }
 
                 LpsOpCode::GreaterInt32 => {
-                    int32::exec_greater_int32(&mut self.stack, &mut self.sp)
+                    int32::exec_greater_int32(&mut self.stack)
                         .map_err(|e| self.runtime_error(e))?;
                     self.pc += 1;
                 }
 
                 LpsOpCode::LessInt32 => {
-                    int32::exec_less_int32(&mut self.stack, &mut self.sp)
-                        .map_err(|e| self.runtime_error(e))?;
+                    int32::exec_less_int32(&mut self.stack).map_err(|e| self.runtime_error(e))?;
                     self.pc += 1;
                 }
 
                 LpsOpCode::GreaterEqInt32 => {
-                    int32_compare::exec_greater_eq_int32(&mut self.stack, &mut self.sp)
+                    int32_compare::exec_greater_eq_int32(&mut self.stack)
                         .map_err(|e| self.runtime_error(e))?;
                     self.pc += 1;
                 }
 
                 LpsOpCode::LessEqInt32 => {
-                    int32_compare::exec_less_eq_int32(&mut self.stack, &mut self.sp)
+                    int32_compare::exec_less_eq_int32(&mut self.stack)
                         .map_err(|e| self.runtime_error(e))?;
                     self.pc += 1;
                 }
 
                 LpsOpCode::EqInt32 => {
-                    int32_compare::exec_eq_int32(&mut self.stack, &mut self.sp)
+                    int32_compare::exec_eq_int32(&mut self.stack)
                         .map_err(|e| self.runtime_error(e))?;
                     self.pc += 1;
                 }
 
                 LpsOpCode::NotEqInt32 => {
-                    int32_compare::exec_not_eq_int32(&mut self.stack, &mut self.sp)
+                    int32_compare::exec_not_eq_int32(&mut self.stack)
                         .map_err(|e| self.runtime_error(e))?;
                     self.pc += 1;
                 }
 
                 // === Int32 Bitwise Operations ===
                 LpsOpCode::BitwiseAndInt32 => {
-                    int32::exec_bitwise_and_int32(&mut self.stack, &mut self.sp)
+                    int32::exec_bitwise_and_int32(&mut self.stack)
                         .map_err(|e| self.runtime_error(e))?;
                     self.pc += 1;
                 }
 
                 LpsOpCode::BitwiseOrInt32 => {
-                    int32::exec_bitwise_or_int32(&mut self.stack, &mut self.sp)
+                    int32::exec_bitwise_or_int32(&mut self.stack)
                         .map_err(|e| self.runtime_error(e))?;
                     self.pc += 1;
                 }
 
                 LpsOpCode::BitwiseXorInt32 => {
-                    int32::exec_bitwise_xor_int32(&mut self.stack, &mut self.sp)
+                    int32::exec_bitwise_xor_int32(&mut self.stack)
                         .map_err(|e| self.runtime_error(e))?;
                     self.pc += 1;
                 }
 
                 LpsOpCode::BitwiseNotInt32 => {
-                    int32::exec_bitwise_not_int32(&mut self.stack, &mut self.sp)
+                    int32::exec_bitwise_not_int32(&mut self.stack)
                         .map_err(|e| self.runtime_error(e))?;
                     self.pc += 1;
                 }
 
                 LpsOpCode::LeftShiftInt32 => {
-                    int32::exec_left_shift_int32(&mut self.stack, &mut self.sp)
+                    int32::exec_left_shift_int32(&mut self.stack)
                         .map_err(|e| self.runtime_error(e))?;
                     self.pc += 1;
                 }
 
                 LpsOpCode::RightShiftInt32 => {
-                    int32::exec_right_shift_int32(&mut self.stack, &mut self.sp)
+                    int32::exec_right_shift_int32(&mut self.stack)
                         .map_err(|e| self.runtime_error(e))?;
                     self.pc += 1;
                 }
 
                 // === Vec2 Operations ===
                 LpsOpCode::AddVec2 => {
-                    vec2::exec_add_vec2(&mut self.stack, &mut self.sp)
-                        .map_err(|e| self.runtime_error(e))?;
+                    vec2::exec_add_vec2(&mut self.stack).map_err(|e| self.runtime_error(e))?;
                     self.pc += 1;
                 }
 
                 LpsOpCode::SubVec2 => {
-                    vec2::exec_sub_vec2(&mut self.stack, &mut self.sp)
-                        .map_err(|e| self.runtime_error(e))?;
+                    vec2::exec_sub_vec2(&mut self.stack).map_err(|e| self.runtime_error(e))?;
                     self.pc += 1;
                 }
 
                 LpsOpCode::NegVec2 => {
-                    vec2::exec_neg_vec2(&mut self.stack, &mut self.sp)
-                        .map_err(|e| self.runtime_error(e))?;
+                    vec2::exec_neg_vec2(&mut self.stack).map_err(|e| self.runtime_error(e))?;
                     self.pc += 1;
                 }
 
                 LpsOpCode::MulVec2 => {
-                    vec2::exec_mul_vec2(&mut self.stack, &mut self.sp)
-                        .map_err(|e| self.runtime_error(e))?;
+                    vec2::exec_mul_vec2(&mut self.stack).map_err(|e| self.runtime_error(e))?;
                     self.pc += 1;
                 }
 
                 LpsOpCode::DivVec2 => {
-                    vec2::exec_div_vec2(&mut self.stack, &mut self.sp)
-                        .map_err(|e| self.runtime_error(e))?;
+                    vec2::exec_div_vec2(&mut self.stack).map_err(|e| self.runtime_error(e))?;
                     self.pc += 1;
                 }
 
                 LpsOpCode::ModVec2 => {
-                    vec2::exec_mod_vec2(&mut self.stack, &mut self.sp)
-                        .map_err(|e| self.runtime_error(e))?;
+                    vec2::exec_mod_vec2(&mut self.stack).map_err(|e| self.runtime_error(e))?;
                     self.pc += 1;
                 }
 
                 LpsOpCode::MulVec2Scalar => {
-                    vec2::exec_mul_vec2_scalar(&mut self.stack, &mut self.sp)
+                    vec2::exec_mul_vec2_scalar(&mut self.stack)
                         .map_err(|e| self.runtime_error(e))?;
                     self.pc += 1;
                 }
 
                 LpsOpCode::DivVec2Scalar => {
-                    vec2::exec_div_vec2_scalar(&mut self.stack, &mut self.sp)
+                    vec2::exec_div_vec2_scalar(&mut self.stack)
                         .map_err(|e| self.runtime_error(e))?;
                     self.pc += 1;
                 }
 
                 LpsOpCode::Dot2 => {
-                    vec2::exec_dot2(&mut self.stack, &mut self.sp)
-                        .map_err(|e| self.runtime_error(e))?;
+                    vec2::exec_dot2(&mut self.stack).map_err(|e| self.runtime_error(e))?;
                     self.pc += 1;
                 }
 
                 LpsOpCode::Length2 => {
-                    vec2::exec_length2(&mut self.stack, &mut self.sp)
-                        .map_err(|e| self.runtime_error(e))?;
+                    vec2::exec_length2(&mut self.stack).map_err(|e| self.runtime_error(e))?;
                     self.pc += 1;
                 }
 
                 LpsOpCode::Normalize2 => {
-                    vec2::exec_normalize2(&mut self.stack, &mut self.sp)
-                        .map_err(|e| self.runtime_error(e))?;
+                    vec2::exec_normalize2(&mut self.stack).map_err(|e| self.runtime_error(e))?;
                     self.pc += 1;
                 }
 
                 LpsOpCode::Distance2 => {
-                    vec2::exec_distance2(&mut self.stack, &mut self.sp)
-                        .map_err(|e| self.runtime_error(e))?;
+                    vec2::exec_distance2(&mut self.stack).map_err(|e| self.runtime_error(e))?;
                     self.pc += 1;
                 }
 
                 // === Vec3 Operations ===
                 LpsOpCode::AddVec3 => {
-                    vec3::exec_add_vec3(&mut self.stack, &mut self.sp)
-                        .map_err(|e| self.runtime_error(e))?;
+                    vec3::exec_add_vec3(&mut self.stack).map_err(|e| self.runtime_error(e))?;
                     self.pc += 1;
                 }
 
                 LpsOpCode::SubVec3 => {
-                    vec3::exec_sub_vec3(&mut self.stack, &mut self.sp)
-                        .map_err(|e| self.runtime_error(e))?;
+                    vec3::exec_sub_vec3(&mut self.stack).map_err(|e| self.runtime_error(e))?;
                     self.pc += 1;
                 }
 
                 LpsOpCode::NegVec3 => {
-                    vec3::exec_neg_vec3(&mut self.stack, &mut self.sp)
-                        .map_err(|e| self.runtime_error(e))?;
+                    vec3::exec_neg_vec3(&mut self.stack).map_err(|e| self.runtime_error(e))?;
                     self.pc += 1;
                 }
 
                 LpsOpCode::MulVec3 => {
-                    vec3::exec_mul_vec3(&mut self.stack, &mut self.sp)
-                        .map_err(|e| self.runtime_error(e))?;
+                    vec3::exec_mul_vec3(&mut self.stack).map_err(|e| self.runtime_error(e))?;
                     self.pc += 1;
                 }
 
                 LpsOpCode::DivVec3 => {
-                    vec3::exec_div_vec3(&mut self.stack, &mut self.sp)
-                        .map_err(|e| self.runtime_error(e))?;
+                    vec3::exec_div_vec3(&mut self.stack).map_err(|e| self.runtime_error(e))?;
                     self.pc += 1;
                 }
 
                 LpsOpCode::ModVec3 => {
-                    vec3::exec_mod_vec3(&mut self.stack, &mut self.sp)
-                        .map_err(|e| self.runtime_error(e))?;
+                    vec3::exec_mod_vec3(&mut self.stack).map_err(|e| self.runtime_error(e))?;
                     self.pc += 1;
                 }
 
                 LpsOpCode::MulVec3Scalar => {
-                    vec3::exec_mul_vec3_scalar(&mut self.stack, &mut self.sp)
+                    vec3::exec_mul_vec3_scalar(&mut self.stack)
                         .map_err(|e| self.runtime_error(e))?;
                     self.pc += 1;
                 }
 
                 LpsOpCode::DivVec3Scalar => {
-                    vec3::exec_div_vec3_scalar(&mut self.stack, &mut self.sp)
+                    vec3::exec_div_vec3_scalar(&mut self.stack)
                         .map_err(|e| self.runtime_error(e))?;
                     self.pc += 1;
                 }
 
                 LpsOpCode::Dot3 => {
-                    vec3::exec_dot3(&mut self.stack, &mut self.sp)
-                        .map_err(|e| self.runtime_error(e))?;
+                    vec3::exec_dot3(&mut self.stack).map_err(|e| self.runtime_error(e))?;
                     self.pc += 1;
                 }
 
                 LpsOpCode::Cross3 => {
-                    vec3::exec_cross3(&mut self.stack, &mut self.sp)
-                        .map_err(|e| self.runtime_error(e))?;
+                    vec3::exec_cross3(&mut self.stack).map_err(|e| self.runtime_error(e))?;
                     self.pc += 1;
                 }
 
                 LpsOpCode::Length3 => {
-                    vec3::exec_length3(&mut self.stack, &mut self.sp)
-                        .map_err(|e| self.runtime_error(e))?;
+                    vec3::exec_length3(&mut self.stack).map_err(|e| self.runtime_error(e))?;
                     self.pc += 1;
                 }
 
                 LpsOpCode::Normalize3 => {
-                    vec3::exec_normalize3(&mut self.stack, &mut self.sp)
-                        .map_err(|e| self.runtime_error(e))?;
+                    vec3::exec_normalize3(&mut self.stack).map_err(|e| self.runtime_error(e))?;
                     self.pc += 1;
                 }
 
                 LpsOpCode::Distance3 => {
-                    vec3::exec_distance3(&mut self.stack, &mut self.sp)
-                        .map_err(|e| self.runtime_error(e))?;
+                    vec3::exec_distance3(&mut self.stack).map_err(|e| self.runtime_error(e))?;
                     self.pc += 1;
                 }
 
                 // === Vec4 Operations ===
                 LpsOpCode::AddVec4 => {
-                    vec4::exec_add_vec4(&mut self.stack, &mut self.sp)
-                        .map_err(|e| self.runtime_error(e))?;
+                    vec4::exec_add_vec4(&mut self.stack).map_err(|e| self.runtime_error(e))?;
                     self.pc += 1;
                 }
 
                 LpsOpCode::SubVec4 => {
-                    vec4::exec_sub_vec4(&mut self.stack, &mut self.sp)
-                        .map_err(|e| self.runtime_error(e))?;
+                    vec4::exec_sub_vec4(&mut self.stack).map_err(|e| self.runtime_error(e))?;
                     self.pc += 1;
                 }
 
                 LpsOpCode::NegVec4 => {
-                    vec4::exec_neg_vec4(&mut self.stack, &mut self.sp)
-                        .map_err(|e| self.runtime_error(e))?;
+                    vec4::exec_neg_vec4(&mut self.stack).map_err(|e| self.runtime_error(e))?;
                     self.pc += 1;
                 }
 
                 LpsOpCode::MulVec4 => {
-                    vec4::exec_mul_vec4(&mut self.stack, &mut self.sp)
-                        .map_err(|e| self.runtime_error(e))?;
+                    vec4::exec_mul_vec4(&mut self.stack).map_err(|e| self.runtime_error(e))?;
                     self.pc += 1;
                 }
 
                 LpsOpCode::DivVec4 => {
-                    vec4::exec_div_vec4(&mut self.stack, &mut self.sp)
-                        .map_err(|e| self.runtime_error(e))?;
+                    vec4::exec_div_vec4(&mut self.stack).map_err(|e| self.runtime_error(e))?;
                     self.pc += 1;
                 }
 
                 LpsOpCode::ModVec4 => {
-                    vec4::exec_mod_vec4(&mut self.stack, &mut self.sp)
-                        .map_err(|e| self.runtime_error(e))?;
+                    vec4::exec_mod_vec4(&mut self.stack).map_err(|e| self.runtime_error(e))?;
                     self.pc += 1;
                 }
 
                 LpsOpCode::MulVec4Scalar => {
-                    vec4::exec_mul_vec4_scalar(&mut self.stack, &mut self.sp)
+                    vec4::exec_mul_vec4_scalar(&mut self.stack)
                         .map_err(|e| self.runtime_error(e))?;
                     self.pc += 1;
                 }
 
                 LpsOpCode::DivVec4Scalar => {
-                    vec4::exec_div_vec4_scalar(&mut self.stack, &mut self.sp)
+                    vec4::exec_div_vec4_scalar(&mut self.stack)
                         .map_err(|e| self.runtime_error(e))?;
                     self.pc += 1;
                 }
 
                 LpsOpCode::Dot4 => {
-                    vec4::exec_dot4(&mut self.stack, &mut self.sp)
-                        .map_err(|e| self.runtime_error(e))?;
+                    vec4::exec_dot4(&mut self.stack).map_err(|e| self.runtime_error(e))?;
                     self.pc += 1;
                 }
 
                 LpsOpCode::Length4 => {
-                    vec4::exec_length4(&mut self.stack, &mut self.sp)
-                        .map_err(|e| self.runtime_error(e))?;
+                    vec4::exec_length4(&mut self.stack).map_err(|e| self.runtime_error(e))?;
                     self.pc += 1;
                 }
 
                 LpsOpCode::Normalize4 => {
-                    vec4::exec_normalize4(&mut self.stack, &mut self.sp)
-                        .map_err(|e| self.runtime_error(e))?;
+                    vec4::exec_normalize4(&mut self.stack).map_err(|e| self.runtime_error(e))?;
                     self.pc += 1;
                 }
 
                 LpsOpCode::Distance4 => {
-                    vec4::exec_distance4(&mut self.stack, &mut self.sp)
-                        .map_err(|e| self.runtime_error(e))?;
+                    vec4::exec_distance4(&mut self.stack).map_err(|e| self.runtime_error(e))?;
                     self.pc += 1;
                 }
 
                 // === Swizzle Operations ===
                 LpsOpCode::Swizzle3to2(idx0, idx1) => {
-                    stack::exec_swizzle3to2(&mut self.stack, &mut self.sp, *idx0, *idx1)
+                    self.stack
+                        .swizzle3to2(*idx0, *idx1)
                         .map_err(|e| self.runtime_error(e))?;
                     self.pc += 1;
                 }
 
                 LpsOpCode::Swizzle3to3(idx0, idx1, idx2) => {
-                    stack::exec_swizzle3to3(&mut self.stack, &mut self.sp, *idx0, *idx1, *idx2)
+                    self.stack
+                        .swizzle3to3(*idx0, *idx1, *idx2)
                         .map_err(|e| self.runtime_error(e))?;
                     self.pc += 1;
                 }
 
                 LpsOpCode::Swizzle4to2(idx0, idx1) => {
-                    stack::exec_swizzle4to2(&mut self.stack, &mut self.sp, *idx0, *idx1)
+                    self.stack
+                        .swizzle4to2(*idx0, *idx1)
                         .map_err(|e| self.runtime_error(e))?;
                     self.pc += 1;
                 }
 
                 LpsOpCode::Swizzle4to3(idx0, idx1, idx2) => {
-                    stack::exec_swizzle4to3(&mut self.stack, &mut self.sp, *idx0, *idx1, *idx2)
+                    self.stack
+                        .swizzle4to3(*idx0, *idx1, *idx2)
                         .map_err(|e| self.runtime_error(e))?;
                     self.pc += 1;
                 }
 
                 LpsOpCode::Swizzle4to4(idx0, idx1, idx2, idx3) => {
-                    stack::exec_swizzle4to4(
-                        &mut self.stack,
-                        &mut self.sp,
-                        *idx0,
-                        *idx1,
-                        *idx2,
-                        *idx3,
-                    )
-                    .map_err(|e| self.runtime_error(e))?;
+                    self.stack
+                        .swizzle4to4(*idx0, *idx1, *idx2, *idx3)
+                        .map_err(|e| self.runtime_error(e))?;
                     self.pc += 1;
                 }
 
                 // === Texture Operations ===
                 LpsOpCode::TextureSampleR(idx) => {
-                    textures::exec_texture_sample_r(&mut self.stack, &mut self.sp, *idx)
+                    textures::exec_texture_sample_r(&mut self.stack, *idx)
                         .map_err(|e| self.runtime_error(e))?;
                     self.pc += 1;
                 }
 
                 LpsOpCode::TextureSampleRGBA(idx) => {
-                    textures::exec_texture_sample_rgba(&mut self.stack, &mut self.sp, *idx)
+                    textures::exec_texture_sample_rgba(&mut self.stack, *idx)
                         .map_err(|e| self.runtime_error(e))?;
                     self.pc += 1;
                 }
 
                 // === Array Operations ===
                 LpsOpCode::GetElemInt32ArrayFixed => {
-                    arrays::exec_get_elem_int32_array_fixed(&mut self.stack, &mut self.sp)
+                    arrays::exec_get_elem_int32_array_fixed(&mut self.stack)
                         .map_err(|e| self.runtime_error(e))?;
                     self.pc += 1;
                 }
 
                 LpsOpCode::GetElemInt32ArrayU8 => {
-                    arrays::exec_get_elem_int32_array_u8(&mut self.stack, &mut self.sp)
+                    arrays::exec_get_elem_int32_array_u8(&mut self.stack)
                         .map_err(|e| self.runtime_error(e))?;
                     self.pc += 1;
                 }
             }
         }
-    }
-
-    // Helper methods for stack management
-    fn push(&mut self, val: Fixed) -> Result<(), RuntimeErrorWithContext> {
-        if self.sp >= self.limits.max_stack_size {
-            return Err(self.runtime_error(RuntimeError::StackOverflow { sp: self.sp }));
-        }
-        self.stack[self.sp] = val.0;
-        self.sp += 1;
-        Ok(())
-    }
-
-    fn pop(&mut self) -> Result<Fixed, RuntimeErrorWithContext> {
-        if self.sp == 0 {
-            return Err(self.runtime_error(RuntimeError::StackUnderflow {
-                required: 1,
-                actual: 0,
-            }));
-        }
-        self.sp -= 1;
-        Ok(Fixed(self.stack[self.sp]))
-    }
-
-    #[allow(dead_code)]
-    fn peek(&self) -> Result<Fixed, RuntimeErrorWithContext> {
-        if self.sp == 0 {
-            return Err(RuntimeErrorWithContext {
-                error: RuntimeError::StackUnderflow {
-                    required: 1,
-                    actual: 0,
-                },
-                pc: self.pc,
-                opcode: "peek",
-            });
-        }
-        Ok(Fixed(self.stack[self.sp - 1]))
     }
 
     fn runtime_error(&self, error: RuntimeError) -> RuntimeErrorWithContext {
@@ -1244,17 +1125,18 @@ impl<'a> LpsVm<'a> {
 
         let mut output = format!("{}\n", error);
         output.push_str(&format!("  at PC {} ({})\n", error.pc, error.opcode));
-        output.push_str(&format!("  stack pointer: {}\n", self.sp));
+        output.push_str(&format!("  stack pointer: {}\n", self.stack.sp()));
 
         // Show top of stack
-        if self.sp > 0 {
+        let sp = self.stack.sp();
+        if sp > 0 {
             output.push_str("  stack (top 5): [");
-            let start = if self.sp > 5 { self.sp - 5 } else { 0 };
-            for i in start..self.sp {
+            let start = if sp > 5 { sp - 5 } else { 0 };
+            for i in start..sp {
                 if i > start {
                     output.push_str(", ");
                 }
-                output.push_str(&format!("{}", Fixed(self.stack[i]).to_f32()));
+                output.push_str(&format!("{}", Fixed(self.stack.raw_slice()[i]).to_f32()));
             }
             output.push_str("]\n");
         }

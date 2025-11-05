@@ -1,351 +1,163 @@
-/// Int32 arithmetic opcodes
+/// Int32 arithmetic and bitwise operations
 use crate::lpscript::vm::error::RuntimeError;
+use crate::lpscript::vm::vm_stack::Stack;
+use crate::math::{Fixed, FIXED_ONE};
+
+// === Arithmetic Operations ===
 
 /// Execute AddInt32: pop b, a; push a + b
 #[inline(always)]
-pub fn exec_add_int32(stack: &mut [i32], sp: &mut usize) -> Result<(), RuntimeError> {
-    if *sp < 2 {
-        return Err(RuntimeError::StackUnderflow {
-            required: 2,
-            actual: *sp,
-        });
-    }
-
-    *sp -= 1;
-    let b = stack[*sp];
-    *sp -= 1;
-    let a = stack[*sp];
-    stack[*sp] = a.wrapping_add(b);
-    *sp += 1;
-
+pub fn exec_add_int32(stack: &mut Stack) -> Result<(), RuntimeError> {
+    let (a, b) = stack.pop2()?;
+    stack.push_int32(a.wrapping_add(b))?;
     Ok(())
 }
 
 /// Execute SubInt32: pop b, a; push a - b
 #[inline(always)]
-pub fn exec_sub_int32(stack: &mut [i32], sp: &mut usize) -> Result<(), RuntimeError> {
-    if *sp < 2 {
-        return Err(RuntimeError::StackUnderflow {
-            required: 2,
-            actual: *sp,
-        });
-    }
-
-    *sp -= 1;
-    let b = stack[*sp];
-    *sp -= 1;
-    let a = stack[*sp];
-    stack[*sp] = a.wrapping_sub(b);
-    *sp += 1;
-
+pub fn exec_sub_int32(stack: &mut Stack) -> Result<(), RuntimeError> {
+    let (a, b) = stack.pop2()?;
+    stack.push_int32(a.wrapping_sub(b))?;
     Ok(())
 }
 
 /// Execute MulInt32: pop b, a; push a * b
 #[inline(always)]
-pub fn exec_mul_int32(stack: &mut [i32], sp: &mut usize) -> Result<(), RuntimeError> {
-    if *sp < 2 {
-        return Err(RuntimeError::StackUnderflow {
-            required: 2,
-            actual: *sp,
-        });
-    }
-
-    *sp -= 1;
-    let b = stack[*sp];
-    *sp -= 1;
-    let a = stack[*sp];
-    stack[*sp] = a.wrapping_mul(b);
-    *sp += 1;
-
+pub fn exec_mul_int32(stack: &mut Stack) -> Result<(), RuntimeError> {
+    let (a, b) = stack.pop2()?;
+    stack.push_int32(a.wrapping_mul(b))?;
     Ok(())
 }
 
 /// Execute DivInt32: pop b, a; push a / b
 #[inline(always)]
-pub fn exec_div_int32(stack: &mut [i32], sp: &mut usize) -> Result<(), RuntimeError> {
-    if *sp < 2 {
-        return Err(RuntimeError::StackUnderflow {
-            required: 2,
-            actual: *sp,
-        });
-    }
-
-    *sp -= 1;
-    let b = stack[*sp];
-    *sp -= 1;
-    let a = stack[*sp];
+pub fn exec_div_int32(stack: &mut Stack) -> Result<(), RuntimeError> {
+    let (a, b) = stack.pop2()?;
 
     if b == 0 {
         return Err(RuntimeError::DivisionByZero);
     }
 
-    stack[*sp] = a / b;
-    *sp += 1;
-
+    stack.push_int32(a / b)?;
     Ok(())
 }
 
 /// Execute ModInt32: pop b, a; push a % b
 #[inline(always)]
-pub fn exec_mod_int32(stack: &mut [i32], sp: &mut usize) -> Result<(), RuntimeError> {
-    if *sp < 2 {
-        return Err(RuntimeError::StackUnderflow {
-            required: 2,
-            actual: *sp,
-        });
-    }
-
-    *sp -= 1;
-    let b = stack[*sp];
-    *sp -= 1;
-    let a = stack[*sp];
+pub fn exec_mod_int32(stack: &mut Stack) -> Result<(), RuntimeError> {
+    let (a, b) = stack.pop2()?;
 
     if b == 0 {
         return Err(RuntimeError::DivisionByZero);
     }
 
-    stack[*sp] = a % b;
-    *sp += 1;
-
+    stack.push_int32(a % b)?;
     Ok(())
 }
 
 /// Execute NegInt32: pop a; push -a
 #[inline(always)]
-pub fn exec_neg_int32(stack: &mut [i32], sp: &mut usize) -> Result<(), RuntimeError> {
-    if *sp < 1 {
-        return Err(RuntimeError::StackUnderflow {
-            required: 1,
-            actual: *sp,
-        });
-    }
-
-    *sp -= 1;
-    let a = stack[*sp];
-    stack[*sp] = a.wrapping_neg();
-    *sp += 1;
-
+pub fn exec_neg_int32(stack: &mut Stack) -> Result<(), RuntimeError> {
+    let a = stack.pop_int32()?;
+    stack.push_int32(-a)?;
     Ok(())
 }
 
-/// Execute AbsInt32: pop a; push |a|
+/// Execute AbsInt32: pop a; push abs(a)
 #[inline(always)]
-pub fn exec_abs_int32(stack: &mut [i32], sp: &mut usize) -> Result<(), RuntimeError> {
-    if *sp < 1 {
-        return Err(RuntimeError::StackUnderflow {
-            required: 1,
-            actual: *sp,
-        });
-    }
-
-    *sp -= 1;
-    let a = stack[*sp];
-    stack[*sp] = a.abs();
-    *sp += 1;
-
+pub fn exec_abs_int32(stack: &mut Stack) -> Result<(), RuntimeError> {
+    let a = stack.pop_int32()?;
+    stack.push_int32(a.abs())?;
     Ok(())
 }
 
 /// Execute MinInt32: pop b, a; push min(a, b)
 #[inline(always)]
-pub fn exec_min_int32(stack: &mut [i32], sp: &mut usize) -> Result<(), RuntimeError> {
-    if *sp < 2 {
-        return Err(RuntimeError::StackUnderflow {
-            required: 2,
-            actual: *sp,
-        });
-    }
-
-    *sp -= 1;
-    let b = stack[*sp];
-    *sp -= 1;
-    let a = stack[*sp];
-    stack[*sp] = if a < b { a } else { b };
-    *sp += 1;
-
+pub fn exec_min_int32(stack: &mut Stack) -> Result<(), RuntimeError> {
+    let (a, b) = stack.pop2()?;
+    stack.push_int32(a.min(b))?;
     Ok(())
 }
 
 /// Execute MaxInt32: pop b, a; push max(a, b)
 #[inline(always)]
-pub fn exec_max_int32(stack: &mut [i32], sp: &mut usize) -> Result<(), RuntimeError> {
-    if *sp < 2 {
-        return Err(RuntimeError::StackUnderflow {
-            required: 2,
-            actual: *sp,
-        });
-    }
-
-    *sp -= 1;
-    let b = stack[*sp];
-    *sp -= 1;
-    let a = stack[*sp];
-    stack[*sp] = if a > b { a } else { b };
-    *sp += 1;
-
+pub fn exec_max_int32(stack: &mut Stack) -> Result<(), RuntimeError> {
+    let (a, b) = stack.pop2()?;
+    stack.push_int32(a.max(b))?;
     Ok(())
 }
 
-/// Execute GreaterInt32: pop b, a; push (a > b ? 1 : 0)
+// === Comparison Operations ===
+
+/// Execute GreaterInt32: pop b, a; push (a > b ? 1.0 : 0.0)
 #[inline(always)]
-pub fn exec_greater_int32(stack: &mut [i32], sp: &mut usize) -> Result<(), RuntimeError> {
-    if *sp < 2 {
-        return Err(RuntimeError::StackUnderflow {
-            required: 2,
-            actual: *sp,
-        });
-    }
-
-    *sp -= 1;
-    let b = stack[*sp];
-    *sp -= 1;
-    let a = stack[*sp];
-    stack[*sp] = if a > b { 1 } else { 0 };
-    *sp += 1;
-
+pub fn exec_greater_int32(stack: &mut Stack) -> Result<(), RuntimeError> {
+    let (a, b) = stack.pop2()?;
+    let result = if a > b { FIXED_ONE } else { 0 };
+    stack.push_int32(result)?;
     Ok(())
 }
 
-/// Execute LessInt32: pop b, a; push (a < b ? 1 : 0)
+/// Execute LessInt32: pop b, a; push (a < b ? 1.0 : 0.0)
 #[inline(always)]
-pub fn exec_less_int32(stack: &mut [i32], sp: &mut usize) -> Result<(), RuntimeError> {
-    if *sp < 2 {
-        return Err(RuntimeError::StackUnderflow {
-            required: 2,
-            actual: *sp,
-        });
-    }
-
-    *sp -= 1;
-    let b = stack[*sp];
-    *sp -= 1;
-    let a = stack[*sp];
-    stack[*sp] = if a < b { 1 } else { 0 };
-    *sp += 1;
-
+pub fn exec_less_int32(stack: &mut Stack) -> Result<(), RuntimeError> {
+    let (a, b) = stack.pop2()?;
+    let result = if a < b { FIXED_ONE } else { 0 };
+    stack.push_int32(result)?;
     Ok(())
 }
+
+// === Bitwise Operations ===
 
 /// Execute BitwiseAndInt32: pop b, a; push a & b
 #[inline(always)]
-pub fn exec_bitwise_and_int32(stack: &mut [i32], sp: &mut usize) -> Result<(), RuntimeError> {
-    if *sp < 2 {
-        return Err(RuntimeError::StackUnderflow {
-            required: 2,
-            actual: *sp,
-        });
-    }
-
-    *sp -= 1;
-    let b = stack[*sp];
-    *sp -= 1;
-    let a = stack[*sp];
-    stack[*sp] = a & b;
-    *sp += 1;
-
+pub fn exec_bitwise_and_int32(stack: &mut Stack) -> Result<(), RuntimeError> {
+    let (a, b) = stack.pop2()?;
+    stack.push_int32(a & b)?;
     Ok(())
 }
 
 /// Execute BitwiseOrInt32: pop b, a; push a | b
 #[inline(always)]
-pub fn exec_bitwise_or_int32(stack: &mut [i32], sp: &mut usize) -> Result<(), RuntimeError> {
-    if *sp < 2 {
-        return Err(RuntimeError::StackUnderflow {
-            required: 2,
-            actual: *sp,
-        });
-    }
-
-    *sp -= 1;
-    let b = stack[*sp];
-    *sp -= 1;
-    let a = stack[*sp];
-    stack[*sp] = a | b;
-    *sp += 1;
-
+pub fn exec_bitwise_or_int32(stack: &mut Stack) -> Result<(), RuntimeError> {
+    let (a, b) = stack.pop2()?;
+    stack.push_int32(a | b)?;
     Ok(())
 }
 
 /// Execute BitwiseXorInt32: pop b, a; push a ^ b
 #[inline(always)]
-pub fn exec_bitwise_xor_int32(stack: &mut [i32], sp: &mut usize) -> Result<(), RuntimeError> {
-    if *sp < 2 {
-        return Err(RuntimeError::StackUnderflow {
-            required: 2,
-            actual: *sp,
-        });
-    }
-
-    *sp -= 1;
-    let b = stack[*sp];
-    *sp -= 1;
-    let a = stack[*sp];
-    stack[*sp] = a ^ b;
-    *sp += 1;
-
+pub fn exec_bitwise_xor_int32(stack: &mut Stack) -> Result<(), RuntimeError> {
+    let (a, b) = stack.pop2()?;
+    stack.push_int32(a ^ b)?;
     Ok(())
 }
 
-/// Execute BitwiseNotInt32: pop a; push ~a
+/// Execute BitwiseNotInt32: pop a; push !a
 #[inline(always)]
-pub fn exec_bitwise_not_int32(stack: &mut [i32], sp: &mut usize) -> Result<(), RuntimeError> {
-    if *sp < 1 {
-        return Err(RuntimeError::StackUnderflow {
-            required: 1,
-            actual: *sp,
-        });
-    }
-
-    *sp -= 1;
-    let a = stack[*sp];
-    stack[*sp] = !a;
-    *sp += 1;
-
+pub fn exec_bitwise_not_int32(stack: &mut Stack) -> Result<(), RuntimeError> {
+    let a = stack.pop_int32()?;
+    stack.push_int32(!a)?;
     Ok(())
 }
 
 /// Execute LeftShiftInt32: pop b, a; push a << b
 #[inline(always)]
-pub fn exec_left_shift_int32(stack: &mut [i32], sp: &mut usize) -> Result<(), RuntimeError> {
-    if *sp < 2 {
-        return Err(RuntimeError::StackUnderflow {
-            required: 2,
-            actual: *sp,
-        });
-    }
-
-    *sp -= 1;
-    let b = stack[*sp];
-    *sp -= 1;
-    let a = stack[*sp];
-    // Clamp shift amount to avoid undefined behavior
-    let shift = (b as u32) & 31;
-    stack[*sp] = a << shift;
-    *sp += 1;
-
+pub fn exec_left_shift_int32(stack: &mut Stack) -> Result<(), RuntimeError> {
+    let (a, b) = stack.pop2()?;
+    // Clamp shift amount to prevent overflow
+    let shift = (b as u32) & 0x1F; // Limit to 0-31
+    stack.push_int32(a << shift)?;
     Ok(())
 }
 
-/// Execute RightShiftInt32: pop b, a; push a >> b
+/// Execute RightShiftInt32: pop b, a; push a >> b (arithmetic shift)
 #[inline(always)]
-pub fn exec_right_shift_int32(stack: &mut [i32], sp: &mut usize) -> Result<(), RuntimeError> {
-    if *sp < 2 {
-        return Err(RuntimeError::StackUnderflow {
-            required: 2,
-            actual: *sp,
-        });
-    }
-
-    *sp -= 1;
-    let b = stack[*sp];
-    *sp -= 1;
-    let a = stack[*sp];
-    // Clamp shift amount to avoid undefined behavior
-    let shift = (b as u32) & 31;
-    stack[*sp] = a >> shift;
-    *sp += 1;
-
+pub fn exec_right_shift_int32(stack: &mut Stack) -> Result<(), RuntimeError> {
+    let (a, b) = stack.pop2()?;
+    // Clamp shift amount to prevent overflow
+    let shift = (b as u32) & 0x1F; // Limit to 0-31
+    stack.push_int32(a >> shift)?;
     Ok(())
 }
 
@@ -354,81 +166,161 @@ mod tests {
     use super::*;
 
     #[test]
-    fn test_add_int32() {
-        let mut stack = [0i32; 64];
-        let mut sp = 0;
-
-        stack[sp] = 10;
-        sp += 1;
-        stack[sp] = 20;
-        sp += 1;
-
-        exec_add_int32(&mut stack, &mut sp).unwrap();
-
-        assert_eq!(sp, 1);
-        assert_eq!(stack[0], 30);
+    fn test_add() {
+        let mut stack = Stack::new(64);
+        stack.push_int32(5).unwrap();
+        stack.push_int32(3).unwrap();
+        exec_add_int32(&mut stack).unwrap();
+        assert_eq!(stack.pop_int32().unwrap(), 8);
     }
 
     #[test]
-    fn test_div_int32() {
-        let mut stack = [0i32; 64];
-        let mut sp = 0;
-
-        stack[sp] = 20;
-        sp += 1;
-        stack[sp] = 4;
-        sp += 1;
-
-        exec_div_int32(&mut stack, &mut sp).unwrap();
-
-        assert_eq!(sp, 1);
-        assert_eq!(stack[0], 5);
+    fn test_sub() {
+        let mut stack = Stack::new(64);
+        stack.push_int32(10).unwrap();
+        stack.push_int32(3).unwrap();
+        exec_sub_int32(&mut stack).unwrap();
+        assert_eq!(stack.pop_int32().unwrap(), 7);
     }
 
     #[test]
-    fn test_div_int32_by_zero() {
-        let mut stack = [0i32; 64];
-        let mut sp = 0;
+    fn test_mul() {
+        let mut stack = Stack::new(64);
+        stack.push_int32(4).unwrap();
+        stack.push_int32(3).unwrap();
+        exec_mul_int32(&mut stack).unwrap();
+        assert_eq!(stack.pop_int32().unwrap(), 12);
+    }
 
-        stack[sp] = 20;
-        sp += 1;
-        stack[sp] = 0;
-        sp += 1;
+    #[test]
+    fn test_div() {
+        let mut stack = Stack::new(64);
+        stack.push_int32(15).unwrap();
+        stack.push_int32(3).unwrap();
+        exec_div_int32(&mut stack).unwrap();
+        assert_eq!(stack.pop_int32().unwrap(), 5);
+    }
 
-        let result = exec_div_int32(&mut stack, &mut sp);
+    #[test]
+    fn test_div_by_zero() {
+        let mut stack = Stack::new(64);
+        stack.push_int32(10).unwrap();
+        stack.push_int32(0).unwrap();
+        let result = exec_div_int32(&mut stack);
         assert!(matches!(result, Err(RuntimeError::DivisionByZero)));
     }
 
     #[test]
-    fn test_mod_int32() {
-        let mut stack = [0i32; 64];
-        let mut sp = 0;
-
-        stack[sp] = 17;
-        sp += 1;
-        stack[sp] = 5;
-        sp += 1;
-
-        exec_mod_int32(&mut stack, &mut sp).unwrap();
-
-        assert_eq!(sp, 1);
-        assert_eq!(stack[0], 2);
+    fn test_mod() {
+        let mut stack = Stack::new(64);
+        stack.push_int32(10).unwrap();
+        stack.push_int32(3).unwrap();
+        exec_mod_int32(&mut stack).unwrap();
+        assert_eq!(stack.pop_int32().unwrap(), 1);
     }
 
     #[test]
-    fn test_greater_int32() {
-        let mut stack = [0i32; 64];
-        let mut sp = 0;
+    fn test_neg() {
+        let mut stack = Stack::new(64);
+        stack.push_int32(5).unwrap();
+        exec_neg_int32(&mut stack).unwrap();
+        assert_eq!(stack.pop_int32().unwrap(), -5);
+    }
 
-        stack[sp] = 10;
-        sp += 1;
-        stack[sp] = 5;
-        sp += 1;
+    #[test]
+    fn test_abs() {
+        let mut stack = Stack::new(64);
+        stack.push_int32(-7).unwrap();
+        exec_abs_int32(&mut stack).unwrap();
+        assert_eq!(stack.pop_int32().unwrap(), 7);
+    }
 
-        exec_greater_int32(&mut stack, &mut sp).unwrap();
+    #[test]
+    fn test_min() {
+        let mut stack = Stack::new(64);
+        stack.push_int32(5).unwrap();
+        stack.push_int32(3).unwrap();
+        exec_min_int32(&mut stack).unwrap();
+        assert_eq!(stack.pop_int32().unwrap(), 3);
+    }
 
-        assert_eq!(sp, 1);
-        assert_eq!(stack[0], 1); // true
+    #[test]
+    fn test_max() {
+        let mut stack = Stack::new(64);
+        stack.push_int32(5).unwrap();
+        stack.push_int32(3).unwrap();
+        exec_max_int32(&mut stack).unwrap();
+        assert_eq!(stack.pop_int32().unwrap(), 5);
+    }
+
+    #[test]
+    fn test_greater() {
+        let mut stack = Stack::new(64);
+        stack.push_int32(5).unwrap();
+        stack.push_int32(3).unwrap();
+        exec_greater_int32(&mut stack).unwrap();
+        assert_eq!(stack.pop_int32().unwrap(), FIXED_ONE);
+    }
+
+    #[test]
+    fn test_less() {
+        let mut stack = Stack::new(64);
+        stack.push_int32(3).unwrap();
+        stack.push_int32(5).unwrap();
+        exec_less_int32(&mut stack).unwrap();
+        assert_eq!(stack.pop_int32().unwrap(), FIXED_ONE);
+    }
+
+    #[test]
+    fn test_bitwise_and() {
+        let mut stack = Stack::new(64);
+        stack.push_int32(0b1100).unwrap();
+        stack.push_int32(0b1010).unwrap();
+        exec_bitwise_and_int32(&mut stack).unwrap();
+        assert_eq!(stack.pop_int32().unwrap(), 0b1000);
+    }
+
+    #[test]
+    fn test_bitwise_or() {
+        let mut stack = Stack::new(64);
+        stack.push_int32(0b1100).unwrap();
+        stack.push_int32(0b1010).unwrap();
+        exec_bitwise_or_int32(&mut stack).unwrap();
+        assert_eq!(stack.pop_int32().unwrap(), 0b1110);
+    }
+
+    #[test]
+    fn test_bitwise_xor() {
+        let mut stack = Stack::new(64);
+        stack.push_int32(0b1100).unwrap();
+        stack.push_int32(0b1010).unwrap();
+        exec_bitwise_xor_int32(&mut stack).unwrap();
+        assert_eq!(stack.pop_int32().unwrap(), 0b0110);
+    }
+
+    #[test]
+    fn test_bitwise_not() {
+        let mut stack = Stack::new(64);
+        stack.push_int32(0).unwrap();
+        exec_bitwise_not_int32(&mut stack).unwrap();
+        assert_eq!(stack.pop_int32().unwrap(), -1);
+    }
+
+    #[test]
+    fn test_left_shift() {
+        let mut stack = Stack::new(64);
+        stack.push_int32(5).unwrap();
+        stack.push_int32(2).unwrap();
+        exec_left_shift_int32(&mut stack).unwrap();
+        assert_eq!(stack.pop_int32().unwrap(), 20); // 5 << 2 = 20
+    }
+
+    #[test]
+    fn test_right_shift() {
+        let mut stack = Stack::new(64);
+        stack.push_int32(20).unwrap();
+        stack.push_int32(2).unwrap();
+        exec_right_shift_int32(&mut stack).unwrap();
+        assert_eq!(stack.pop_int32().unwrap(), 5); // 20 >> 2 = 5
     }
 }
-

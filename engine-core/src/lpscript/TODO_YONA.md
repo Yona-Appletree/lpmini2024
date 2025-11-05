@@ -6,6 +6,8 @@
 - [ ] three operation modes (expr, script, shader)
 - [ ] use of the term scalar vs fixed. many places should be scalar, where we don't know if its
   int32 or fixed, like in the stack.
+- [ ] arrays
+- [ ] texture sampling
 
 ## Safety
 
@@ -25,6 +27,7 @@
 - [ ] remove uv built-in
 - [ ] functions should really be stored separately from the main code / no top level code, right?
 - [ ] is boolean coericion really allowed in glsl?
+- [ ] division by zero error? if b == 0 { return Err(RuntimeError::DivisionByZero); }
 
 ## Optimization
 
@@ -48,3 +51,9 @@
 
 - [ ] how big is this on the esp32?
 - [ ] some performance testing
+
+## Visualizations
+
+start with checkerboard.
+A program that uses a perlin to create a sort of magnification
+effect as if looking at something through a changing lens.

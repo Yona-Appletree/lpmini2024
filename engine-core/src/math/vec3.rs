@@ -2,7 +2,7 @@
 use super::conversions::ToFixed;
 use super::fixed::Fixed;
 use super::vec2::Vec2;
-use core::ops::{Add, Div, Mul, Sub};
+use core::ops::{Add, Div, Mul, Neg, Sub};
 
 #[derive(Copy, Clone, Debug, PartialEq)]
 pub struct Vec3 {
@@ -250,6 +250,14 @@ impl Div<Fixed> for Vec3 {
     #[inline(always)]
     fn div(self, rhs: Fixed) -> Self {
         Vec3::new(self.x / rhs, self.y / rhs, self.z / rhs)
+    }
+}
+
+impl Neg for Vec3 {
+    type Output = Self;
+    #[inline(always)]
+    fn neg(self) -> Self {
+        Vec3::new(-self.x, -self.y, -self.z)
     }
 }
 

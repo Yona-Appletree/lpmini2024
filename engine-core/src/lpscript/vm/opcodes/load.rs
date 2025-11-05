@@ -1,13 +1,13 @@
 /// Load coordinate/builtin variable operations
 use crate::lpscript::vm::error::RuntimeError;
+use crate::lpscript::vm::vm_stack::Stack;
 use crate::math::{Fixed, FIXED_ONE, FIXED_SHIFT};
 use crate::test_engine::LoadSource;
 
 /// Execute Load: push built-in variable value onto stack
 #[inline(always)]
 pub fn exec_load(
-    stack: &mut [i32],
-    sp: &mut usize,
+    stack: &mut Stack,
     source: LoadSource,
     x_norm: Fixed,
     y_norm: Fixed,
@@ -17,10 +17,6 @@ pub fn exec_load(
     width: usize,
     height: usize,
 ) -> Result<(), RuntimeError> {
-    if *sp >= 64 {
-        return Err(RuntimeError::StackOverflow { sp: *sp });
-    }
-
     let value = match source {
         LoadSource::XNorm => x_norm,
         LoadSource::YNorm => y_norm,
@@ -92,8 +88,7 @@ pub fn exec_load(
         }
     };
 
-    stack[*sp] = value.0;
-    *sp += 1;
+    stack.push_fixed(value)?;
 
     Ok(())
 }
@@ -105,12 +100,10 @@ mod tests {
 
     #[test]
     fn test_load_x_norm() {
-        let mut stack = [0i32; 64];
-        let mut sp = 0;
+        let mut stack = Stack::new(64);
 
         exec_load(
             &mut stack,
-            &mut sp,
             LoadSource::XNorm,
             0.5f32.to_fixed(),
             0.0f32.to_fixed(),
@@ -122,18 +115,16 @@ mod tests {
         )
         .unwrap();
 
-        assert_eq!(sp, 1);
-        assert_eq!(Fixed(stack[0]).to_f32(), 0.5);
+        assert_eq!(stack.sp(), 1);
+        assert_eq!(Fixed(stack.raw_slice()[0]).to_f32(), 0.5);
     }
 
     #[test]
     fn test_load_y_norm() {
-        let mut stack = [0i32; 64];
-        let mut sp = 0;
+        let mut stack = Stack::new(64);
 
         exec_load(
             &mut stack,
-            &mut sp,
             LoadSource::YNorm,
             0.0f32.to_fixed(),
             0.75f32.to_fixed(),
@@ -145,18 +136,16 @@ mod tests {
         )
         .unwrap();
 
-        assert_eq!(sp, 1);
-        assert_eq!(Fixed(stack[0]).to_f32(), 0.75);
+        assert_eq!(stack.sp(), 1);
+        assert_eq!(Fixed(stack.raw_slice()[0]).to_f32(), 0.75);
     }
 
     #[test]
     fn test_load_time() {
-        let mut stack = [0i32; 64];
-        let mut sp = 0;
+        let mut stack = Stack::new(64);
 
         exec_load(
             &mut stack,
-            &mut sp,
             LoadSource::Time,
             Fixed::ZERO,
             Fixed::ZERO,
@@ -168,19 +157,17 @@ mod tests {
         )
         .unwrap();
 
-        assert_eq!(sp, 1);
-        assert_eq!(Fixed(stack[0]).to_f32(), 5.5);
+        assert_eq!(stack.sp(), 1);
+        assert_eq!(Fixed(stack.raw_slice()[0]).to_f32(), 5.5);
     }
 
     #[test]
     fn test_load_time_norm() {
-        let mut stack = [0i32; 64];
-        let mut sp = 0;
+        let mut stack = Stack::new(64);
 
         // Time = 2.3 should wrap to 0.3
         exec_load(
             &mut stack,
-            &mut sp,
             LoadSource::TimeNorm,
             Fixed::ZERO,
             Fixed::ZERO,
@@ -192,19 +179,17 @@ mod tests {
         )
         .unwrap();
 
-        assert_eq!(sp, 1);
-        assert!((Fixed(stack[0]).to_f32() - 0.3).abs() < 0.01);
+        assert_eq!(stack.sp(), 1);
+        assert!((Fixed(stack.raw_slice()[0]).to_f32() - 0.3).abs() < 0.01);
     }
 
     #[test]
     fn test_load_center_dist() {
-        let mut stack = [0i32; 64];
-        let mut sp = 0;
+        let mut stack = Stack::new(64);
 
         // Load at center (50, 50) of 100x100 image
         exec_load(
             &mut stack,
-            &mut sp,
             LoadSource::CenterDist,
             Fixed::ZERO,
             Fixed::ZERO,
@@ -216,20 +201,18 @@ mod tests {
         )
         .unwrap();
 
-        assert_eq!(sp, 1);
+        assert_eq!(stack.sp(), 1);
         // At center, distance should be 0
-        assert_eq!(Fixed(stack[0]).to_f32(), 0.0);
+        assert_eq!(Fixed(stack.raw_slice()[0]).to_f32(), 0.0);
     }
 
     #[test]
     fn test_load_center_angle() {
-        let mut stack = [0i32; 64];
-        let mut sp = 0;
+        let mut stack = Stack::new(64);
 
         // Load at center (50, 50) of 100x100 image
         exec_load(
             &mut stack,
-            &mut sp,
             LoadSource::CenterAngle,
             Fixed::ZERO,
             Fixed::ZERO,
@@ -241,19 +224,20 @@ mod tests {
         )
         .unwrap();
 
-        assert_eq!(sp, 1);
+        assert_eq!(stack.sp(), 1);
         // At center, angle should be 0 (undefined, we return 0)
-        assert_eq!(Fixed(stack[0]).to_f32(), 0.0);
+        assert_eq!(Fixed(stack.raw_slice()[0]).to_f32(), 0.0);
     }
 
     #[test]
     fn test_load_stack_overflow() {
-        let mut stack = [0i32; 64];
-        let mut sp = 64; // Stack is full
+        let mut stack = Stack::new(2); // Small stack
+                                       // Fill the stack
+        stack.push_int32(1).unwrap();
+        stack.push_int32(2).unwrap();
 
         let result = exec_load(
             &mut stack,
-            &mut sp,
             LoadSource::XNorm,
             0.5f32.to_fixed(),
             0.0f32.to_fixed(),
@@ -264,7 +248,6 @@ mod tests {
             100,
         );
 
-        assert!(matches!(result, Err(RuntimeError::StackOverflow { sp: 64 })));
+        assert!(matches!(result, Err(RuntimeError::StackOverflow { sp: 2 })));
     }
 }
-

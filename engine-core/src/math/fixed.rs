@@ -139,6 +139,18 @@ impl Div for Fixed {
     }
 }
 
+impl core::ops::Rem for Fixed {
+    type Output = Self;
+    #[inline(always)]
+    fn rem(self, rhs: Self) -> Self {
+        if rhs.0 != 0 {
+            Fixed(self.0 % rhs.0)
+        } else {
+            Fixed(0)
+        }
+    }
+}
+
 impl Neg for Fixed {
     type Output = Self;
     #[inline(always)]

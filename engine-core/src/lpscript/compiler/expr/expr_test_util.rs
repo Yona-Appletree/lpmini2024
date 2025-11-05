@@ -157,9 +157,9 @@ impl ExprTest {
         self
     }
 
-    /// Expect an int32 result (stored as Fixed internally)
+    /// Expect an int32 result (stored as raw i32, not Fixed)
     pub fn expect_result_int(mut self, expected: i32) -> Self {
-        self.expected_result = Some(TestResult::Fixed((expected as f32).to_fixed()));
+        self.expected_result = Some(TestResult::Fixed(Fixed(expected)));
         self
     }
 

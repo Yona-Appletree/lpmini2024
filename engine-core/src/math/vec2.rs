@@ -1,7 +1,7 @@
 /// 2D vector for fixed-point coordinates
 use super::conversions::ToFixed;
 use super::fixed::Fixed;
-use core::ops::{Add, Sub, Mul, Div};
+use core::ops::{Add, Sub, Mul, Div, Neg};
 
 #[derive(Copy, Clone, Debug, PartialEq)]
 pub struct Vec2 {
@@ -156,5 +156,13 @@ impl Div<Fixed> for Vec2 {
     #[inline(always)]
     fn div(self, rhs: Fixed) -> Self {
         Vec2::new(self.x / rhs, self.y / rhs)
+    }
+}
+
+impl Neg for Vec2 {
+    type Output = Self;
+    #[inline(always)]
+    fn neg(self) -> Self {
+        Vec2::new(-self.x, -self.y)
     }
 }
