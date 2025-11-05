@@ -19,7 +19,6 @@ fn test_function_no_params() {
 }
 
 #[test]
-#[ignore] // TODO: Vec parameters need special handling in VM (multiple stack values)
 fn test_function_with_vec_params() {
     let script = "
         float vec2_sum(vec2 v) {
@@ -55,7 +54,6 @@ fn test_function_calling_function() {
 }
 
 #[test]
-#[ignore] // TODO: Debug recursive function execution
 fn test_recursive_fibonacci() {
     let script = "
         float fib(float n) {
@@ -93,7 +91,6 @@ fn test_function_with_local_variables() {
 }
 
 #[test]
-#[ignore] // TODO: Debug multiple function execution
 fn test_function_multiple_functions() {
     let script = "
         float add(float a, float b) {
@@ -121,7 +118,6 @@ fn test_function_multiple_functions() {
 }
 
 #[test]
-#[ignore] // TODO: Debug function return value propagation issue
 fn test_function_with_conditional_return() {
     let script = "
         float abs_custom(float x) {
@@ -143,7 +139,6 @@ fn test_function_with_conditional_return() {
 }
 
 #[test]
-#[ignore] // TODO: Fix compiler bug - loops generate infinite bytecode
 fn test_function_with_loop() {
     let script = "
         float sum_range(float n) {
@@ -164,7 +159,6 @@ fn test_function_with_loop() {
 }
 
 #[test]
-#[ignore] // TODO: Vec return types need more VM opcodes (pop multiple values for return)
 fn test_function_vec_return() {
     let script = "
         vec2 make_vec(float x, float y) {

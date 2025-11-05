@@ -37,7 +37,7 @@ impl Default for VmLimits {
 #[derive(Debug, Clone, Copy)]
 struct CallFrame {
     return_pc: usize,
-    // TODO: Could add frame pointer for local variables if needed
+    frame_base: usize, // Base index in locals array for this frame
 }
 
 /// LightPlayer Script Virtual Machine
@@ -52,6 +52,8 @@ pub struct LpsVm<'a> {
     pc: usize,
     #[allow(dead_code)]
     locals: Vec<LocalType>,
+    frame_base: usize, // Current frame's base index in locals array
+    locals_sp: usize,  // Next free slot in locals array
     call_stack: Vec<CallFrame>,
     call_stack_depth: usize,
     limits: VmLimits,
@@ -64,13 +66,9 @@ impl<'a> LpsVm<'a> {
         inputs: Vec<(usize, LocalType)>,
         limits: VmLimits,
     ) -> Result<Self, RuntimeError> {
-        // Pre-allocate locals - use either program.locals.len() or a reasonable default (64)
-        // This prevents runtime allocations during run()
-        let local_count = if program.locals.len() > 0 {
-            program.locals.len()
-        } else {
-            64 // Default: allocate 64 locals for scripts without explicit local definitions
-        };
+        // Pre-allocate locals array for frame-based allocation
+        // Allocate enough space for deep call stacks (32 locals per frame * 64 max frames = 2048)
+        let local_count = 2048;
         let mut locals = Vec::new();
         locals.resize(local_count, LocalType::Fixed(Fixed::ZERO));
 
@@ -91,7 +89,15 @@ impl<'a> LpsVm<'a> {
             sp: 0,
             pc: 0,
             locals,
-            call_stack: vec![CallFrame { return_pc: 0 }; limits.max_call_stack_depth],
+            frame_base: 0,
+            locals_sp: 32, // Main frame uses 0-31, next frame starts at 32
+            call_stack: vec![
+                CallFrame {
+                    return_pc: 0,
+                    frame_base: 0
+                };
+                limits.max_call_stack_depth
+            ],
             call_stack_depth: 0,
             limits,
         })
@@ -253,11 +259,28 @@ impl<'a> LpsVm<'a> {
                             depth: self.call_stack_depth,
                         }));
                     }
-                    // Push return address onto call stack
+
+                    // Allocate frame for called function (32 locals per frame)
+                    let frame_size = 32;
+
+                    // Push call frame with current frame_base
                     self.call_stack[self.call_stack_depth] = CallFrame {
                         return_pc: self.pc + 1,
+                        frame_base: self.frame_base,
                     };
                     self.call_stack_depth += 1;
+
+                    // Set new frame base and allocate space
+                    self.frame_base = self.locals_sp;
+                    self.locals_sp += frame_size;
+
+                    // Check we haven't exceeded locals array
+                    if self.locals_sp > self.locals.len() {
+                        return Err(self.runtime_error(RuntimeError::CallStackOverflow {
+                            depth: self.call_stack_depth,
+                        }));
+                    }
+
                     // Jump to function
                     self.pc = *offset as usize;
                 }
@@ -265,9 +288,14 @@ impl<'a> LpsVm<'a> {
                 LpsOpCode::Return => {
                     // Check if we're returning from a function or exiting main
                     if self.call_stack_depth > 0 {
-                        // Return from function - jump back to caller
+                        // Restore frame from call stack
                         self.call_stack_depth -= 1;
-                        self.pc = self.call_stack[self.call_stack_depth].return_pc;
+                        let frame = self.call_stack[self.call_stack_depth];
+                        self.pc = frame.return_pc;
+
+                        // Restore previous frame_base and deallocate current frame
+                        self.locals_sp = self.frame_base; // Deallocate current frame
+                        self.frame_base = frame.frame_base; // Restore previous frame
                     } else {
                         // Exiting main - return all stack values as result
                         let result: Vec<Fixed> =
@@ -307,14 +335,14 @@ impl<'a> LpsVm<'a> {
                         &mut self.stack,
                         &mut self.sp,
                         &self.locals,
-                        *idx,
+                        self.frame_base as u32 + *idx,
                     )
                     .map_err(|e| self.runtime_error(e))?;
                     self.pc += 1;
                 }
 
                 LpsOpCode::StoreLocalFixed(idx) => {
-                    let idx = *idx;
+                    let idx = self.frame_base as u32 + *idx;
                     locals::exec_store_local_fixed(
                         &mut self.stack,
                         &mut self.sp,
@@ -330,14 +358,14 @@ impl<'a> LpsVm<'a> {
                         &mut self.stack,
                         &mut self.sp,
                         &self.locals,
-                        *idx,
+                        self.frame_base as u32 + *idx,
                     )
                     .map_err(|e| self.runtime_error(e))?;
                     self.pc += 1;
                 }
 
                 LpsOpCode::StoreLocalInt32(idx) => {
-                    let idx = *idx;
+                    let idx = self.frame_base as u32 + *idx;
                     locals::exec_store_local_int32(
                         &mut self.stack,
                         &mut self.sp,
@@ -349,13 +377,18 @@ impl<'a> LpsVm<'a> {
                 }
 
                 LpsOpCode::LoadLocalVec2(idx) => {
-                    locals::exec_load_local_vec2(&mut self.stack, &mut self.sp, &self.locals, *idx)
-                        .map_err(|e| self.runtime_error(e))?;
+                    locals::exec_load_local_vec2(
+                        &mut self.stack,
+                        &mut self.sp,
+                        &self.locals,
+                        self.frame_base as u32 + *idx,
+                    )
+                    .map_err(|e| self.runtime_error(e))?;
                     self.pc += 1;
                 }
 
                 LpsOpCode::StoreLocalVec2(idx) => {
-                    let idx = *idx;
+                    let idx = self.frame_base as u32 + *idx;
                     locals::exec_store_local_vec2(
                         &mut self.stack,
                         &mut self.sp,
@@ -367,13 +400,18 @@ impl<'a> LpsVm<'a> {
                 }
 
                 LpsOpCode::LoadLocalVec3(idx) => {
-                    locals::exec_load_local_vec3(&mut self.stack, &mut self.sp, &self.locals, *idx)
-                        .map_err(|e| self.runtime_error(e))?;
+                    locals::exec_load_local_vec3(
+                        &mut self.stack,
+                        &mut self.sp,
+                        &self.locals,
+                        self.frame_base as u32 + *idx,
+                    )
+                    .map_err(|e| self.runtime_error(e))?;
                     self.pc += 1;
                 }
 
                 LpsOpCode::StoreLocalVec3(idx) => {
-                    let idx = *idx;
+                    let idx = self.frame_base as u32 + *idx;
                     locals::exec_store_local_vec3(
                         &mut self.stack,
                         &mut self.sp,
@@ -385,13 +423,18 @@ impl<'a> LpsVm<'a> {
                 }
 
                 LpsOpCode::LoadLocalVec4(idx) => {
-                    locals::exec_load_local_vec4(&mut self.stack, &mut self.sp, &self.locals, *idx)
-                        .map_err(|e| self.runtime_error(e))?;
+                    locals::exec_load_local_vec4(
+                        &mut self.stack,
+                        &mut self.sp,
+                        &self.locals,
+                        self.frame_base as u32 + *idx,
+                    )
+                    .map_err(|e| self.runtime_error(e))?;
                     self.pc += 1;
                 }
 
                 LpsOpCode::StoreLocalVec4(idx) => {
-                    let idx = *idx;
+                    let idx = self.frame_base as u32 + *idx;
                     locals::exec_store_local_vec4(
                         &mut self.stack,
                         &mut self.sp,
@@ -1188,7 +1231,10 @@ mod tests {
         ));
 
         let vm = LpsVm::new(&program, vec![], VmLimits::default()).unwrap();
-        assert_eq!(vm.locals.len(), 1);
+        // VM now pre-allocates 2048 locals for frame-based allocation
+        assert_eq!(vm.locals.len(), 2048);
+        assert_eq!(vm.frame_base, 0);
+        assert_eq!(vm.locals_sp, 32); // Main frame uses 0-31
     }
 
     #[test]

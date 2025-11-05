@@ -20,8 +20,14 @@ pub fn gen_function(
     let mut locals = LocalAllocator::new();
     
     // Allocate space for parameters (they're passed on stack)
-    for (i, param) in func.params.iter().enumerate() {
+    // First, allocate locals for all parameters to reserve their indices
+    for param in func.params.iter() {
         locals.allocate(param.name.clone());
+    }
+    
+    // Then, generate store instructions in REVERSE order
+    // because parameters are on stack with last param on top
+    for (i, param) in func.params.iter().enumerate().rev() {
         // Parameters are already on stack, need to store them
         match param.ty {
             Type::Bool | Type::Fixed | Type::Int32 => code.push(LpsOpCode::StoreLocalFixed(i as u32)),

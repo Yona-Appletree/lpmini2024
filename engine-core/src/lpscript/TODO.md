@@ -80,15 +80,15 @@
 
 ## Ignored Tests Summary
 
-### tests/control_flow.rs (7 tests, 7 ignored)
+### tests/control_flow.rs (7 tests, 0 ignored) ✅ ALL PASSING
 
-1. `test_if_statement` - if statements generate invalid bytecode
-2. `test_if_else` - if statements generate invalid bytecode
-3. `test_while_loop` - while loops generate infinite bytecode
-4. `test_for_loop` - loops generate infinite bytecode
-5. `test_break` - loops generate infinite bytecode
-6. `test_continue` - loops generate infinite bytecode
-7. `test_nested_if` - if statements generate invalid bytecode
+1. ✅ `test_if_without_else` - PASSING
+2. ✅ `test_nested_if_statements` - PASSING
+3. ✅ `test_while_loop_counter` - PASSING
+4. ✅ `test_for_loop_sum` - PASSING
+5. ✅ `test_for_loop_with_break_condition` - PASSING
+6. ✅ `test_nested_loops` - PASSING
+7. ✅ `test_if_else_chain` - PASSING
 
 ### tests/variables.rs (8 tests, 1 ignored)
 
@@ -98,14 +98,17 @@
 4. ✅ `test_assignment_expression_value` - FIXED! Assignment expressions return values
 5. ✅ `test_chained_assignments` - FIXED! Chained assignments now parse correctly
 
-### tests/functions.rs (9 tests, 6 ignored)
+### tests/functions.rs (9 tests, 0 ignored) ✅ ALL PASSING
 
-1. `test_function_with_vec_param` - Vec parameters need special handling
-2. `test_recursive_function` - recursive function execution broken
-3. `test_multiple_functions` - multiple function execution broken
-4. `test_function_composition` - return value propagation issue
-5. `test_function_with_loop` - loops generate infinite bytecode
-6. `test_function_returning_vec` - Vec return types need more opcodes
+1. ✅ `test_function_no_params` - PASSING
+2. ✅ `test_function_with_vec_params` - PASSING (fixed with parameter order fix)
+3. ✅ `test_function_calling_function` - PASSING
+4. ✅ `test_recursive_fibonacci` - PASSING (fixed with frame-based locals)
+5. ✅ `test_function_with_local_variables` - PASSING
+6. ✅ `test_function_multiple_functions` - PASSING (fixed with parameter order fix)
+7. ✅ `test_function_with_conditional_return` - PASSING (fixed with frame-based locals)
+8. ✅ `test_function_with_loop` - PASSING
+9. ✅ `test_function_vec_return` - PASSING
 
 ### parser/expr/assign_expr.rs (2 tests, 2 ignored)
 
@@ -156,14 +159,14 @@
 
 ### Test Results Summary
 
-**Compiler Tests: 335 of 356 passing** (0 failures, 21 ignored)
+**Compiler Tests: 341 of 356 passing** (0 failures, 15 ignored)
 
 **Current Failures**: NONE! 🎉
 
-**Ignored Tests** (21 tests):
+**Ignored Tests** (15 tests):
 
-- 1 variable scoping test (loop-related, depends on loop fixes)
-- 6 function execution tests (vec params, recursion, conditional return, etc.)
+- 1 variable scoping test (loop-related)
+- 0 function execution tests ✅ ALL FIXED! All 9 tests now passing
 - 13 compiler unit tests (duplicates of integration tests, some TODO placeholders)
 - 1 VM auto-grow test (intentionally disabled to prevent memory leaks)
 
@@ -224,6 +227,16 @@
 6. **Expand Parser Test Coverage** - Many parser modules have only 1-2 tests
 
 ## Recent Completions
+
+- [x] **Function Execution with Frame-Based Locals** (Nov 2024)
+  - Fixed function parameter ordering (parameters now stored in reverse order from stack)
+  - Implemented frame-pointer based local variable system for proper function isolation
+  - Added `frame_base` and `locals_sp` to VM for managing separate call frames
+  - Each function call allocates 32-local frame from pre-allocated 2048-local array
+  - Call/Return opcodes now save/restore frame pointers correctly
+  - **Result: 341 passing tests (up from 335), 0 failures, 15 ignored (down from 21)**
+  - All 9 function tests now passing (including recursion, vec params, conditional returns)
+  - Fixed: fibonacci recursion, multiple functions, vec params, conditional returns, vec returns, loops in functions
 
 - [x] **Variable Scoping & Assignment Expressions** (Nov 2024)
   - Implemented scope stack in LocalAllocator for proper variable shadowing
