@@ -156,12 +156,11 @@ mod tests {
 
         // Verify both Perlin3 and Cos opcodes are generated
         let program = crate::lpscript::parse_expr("cos(perlin3(vec3(uv * 0.3, time), 3))");
-        let has_perlin = program
-            .opcodes
+        let opcodes = &program.main_function().unwrap().opcodes;
+        let has_perlin = opcodes
             .iter()
             .any(|op| matches!(op, LpsOpCode::Perlin3(_)));
-        let has_cos = program
-            .opcodes
+        let has_cos = opcodes
             .iter()
             .any(|op| matches!(op, LpsOpCode::CosFixed));
         assert!(has_perlin, "Should have Perlin3 opcode");
@@ -178,7 +177,8 @@ mod tests {
 
         // Count Push/Load opcodes before Perlin3
         let mut push_count = 0;
-        for op in &program.opcodes {
+        let opcodes = &program.main_function().unwrap().opcodes;
+        for op in opcodes {
             if matches!(op, LpsOpCode::Perlin3(_)) {
                 break;
             }
@@ -197,7 +197,7 @@ mod tests {
         );
 
         // Verify octaves is embedded in opcode
-        let has_perlin = program.opcodes.iter().any(|op| {
+        let has_perlin = program.main_function().unwrap().opcodes.iter().any(|op| {
             if let LpsOpCode::Perlin3(octaves) = op {
                 *octaves == 3
             } else {

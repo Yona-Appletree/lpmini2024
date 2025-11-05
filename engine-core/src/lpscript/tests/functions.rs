@@ -1,7 +1,7 @@
+use crate::lpscript::vm::VmLimits;
 /// Comprehensive tests for user-defined functions
 use crate::lpscript::*;
 use crate::math::{Fixed, ToFixed};
-use crate::lpscript::vm::VmLimits;
 
 #[test]
 fn test_function_no_params() {
@@ -12,9 +12,11 @@ fn test_function_no_params() {
         return get_pi();
     ";
     let program = parse_script(script);
-    let mut vm = LpsVm::new(&program, vec![], VmLimits::default()).unwrap();
-    
-    let result = vm.run_scalar(Fixed::ZERO, Fixed::ZERO, Fixed::ZERO).unwrap();
+    let mut vm = LpsVm::new(&program, VmLimits::default()).unwrap();
+
+    let result = vm
+        .run_scalar(Fixed::ZERO, Fixed::ZERO, Fixed::ZERO)
+        .unwrap();
     assert!((result.to_f32() - 3.14159).abs() < 0.01);
 }
 
@@ -27,9 +29,11 @@ fn test_function_with_vec_params() {
         return vec2_sum(vec2(3.0, 7.0));
     ";
     let program = parse_script(script);
-    let mut vm = LpsVm::new(&program, vec![], VmLimits::default()).unwrap();
-    
-    let result = vm.run_scalar(Fixed::ZERO, Fixed::ZERO, Fixed::ZERO).unwrap();
+    let mut vm = LpsVm::new(&program, VmLimits::default()).unwrap();
+
+    let result = vm
+        .run_scalar(Fixed::ZERO, Fixed::ZERO, Fixed::ZERO)
+        .unwrap();
     assert_eq!(result.to_f32(), 10.0);
 }
 
@@ -47,9 +51,11 @@ fn test_function_calling_function() {
         return sextuple(5.0);
     ";
     let program = parse_script(script);
-    let mut vm = LpsVm::new(&program, vec![], VmLimits::default()).unwrap();
-    
-    let result = vm.run_scalar(Fixed::ZERO, Fixed::ZERO, Fixed::ZERO).unwrap();
+    let mut vm = LpsVm::new(&program, VmLimits::default()).unwrap();
+
+    let result = vm
+        .run_scalar(Fixed::ZERO, Fixed::ZERO, Fixed::ZERO)
+        .unwrap();
     assert_eq!(result.to_f32(), 30.0);
 }
 
@@ -65,9 +71,11 @@ fn test_recursive_fibonacci() {
         return fib(6.0);
     ";
     let program = parse_script(script);
-    let mut vm = LpsVm::new(&program, vec![], VmLimits::default()).unwrap();
-    
-    let result = vm.run_scalar(Fixed::ZERO, Fixed::ZERO, Fixed::ZERO).unwrap();
+    let mut vm = LpsVm::new(&program, VmLimits::default()).unwrap();
+
+    let result = vm
+        .run_scalar(Fixed::ZERO, Fixed::ZERO, Fixed::ZERO)
+        .unwrap();
     // fib(6) = 8
     assert_eq!(result.to_f32(), 8.0);
 }
@@ -83,9 +91,11 @@ fn test_function_with_local_variables() {
         return compute(3.0, 4.0);
     ";
     let program = parse_script(script);
-    let mut vm = LpsVm::new(&program, vec![], VmLimits::default()).unwrap();
-    
-    let result = vm.run_scalar(Fixed::ZERO, Fixed::ZERO, Fixed::ZERO).unwrap();
+    let mut vm = LpsVm::new(&program, VmLimits::default()).unwrap();
+
+    let result = vm
+        .run_scalar(Fixed::ZERO, Fixed::ZERO, Fixed::ZERO)
+        .unwrap();
     // (3 + 4) + (3 * 4) = 7 + 12 = 19
     assert_eq!(result.to_f32(), 19.0);
 }
@@ -111,9 +121,11 @@ fn test_function_multiple_functions() {
         return z;
     ";
     let program = parse_script(script);
-    let mut vm = LpsVm::new(&program, vec![], VmLimits::default()).unwrap();
-    
-    let result = vm.run_scalar(Fixed::ZERO, Fixed::ZERO, Fixed::ZERO).unwrap();
+    let mut vm = LpsVm::new(&program, VmLimits::default()).unwrap();
+
+    let result = vm
+        .run_scalar(Fixed::ZERO, Fixed::ZERO, Fixed::ZERO)
+        .unwrap();
     assert_eq!(result.to_f32(), 10.0);
 }
 
@@ -132,9 +144,11 @@ fn test_function_with_conditional_return() {
         return a + b;
     ";
     let program = parse_script(script);
-    let mut vm = LpsVm::new(&program, vec![], VmLimits::default()).unwrap();
-    
-    let result = vm.run_scalar(Fixed::ZERO, Fixed::ZERO, Fixed::ZERO).unwrap();
+    let mut vm = LpsVm::new(&program, VmLimits::default()).unwrap();
+
+    let result = vm
+        .run_scalar(Fixed::ZERO, Fixed::ZERO, Fixed::ZERO)
+        .unwrap();
     assert!((result.to_f32() - 8.0).abs() < 0.1); // Relax for fixed-point precision
 }
 
@@ -151,9 +165,11 @@ fn test_function_with_loop() {
         return sum_range(5.0);
     ";
     let program = parse_script(script);
-    let mut vm = LpsVm::new(&program, vec![], VmLimits::default()).unwrap();
-    
-    let result = vm.run_scalar(Fixed::ZERO, Fixed::ZERO, Fixed::ZERO).unwrap();
+    let mut vm = LpsVm::new(&program, VmLimits::default()).unwrap();
+
+    let result = vm
+        .run_scalar(Fixed::ZERO, Fixed::ZERO, Fixed::ZERO)
+        .unwrap();
     // 0 + 1 + 2 + 3 + 4 = 10
     assert_eq!(result.to_f32(), 10.0);
 }
@@ -168,9 +184,10 @@ fn test_function_vec_return() {
         return v.x + v.y;
     ";
     let program = parse_script(script);
-    let mut vm = LpsVm::new(&program, vec![], VmLimits::default()).unwrap();
-    
-    let result = vm.run_scalar(Fixed::ZERO, Fixed::ZERO, Fixed::ZERO).unwrap();
+    let mut vm = LpsVm::new(&program, VmLimits::default()).unwrap();
+
+    let result = vm
+        .run_scalar(Fixed::ZERO, Fixed::ZERO, Fixed::ZERO)
+        .unwrap();
     assert_eq!(result.to_f32(), 7.0);
 }
-

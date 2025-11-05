@@ -13,10 +13,13 @@
 ## Bugs
 
 - [ ] Compiler uses floats in some places instead of Fixed.
+- [ ] Compiler probably still allocates memory, we likely need a symbol pool or something.
 
-## Nice to have features
+## Debugging
 
-- [ ] debugging outputs
+- [ ] support for string constants
+- [ ] vm should be able to print it's state nicely, and output to json
+- [ ] add special extensions for debugging, probably watch!(<expr>), pause!(), pause_if!() and panic!()
 
 ## Organization
 

@@ -173,45 +173,40 @@ impl ScriptTest {
         let (opcodes, local_count, local_types) =
             codegen::CodeGenerator::generate_program(&pool, &typed_program);
 
-        // Create LocalDef entries with correct types
-        let locals: Vec<crate::lpscript::vm::LocalDef> = (0..local_count)
+        // Create LocalVarDef entries from local_types
+        let local_defs: Vec<crate::lpscript::LocalVarDef> = (0..local_count)
             .map(|i| {
-                use crate::lpscript::vm::LocalType;
-                let ty_enum = match local_types.get(&i) {
-                    Some(Type::Int32) => LocalType::Int32(0),
-                    Some(Type::Vec2) => LocalType::Vec2(Fixed::ZERO, Fixed::ZERO),
-                    Some(Type::Vec3) => LocalType::Vec3(Fixed::ZERO, Fixed::ZERO, Fixed::ZERO),
-                    Some(Type::Vec4) => {
-                        LocalType::Vec4(Fixed::ZERO, Fixed::ZERO, Fixed::ZERO, Fixed::ZERO)
-                    }
-                    _ => LocalType::Fixed(Fixed::ZERO), // Default for Bool and Fixed
-                };
-                crate::lpscript::vm::LocalDef::new(
-                    alloc::format!("local_{}", i),
-                    ty_enum,
-                    crate::lpscript::vm::LocalAccess::Scratch,
-                )
+                let ty = local_types.get(&i).cloned().unwrap_or(Type::Fixed);
+                crate::lpscript::LocalVarDef::new(alloc::format!("local_{}", i), ty)
             })
             .collect();
 
+        // Create main function with locals and opcodes
+        let main_function = crate::lpscript::vm::FunctionDef::new("main".into(), Type::Void)
+            .with_locals(local_defs)
+            .with_opcodes(opcodes);
+
         let program = LpsProgram::new("test".into())
-            .with_opcodes(opcodes)
-            .with_locals(locals)
+            .with_functions(vec![main_function])
             .with_source(self.input.clone().into());
 
         // Check opcodes if expected
         if let Some(expected_opcodes) = &self.expected_opcodes {
-            if &program.opcodes != expected_opcodes {
-                errors.push(format!(
-                    "Opcode mismatch:\nExpected: {:#?}\nActual:   {:#?}",
-                    expected_opcodes, program.opcodes
-                ));
+            if let Some(main_fn) = program.main_function() {
+                if &main_fn.opcodes != expected_opcodes {
+                    errors.push(format!(
+                        "Opcode mismatch:\nExpected: {:#?}\nActual:   {:#?}",
+                        expected_opcodes, main_fn.opcodes
+                    ));
+                }
+            } else {
+                errors.push("Program has no main function".to_string());
             }
         }
 
         // Check execution result if expected
         if let Some(expected_result) = self.expected_result {
-            match LpsVm::new(&program, vec![], VmLimits::default()) {
+            match LpsVm::new(&program, VmLimits::default()) {
                 Ok(mut vm) => {
                     match expected_result {
                         TestResult::Fixed(expected) => {

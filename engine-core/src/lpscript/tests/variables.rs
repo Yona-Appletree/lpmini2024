@@ -10,7 +10,7 @@ fn test_variable_declaration_with_init() {
         return x;
     ";
     let program = parse_script(script);
-    let mut vm = LpsVm::new(&program, vec![], VmLimits::default()).unwrap();
+    let mut vm = LpsVm::new(&program, VmLimits::default()).unwrap();
 
     let result = vm
         .run_scalar(Fixed::ZERO, Fixed::ZERO, Fixed::ZERO)
@@ -27,7 +27,7 @@ fn test_variable_mutation() {
         return x;
     ";
     let program = parse_script(script);
-    let mut vm = LpsVm::new(&program, vec![], VmLimits::default()).unwrap();
+    let mut vm = LpsVm::new(&program, VmLimits::default()).unwrap();
 
     let result = vm
         .run_scalar(Fixed::ZERO, Fixed::ZERO, Fixed::ZERO)
@@ -47,7 +47,7 @@ fn test_block_scoping() {
         return x;  // Outer x is still 1
     ";
     let program = parse_script(script);
-    let mut vm = LpsVm::new(&program, vec![], VmLimits::default()).unwrap();
+    let mut vm = LpsVm::new(&program, VmLimits::default()).unwrap();
 
     let result = vm
         .run_scalar(Fixed::ZERO, Fixed::ZERO, Fixed::ZERO)
@@ -69,7 +69,7 @@ fn test_nested_scopes() {
         return x;
     ";
     let program = parse_script(script);
-    let mut vm = LpsVm::new(&program, vec![], VmLimits::default()).unwrap();
+    let mut vm = LpsVm::new(&program, VmLimits::default()).unwrap();
 
     let result = vm
         .run_scalar(Fixed::ZERO, Fixed::ZERO, Fixed::ZERO)
@@ -89,7 +89,7 @@ fn test_variable_in_loop_scope() {
         return sum;
     ";
     let program = parse_script(script);
-    let mut vm = LpsVm::new(&program, vec![], VmLimits::default()).unwrap();
+    let mut vm = LpsVm::new(&program, VmLimits::default()).unwrap();
 
     let result = vm
         .run_scalar(Fixed::ZERO, Fixed::ZERO, Fixed::ZERO)
@@ -108,7 +108,7 @@ fn test_multiple_variables() {
         return a + b + c + d;
     ";
     let program = parse_script(script);
-    let mut vm = LpsVm::new(&program, vec![], VmLimits::default()).unwrap();
+    let mut vm = LpsVm::new(&program, VmLimits::default()).unwrap();
 
     let result = vm
         .run_scalar(Fixed::ZERO, Fixed::ZERO, Fixed::ZERO)
@@ -124,7 +124,7 @@ fn test_assignment_expression_value() {
         return y;
     ";
     let program = parse_script(script);
-    let mut vm = LpsVm::new(&program, vec![], VmLimits::default()).unwrap();
+    let mut vm = LpsVm::new(&program, VmLimits::default()).unwrap();
 
     let result = vm
         .run_scalar(Fixed::ZERO, Fixed::ZERO, Fixed::ZERO)
@@ -142,7 +142,7 @@ fn test_chained_assignments() {
         return x + y + z;
     ";
     let program = parse_script(script);
-    let mut vm = LpsVm::new(&program, vec![], VmLimits::default()).unwrap();
+    let mut vm = LpsVm::new(&program, VmLimits::default()).unwrap();
 
     let result = vm
         .run_scalar(Fixed::ZERO, Fixed::ZERO, Fixed::ZERO)

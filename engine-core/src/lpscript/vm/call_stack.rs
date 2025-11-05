@@ -6,23 +6,27 @@ use alloc::vec::Vec;
 use super::error::RuntimeError;
 
 /// Call frame for function calls
+///
+/// Tracks where to return and how to restore the locals allocation state.
 #[derive(Debug, Clone, Copy)]
 pub struct CallFrame {
-    pub return_pc: usize,
-    pub frame_base: usize, // Base index in locals array for this frame
+    pub return_pc: usize,           // PC to return to
+    pub return_fn_idx: usize,       // Function index to return to
+    pub frame_base: usize,          // Base local index for this frame
+    pub locals_restore_sp: usize,   // Local count to restore on return
 }
 
 /// Call stack for managing function call frames
 ///
 /// Pre-allocates frames to avoid runtime allocations during execution.
-/// Tracks current depth and provides frame-based local variable management.
+/// Supports variable-sized frames - each function can allocate the exact
+/// number of locals it needs, not a fixed size.
 pub struct CallStack {
     frames: Vec<CallFrame>,
     depth: usize,
     max_depth: usize,
-    frame_base: usize,  // Current frame's base index in locals array
-    locals_sp: usize,   // Next free slot in locals array
-    frame_size: usize,  // Number of locals per frame (typically 32)
+    frame_base: usize,      // Current frame's base local index
+    current_fn_idx: usize,  // Current function index
 }
 
 impl CallStack {
@@ -30,30 +34,32 @@ impl CallStack {
     ///
     /// # Arguments
     /// * `max_depth` - Maximum call depth (e.g., 64)
-    /// * `frame_size` - Number of locals per frame (e.g., 32)
-    pub fn new(max_depth: usize, frame_size: usize) -> Self {
+    pub fn new(max_depth: usize) -> Self {
         CallStack {
             frames: vec![
                 CallFrame {
                     return_pc: 0,
-                    frame_base: 0
+                    return_fn_idx: 0,
+                    frame_base: 0,
+                    locals_restore_sp: 0,
                 };
                 max_depth
             ],
             depth: 0,
             max_depth,
             frame_base: 0,
-            locals_sp: frame_size, // Main frame uses 0..(frame_size-1), next starts at frame_size
-            frame_size,
+            current_fn_idx: 0,
         }
     }
 
     /// Reset the call stack for a new execution
     #[inline(always)]
-    pub fn reset(&mut self) {
+    pub fn reset(&mut self, main_locals_count: usize) {
         self.depth = 0;
         self.frame_base = 0;
-        self.locals_sp = self.frame_size;
+        self.current_fn_idx = 0;
+        // Frame base starts after main's locals
+        // (main is always at depth 0, so no frame to save)
     }
 
     /// Get current call depth
@@ -68,17 +74,31 @@ impl CallStack {
         self.frame_base
     }
 
-    /// Get locals stack pointer (next free local slot)
+    /// Get current function index
     #[inline(always)]
-    pub fn locals_sp(&self) -> usize {
-        self.locals_sp
+    pub fn current_fn_idx(&self) -> usize {
+        self.current_fn_idx
     }
 
     /// Push a new call frame
     ///
+    /// # Arguments
+    /// * `return_pc` - PC to return to after function completes
+    /// * `return_fn_idx` - Function index to return to
+    /// * `new_frame_base` - Base local index for the new frame
+    /// * `current_locals_sp` - Current local count (to restore on return)
+    /// * `new_fn_idx` - Function index being called
+    ///
     /// Returns an error if call stack would overflow.
     #[inline(always)]
-    pub fn push_frame(&mut self, return_pc: usize, locals_capacity: usize) -> Result<(), RuntimeError> {
+    pub fn push_frame(
+        &mut self,
+        return_pc: usize,
+        return_fn_idx: usize,
+        new_frame_base: usize,
+        current_locals_sp: usize,
+        new_fn_idx: usize,
+    ) -> Result<(), RuntimeError> {
         // Check call stack depth
         if self.depth >= self.max_depth {
             return Err(RuntimeError::CallStackOverflow {
@@ -86,42 +106,37 @@ impl CallStack {
             });
         }
 
-        // Save current frame
+        // Save current frame state
         self.frames[self.depth] = CallFrame {
             return_pc,
+            return_fn_idx,
             frame_base: self.frame_base,
+            locals_restore_sp: current_locals_sp,
         };
         self.depth += 1;
 
-        // Allocate new frame
-        self.frame_base = self.locals_sp;
-        self.locals_sp += self.frame_size;
-
-        // Check we haven't exceeded locals array
-        if self.locals_sp > locals_capacity {
-            return Err(RuntimeError::CallStackOverflow {
-                depth: self.depth,
-            });
-        }
+        // Set up new frame
+        self.frame_base = new_frame_base;
+        self.current_fn_idx = new_fn_idx;
 
         Ok(())
     }
 
     /// Pop a call frame, returning to the previous function
     ///
-    /// Returns the return PC, or None if at depth 0 (exiting main).
+    /// Returns (return_pc, return_fn_idx, locals_restore_sp), or None if at depth 0 (exiting main).
     #[inline(always)]
-    pub fn pop_frame(&mut self) -> Option<usize> {
+    pub fn pop_frame(&mut self) -> Option<(usize, usize, usize)> {
         if self.depth > 0 {
             // Restore frame from call stack
             self.depth -= 1;
             let frame = self.frames[self.depth];
             
-            // Restore previous frame_base and deallocate current frame
-            self.locals_sp = self.frame_base; // Deallocate current frame
-            self.frame_base = frame.frame_base; // Restore previous frame
+            // Restore previous frame state
+            self.frame_base = frame.frame_base;
+            self.current_fn_idx = frame.return_fn_idx;
             
-            Some(frame.return_pc)
+            Some((frame.return_pc, frame.return_fn_idx, frame.locals_restore_sp))
         } else {
             // At depth 0 - exiting main
             None
@@ -141,43 +156,45 @@ mod tests {
 
     #[test]
     fn test_call_stack_creation() {
-        let stack = CallStack::new(64, 32);
+        let stack = CallStack::new(64);
         assert_eq!(stack.depth(), 0);
         assert_eq!(stack.frame_base(), 0);
-        assert_eq!(stack.locals_sp(), 32);
+        assert_eq!(stack.current_fn_idx(), 0);
         assert!(stack.is_main_frame());
     }
 
     #[test]
     fn test_push_pop_frame() {
-        let mut stack = CallStack::new(64, 32);
+        let mut stack = CallStack::new(64);
 
-        // Push first frame
-        stack.push_frame(100, 2048).unwrap();
+        // Main function has 3 locals (indices 0, 1, 2)
+        // Push first frame - function 1 with locals starting at index 3
+        stack.push_frame(100, 0, 3, 3, 1).unwrap();
         assert_eq!(stack.depth(), 1);
-        assert_eq!(stack.frame_base(), 32);
-        assert_eq!(stack.locals_sp(), 64);
+        assert_eq!(stack.frame_base(), 3);
+        assert_eq!(stack.current_fn_idx(), 1);
         assert!(!stack.is_main_frame());
 
-        // Push second frame
-        stack.push_frame(200, 2048).unwrap();
+        // Function 1 has 5 locals (indices 3-7)
+        // Push second frame - function 2 with locals starting at index 8
+        stack.push_frame(200, 1, 8, 8, 2).unwrap();
         assert_eq!(stack.depth(), 2);
-        assert_eq!(stack.frame_base(), 64);
-        assert_eq!(stack.locals_sp(), 96);
+        assert_eq!(stack.frame_base(), 8);
+        assert_eq!(stack.current_fn_idx(), 2);
 
-        // Pop back to first frame
-        let return_pc = stack.pop_frame().unwrap();
-        assert_eq!(return_pc, 200);
+        // Pop back to function 1
+        let result = stack.pop_frame().unwrap();
+        assert_eq!(result, (200, 1, 8)); // return_pc, return_fn_idx, locals_restore_sp
         assert_eq!(stack.depth(), 1);
-        assert_eq!(stack.frame_base(), 32);
-        assert_eq!(stack.locals_sp(), 64);
+        assert_eq!(stack.frame_base(), 3);
+        assert_eq!(stack.current_fn_idx(), 1);
 
         // Pop back to main
-        let return_pc = stack.pop_frame().unwrap();
-        assert_eq!(return_pc, 100);
+        let result = stack.pop_frame().unwrap();
+        assert_eq!(result, (100, 0, 3));
         assert_eq!(stack.depth(), 0);
         assert_eq!(stack.frame_base(), 0);
-        assert_eq!(stack.locals_sp(), 32);
+        assert_eq!(stack.current_fn_idx(), 0);
         assert!(stack.is_main_frame());
 
         // Pop from main returns None
@@ -187,33 +204,33 @@ mod tests {
 
     #[test]
     fn test_reset() {
-        let mut stack = CallStack::new(64, 32);
+        let mut stack = CallStack::new(64);
 
         // Push some frames
-        stack.push_frame(100, 2048).unwrap();
-        stack.push_frame(200, 2048).unwrap();
+        stack.push_frame(100, 0, 3, 3, 1).unwrap();
+        stack.push_frame(200, 1, 8, 8, 2).unwrap();
 
         assert_eq!(stack.depth(), 2);
 
         // Reset
-        stack.reset();
+        stack.reset(3);
         assert_eq!(stack.depth(), 0);
         assert_eq!(stack.frame_base(), 0);
-        assert_eq!(stack.locals_sp(), 32);
+        assert_eq!(stack.current_fn_idx(), 0);
         assert!(stack.is_main_frame());
     }
 
     #[test]
     fn test_call_stack_overflow() {
-        let mut stack = CallStack::new(3, 32); // Only 3 frames max
+        let mut stack = CallStack::new(3); // Only 3 frames max
 
         // Push 3 frames should work
-        stack.push_frame(100, 2048).unwrap();
-        stack.push_frame(200, 2048).unwrap();
-        stack.push_frame(300, 2048).unwrap();
+        stack.push_frame(100, 0, 3, 3, 1).unwrap();
+        stack.push_frame(200, 1, 8, 8, 2).unwrap();
+        stack.push_frame(300, 2, 13, 13, 3).unwrap();
 
         // 4th frame should fail
-        let result = stack.push_frame(400, 2048);
+        let result = stack.push_frame(400, 3, 18, 18, 4);
         assert!(matches!(
             result,
             Err(RuntimeError::CallStackOverflow { depth: 3 })
@@ -221,42 +238,60 @@ mod tests {
     }
 
     #[test]
-    fn test_locals_overflow() {
-        let mut stack = CallStack::new(64, 32);
+    fn test_variable_sized_frames() {
+        let mut stack = CallStack::new(64);
 
-        // Locals capacity is only 100, but we're trying to allocate 4 frames
-        // Frame 0: 0-31
-        // Frame 1: 32-63
-        // Frame 2: 64-95
-        // Frame 3: 96-127 (exceeds capacity of 100)
+        // Main: 2 locals (0-1), sp=2
+        // Call func1: 3 locals (2-4), sp=5
+        stack.push_frame(100, 0, 2, 2, 1).unwrap();
+        assert_eq!(stack.frame_base(), 2);
         
-        stack.push_frame(100, 100).unwrap(); // 32-63: OK
-        stack.push_frame(200, 100).unwrap(); // 64-95: OK
+        // Call func2: 7 locals (5-11), sp=12
+        stack.push_frame(200, 1, 5, 5, 2).unwrap();
+        assert_eq!(stack.frame_base(), 5);
         
-        let result = stack.push_frame(300, 100); // 96-127: FAIL
-        assert!(matches!(
-            result,
-            Err(RuntimeError::CallStackOverflow { .. })
-        ));
+        // Call func3: 1 local (12), sp=13
+        stack.push_frame(300, 2, 12, 12, 3).unwrap();
+        assert_eq!(stack.frame_base(), 12);
+        
+        // Pop func3, restore to sp=12
+        let (_, _, restore_sp) = stack.pop_frame().unwrap();
+        assert_eq!(restore_sp, 12);
+        assert_eq!(stack.frame_base(), 5);
+        
+        // Pop func2, restore to sp=5
+        let (_, _, restore_sp) = stack.pop_frame().unwrap();
+        assert_eq!(restore_sp, 5);
+        assert_eq!(stack.frame_base(), 2);
+        
+        // Pop func1, restore to sp=2
+        let (_, _, restore_sp) = stack.pop_frame().unwrap();
+        assert_eq!(restore_sp, 2);
+        assert_eq!(stack.frame_base(), 0);
     }
 
     #[test]
     fn test_multiple_push_pop() {
-        let mut stack = CallStack::new(64, 32);
+        let mut stack = CallStack::new(64);
 
-        // Simulate multiple function calls
+        // Simulate multiple function calls with varying local counts
+        let mut current_sp = 0;
+        let mut frame_bases = vec![];
+        
         for i in 0..10 {
-            stack.push_frame(i * 100, 2048).unwrap();
+            let locals_count = (i + 1) * 2; // Varying sizes: 2, 4, 6, 8, ...
+            frame_bases.push(current_sp);
+            stack.push_frame(i * 100, i, current_sp, current_sp, i + 1).unwrap();
+            current_sp += locals_count;
         }
         assert_eq!(stack.depth(), 10);
 
         // Pop them all back
         for i in (0..10).rev() {
-            let return_pc = stack.pop_frame().unwrap();
+            let (return_pc, _, _) = stack.pop_frame().unwrap();
             assert_eq!(return_pc, i * 100);
         }
         assert_eq!(stack.depth(), 0);
         assert!(stack.is_main_frame());
     }
 }
-

@@ -113,7 +113,7 @@ mod tests {
             &OptimizeOptions::none(),
         )
         .map_err(|e| format!("Compilation failed: {}", e))?;
-        let mut vm = LpsVm::new(&program, vec![], VmLimits::default())
+        let mut vm = LpsVm::new(&program, VmLimits::default())
             .map_err(|e| format!("VM creation failed: {:?}", e))?;
         let result = vm
             .run_scalar(0.5.to_fixed(), 0.5.to_fixed(), 0.0.to_fixed())
@@ -141,7 +141,7 @@ mod tests {
             &OptimizeOptions::none(),
         )
         .map_err(|e| format!("Compilation failed: {}", e))?;
-        let mut vm = LpsVm::new(&program, vec![], VmLimits::default())
+        let mut vm = LpsVm::new(&program, VmLimits::default())
             .map_err(|e| format!("VM creation failed: {:?}", e))?;
         let result = vm
             .run_scalar(0.5.to_fixed(), 0.5.to_fixed(), 0.0.to_fixed())
@@ -169,7 +169,7 @@ mod tests {
             &OptimizeOptions::none(),
         )
         .map_err(|e| format!("Compilation failed: {}", e))?;
-        let mut vm = LpsVm::new(&program, vec![], VmLimits::default())
+        let mut vm = LpsVm::new(&program, VmLimits::default())
             .map_err(|e| format!("VM creation failed: {:?}", e))?;
         let result = vm
             .run_scalar(0.5.to_fixed(), 0.5.to_fixed(), 0.0.to_fixed())
@@ -197,7 +197,7 @@ mod tests {
             &OptimizeOptions::none(),
         )
         .map_err(|e| format!("Compilation failed: {}", e))?;
-        let mut vm = LpsVm::new(&program, vec![], VmLimits::default())
+        let mut vm = LpsVm::new(&program, VmLimits::default())
             .map_err(|e| format!("VM creation failed: {:?}", e))?;
         let result = vm
             .run_scalar(0.5.to_fixed(), 0.5.to_fixed(), 0.0.to_fixed())
@@ -225,7 +225,7 @@ mod tests {
             &OptimizeOptions::none(),
         )
         .map_err(|e| format!("Compilation failed: {}", e))?;
-        let mut vm = LpsVm::new(&program, vec![], VmLimits::default())
+        let mut vm = LpsVm::new(&program, VmLimits::default())
             .map_err(|e| format!("VM creation failed: {:?}", e))?;
         let result = vm
             .run_scalar(0.5.to_fixed(), 0.5.to_fixed(), 0.0.to_fixed())
@@ -253,7 +253,7 @@ mod tests {
             &OptimizeOptions::none(),
         )
         .map_err(|e| format!("Compilation failed: {}", e))?;
-        let mut vm = LpsVm::new(&program, vec![], VmLimits::default())
+        let mut vm = LpsVm::new(&program, VmLimits::default())
             .map_err(|e| format!("VM creation failed: {:?}", e))?;
         let result = vm
             .run_scalar(0.5.to_fixed(), 0.5.to_fixed(), 0.0.to_fixed())

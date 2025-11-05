@@ -45,23 +45,16 @@ pub struct LpsVm<'a> {
 }
 
 impl<'a> LpsVm<'a> {
-    /// Create a new VM from a program with input locals and custom limits
-    pub fn new(
-        program: &'a LpsProgram,
-        inputs: Vec<(usize, super::locals::LocalType)>,
-        limits: VmLimits,
-    ) -> Result<Self, RuntimeError> {
+    /// Create a new VM from a program with custom limits
+    pub fn new(program: &'a LpsProgram, limits: VmLimits) -> Result<Self, RuntimeError> {
         // Pre-allocate locals storage for frame-based allocation
-        // 32 locals per frame * 64 max frames = 2048
+        // Estimate: 32 i32s per frame * 64 max frames = 2048 i32s
         let local_capacity = 32 * limits.max_call_stack_depth;
         let mut locals = LocalsStorage::new(local_capacity);
 
-        // Initialize scratch locals from program definitions
-        locals.init_from_defs(&program.locals);
-
-        // Set input locals (override program defaults)
-        for (idx, local) in inputs {
-            locals.set_input(idx, local)?;
+        // Allocate main function's locals (function 0)
+        if let Some(main_fn) = program.main_function() {
+            locals.allocate_locals(&main_fn.locals)?;
         }
 
         Ok(LpsVm {
@@ -69,22 +62,24 @@ impl<'a> LpsVm<'a> {
             stack: Stack::new(limits.max_stack_size),
             pc: 0,
             locals,
-            call_stack: CallStack::new(limits.max_call_stack_depth, 32),
+            call_stack: CallStack::new(limits.max_call_stack_depth),
             limits,
         })
     }
 
     /// Create a new VM with default limits
-    pub fn new_with_defaults(
-        program: &'a LpsProgram,
-        inputs: Vec<(usize, super::locals::LocalType)>,
-    ) -> Result<Self, RuntimeError> {
-        Self::new(program, inputs, VmLimits::default())
+    pub fn new_with_defaults(program: &'a LpsProgram) -> Result<Self, RuntimeError> {
+        Self::new(program, VmLimits::default())
     }
 
-    /// Get a local variable value by index (for testing)
-    pub fn get_local(&self, index: usize) -> Result<&super::locals::LocalType, RuntimeError> {
-        self.locals.get(index)
+    /// Get access to locals storage for debugging/testing
+    pub fn locals(&self) -> &LocalsStorage {
+        &self.locals
+    }
+
+    /// Get a local value by name (for debugging/testing)
+    pub fn get_local_by_name(&self, name: &str) -> Option<Fixed> {
+        self.locals.get_fixed_by_name(name)
     }
 
     /// Execute the program for a single pixel
@@ -108,7 +103,7 @@ impl<'a> LpsVm<'a> {
     ) -> Result<Vec<Fixed>, RuntimeErrorWithContext> {
         self.stack.reset();
         self.pc = 0;
-        self.call_stack.reset();
+        self.call_stack.reset(0);
 
         // Store built-in values for Load operations
         let x_norm = x;
@@ -129,21 +124,41 @@ impl<'a> LpsVm<'a> {
                 });
             }
 
-            if self.pc >= self.program.opcodes.len() {
-                return Err(RuntimeErrorWithContext {
-                    error: RuntimeError::ProgramCounterOutOfBounds {
+            // Get opcode from current function (new system) or legacy flat array
+            let opcode = if let Some(main_fn) = self.program.main_function() {
+                // New function-based system
+                if self.pc >= main_fn.opcodes.len() {
+                    return Err(RuntimeErrorWithContext {
+                        error: RuntimeError::ProgramCounterOutOfBounds {
+                            pc: self.pc,
+                            max: main_fn.opcodes.len(),
+                        },
                         pc: self.pc,
-                        max: self.program.opcodes.len(),
-                    },
-                    pc: self.pc,
-                    opcode: "EOF",
-                });
-            }
-
-            let opcode = &self.program.opcodes[self.pc];
+                        opcode: "EOF",
+                    });
+                }
+                &main_fn.opcodes[self.pc]
+            } else {
+                // Legacy flat opcodes system (for backward compat)
+                #[allow(deprecated)]
+                if self.pc >= self.program.opcodes.len() {
+                    return Err(RuntimeErrorWithContext {
+                        error: RuntimeError::ProgramCounterOutOfBounds {
+                            pc: self.pc,
+                            max: self.program.opcodes.len(),
+                        },
+                        pc: self.pc,
+                        opcode: "EOF",
+                    });
+                }
+                #[allow(deprecated)]
+                &self.program.opcodes[self.pc]
+            };
 
             // Dispatch the opcode - returns Some(result) if program should exit
-            if let Some(result) = self.dispatch_opcode(opcode, x_norm, y_norm, x_int, y_int, time)? {
+            if let Some(result) =
+                self.dispatch_opcode(opcode, x_norm, y_norm, x_int, y_int, time)?
+            {
                 return Ok(result);
             }
         }
@@ -154,6 +169,16 @@ impl<'a> LpsVm<'a> {
             error,
             pc: self.pc,
             opcode: "opcode", // TODO: Get actual opcode name
+        }
+    }
+
+    /// Get the length of the current function's opcodes (helper for bounds checking)
+    pub(super) fn current_function_len(&self) -> usize {
+        if let Some(main_fn) = self.program.main_function() {
+            main_fn.opcodes.len()
+        } else {
+            #[allow(deprecated)]
+            self.program.opcodes.len()
         }
     }
 }
@@ -186,7 +211,7 @@ pub fn execute_program_lps(
 ) {
     // CRITICAL: Create VM once and reuse it for all pixels to avoid cloning the program
     // Cloning the program for each pixel causes catastrophic memory usage!
-    let mut vm = LpsVm::new(program, Vec::new(), VmLimits::default()).expect("Failed to create VM");
+    let mut vm = LpsVm::new(program, VmLimits::default()).expect("Failed to create VM");
 
     for y in 0..height {
         for x in 0..width {
@@ -216,10 +241,10 @@ mod tests {
     fn test_vm_creation() {
         use crate::lpscript::parse_expr;
         let program = parse_expr("1.0 + 2.0");
-        let vm = LpsVm::new(&program, vec![], VmLimits::default()).unwrap();
+        let vm = LpsVm::new(&program, VmLimits::default()).unwrap();
 
         // Verify VM can be created with correct initialization
-        assert!(vm.program.opcodes.len() > 0);
+        assert!(vm.program.main_function().unwrap().opcodes.len() > 0);
         assert_eq!(vm.stack.sp(), 0);
         assert_eq!(vm.pc, 0);
         assert_eq!(vm.call_stack.depth(), 0);
@@ -229,54 +254,30 @@ mod tests {
     #[test]
     fn test_vm_with_locals() {
         use crate::lpscript::parse_expr;
-        let mut program = parse_expr("xNorm");
-        program.locals.push(crate::lpscript::LocalDef::new(
-            "test".into(),
-            super::super::locals::LocalType::Fixed(1.0.to_fixed()),
-            crate::lpscript::LocalAccess::Scratch,
-        ));
+        let program = parse_expr("xNorm");
 
-        let vm = LpsVm::new(&program, vec![], VmLimits::default()).unwrap();
-        
-        // VM now pre-allocates locals for frame-based allocation
-        assert_eq!(vm.locals.capacity(), 32 * 64); // 32 locals/frame * 64 max depth
+        let vm = LpsVm::new(&program, VmLimits::default()).unwrap();
+
+        // VM now pre-allocates locals with i32 capacity
+        assert_eq!(vm.locals.capacity(), 32 * 64); // 32 i32s/frame * 64 max depth
         assert_eq!(vm.call_stack.frame_base(), 0);
-        assert_eq!(vm.call_stack.locals_sp(), 32); // Main frame uses 0-31
     }
 
     #[test]
     fn test_vm_limits() {
         use crate::lpscript::parse_expr;
         let program = parse_expr("1.0");
-        
+
         let custom_limits = VmLimits {
             max_call_stack_depth: 32,
             max_stack_size: 128,
             max_instructions: 5000,
         };
-        
-        let vm = LpsVm::new(&program, vec![], custom_limits).unwrap();
+
+        let vm = LpsVm::new(&program, custom_limits).unwrap();
         assert_eq!(vm.limits.max_call_stack_depth, 32);
         assert_eq!(vm.limits.max_stack_size, 128);
         assert_eq!(vm.limits.max_instructions, 5000);
-    }
-
-    #[test]
-    fn test_vm_input_locals() {
-        use crate::lpscript::parse_expr;
-        let program = parse_expr("xNorm");
-        
-        // Provide input local
-        let inputs = vec![(0, super::super::locals::LocalType::Fixed(5.5.to_fixed()))];
-        let vm = LpsVm::new(&program, inputs, VmLimits::default()).unwrap();
-        
-        // Verify input was set
-        match vm.get_local(0).unwrap() {
-            super::super::locals::LocalType::Fixed(val) => {
-                assert!((val.to_f32() - 5.5).abs() < 0.01);
-            }
-            _ => panic!("Expected Fixed type"),
-        }
     }
 }
 
@@ -391,4 +392,3 @@ impl<'a> LpsVm<'a> {
         output
     }
 }
-

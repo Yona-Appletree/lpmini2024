@@ -22,8 +22,9 @@ pub fn exec_return(
     stack: &Stack,
     call_stack: &mut CallStack,
 ) -> Result<ReturnAction, RuntimeError> {
-    if let Some(return_pc) = call_stack.pop_frame() {
+    if let Some((return_pc, _return_fn_idx, _locals_restore_sp)) = call_stack.pop_frame() {
         // Returning from a function call
+        // TODO: Handle locals_restore_sp to deallocate locals
         Ok(ReturnAction::Continue(return_pc))
     } else {
         // Exiting main - return all stack values as result
@@ -161,17 +162,19 @@ mod tests {
     #[test]
     fn test_return_from_function() {
         let stack = Stack::new(64);
-        let mut call_stack = CallStack::new(64, 32);
+        let mut call_stack = CallStack::new(64);
 
         // Simulate a function call
-        call_stack.push_frame(100, 2048).unwrap();
+        call_stack.push_frame(100, 0, 3, 3, 1).unwrap();
 
         // Execute return
         let result = exec_return(&stack, &mut call_stack).unwrap();
 
         // Should return to PC 100
         match result {
-            ReturnAction::Continue(pc) => assert_eq!(pc, 100),
+            ReturnAction::Continue(pc) => {
+                assert_eq!(pc, 100);
+            }
             _ => panic!("Expected Continue action"),
         }
 
@@ -182,7 +185,7 @@ mod tests {
     #[test]
     fn test_return_from_main() {
         let mut stack = Stack::new(64);
-        let mut call_stack = CallStack::new(64, 32);
+        let mut call_stack = CallStack::new(64);
 
         // Push some values on the stack
         stack.push_fixed(1.5.to_fixed()).unwrap();
@@ -207,12 +210,12 @@ mod tests {
     #[test]
     fn test_return_nested_calls() {
         let stack = Stack::new(64);
-        let mut call_stack = CallStack::new(64, 32);
+        let mut call_stack = CallStack::new(64);
 
         // Simulate nested function calls
-        call_stack.push_frame(100, 2048).unwrap();
-        call_stack.push_frame(200, 2048).unwrap();
-        call_stack.push_frame(300, 2048).unwrap();
+        call_stack.push_frame(100, 0, 3, 3, 1).unwrap();
+        call_stack.push_frame(200, 1, 8, 8, 2).unwrap();
+        call_stack.push_frame(300, 2, 13, 13, 3).unwrap();
 
         assert_eq!(call_stack.depth(), 3);
 

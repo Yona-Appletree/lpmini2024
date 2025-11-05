@@ -307,8 +307,7 @@ mod vector_function_tests {
 
         let program = compile_script_with_options(program_text, &OptimizeOptions::none())
             .expect("Compilation should succeed");
-        let mut vm =
-            LpsVm::new(&program, vec![], VmLimits::default()).expect("VM creation should succeed");
+        let mut vm = LpsVm::new(&program, VmLimits::default()).expect("VM creation should succeed");
         let result = vm
             .run_scalar(0.5.to_fixed(), 0.5.to_fixed(), 0.0.to_fixed())
             .expect("Execution should succeed");
@@ -337,8 +336,7 @@ mod vector_function_tests {
 
         let program = compile_script_with_options(program_text, &OptimizeOptions::none())
             .expect("Compilation should succeed");
-        let mut vm =
-            LpsVm::new(&program, vec![], VmLimits::default()).expect("VM creation should succeed");
+        let mut vm = LpsVm::new(&program, VmLimits::default()).expect("VM creation should succeed");
         let result = vm
             .run_scalar(0.5.to_fixed(), 0.5.to_fixed(), 0.0.to_fixed())
             .expect("Execution should succeed");
@@ -364,8 +362,7 @@ mod vector_function_tests {
 
         let program = compile_script_with_options(program_text, &OptimizeOptions::none())
             .expect("Compilation should succeed");
-        let mut vm =
-            LpsVm::new(&program, vec![], VmLimits::default()).expect("VM creation should succeed");
+        let mut vm = LpsVm::new(&program, VmLimits::default()).expect("VM creation should succeed");
         let result = vm
             .run_scalar(0.5.to_fixed(), 0.5.to_fixed(), 0.0.to_fixed())
             .expect("Execution should succeed");
@@ -396,8 +393,7 @@ mod vector_function_tests {
 
         let program = compile_script_with_options(program_text, &OptimizeOptions::none())
             .expect("Compilation should succeed");
-        let mut vm =
-            LpsVm::new(&program, vec![], VmLimits::default()).expect("VM creation should succeed");
+        let mut vm = LpsVm::new(&program, VmLimits::default()).expect("VM creation should succeed");
         let result = vm
             .run_scalar(0.5.to_fixed(), 0.5.to_fixed(), 0.0.to_fixed())
             .expect("Execution should succeed");
@@ -424,8 +420,7 @@ mod vector_function_tests {
 
         let program = compile_script_with_options(program_text, &OptimizeOptions::none())
             .expect("Compilation should succeed");
-        let mut vm =
-            LpsVm::new(&program, vec![], VmLimits::default()).expect("VM creation should succeed");
+        let mut vm = LpsVm::new(&program, VmLimits::default()).expect("VM creation should succeed");
         let result = vm
             .run_scalar(0.5.to_fixed(), 0.5.to_fixed(), 0.0.to_fixed())
             .expect("Execution should succeed");
@@ -452,8 +447,7 @@ mod vector_function_tests {
 
         let program = compile_script_with_options(program_text, &OptimizeOptions::none())
             .expect("Compilation should succeed");
-        let mut vm =
-            LpsVm::new(&program, vec![], VmLimits::default()).expect("VM creation should succeed");
+        let mut vm = LpsVm::new(&program, VmLimits::default()).expect("VM creation should succeed");
         let result = vm
             .run_scalar(0.5.to_fixed(), 0.5.to_fixed(), 0.0.to_fixed())
             .expect("Execution should succeed");
@@ -484,8 +478,7 @@ mod vector_function_tests {
 
         let program = compile_script_with_options(program_text, &OptimizeOptions::none())
             .expect("Compilation should succeed");
-        let mut vm =
-            LpsVm::new(&program, vec![], VmLimits::default()).expect("VM creation should succeed");
+        let mut vm = LpsVm::new(&program, VmLimits::default()).expect("VM creation should succeed");
         let result = vm
             .run_scalar(0.5.to_fixed(), 0.5.to_fixed(), 0.0.to_fixed())
             .expect("Execution should succeed");
@@ -512,8 +505,7 @@ mod vector_function_tests {
 
         let program = compile_script_with_options(program_text, &OptimizeOptions::none())
             .expect("Compilation should succeed");
-        let mut vm =
-            LpsVm::new(&program, vec![], VmLimits::default()).expect("VM creation should succeed");
+        let mut vm = LpsVm::new(&program, VmLimits::default()).expect("VM creation should succeed");
         let result = vm
             .run_scalar(0.5.to_fixed(), 0.5.to_fixed(), 0.0.to_fixed())
             .expect("Execution should succeed");

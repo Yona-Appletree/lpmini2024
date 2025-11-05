@@ -9,7 +9,7 @@ mod tests {
     fn test_if_without_else() {
         let script = "if (1.0 > 0.5) { return 10.0; } return 0.0;";
         let program = parse_script(script);
-        let mut vm = LpsVm::new(&program, vec![], VmLimits::default()).unwrap();
+        let mut vm = LpsVm::new(&program, VmLimits::default()).unwrap();
         let result = vm
             .run_scalar(Fixed::ZERO, Fixed::ZERO, Fixed::ZERO)
             .unwrap();
@@ -20,7 +20,7 @@ mod tests {
     fn test_if_with_else() {
         let script = "if (1.0 > 0.5) { return 10.0; } else { return 20.0; }";
         let program = parse_script(script);
-        let mut vm = LpsVm::new(&program, vec![], VmLimits::default()).unwrap();
+        let mut vm = LpsVm::new(&program, VmLimits::default()).unwrap();
         let result = vm
             .run_scalar(Fixed::ZERO, Fixed::ZERO, Fixed::ZERO)
             .unwrap();
@@ -32,7 +32,7 @@ mod tests {
     fn test_if_with_variable() {
         let script = "float x = 0.3; if (x > 0.5) { return 1.0; } else { return 0.0; }";
         let program = parse_script(script);
-        let mut vm = LpsVm::new(&program, vec![], VmLimits::default()).unwrap();
+        let mut vm = LpsVm::new(&program, VmLimits::default()).unwrap();
         let result = vm
             .run_scalar(Fixed::ZERO, Fixed::ZERO, Fixed::ZERO)
             .unwrap();
@@ -43,7 +43,7 @@ mod tests {
     fn test_if_with_builtin() {
         let script = "if (time > 5.0) { return 100.0; } else { return -100.0; }";
         let program = parse_script(script);
-        let mut vm = LpsVm::new(&program, vec![], VmLimits::default()).unwrap();
+        let mut vm = LpsVm::new(&program, VmLimits::default()).unwrap();
         let result = vm
             .run_scalar(Fixed::ZERO, Fixed::ZERO, 10.0.to_fixed())
             .unwrap();
