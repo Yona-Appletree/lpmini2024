@@ -175,14 +175,22 @@ pub fn compile_script_with_options(
     let parser = parser::Parser::new(tokens);
     let (program, pool) = parser.parse_program()?;
 
-    // Type check the program
-    let (typed_program, pool) = typechecker::TypeChecker::check_program(program, pool)?;
+    // Analyze program to build function metadata table
+    let func_table = compiler::analyzer::FunctionAnalyzer::analyze_program(&program, &pool)?;
+
+    // Type check the program with pre-built function table
+    let (typed_program, pool) =
+        typechecker::TypeChecker::check_program(program, pool, &func_table)?;
 
     // Optimize program AST
     let (optimized_program, pool) = optimize::optimize_ast_program(typed_program, pool, options);
 
-    // Generate functions using new API
-    let functions = codegen::CodeGenerator::generate_program_with_functions(&pool, &optimized_program);
+    // Generate functions using new API with function table
+    let functions = codegen::CodeGenerator::generate_program_with_functions(
+        &pool,
+        &optimized_program,
+        &func_table,
+    );
 
     // Optimize opcodes for each function
     let optimized_functions: Vec<vm::FunctionDef> = functions

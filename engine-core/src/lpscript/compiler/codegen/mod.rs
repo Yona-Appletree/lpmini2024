@@ -4,7 +4,7 @@ use alloc::collections::BTreeMap;
 use alloc::string::String;
 use alloc::vec::Vec;
 
-use crate::lpscript::compiler::ast::{Expr, Program};
+use crate::lpscript::compiler::ast::Program;
 use crate::lpscript::LpsOpCode;
 
 mod expr;
@@ -67,12 +67,13 @@ impl<'a> CodeGenerator<'a> {
         code
     }
 
-    /// Generate functions for a program (new API)
+    /// Generate functions for a program (new API with FunctionTable)
     pub fn generate_program_with_functions(
         pool: &crate::lpscript::compiler::ast::AstPool,
         program: &Program,
+        func_table: &crate::lpscript::compiler::func::FunctionTable,
     ) -> Vec<crate::lpscript::vm::FunctionDef> {
-        program::gen_program_with_functions(pool, program, |pool, stmt_id, code, locals, func_offsets| {
+        program::gen_program_with_functions(pool, program, func_table, |pool, stmt_id, code, locals, func_offsets| {
             let mut gen = CodeGenerator::new(code, locals, func_offsets);
             gen.gen_stmt_id(pool, stmt_id);
         })
@@ -698,6 +699,8 @@ impl<'a> CodeGenerator<'a> {
         use alloc::string::ToString;
         use crate::lpscript::shared::Type;
         
+        // Allocate a local for this variable
+        // This will allocate in the same order as the analyzer did
         let local_idx = self.locals.allocate_typed(name.to_string(), ty.clone());
         
         if let Some(init_id) = init {

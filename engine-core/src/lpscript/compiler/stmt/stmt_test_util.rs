@@ -1,18 +1,54 @@
 /// Test utilities for lpscript statements/scripts - builder pattern for clean testing
 extern crate alloc;
+use alloc::boxed::Box;
 use alloc::format;
 use alloc::string::String;
 use alloc::vec::Vec;
 
 use crate::lpscript::compiler::ast::{AstPool, Program};
 use crate::lpscript::compiler::codegen;
+use crate::lpscript::compiler::func::FunctionMetadata;
 use crate::lpscript::compiler::stmt::stmt_test_ast::StmtBuilder;
 use crate::lpscript::compiler::{lexer, parser, typechecker};
 use crate::lpscript::shared::Type;
 use crate::lpscript::vm::{LpsOpCode, LpsProgram, LpsVm, VmLimits};
 use crate::math::{Fixed, ToFixed, Vec2, Vec3, Vec4};
 
+/// Function metadata assertion helper
+pub struct FunctionMetadataAssertion {
+    pub function_name: String,
+    pub expected_param_count: Option<usize>,
+    pub expected_param_types: Option<Vec<Type>>,
+    pub expected_return_type: Option<Type>,
+    pub expected_local_count: Option<u32>,
+    pub expected_local_names: Option<Vec<String>>,
+}
+
 /// Builder for testing scripts/statements through the compilation pipeline
+///
+/// Supports testing all compilation phases:
+/// - Parse: AST construction
+/// - Analyze: Function metadata and local discovery
+/// - Type Check: Type validation and return type checking
+/// - Codegen: Bytecode generation
+/// - Execution: Runtime behavior
+///
+/// # Example: Testing function metadata
+/// ```
+/// use engine_core::lpscript::compiler::stmt::stmt_test_util::ScriptTest;
+/// use engine_core::lpscript::shared::Type;
+///
+/// ScriptTest::new("
+///     float add(float a, float b) {
+///         float result = a + b;
+///         return result;
+///     }
+/// ")
+/// .expect_function_metadata("add", vec![Type::Fixed, Type::Fixed], Type::Fixed, 3)
+/// .expect_function_local_names("add", vec!["a", "b", "result"])
+/// .run()
+/// .unwrap();
+/// ```
 ///
 /// Note: Script mode supports variable declarations, control flow, etc.
 /// Built-in variables like `x`, `y`, `time` from uv/coord still work.
@@ -21,6 +57,7 @@ pub struct ScriptTest {
     expected_ast_builder: Option<Box<dyn FnOnce(&mut StmtBuilder) -> Program>>,
     expected_opcodes: Option<Vec<LpsOpCode>>,
     expected_result: Option<TestResult>,
+    expected_function_metadata: Vec<FunctionMetadataAssertion>,
     x: Fixed,
     y: Fixed,
     time: Fixed,
@@ -41,6 +78,7 @@ impl ScriptTest {
             expected_ast_builder: None,
             expected_opcodes: None,
             expected_result: None,
+            expected_function_metadata: Vec::new(),
             x: 0.5.to_fixed(),
             y: 0.5.to_fixed(),
             time: Fixed::ZERO,
@@ -112,6 +150,138 @@ impl ScriptTest {
         self
     }
 
+    /// Expect specific function metadata from analyzer
+    pub fn expect_function_local_count(mut self, func_name: &str, count: u32) -> Self {
+        self.expected_function_metadata
+            .push(FunctionMetadataAssertion {
+                function_name: String::from(func_name),
+                expected_param_count: None,
+                expected_param_types: None,
+                expected_return_type: None,
+                expected_local_count: Some(count),
+                expected_local_names: None,
+            });
+        self
+    }
+
+    /// Expect function parameter types
+    pub fn expect_function_params(mut self, func_name: &str, param_types: Vec<Type>) -> Self {
+        self.expected_function_metadata
+            .push(FunctionMetadataAssertion {
+                function_name: String::from(func_name),
+                expected_param_count: Some(param_types.len()),
+                expected_param_types: Some(param_types),
+                expected_return_type: None,
+                expected_local_count: None,
+                expected_local_names: None,
+            });
+        self
+    }
+
+    /// Expect function metadata (comprehensive)
+    pub fn expect_function_metadata(
+        mut self,
+        func_name: &str,
+        param_types: Vec<Type>,
+        return_type: Type,
+        local_count: u32,
+    ) -> Self {
+        self.expected_function_metadata
+            .push(FunctionMetadataAssertion {
+                function_name: String::from(func_name),
+                expected_param_count: Some(param_types.len()),
+                expected_param_types: Some(param_types),
+                expected_return_type: Some(return_type),
+                expected_local_count: Some(local_count),
+                expected_local_names: None,
+            });
+        self
+    }
+
+    /// Expect specific local variable names in order
+    pub fn expect_function_local_names(mut self, func_name: &str, local_names: Vec<&str>) -> Self {
+        // Find existing assertion or create new one
+        if let Some(assertion) = self
+            .expected_function_metadata
+            .iter_mut()
+            .find(|a| a.function_name == func_name)
+        {
+            assertion.expected_local_names =
+                Some(local_names.iter().map(|s| String::from(*s)).collect());
+        } else {
+            self.expected_function_metadata
+                .push(FunctionMetadataAssertion {
+                    function_name: String::from(func_name),
+                    expected_param_count: None,
+                    expected_param_types: None,
+                    expected_return_type: None,
+                    expected_local_count: None,
+                    expected_local_names: Some(
+                        local_names.iter().map(|s| String::from(*s)).collect(),
+                    ),
+                });
+        }
+        self
+    }
+
+    /// Helper to check function metadata assertions
+    fn check_metadata_assertion(
+        metadata: &FunctionMetadata,
+        assertion: &FunctionMetadataAssertion,
+        errors: &mut Vec<String>,
+    ) {
+        let func_name = &assertion.function_name;
+
+        if let Some(expected_count) = assertion.expected_param_count {
+            if metadata.params.len() != expected_count {
+                errors.push(format!(
+                    "Function '{}': expected {} params, got {}",
+                    func_name,
+                    expected_count,
+                    metadata.params.len()
+                ));
+            }
+        }
+
+        if let Some(ref expected_types) = assertion.expected_param_types {
+            if metadata.params != *expected_types {
+                errors.push(format!(
+                    "Function '{}': param types mismatch\n  Expected: {:?}\n  Got: {:?}",
+                    func_name, expected_types, metadata.params
+                ));
+            }
+        }
+
+        if let Some(ref expected_return) = assertion.expected_return_type {
+            if metadata.return_type != *expected_return {
+                errors.push(format!(
+                    "Function '{}': expected return type {:?}, got {:?}",
+                    func_name, expected_return, metadata.return_type
+                ));
+            }
+        }
+
+        if let Some(expected_count) = assertion.expected_local_count {
+            if metadata.local_count != expected_count {
+                errors.push(format!(
+                    "Function '{}': expected {} locals, got {}",
+                    func_name, expected_count, metadata.local_count
+                ));
+            }
+        }
+
+        if let Some(ref expected_names) = assertion.expected_local_names {
+            let actual_names: Vec<String> =
+                metadata.locals.iter().map(|l| l.name.clone()).collect();
+            if actual_names != *expected_names {
+                errors.push(format!(
+                    "Function '{}': local names mismatch\n  Expected: {:?}\n  Got: {:?}",
+                    func_name, expected_names, actual_names
+                ));
+            }
+        }
+    }
+
     /// Run all expectations and return result
     /// Collects all errors instead of stopping at the first one
     pub fn run(self) -> Result<(), String> {
@@ -141,15 +311,40 @@ impl ScriptTest {
             }
         };
 
-        // Type check
-        let (typed_program, pool) = match typechecker::TypeChecker::check_program(ast_program, pool)
-        {
-            Ok(result) => result,
-            Err(e) => {
-                errors.push(format!("Type check error: {}", e));
-                return Err(errors.join("\n\n"));
+        // Analyze to build function table
+        let func_table =
+            match crate::lpscript::compiler::analyzer::FunctionAnalyzer::analyze_program(
+                &ast_program,
+                &pool,
+            ) {
+                Ok(table) => table,
+                Err(e) => {
+                    errors.push(format!("Analysis error: {}", e));
+                    return Err(errors.join("\n\n"));
+                }
+            };
+
+        // Check function metadata expectations
+        for assertion in &self.expected_function_metadata {
+            if let Some(metadata) = func_table.lookup(&assertion.function_name) {
+                Self::check_metadata_assertion(metadata, assertion, &mut errors);
+            } else {
+                errors.push(format!(
+                    "Function metadata check: Function '{}' not found in function table",
+                    assertion.function_name
+                ));
             }
-        };
+        }
+
+        // Type check
+        let (typed_program, pool) =
+            match typechecker::TypeChecker::check_program(ast_program, pool, &func_table) {
+                Ok(result) => result,
+                Err(e) => {
+                    errors.push(format!("Type check error: {}", e));
+                    return Err(errors.join("\n\n"));
+                }
+            };
 
         // Check AST if expected (after type checking)
         if let Some(builder_fn) = self.expected_ast_builder {

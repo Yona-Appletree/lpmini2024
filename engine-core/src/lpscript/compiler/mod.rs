@@ -6,6 +6,7 @@ pub mod func;
 pub mod prog;
 pub mod stmt;
 
+pub mod analyzer;
 pub mod ast;
 pub mod codegen;
 pub mod error;
@@ -15,3 +16,6 @@ pub mod parser;
 pub mod symbol_table;
 pub mod test_ast;
 pub mod typechecker;
+
+#[cfg(test)]
+mod analyzer_integration_tests;

@@ -10,7 +10,24 @@ use crate::lpscript::compiler::error::{TypeError, TypeErrorKind};
 use crate::lpscript::compiler::typechecker::{SymbolTable, TypeChecker};
 use crate::lpscript::shared::Type;
 
-/// Function signature for user-defined functions
+/// Local variable information
+#[derive(Debug, Clone)]
+pub(crate) struct LocalVarInfo {
+    pub(crate) name: String,
+    pub(crate) ty: Type,
+    pub(crate) index: u32,
+}
+
+/// Function metadata including signature and local variables
+#[derive(Debug, Clone)]
+pub(crate) struct FunctionMetadata {
+    pub(crate) params: Vec<Type>,
+    pub(crate) return_type: Type,
+    pub(crate) locals: Vec<LocalVarInfo>,
+    pub(crate) local_count: u32,
+}
+
+/// Function signature for user-defined functions (legacy compatibility)
 #[derive(Debug, Clone)]
 pub(crate) struct FunctionSignature {
     pub(crate) params: Vec<Type>,
@@ -20,7 +37,7 @@ pub(crate) struct FunctionSignature {
 /// Function table for tracking user-defined functions
 #[derive(Debug, Clone)]
 pub(crate) struct FunctionTable {
-    functions: BTreeMap<String, FunctionSignature>,
+    functions: BTreeMap<String, FunctionMetadata>,
 }
 
 impl FunctionTable {
@@ -30,104 +47,55 @@ impl FunctionTable {
         }
     }
 
+    /// Declare a function with full metadata (params, return type, locals)
+    pub(crate) fn declare_with_metadata(
+        &mut self,
+        name: String,
+        metadata: FunctionMetadata,
+    ) -> Result<(), String> {
+        if self.functions.contains_key(&name) {
+            return Err(format!("Function '{}' already declared", name));
+        }
+        self.functions.insert(name, metadata);
+        Ok(())
+    }
+
+    /// Legacy method: declare a function with just signature (creates empty locals)
     pub(crate) fn declare(
         &mut self,
         name: String,
         params: Vec<Type>,
         return_type: Type,
     ) -> Result<(), String> {
-        if self.functions.contains_key(&name) {
-            return Err(format!("Function '{}' already declared", name));
-        }
-        self.functions.insert(
+        self.declare_with_metadata(
             name,
-            FunctionSignature {
+            FunctionMetadata {
                 params,
                 return_type,
+                locals: Vec::new(),
+                local_count: 0,
             },
-        );
-        Ok(())
+        )
     }
 
-    pub(crate) fn lookup(&self, name: &str) -> Option<&FunctionSignature> {
+    /// Get function metadata
+    pub(crate) fn lookup(&self, name: &str) -> Option<&FunctionMetadata> {
         self.functions.get(name)
     }
-}
 
-impl TypeChecker {
-    /// Type check a function definition
-    pub(crate) fn check_function(
-        func: &mut FunctionDef,
-        func_table: &FunctionTable,
-    ) -> Result<(), TypeError> {
-        let mut symbols = SymbolTable::new();
-
-        // Add parameters to symbol table
-        for param in &func.params {
-            symbols
-                .declare(param.name.clone(), param.ty.clone())
-                .map_err(|msg| TypeError {
-                    kind: TypeErrorKind::UndefinedVariable(msg),
-                    span: func.span,
-                })?;
-        }
-
-        // Type check function body
-        for stmt in &mut func.body {
-            Self::check_stmt(stmt, &mut symbols, func_table)?;
-        }
-
-        // Verify all code paths return a value (if return_type != Void)
-        if func.return_type != Type::Void {
-            if !Self::all_paths_return(&func.body) {
-                return Err(TypeError {
-                    kind: TypeErrorKind::MissingReturn(func.name.clone()),
-                    span: func.span,
-                });
-            }
-        }
-
-        Ok(())
-    }
-
-    /// Check if all code paths in a statement list return
-    fn all_paths_return(stmts: &[Stmt]) -> bool {
-        stmts.iter().any(|stmt| Self::stmt_always_returns(stmt))
-    }
-
-    /// Check if a statement always returns (guarantees return on all code paths)
-    fn stmt_always_returns(stmt: &Stmt) -> bool {
-        match &stmt.kind {
-            StmtKind::Return(_) => true,
-
-            StmtKind::Block(stmts) => {
-                // A block always returns if any statement in it always returns
-                Self::all_paths_return(stmts)
-            }
-
-            StmtKind::If {
-                then_stmt,
-                else_stmt,
-                ..
-            } => {
-                // An if statement always returns only if:
-                // 1. Both branches exist
-                // 2. Both branches always return
-                if let Some(else_s) = else_stmt {
-                    Self::stmt_always_returns(then_stmt) && Self::stmt_always_returns(else_s)
-                } else {
-                    false
-                }
-            }
-
-            // Loops don't guarantee returns (they might not execute)
-            StmtKind::While { .. } | StmtKind::For { .. } => false,
-
-            // Other statements don't return
-            StmtKind::VarDecl { .. } | StmtKind::Expr(_) => false,
-        }
+    /// Get function signature (for backward compatibility)
+    pub(crate) fn lookup_signature(&self, name: &str) -> Option<FunctionSignature> {
+        self.functions.get(name).map(|meta| FunctionSignature {
+            params: meta.params.clone(),
+            return_type: meta.return_type.clone(),
+        })
     }
 }
+
+// NOTE: The old check_function implementation has been replaced with
+// check_function_body in prog/prog_types.rs which uses the StmtId-based API.
+// The old Stmt-based implementation is commented out as it's no longer compatible
+// with the pool-based AST architecture.
 
 #[cfg(test)]
 mod tests {
@@ -217,13 +185,10 @@ mod tests {
     // ========================================================================
     // Type Error Tests - Function Return Type Mismatches
     // ========================================================================
-    // Note: Return type validation is not currently implemented in the type checker.
-    // The check_function() method validates that all paths return but doesn't check
-    // that the returned type matches the function's declared return type.
-    // These tests are marked as ignored until return type validation is implemented.
+    // Return type validation is now implemented in check_function_body in prog/prog_types.rs.
+    // These tests verify that functions cannot return values of the wrong type.
 
     #[test]
-    #[ignore] // Return type validation not implemented
     fn test_float_function_returns_vec2() {
         let program_text = "
             float getVector() {
@@ -245,7 +210,6 @@ mod tests {
     }
 
     #[test]
-    #[ignore] // Return type validation not implemented
     fn test_vec3_function_returns_vec2() {
         let program_text = "
             vec3 makeVector() {
@@ -267,7 +231,6 @@ mod tests {
     }
 
     #[test]
-    #[ignore] // Return type validation not implemented
     fn test_vec2_function_returns_float() {
         let program_text = "
             vec2 getVector() {
@@ -289,7 +252,6 @@ mod tests {
     }
 
     #[test]
-    #[ignore] // Return type validation not implemented
     fn test_vec4_function_returns_vec3() {
         let program_text = "
             vec4 makeVector() {

@@ -7,16 +7,18 @@ use alloc::vec::Vec;
 
 use super::local_allocator::LocalAllocator;
 use crate::lpscript::compiler::ast::{AstPool, Program, StmtId};
+use crate::lpscript::compiler::func::FunctionTable;
 use crate::lpscript::shared::Type;
 use crate::lpscript::vm::opcodes::LpsOpCode;
 use crate::lpscript::vm::{FunctionDef as VmFunctionDef, LocalVarDef, ParamDef};
 
-/// Generate a complete program with functions (new API)
+/// Generate a complete program with functions (new API with FunctionTable)
 /// Returns a vector of FunctionDef with main at index 0
 pub fn gen_program_with_functions(
     pool: &AstPool,
     program: &Program,
-    gen_stmt: impl Fn(&AstPool, StmtId, &mut Vec<LpsOpCode>, &mut LocalAllocator, &BTreeMap<String, u32>) + Copy,
+    func_table: &FunctionTable,
+    _gen_stmt: impl Fn(&AstPool, StmtId, &mut Vec<LpsOpCode>, &mut LocalAllocator, &BTreeMap<String, u32>) + Copy,
 ) -> Vec<VmFunctionDef> {
     // Build function index map: function name -> final index in output
     // Main will always be at index 0, other functions follow in order (excluding main)
@@ -37,9 +39,15 @@ pub fn gen_program_with_functions(
     // Generate user-defined functions first (we'll reorder later)
     for ast_func in &program.functions {
         let mut func_code = Vec::new();
-        let mut locals = LocalAllocator::new();
 
-        // Allocate parameters as locals
+        // Get pre-analyzed metadata for this function
+        let metadata = func_table
+            .lookup(&ast_func.name)
+            .expect("Function should have metadata from analysis pass");
+
+        // Create a fresh LocalAllocator and allocate parameters
+        // This must match the order used in the analyzer
+        let mut locals = LocalAllocator::new();
         for param in &ast_func.params {
             locals.allocate_typed(param.name.clone(), param.ty.clone());
         }
@@ -72,16 +80,17 @@ pub fn gen_program_with_functions(
             }
         }
 
-        // Convert to VmFunctionDef
-        let params_defs: Vec<ParamDef> = ast_func.params.iter()
+        // Convert to VmFunctionDef using metadata
+        let params_defs: Vec<ParamDef> = ast_func
+            .params
+            .iter()
             .map(|p| ParamDef::new(p.name.clone(), p.ty.clone()))
             .collect();
 
-        let local_defs: Vec<LocalVarDef> = (0..locals.next_index)
-            .map(|i| {
-                let ty = locals.local_types.get(&i).cloned().unwrap_or(Type::Fixed);
-                LocalVarDef::new(alloc::format!("local_{}", i), ty)
-            })
+        let local_defs: Vec<LocalVarDef> = metadata
+            .locals
+            .iter()
+            .map(|local_info| LocalVarDef::new(local_info.name.clone(), local_info.ty.clone()))
             .collect();
 
         let vm_func = VmFunctionDef::new(ast_func.name.clone(), ast_func.return_type.clone())
@@ -137,7 +146,7 @@ pub fn gen_program_with_functions(
 pub fn gen_program(
     pool: &AstPool,
     program: &Program,
-    gen_stmt: impl Fn(&AstPool, StmtId, &mut Vec<LpsOpCode>, &mut LocalAllocator, &BTreeMap<String, u32>) + Copy,
+    _gen_stmt: impl Fn(&AstPool, StmtId, &mut Vec<LpsOpCode>, &mut LocalAllocator, &BTreeMap<String, u32>) + Copy,
 ) -> (
     Vec<LpsOpCode>,
     u32,

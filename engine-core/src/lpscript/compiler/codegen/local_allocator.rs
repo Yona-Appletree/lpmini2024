@@ -5,6 +5,8 @@ use alloc::collections::BTreeMap;
 use alloc::string::String;
 use alloc::vec::Vec;
 
+use crate::lpscript::compiler::func::LocalVarInfo;
+
 pub struct LocalAllocator {
     pub(crate) locals: BTreeMap<String, u32>,
     pub(crate) local_types: BTreeMap<u32, Type>, // Track type for each local index
@@ -22,6 +24,28 @@ impl LocalAllocator {
             next_index: 0,
             scope_stack: Vec::new(),
         }
+    }
+
+    /// Create a LocalAllocator pre-populated with analyzed local variables
+    pub fn from_metadata(locals_info: &[LocalVarInfo]) -> Self {
+        let mut allocator = Self::new();
+
+        // Pre-populate only the type information
+        // We don't pre-populate the name->index map because:
+        // 1. Variable shadowing means multiple variables can have the same name
+        // 2. The map only stores one binding per name (the most recent)
+        // 3. Codegen will allocate locals dynamically as it encounters declarations
+        for local_info in locals_info {
+            allocator
+                .local_types
+                .insert(local_info.index, local_info.ty.clone());
+        }
+
+        // Pre-allocate space by setting next_index
+        // This ensures we allocate the right number of locals
+        allocator.next_index = locals_info.len() as u32;
+
+        allocator
     }
 
     pub fn allocate(&mut self, name: String) -> u32 {

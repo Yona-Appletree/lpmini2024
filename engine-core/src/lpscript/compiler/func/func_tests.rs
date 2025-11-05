@@ -61,6 +61,7 @@ mod parse_tests {
 #[cfg(test)]
 mod return_path_tests {
     use crate::lpscript::compiler::ast::Program;
+    use crate::lpscript::compiler::analyzer::FunctionAnalyzer;
     use crate::lpscript::compiler::error::{TypeError, TypeErrorKind};
     use crate::lpscript::compiler::lexer::Lexer;
     use crate::lpscript::compiler::parser::Parser;
@@ -74,7 +75,12 @@ mod return_path_tests {
             kind: TypeErrorKind::UndefinedVariable(format!("Parse error: {}", e)),
             span: crate::lpscript::shared::Span::EMPTY,
         })?;
-        let (typed_program, _pool) = TypeChecker::check_program(program, pool)?;
+        
+        // Analyze to build function table
+        let func_table = FunctionAnalyzer::analyze_program(&program, &pool)?;
+        
+        // Type check with function table
+        let (typed_program, _pool) = TypeChecker::check_program(program, pool, &func_table)?;
         Ok(typed_program)
     }
 
