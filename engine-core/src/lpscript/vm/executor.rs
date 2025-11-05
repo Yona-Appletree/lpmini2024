@@ -111,6 +111,11 @@ impl<'a> LpsVm<'a> {
         Self::new(program, inputs, VmLimits::default())
     }
 
+    /// Get a local variable value by index (for testing)
+    pub fn get_local(&self, index: usize) -> Option<&LocalType> {
+        self.locals.get(index)
+    }
+
     /// Execute the program for a single pixel
     ///
     /// Returns all values on the stack after execution. For scalar results, use `run_scalar()`.
@@ -178,14 +183,50 @@ impl<'a> LpsVm<'a> {
                     self.pc += 1;
                 }
 
-                LpsOpCode::Dup => {
-                    stack::exec_dup(&mut self.stack, &mut self.sp)
+                LpsOpCode::Dup1 => {
+                    stack::exec_dup1(&mut self.stack, &mut self.sp)
                         .map_err(|e| self.runtime_error(e))?;
                     self.pc += 1;
                 }
 
-                LpsOpCode::Drop => {
-                    stack::exec_drop(&mut self.stack, &mut self.sp)
+                LpsOpCode::Dup2 => {
+                    stack::exec_dup2(&mut self.stack, &mut self.sp)
+                        .map_err(|e| self.runtime_error(e))?;
+                    self.pc += 1;
+                }
+
+                LpsOpCode::Dup3 => {
+                    stack::exec_dup3(&mut self.stack, &mut self.sp)
+                        .map_err(|e| self.runtime_error(e))?;
+                    self.pc += 1;
+                }
+
+                LpsOpCode::Dup4 => {
+                    stack::exec_dup4(&mut self.stack, &mut self.sp)
+                        .map_err(|e| self.runtime_error(e))?;
+                    self.pc += 1;
+                }
+
+                LpsOpCode::Drop1 => {
+                    stack::exec_drop1(&mut self.stack, &mut self.sp)
+                        .map_err(|e| self.runtime_error(e))?;
+                    self.pc += 1;
+                }
+
+                LpsOpCode::Drop2 => {
+                    stack::exec_drop2(&mut self.stack, &mut self.sp)
+                        .map_err(|e| self.runtime_error(e))?;
+                    self.pc += 1;
+                }
+
+                LpsOpCode::Drop3 => {
+                    stack::exec_drop3(&mut self.stack, &mut self.sp)
+                        .map_err(|e| self.runtime_error(e))?;
+                    self.pc += 1;
+                }
+
+                LpsOpCode::Drop4 => {
+                    stack::exec_drop4(&mut self.stack, &mut self.sp)
                         .map_err(|e| self.runtime_error(e))?;
                     self.pc += 1;
                 }

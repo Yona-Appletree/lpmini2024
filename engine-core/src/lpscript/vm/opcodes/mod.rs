@@ -43,8 +43,14 @@ pub enum LpsOpCode {
     // Stack operations
     Push(Fixed),
     PushInt32(i32),
-    Dup,
-    Drop,
+    Dup1,  // Duplicate top 1 stack value (for Fixed/Int32)
+    Dup2,  // Duplicate top 2 stack values (for Vec2)
+    Dup3,  // Duplicate top 3 stack values (for Vec3)
+    Dup4,  // Duplicate top 4 stack values (for Vec4)
+    Drop1, // Drop top 1 stack value
+    Drop2, // Drop top 2 stack values
+    Drop3, // Drop top 3 stack values
+    Drop4, // Drop top 4 stack values
     Swap,
 
     // Fixed-point arithmetic
@@ -191,8 +197,14 @@ impl LpsOpCode {
         match self {
             LpsOpCode::Push(_) => "Push",
             LpsOpCode::PushInt32(_) => "PushInt32",
-            LpsOpCode::Dup => "Dup",
-            LpsOpCode::Drop => "Drop",
+            LpsOpCode::Dup1 => "Dup1",
+            LpsOpCode::Dup2 => "Dup2",
+            LpsOpCode::Dup3 => "Dup3",
+            LpsOpCode::Dup4 => "Dup4",
+            LpsOpCode::Drop1 => "Drop1",
+            LpsOpCode::Drop2 => "Drop2",
+            LpsOpCode::Drop3 => "Drop3",
+            LpsOpCode::Drop4 => "Drop4",
             LpsOpCode::Swap => "Swap",
             LpsOpCode::AddFixed => "AddFixed",
             LpsOpCode::SubFixed => "SubFixed",

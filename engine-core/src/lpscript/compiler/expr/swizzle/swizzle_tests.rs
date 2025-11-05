@@ -18,7 +18,7 @@ mod tests {
             .expect_opcodes(vec![
                 LpsOpCode::Push(1.0.to_fixed()),
                 LpsOpCode::Push(2.0.to_fixed()),
-                LpsOpCode::Drop, // Drop y, keep x
+                LpsOpCode::Drop1, // Drop y, keep x
                 LpsOpCode::Return,
             ])
             .expect_result_fixed(1.0)
@@ -91,8 +91,8 @@ mod tests {
             .expect_opcodes(vec![
                 LpsOpCode::Push(1.0.to_fixed()),
                 LpsOpCode::Push(2.0.to_fixed()),
-                LpsOpCode::Drop, // Drop y
-                LpsOpCode::Dup,  // Duplicate x
+                LpsOpCode::Drop1, // Drop y
+                LpsOpCode::Dup1,  // Duplicate x
                 LpsOpCode::Return,
             ])
             .expect_result_vec2(Vec2 {

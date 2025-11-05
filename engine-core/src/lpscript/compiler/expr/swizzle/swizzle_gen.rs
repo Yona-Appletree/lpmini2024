@@ -56,13 +56,13 @@ fn gen_swizzle_opcodes(components: &str, source_size: usize, code: &mut Vec<LpsO
         // Index 0 is at bottom, index (n-1) is at top
         let drop_count = source_size - 1 - idx;
         for _ in 0..drop_count {
-            code.push(LpsOpCode::Drop);
+            code.push(LpsOpCode::Drop1);
         }
         // Now we have [c0, c1, ..., c(idx)]
         // We want just c(idx), so drop everything below
         for _ in 0..idx {
             code.push(LpsOpCode::Swap); // Bring bottom to top
-            code.push(LpsOpCode::Drop); // Drop it
+            code.push(LpsOpCode::Drop1); // Drop it
         }
     } else {
         // Multi-component swizzle
@@ -86,14 +86,14 @@ fn gen_swizzle_opcodes(components: &str, source_size: usize, code: &mut Vec<LpsO
                 "yx" | "gr" | "ts" => code.push(LpsOpCode::Swap),
                 "xx" | "rr" | "ss" => {
                     // [x, y] -> [x, x]
-                    code.push(LpsOpCode::Drop); // [x]
-                    code.push(LpsOpCode::Dup); // [x, x]
+                    code.push(LpsOpCode::Drop1); // [x]
+                    code.push(LpsOpCode::Dup1); // [x, x]
                 }
                 "yy" | "gg" | "tt" => {
                     // [x, y] -> [y, y]
                     code.push(LpsOpCode::Swap); // [y, x]
-                    code.push(LpsOpCode::Drop); // [y]
-                    code.push(LpsOpCode::Dup); // [y, y]
+                    code.push(LpsOpCode::Drop1); // [y]
+                    code.push(LpsOpCode::Dup1); // [y, y]
                 }
                 _ => {
                     // General case for vec2: Handle by reconstruction

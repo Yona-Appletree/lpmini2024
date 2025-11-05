@@ -17,11 +17,18 @@ impl<'a> CodeGenerator<'a> {
         self.gen_expr(value);
         
         // Duplicate the value (assignment returns the value)
-        self.code.push(LpsOpCode::Dup);
+        // Use the appropriate Dup opcode based on the value type
+        let ty = value.ty.as_ref().unwrap();
+        match ty {
+            Type::Fixed | Type::Int32 | Type::Bool => self.code.push(LpsOpCode::Dup1),
+            Type::Vec2 => self.code.push(LpsOpCode::Dup2),
+            Type::Vec3 => self.code.push(LpsOpCode::Dup3),
+            Type::Vec4 => self.code.push(LpsOpCode::Dup4),
+            _ => {}
+        }
         
         // Store in the variable
         if let Some(index) = self.locals.get(target) {
-            let ty = value.ty.as_ref().unwrap();
             match ty {
                 Type::Fixed | Type::Int32 | Type::Bool => self.code.push(LpsOpCode::StoreLocalFixed(index)),
                 Type::Vec2 => self.code.push(LpsOpCode::StoreLocalVec2(index)),

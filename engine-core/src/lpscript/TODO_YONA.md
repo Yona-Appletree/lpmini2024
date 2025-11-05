@@ -8,8 +8,10 @@
   Type::Bool | Type::Fixed | Type::Int32 => code.push(LpsOpCode::StoreLocalFixed(i as u32))
   ```
 - get rid of LoadSource and such
+- outputs like glsl
 
 ## Tests
 
 - test for protections against stack overflows, memory usage, etc.
-- 
+- test expressions with vector types
+- test functions with vector types

@@ -25,19 +25,19 @@
 
 ### Parser Issues
 
-- **Assignment Expression Recursion**: Parser fails on assignment expressions
-  - [ ] `parser/expr/assign_expr.rs`: 2 ignored tests
-  - Need to fix assignment and chained assignment parsing
+- **✅ FIXED: Assignment Expression Recursion**: Parser unit tests now exist
+  - [x] `compiler/expr/assign_expr/assign_expr_tests.rs`: 4 tests now passing!
+  - Fixed: simple assignment, chained assignment, assignment with expression, non-assignment parsing
 
 ### VM/Function Issues
 
-- **Function Execution**: Multiple issues with function calls (6 tests ignored)
-  - [ ] `tests/functions.rs`: Vec parameters need special handling (multiple stack values)
-  - [ ] `tests/functions.rs`: Recursive function execution - may work now that control flow is fixed
-  - [ ] `tests/functions.rs`: Multiple function execution - may work now
-  - [ ] `tests/functions.rs`: Function return value propagation - may work now
-  - [ ] `tests/functions.rs`: Vec return types need more VM opcodes
-  - [ ] Need to investigate these after control flow fixes
+- **✅ FIXED: Function Execution**: All function call issues resolved! (0 tests ignored)
+  - [x] `tests/functions.rs`: Vec parameters - FIXED with parameter ordering fix
+  - [x] `tests/functions.rs`: Recursive function execution - FIXED with frame-based locals
+  - [x] `tests/functions.rs`: Multiple function execution - FIXED with parameter ordering
+  - [x] `tests/functions.rs`: Function return value propagation - FIXED with frame-based locals
+  - [x] `tests/functions.rs`: Vec return types - WORKS (no additional opcodes needed)
+  - [x] All 9 function tests now passing!
 
 - **✅ FIXED: Floating Point Precision**
   - [x] Relaxed tolerance from 0.0001 to 0.01 to account for fixed-point math
@@ -110,10 +110,16 @@
 8. ✅ `test_function_with_loop` - PASSING
 9. ✅ `test_function_vec_return` - PASSING
 
-### parser/expr/assign_expr.rs (2 tests, 2 ignored)
+### compiler/expr/assign_expr/assign_expr_tests.rs (8 tests, 0 ignored) ✅ ALL PASSING
 
-1. `test_simple_assignment` - assignment expression parser recursion
-2. `test_chained_assignment` - chained assignment recursion
+1. ✅ `test_simple_assignment` - assignment expression with result and local check
+2. ✅ `test_chained_assignment` - chained assignment (right-associative)
+3. ✅ `test_assignment_with_expression` - assignment with complex RHS
+4. ✅ `test_assignment_in_expression` - assignment within larger expression
+5. ✅ `test_vec2_assignment` - Vec2 assignment
+6. ✅ `test_vec3_assignment` - Vec3 assignment
+7. ✅ `test_vec4_assignment` - Vec4 assignment
+8. ✅ `test_vec2_chained_assignment` - Chained Vec2 assignment
 
 ### vm/opcodes/locals.rs (4 tests, 1 ignored)
 
@@ -159,15 +165,16 @@
 
 ### Test Results Summary
 
-**Compiler Tests: 341 of 356 passing** (0 failures, 15 ignored)
+**Compiler Tests: 349 of 362 passing** (0 failures, 13 ignored)
 
 **Current Failures**: NONE! 🎉
 
-**Ignored Tests** (15 tests):
+**Ignored Tests** (13 tests):
 
 - 1 variable scoping test (loop-related)
 - 0 function execution tests ✅ ALL FIXED! All 9 tests now passing
-- 13 compiler unit tests (duplicates of integration tests, some TODO placeholders)
+- 0 assignment expression parser tests ✅ ALL FIXED! All 4 tests now passing
+- 11 other compiler unit tests (duplicates of integration tests, some TODO placeholders)
 - 1 VM auto-grow test (intentionally disabled to prevent memory leaks)
 
 ## Files Without Tests (Updated)

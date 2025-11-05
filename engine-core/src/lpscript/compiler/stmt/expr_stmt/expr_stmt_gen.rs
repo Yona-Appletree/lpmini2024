@@ -20,7 +20,7 @@ impl<'a> CodeGenerator<'a> {
         };
         
         for _ in 0..drop_count {
-            self.code.push(LpsOpCode::Drop);
+            self.code.push(LpsOpCode::Drop1);
         }
     }
 }

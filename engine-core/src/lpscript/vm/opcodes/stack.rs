@@ -1,9 +1,9 @@
 /// Stack manipulation opcodes with error handling
 use crate::lpscript::error::RuntimeError;
 
-/// Execute Dup: duplicate top of stack
+/// Execute Dup1: duplicate top 1 stack value (for Fixed/Int32)
 #[inline(always)]
-pub fn exec_dup(stack: &mut [i32], sp: &mut usize) -> Result<(), RuntimeError> {
+pub fn exec_dup1(stack: &mut [i32], sp: &mut usize) -> Result<(), RuntimeError> {
     if *sp < 1 {
         return Err(RuntimeError::StackUnderflow { required: 1, actual: *sp });
     }
@@ -18,14 +18,113 @@ pub fn exec_dup(stack: &mut [i32], sp: &mut usize) -> Result<(), RuntimeError> {
     Ok(())
 }
 
-/// Execute Drop: remove top of stack
+/// Execute Dup2: duplicate top 2 stack values (for Vec2)
 #[inline(always)]
-pub fn exec_drop(_stack: &mut [i32], sp: &mut usize) -> Result<(), RuntimeError> {
+pub fn exec_dup2(stack: &mut [i32], sp: &mut usize) -> Result<(), RuntimeError> {
+    if *sp < 2 {
+        return Err(RuntimeError::StackUnderflow { required: 2, actual: *sp });
+    }
+    if *sp + 2 > 64 {
+        return Err(RuntimeError::StackOverflow { sp: *sp });
+    }
+    
+    let x = stack[*sp - 2];
+    let y = stack[*sp - 1];
+    stack[*sp] = x;
+    stack[*sp + 1] = y;
+    *sp += 2;
+    
+    Ok(())
+}
+
+/// Execute Dup3: duplicate top 3 stack values (for Vec3)
+#[inline(always)]
+pub fn exec_dup3(stack: &mut [i32], sp: &mut usize) -> Result<(), RuntimeError> {
+    if *sp < 3 {
+        return Err(RuntimeError::StackUnderflow { required: 3, actual: *sp });
+    }
+    if *sp + 3 > 64 {
+        return Err(RuntimeError::StackOverflow { sp: *sp });
+    }
+    
+    let x = stack[*sp - 3];
+    let y = stack[*sp - 2];
+    let z = stack[*sp - 1];
+    stack[*sp] = x;
+    stack[*sp + 1] = y;
+    stack[*sp + 2] = z;
+    *sp += 3;
+    
+    Ok(())
+}
+
+/// Execute Dup4: duplicate top 4 stack values (for Vec4)
+#[inline(always)]
+pub fn exec_dup4(stack: &mut [i32], sp: &mut usize) -> Result<(), RuntimeError> {
+    if *sp < 4 {
+        return Err(RuntimeError::StackUnderflow { required: 4, actual: *sp });
+    }
+    if *sp + 4 > 64 {
+        return Err(RuntimeError::StackOverflow { sp: *sp });
+    }
+    
+    let x = stack[*sp - 4];
+    let y = stack[*sp - 3];
+    let z = stack[*sp - 2];
+    let w = stack[*sp - 1];
+    stack[*sp] = x;
+    stack[*sp + 1] = y;
+    stack[*sp + 2] = z;
+    stack[*sp + 3] = w;
+    *sp += 4;
+    
+    Ok(())
+}
+
+/// Execute Drop1: remove top 1 value from stack
+#[inline(always)]
+pub fn exec_drop1(_stack: &mut [i32], sp: &mut usize) -> Result<(), RuntimeError> {
     if *sp < 1 {
         return Err(RuntimeError::StackUnderflow { required: 1, actual: *sp });
     }
     
     *sp -= 1;
+    
+    Ok(())
+}
+
+/// Execute Drop2: remove top 2 values from stack
+#[inline(always)]
+pub fn exec_drop2(_stack: &mut [i32], sp: &mut usize) -> Result<(), RuntimeError> {
+    if *sp < 2 {
+        return Err(RuntimeError::StackUnderflow { required: 2, actual: *sp });
+    }
+    
+    *sp -= 2;
+    
+    Ok(())
+}
+
+/// Execute Drop3: remove top 3 values from stack
+#[inline(always)]
+pub fn exec_drop3(_stack: &mut [i32], sp: &mut usize) -> Result<(), RuntimeError> {
+    if *sp < 3 {
+        return Err(RuntimeError::StackUnderflow { required: 3, actual: *sp });
+    }
+    
+    *sp -= 3;
+    
+    Ok(())
+}
+
+/// Execute Drop4: remove top 4 values from stack
+#[inline(always)]
+pub fn exec_drop4(_stack: &mut [i32], sp: &mut usize) -> Result<(), RuntimeError> {
+    if *sp < 4 {
+        return Err(RuntimeError::StackUnderflow { required: 4, actual: *sp });
+    }
+    
+    *sp -= 4;
     
     Ok(())
 }
@@ -176,14 +275,14 @@ mod tests {
     use super::*;
     
     #[test]
-    fn test_dup() {
+    fn test_dup1() {
         let mut stack = [0i32; 64];
         let mut sp = 0;
         
         stack[sp] = 42;
         sp += 1;
         
-        exec_dup(&mut stack, &mut sp).unwrap();
+        exec_dup1(&mut stack, &mut sp).unwrap();
         
         assert_eq!(sp, 2);
         assert_eq!(stack[0], 42);
@@ -195,12 +294,12 @@ mod tests {
         let mut stack = [0i32; 64];
         let mut sp = 0;
         
-        let result = exec_dup(&mut stack, &mut sp);
+        let result = exec_dup1(&mut stack, &mut sp);
         assert!(matches!(result, Err(RuntimeError::StackUnderflow { required: 1, actual: 0 })));
     }
     
     #[test]
-    fn test_drop() {
+    fn test_drop1() {
         let mut stack = [0i32; 64];
         let mut sp = 0;
         
@@ -209,7 +308,7 @@ mod tests {
         stack[sp] = 99;
         sp += 1;
         
-        exec_drop(&mut stack, &mut sp).unwrap();
+        exec_drop1(&mut stack, &mut sp).unwrap();
         
         assert_eq!(sp, 1);
         assert_eq!(stack[0], 42);

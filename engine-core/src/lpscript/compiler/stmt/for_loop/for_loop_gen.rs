@@ -37,7 +37,7 @@ impl<'a> CodeGenerator<'a> {
         if let Some(inc) = increment {
             self.gen_expr(inc);
             // Pop the result since we don't need it
-            self.code.push(LpsOpCode::Drop);
+            self.code.push(LpsOpCode::Drop1);
         }
         
         // Jump back to loop start - calculate relative offset

@@ -18,9 +18,11 @@ use crate::math::{Fixed, ToFixed, Vec2, Vec3, Vec4};
 pub struct ExprTest {
     input: String,
     locals: Vec<(usize, LocalType)>,
+    declared_locals: Vec<(String, Type)>, // For symbol table
     expected_ast: Option<Expr>,
     expected_opcodes: Option<Vec<LpsOpCode>>,
     expected_result: Option<TestResult>,
+    expected_locals: Vec<(String, Fixed)>, // Expected local values after execution
     x: Fixed,
     y: Fixed,
     time: Fixed,
@@ -39,38 +41,44 @@ impl ExprTest {
         ExprTest {
             input: String::from(input),
             locals: Vec::new(),
+            declared_locals: Vec::new(),
             expected_ast: None,
             expected_opcodes: None,
             expected_result: None,
+            expected_locals: Vec::new(),
             x: 0.5.to_fixed(),
             y: 0.5.to_fixed(),
             time: Fixed::ZERO,
         }
     }
 
-    /// Add a Fixed local variable
-    pub fn local_fixed(mut self, index: usize, _name: &str, value: Fixed) -> Self {
+    /// Add a Fixed local variable (declares it in symbol table and sets initial value)
+    pub fn local_fixed(mut self, index: usize, name: &str, value: Fixed) -> Self {
         self.locals.push((index, LocalType::Fixed(value)));
+        self.declared_locals.push((String::from(name), Type::Fixed));
         self
     }
 
-    /// Add a Vec2 local variable
-    pub fn local_vec2(mut self, index: usize, _name: &str, value: Vec2) -> Self {
+    /// Add a Vec2 local variable (declares it in symbol table and sets initial value)
+    pub fn local_vec2(mut self, index: usize, name: &str, value: Vec2) -> Self {
         self.locals.push((index, LocalType::Vec2(value.x, value.y)));
+        self.declared_locals.push((String::from(name), Type::Vec2));
         self
     }
 
-    /// Add a Vec3 local variable
-    pub fn local_vec3(mut self, index: usize, _name: &str, value: Vec3) -> Self {
+    /// Add a Vec3 local variable (declares it in symbol table and sets initial value)
+    pub fn local_vec3(mut self, index: usize, name: &str, value: Vec3) -> Self {
         self.locals
             .push((index, LocalType::Vec3(value.x, value.y, value.z)));
+        self.declared_locals.push((String::from(name), Type::Vec3));
         self
     }
 
-    /// Add a Vec4 local variable
-    pub fn local_vec4(mut self, index: usize, _name: &str, value: Vec4) -> Self {
+    /// Add a Vec4 local variable (declares it in symbol table and sets initial value)
+    pub fn local_vec4(mut self, index: usize, name: &str, value: Vec4) -> Self {
         self.locals
             .push((index, LocalType::Vec4(value.x, value.y, value.z, value.w)));
+        self.declared_locals.push((String::from(name), Type::Vec4));
         self
     }
 
@@ -154,6 +162,12 @@ impl ExprTest {
         self
     }
 
+    /// Expect a specific value for a local variable after execution
+    pub fn expect_local_fixed(mut self, name: &str, expected: f32) -> Self {
+        self.expected_locals.push((String::from(name), expected.to_fixed()));
+        self
+    }
+
     /// Run all expectations and return result
     /// Collects all errors instead of stopping at the first one
     pub fn run(self) -> Result<(), String> {
@@ -163,15 +177,34 @@ impl ExprTest {
         let mut lexer = lexer::Lexer::new(&self.input);
         let tokens = lexer.tokenize();
         let mut parser = parser::Parser::new(tokens);
-        let ast = parser.parse();
+        let mut ast = parser.parse();
 
-        // Type check
-        let typed_ast = match typechecker::TypeChecker::check(ast) {
-            Ok(ast) => ast,
-            Err(e) => {
-                errors.push(format!("Type check error: {}", e));
-                // Can't continue without a valid AST
-                return Err(errors.join("\n\n"));
+        // Type check with pre-declared locals
+        let typed_ast = if self.declared_locals.is_empty() {
+            // No locals declared, use standard type checking
+            match typechecker::TypeChecker::check(ast) {
+                Ok(ast) => ast,
+                Err(e) => {
+                    errors.push(format!("Type check error: {}", e));
+                    return Err(errors.join("\n\n"));
+                }
+            }
+        } else {
+            // Declare locals in symbol table before type checking
+            let mut symbols = typechecker::SymbolTable::new();
+            for (name, ty) in &self.declared_locals {
+                if let Err(e) = symbols.declare(name.clone(), ty.clone()) {
+                    errors.push(format!("Failed to declare local '{}': {}", name, e));
+                    return Err(errors.join("\n\n"));
+                }
+            }
+            let func_table = typechecker::FunctionTable::new();
+            match typechecker::TypeChecker::infer_type(&mut ast, &mut symbols, &func_table) {
+                Ok(_) => ast,
+                Err(e) => {
+                    errors.push(format!("Type check error: {}", e));
+                    return Err(errors.join("\n\n"));
+                }
             }
         };
 
@@ -185,8 +218,14 @@ impl ExprTest {
             }
         }
 
-        // Generate opcodes
-        let opcodes = codegen::CodeGenerator::generate(&typed_ast);
+        // Generate opcodes (with pre-declared locals if any)
+        let local_names_and_indices: Vec<(String, u32)> = self
+            .declared_locals
+            .iter()
+            .enumerate()
+            .map(|(idx, (name, _))| (name.clone(), idx as u32))
+            .collect();
+        let opcodes = codegen::CodeGenerator::generate_with_locals(&typed_ast, local_names_and_indices);
         let program = LpsProgram::new("test".into())
             .with_opcodes(opcodes)
             .with_source(self.input.clone().into());
@@ -201,12 +240,13 @@ impl ExprTest {
             }
         }
 
-        // Check execution result if expected
-        if let Some(expected_result) = self.expected_result {
+        // Check execution result or expected locals
+        if self.expected_result.is_some() || !self.expected_locals.is_empty() {
             match LpsVm::new(&program, self.locals, VmLimits::default()) {
                 Ok(mut vm) => {
                     // Run with configured x, y, time values (for built-ins like time)
-                    match expected_result {
+                    if let Some(expected_result) = self.expected_result {
+                        match expected_result {
                         TestResult::Fixed(expected) => {
                             match vm.run_scalar(self.x, self.y, self.time) {
                                 Ok(result) => {
@@ -290,6 +330,39 @@ impl ExprTest {
                                     errors.push(format!("Runtime error: {:?}", e));
                                 }
                             }
+                        }
+                        }
+                    }
+
+                    // Check expected local values
+                    for (name, expected) in &self.expected_locals {
+                        // Find the local index by looking it up in declared_locals
+                        if let Some((idx, _)) = self.declared_locals.iter().enumerate().find(|(_, (n, _))| n == name) {
+                            match vm.get_local(idx) {
+                                Some(LocalType::Fixed(actual)) => {
+                                    let expected_f32 = expected.to_f32();
+                                    let actual_f32 = actual.to_f32();
+                                    let diff = (expected_f32 - actual_f32).abs();
+                                    
+                                    if diff > 0.01 {
+                                        errors.push(format!(
+                                            "Local '{}' mismatch:\nExpected: {}\nActual:   {}\nDiff:     {}",
+                                            name, expected_f32, actual_f32, diff
+                                        ));
+                                    }
+                                }
+                                Some(other) => {
+                                    errors.push(format!(
+                                        "Local '{}' type mismatch: expected Fixed, got {:?}",
+                                        name, other
+                                    ));
+                                }
+                                None => {
+                                    errors.push(format!("Local '{}' not found at index {}", name, idx));
+                                }
+                            }
+                        } else {
+                            errors.push(format!("Local '{}' was not declared", name));
                         }
                     }
                 }
