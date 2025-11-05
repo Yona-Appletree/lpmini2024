@@ -2,7 +2,6 @@
 use super::conversions::ToFixed;
 use super::fixed::Fixed;
 use super::vec2::Vec2;
-use super::vec4::Vec4;
 use core::ops::{Add, Div, Mul, Sub};
 
 #[derive(Copy, Clone, Debug, PartialEq)]

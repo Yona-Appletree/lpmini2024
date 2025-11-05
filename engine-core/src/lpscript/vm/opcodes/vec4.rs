@@ -13,35 +13,12 @@ pub fn exec_add_vec4(stack: &mut [i32], sp: &mut usize) -> Result<(), RuntimeErr
         });
     }
 
-    *sp -= 1;
-    let bw = Fixed(stack[*sp]);
-    *sp -= 1;
-    let bz = Fixed(stack[*sp]);
-    *sp -= 1;
-    let by = Fixed(stack[*sp]);
-    *sp -= 1;
-    let bx = Fixed(stack[*sp]);
-    *sp -= 1;
-    let aw = Fixed(stack[*sp]);
-    *sp -= 1;
-    let az = Fixed(stack[*sp]);
-    *sp -= 1;
-    let ay = Fixed(stack[*sp]);
-    *sp -= 1;
-    let ax = Fixed(stack[*sp]);
-
-    let a = Vec4::new(ax, ay, az, aw);
-    let b = Vec4::new(bx, by, bz, bw);
-    let result = a + b;
-
-    stack[*sp] = result.x.0;
-    *sp += 1;
-    stack[*sp] = result.y.0;
-    *sp += 1;
-    stack[*sp] = result.z.0;
-    *sp += 1;
-    stack[*sp] = result.w.0;
-    *sp += 1;
+    // Direct stack manipulation - no vector construction needed
+    stack[*sp - 8] = (Fixed(stack[*sp - 8]) + Fixed(stack[*sp - 4])).0; // a.x + b.x
+    stack[*sp - 7] = (Fixed(stack[*sp - 7]) + Fixed(stack[*sp - 3])).0; // a.y + b.y
+    stack[*sp - 6] = (Fixed(stack[*sp - 6]) + Fixed(stack[*sp - 2])).0; // a.z + b.z
+    stack[*sp - 5] = (Fixed(stack[*sp - 5]) + Fixed(stack[*sp - 1])).0; // a.w + b.w
+    *sp -= 4;
 
     Ok(())
 }
@@ -56,35 +33,12 @@ pub fn exec_sub_vec4(stack: &mut [i32], sp: &mut usize) -> Result<(), RuntimeErr
         });
     }
 
-    *sp -= 1;
-    let bw = Fixed(stack[*sp]);
-    *sp -= 1;
-    let bz = Fixed(stack[*sp]);
-    *sp -= 1;
-    let by = Fixed(stack[*sp]);
-    *sp -= 1;
-    let bx = Fixed(stack[*sp]);
-    *sp -= 1;
-    let aw = Fixed(stack[*sp]);
-    *sp -= 1;
-    let az = Fixed(stack[*sp]);
-    *sp -= 1;
-    let ay = Fixed(stack[*sp]);
-    *sp -= 1;
-    let ax = Fixed(stack[*sp]);
-
-    let a = Vec4::new(ax, ay, az, aw);
-    let b = Vec4::new(bx, by, bz, bw);
-    let result = a - b;
-
-    stack[*sp] = result.x.0;
-    *sp += 1;
-    stack[*sp] = result.y.0;
-    *sp += 1;
-    stack[*sp] = result.z.0;
-    *sp += 1;
-    stack[*sp] = result.w.0;
-    *sp += 1;
+    // Direct stack manipulation - no vector construction needed
+    stack[*sp - 8] = (Fixed(stack[*sp - 8]) - Fixed(stack[*sp - 4])).0; // a.x - b.x
+    stack[*sp - 7] = (Fixed(stack[*sp - 7]) - Fixed(stack[*sp - 3])).0; // a.y - b.y
+    stack[*sp - 6] = (Fixed(stack[*sp - 6]) - Fixed(stack[*sp - 2])).0; // a.z - b.z
+    stack[*sp - 5] = (Fixed(stack[*sp - 5]) - Fixed(stack[*sp - 1])).0; // a.w - b.w
+    *sp -= 4;
 
     Ok(())
 }
@@ -99,26 +53,11 @@ pub fn exec_neg_vec4(stack: &mut [i32], sp: &mut usize) -> Result<(), RuntimeErr
         });
     }
 
-    *sp -= 1;
-    let vw = Fixed(stack[*sp]);
-    *sp -= 1;
-    let vz = Fixed(stack[*sp]);
-    *sp -= 1;
-    let vy = Fixed(stack[*sp]);
-    *sp -= 1;
-    let vx = Fixed(stack[*sp]);
-
-    let v = Vec4::new(vx, vy, vz, vw);
-    let result = Vec4::new(-v.x, -v.y, -v.z, -v.w);
-
-    stack[*sp] = result.x.0;
-    *sp += 1;
-    stack[*sp] = result.y.0;
-    *sp += 1;
-    stack[*sp] = result.z.0;
-    *sp += 1;
-    stack[*sp] = result.w.0;
-    *sp += 1;
+    // Direct stack manipulation - no vector construction needed
+    stack[*sp - 4] = (-Fixed(stack[*sp - 4])).0; // -v.x
+    stack[*sp - 3] = (-Fixed(stack[*sp - 3])).0; // -v.y
+    stack[*sp - 2] = (-Fixed(stack[*sp - 2])).0; // -v.z
+    stack[*sp - 1] = (-Fixed(stack[*sp - 1])).0; // -v.w
 
     Ok(())
 }
@@ -133,35 +72,12 @@ pub fn exec_mul_vec4(stack: &mut [i32], sp: &mut usize) -> Result<(), RuntimeErr
         });
     }
 
-    *sp -= 1;
-    let bw = Fixed(stack[*sp]);
-    *sp -= 1;
-    let bz = Fixed(stack[*sp]);
-    *sp -= 1;
-    let by = Fixed(stack[*sp]);
-    *sp -= 1;
-    let bx = Fixed(stack[*sp]);
-    *sp -= 1;
-    let aw = Fixed(stack[*sp]);
-    *sp -= 1;
-    let az = Fixed(stack[*sp]);
-    *sp -= 1;
-    let ay = Fixed(stack[*sp]);
-    *sp -= 1;
-    let ax = Fixed(stack[*sp]);
-
-    let a = Vec4::new(ax, ay, az, aw);
-    let b = Vec4::new(bx, by, bz, bw);
-    let result = a.mul_comp(b);
-
-    stack[*sp] = result.x.0;
-    *sp += 1;
-    stack[*sp] = result.y.0;
-    *sp += 1;
-    stack[*sp] = result.z.0;
-    *sp += 1;
-    stack[*sp] = result.w.0;
-    *sp += 1;
+    // Direct stack manipulation - no vector construction needed
+    stack[*sp - 8] = (Fixed(stack[*sp - 8]) * Fixed(stack[*sp - 4])).0; // a.x * b.x
+    stack[*sp - 7] = (Fixed(stack[*sp - 7]) * Fixed(stack[*sp - 3])).0; // a.y * b.y
+    stack[*sp - 6] = (Fixed(stack[*sp - 6]) * Fixed(stack[*sp - 2])).0; // a.z * b.z
+    stack[*sp - 5] = (Fixed(stack[*sp - 5]) * Fixed(stack[*sp - 1])).0; // a.w * b.w
+    *sp -= 4;
 
     Ok(())
 }
@@ -176,35 +92,12 @@ pub fn exec_div_vec4(stack: &mut [i32], sp: &mut usize) -> Result<(), RuntimeErr
         });
     }
 
-    *sp -= 1;
-    let bw = Fixed(stack[*sp]);
-    *sp -= 1;
-    let bz = Fixed(stack[*sp]);
-    *sp -= 1;
-    let by = Fixed(stack[*sp]);
-    *sp -= 1;
-    let bx = Fixed(stack[*sp]);
-    *sp -= 1;
-    let aw = Fixed(stack[*sp]);
-    *sp -= 1;
-    let az = Fixed(stack[*sp]);
-    *sp -= 1;
-    let ay = Fixed(stack[*sp]);
-    *sp -= 1;
-    let ax = Fixed(stack[*sp]);
-
-    let a = Vec4::new(ax, ay, az, aw);
-    let b = Vec4::new(bx, by, bz, bw);
-    let result = a.div_comp(b);
-
-    stack[*sp] = result.x.0;
-    *sp += 1;
-    stack[*sp] = result.y.0;
-    *sp += 1;
-    stack[*sp] = result.z.0;
-    *sp += 1;
-    stack[*sp] = result.w.0;
-    *sp += 1;
+    // Direct stack manipulation - no vector construction needed
+    stack[*sp - 8] = (Fixed(stack[*sp - 8]) / Fixed(stack[*sp - 4])).0; // a.x / b.x
+    stack[*sp - 7] = (Fixed(stack[*sp - 7]) / Fixed(stack[*sp - 3])).0; // a.y / b.y
+    stack[*sp - 6] = (Fixed(stack[*sp - 6]) / Fixed(stack[*sp - 2])).0; // a.z / b.z
+    stack[*sp - 5] = (Fixed(stack[*sp - 5]) / Fixed(stack[*sp - 1])).0; // a.w / b.w
+    *sp -= 4;
 
     Ok(())
 }
@@ -264,28 +157,13 @@ pub fn exec_mul_vec4_scalar(stack: &mut [i32], sp: &mut usize) -> Result<(), Run
         });
     }
 
+    // Direct stack manipulation - no vector construction needed
+    let scalar = Fixed(stack[*sp - 1]);
+    stack[*sp - 5] = (Fixed(stack[*sp - 5]) * scalar).0; // v.x * scalar
+    stack[*sp - 4] = (Fixed(stack[*sp - 4]) * scalar).0; // v.y * scalar
+    stack[*sp - 3] = (Fixed(stack[*sp - 3]) * scalar).0; // v.z * scalar
+    stack[*sp - 2] = (Fixed(stack[*sp - 2]) * scalar).0; // v.w * scalar
     *sp -= 1;
-    let scalar = Fixed(stack[*sp]);
-    *sp -= 1;
-    let vw = Fixed(stack[*sp]);
-    *sp -= 1;
-    let vz = Fixed(stack[*sp]);
-    *sp -= 1;
-    let vy = Fixed(stack[*sp]);
-    *sp -= 1;
-    let vx = Fixed(stack[*sp]);
-
-    let v = Vec4::new(vx, vy, vz, vw);
-    let result = v * scalar;
-
-    stack[*sp] = result.x.0;
-    *sp += 1;
-    stack[*sp] = result.y.0;
-    *sp += 1;
-    stack[*sp] = result.z.0;
-    *sp += 1;
-    stack[*sp] = result.w.0;
-    *sp += 1;
 
     Ok(())
 }
@@ -300,28 +178,13 @@ pub fn exec_div_vec4_scalar(stack: &mut [i32], sp: &mut usize) -> Result<(), Run
         });
     }
 
+    // Direct stack manipulation - no vector construction needed
+    let scalar = Fixed(stack[*sp - 1]);
+    stack[*sp - 5] = (Fixed(stack[*sp - 5]) / scalar).0; // v.x / scalar
+    stack[*sp - 4] = (Fixed(stack[*sp - 4]) / scalar).0; // v.y / scalar
+    stack[*sp - 3] = (Fixed(stack[*sp - 3]) / scalar).0; // v.z / scalar
+    stack[*sp - 2] = (Fixed(stack[*sp - 2]) / scalar).0; // v.w / scalar
     *sp -= 1;
-    let scalar = Fixed(stack[*sp]);
-    *sp -= 1;
-    let vw = Fixed(stack[*sp]);
-    *sp -= 1;
-    let vz = Fixed(stack[*sp]);
-    *sp -= 1;
-    let vy = Fixed(stack[*sp]);
-    *sp -= 1;
-    let vx = Fixed(stack[*sp]);
-
-    let v = Vec4::new(vx, vy, vz, vw);
-    let result = v / scalar;
-
-    stack[*sp] = result.x.0;
-    *sp += 1;
-    stack[*sp] = result.y.0;
-    *sp += 1;
-    stack[*sp] = result.z.0;
-    *sp += 1;
-    stack[*sp] = result.w.0;
-    *sp += 1;
 
     Ok(())
 }
@@ -336,29 +199,20 @@ pub fn exec_dot4(stack: &mut [i32], sp: &mut usize) -> Result<(), RuntimeError> 
         });
     }
 
-    *sp -= 1;
-    let bw = Fixed(stack[*sp]);
-    *sp -= 1;
-    let bz = Fixed(stack[*sp]);
-    *sp -= 1;
-    let by = Fixed(stack[*sp]);
-    *sp -= 1;
-    let bx = Fixed(stack[*sp]);
-    *sp -= 1;
-    let aw = Fixed(stack[*sp]);
-    *sp -= 1;
-    let az = Fixed(stack[*sp]);
-    *sp -= 1;
-    let ay = Fixed(stack[*sp]);
-    *sp -= 1;
-    let ax = Fixed(stack[*sp]);
+    // Direct computation - no vector construction needed
+    let ax = Fixed(stack[*sp - 8]);
+    let ay = Fixed(stack[*sp - 7]);
+    let az = Fixed(stack[*sp - 6]);
+    let aw = Fixed(stack[*sp - 5]);
+    let bx = Fixed(stack[*sp - 4]);
+    let by = Fixed(stack[*sp - 3]);
+    let bz = Fixed(stack[*sp - 2]);
+    let bw = Fixed(stack[*sp - 1]);
 
-    let a = Vec4::new(ax, ay, az, aw);
-    let b = Vec4::new(bx, by, bz, bw);
-    let dot = a.dot(b);
+    let dot = (ax * bx) + (ay * by) + (az * bz) + (aw * bw);
 
-    stack[*sp] = dot.0;
-    *sp += 1;
+    stack[*sp - 8] = dot.0;
+    *sp -= 7;
 
     Ok(())
 }
@@ -373,20 +227,17 @@ pub fn exec_length4(stack: &mut [i32], sp: &mut usize) -> Result<(), RuntimeErro
         });
     }
 
-    *sp -= 1;
-    let vw = Fixed(stack[*sp]);
-    *sp -= 1;
-    let vz = Fixed(stack[*sp]);
-    *sp -= 1;
-    let vy = Fixed(stack[*sp]);
-    *sp -= 1;
-    let vx = Fixed(stack[*sp]);
+    // Direct computation - no vector construction needed
+    let vx = Fixed(stack[*sp - 4]);
+    let vy = Fixed(stack[*sp - 3]);
+    let vz = Fixed(stack[*sp - 2]);
+    let vw = Fixed(stack[*sp - 1]);
 
-    let v = Vec4::new(vx, vy, vz, vw);
-    let len = v.length();
+    let len_sq = (vx * vx) + (vy * vy) + (vz * vz) + (vw * vw);
+    let len = crate::math::sqrt(len_sq);
 
-    stack[*sp] = len.0;
-    *sp += 1;
+    stack[*sp - 4] = len.0;
+    *sp -= 3;
 
     Ok(())
 }
