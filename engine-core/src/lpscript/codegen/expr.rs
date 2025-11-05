@@ -27,6 +27,9 @@ impl<'a> CodeGenerator<'a> {
             
             ExprKind::And(left, right) => self.gen_and(left, right),
             ExprKind::Or(left, right) => self.gen_or(left, right),
+            ExprKind::Not(operand) => self.gen_not(operand),
+            
+            ExprKind::Neg(operand) => self.gen_neg(operand),
             
             ExprKind::Ternary { condition, true_expr, false_expr } => {
                 self.gen_ternary(condition, true_expr, false_expr)

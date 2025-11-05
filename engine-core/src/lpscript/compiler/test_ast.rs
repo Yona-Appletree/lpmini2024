@@ -9,6 +9,7 @@
 extern crate alloc;
 use alloc::boxed::Box;
 use alloc::string::String;
+use alloc::vec::Vec;
 
 use crate::lpscript::ast::{Expr, ExprKind};
 use crate::lpscript::error::{Span, Type};

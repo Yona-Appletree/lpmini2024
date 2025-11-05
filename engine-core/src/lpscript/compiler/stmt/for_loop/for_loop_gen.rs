@@ -40,13 +40,16 @@ impl<'a> CodeGenerator<'a> {
             self.code.push(LpsOpCode::Drop);
         }
         
-        // Jump back to loop start
-        self.code.push(LpsOpCode::Jump(loop_start as i32));
+        // Jump back to loop start - calculate relative offset
+        let jump_back_pos = self.code.len();
+        let relative_offset = (loop_start as i32) - (jump_back_pos as i32) - 1;
+        self.code.push(LpsOpCode::Jump(relative_offset));
         
-        // Fix jump_to_end if we have a condition
+        // Fix jump_to_end if we have a condition - calculate relative offset
         if condition.is_some() {
             let end_offset = self.code.len();
-            self.code[jump_to_end] = LpsOpCode::JumpIfZero(end_offset as i32);
+            let relative_offset = (end_offset as i32) - (jump_to_end as i32) - 1;
+            self.code[jump_to_end] = LpsOpCode::JumpIfZero(relative_offset);
         }
     }
 }

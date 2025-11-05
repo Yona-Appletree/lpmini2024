@@ -922,8 +922,15 @@ impl<'a> LpsVm<'a> {
                 }
 
                 LpsOpCode::Swizzle4to4(idx0, idx1, idx2, idx3) => {
-                    stack::exec_swizzle4to4(&mut self.stack, &mut self.sp, *idx0, *idx1, *idx2, *idx3)
-                        .map_err(|e| self.runtime_error(e))?;
+                    stack::exec_swizzle4to4(
+                        &mut self.stack,
+                        &mut self.sp,
+                        *idx0,
+                        *idx1,
+                        *idx2,
+                        *idx3,
+                    )
+                    .map_err(|e| self.runtime_error(e))?;
                     self.pc += 1;
                 }
 

@@ -18,5 +18,10 @@ impl<'a> CodeGenerator<'a> {
         self.gen_expr(right);
         self.code.push(LpsOpCode::OrFixed);
     }
+
+    pub(crate) fn gen_not(&mut self, operand: &Box<Expr>) {
+        self.gen_expr(operand);
+        self.code.push(LpsOpCode::NotFixed);
+    }
 }
 

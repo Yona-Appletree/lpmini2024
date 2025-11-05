@@ -138,6 +138,10 @@ pub enum ExprKind {
     // Logical
     And(Box<Expr>, Box<Expr>),
     Or(Box<Expr>, Box<Expr>),
+    Not(Box<Expr>),
+    
+    // Unary
+    Neg(Box<Expr>),
     
     // Ternary
     Ternary {

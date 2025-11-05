@@ -407,6 +407,18 @@ impl TypeChecker {
                 expr.ty = Some(Type::Bool);
             }
 
+            ExprKind::Not(operand) => {
+                Self::infer_type(operand, symbols, func_table)?;
+                expr.ty = Some(Type::Bool);
+            }
+
+            // Unary negation
+            ExprKind::Neg(operand) => {
+                Self::infer_type(operand, symbols, func_table)?;
+                // Type of negation is same as operand
+                expr.ty = operand.ty.clone();
+            }
+
             // Ternary
             ExprKind::Ternary {
                 condition,

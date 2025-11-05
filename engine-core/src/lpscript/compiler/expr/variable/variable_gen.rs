@@ -1,10 +1,10 @@
 /// Variable expression code generation
 extern crate alloc;
 
-use crate::lpscript::vm::opcodes::LpsOpCode;
-use crate::lpscript::error::Type;
-use crate::test_engine::LoadSource;
 use crate::lpscript::compiler::generator::CodeGenerator;
+use crate::lpscript::error::Type;
+use crate::lpscript::vm::opcodes::LpsOpCode;
+use crate::test_engine::LoadSource;
 
 impl<'a> CodeGenerator<'a> {
     pub(crate) fn gen_variable(&mut self, name: &str, var_type: &Type) {
@@ -63,4 +63,3 @@ fn variable_to_load_source(name: &str) -> LoadSource {
         _ => LoadSource::XNorm, // Default fallback
     }
 }
-

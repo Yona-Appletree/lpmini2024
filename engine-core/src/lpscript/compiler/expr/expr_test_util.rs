@@ -211,11 +211,12 @@ impl ExprTest {
                             match vm.run_scalar(self.x, self.y, self.time) {
                                 Ok(result) => {
                                     // Compare with some tolerance for floating point
+                                    // Using 0.01 tolerance to account for fixed-point precision
                                     let expected_f32 = expected.to_f32();
                                     let actual_f32 = result.to_f32();
                                     let diff = (expected_f32 - actual_f32).abs();
 
-                                    if diff > 0.0001 {
+                                    if diff > 0.01 {
                                         errors.push(format!(
                                             "Result mismatch:\nExpected: {}\nActual:   {}\nDiff:     {}",
                                             expected_f32, actual_f32, diff

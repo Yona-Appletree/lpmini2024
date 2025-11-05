@@ -179,8 +179,8 @@ mod tests {
     #[test]
     fn test_simple_number() {
         let program = parse_expr("42");
-        assert_eq!(program.opcodes.len(), 2); // Push(42), Return
-        assert!(matches!(program.opcodes[0], LpsOpCode::Push(_)));
+        assert_eq!(program.opcodes.len(), 2); // PushInt32(42), Return
+        assert!(matches!(program.opcodes[0], LpsOpCode::PushInt32(_)));
     }
 
     #[test]
@@ -188,9 +188,9 @@ mod tests {
         let program = parse_expr("1 + 2 * 3");
         let code = &program.opcodes;
         // Should respect precedence: 1 + (2 * 3)
-        assert!(matches!(code[0], LpsOpCode::Push(_)));
-        assert!(matches!(code[1], LpsOpCode::Push(_)));
-        assert!(matches!(code[2], LpsOpCode::Push(_)));
+        assert!(matches!(code[0], LpsOpCode::PushInt32(_)));
+        assert!(matches!(code[1], LpsOpCode::PushInt32(_)));
+        assert!(matches!(code[2], LpsOpCode::PushInt32(_)));
         assert!(matches!(code[3], LpsOpCode::MulFixed));
         assert!(matches!(code[4], LpsOpCode::AddFixed));
     }
@@ -198,8 +198,10 @@ mod tests {
     #[test]
     fn test_exponential() {
         let code = &parse_expr("2 ^ 3").opcodes;
-        // Pow is now a placeholder that pushes 1.0
-        assert!(matches!(code[2], LpsOpCode::Push(_)));
+        // PushInt32 for literals, PowFixed opcode for power operation
+        assert!(matches!(code[0], LpsOpCode::PushInt32(_)));
+        assert!(matches!(code[1], LpsOpCode::PushInt32(_)));
+        assert!(matches!(code[2], LpsOpCode::PowFixed));
     }
 
     #[test]

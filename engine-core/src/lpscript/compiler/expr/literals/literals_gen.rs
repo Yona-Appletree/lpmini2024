@@ -1,9 +1,9 @@
 /// Literal expression code generation
 extern crate alloc;
 
+use crate::lpscript::compiler::generator::CodeGenerator;
 use crate::lpscript::vm::opcodes::LpsOpCode;
 use crate::math::ToFixed;
-use crate::lpscript::compiler::generator::CodeGenerator;
 
 impl<'a> CodeGenerator<'a> {
     pub(crate) fn gen_number(&mut self, n: f32) {
@@ -16,4 +16,3 @@ impl<'a> CodeGenerator<'a> {
         self.code.push(LpsOpCode::PushInt32(n));
     }
 }
-

@@ -24,15 +24,21 @@ impl<'a> CodeGenerator<'a> {
             self.code.push(LpsOpCode::Jump(0)); // Placeholder
             
             let else_offset = self.code.len();
-            self.code[jump_to_else] = LpsOpCode::JumpIfZero(else_offset as i32);
+            // Calculate relative offset: target - current_pc - 1
+            let relative_offset = (else_offset as i32) - (jump_to_else as i32) - 1;
+            self.code[jump_to_else] = LpsOpCode::JumpIfZero(relative_offset);
             
             self.gen_stmt(else_block);
             
             let end_offset = self.code.len();
-            self.code[jump_to_end] = LpsOpCode::Jump(end_offset as i32);
+            // Calculate relative offset: target - current_pc - 1
+            let relative_offset = (end_offset as i32) - (jump_to_end as i32) - 1;
+            self.code[jump_to_end] = LpsOpCode::Jump(relative_offset);
         } else {
             let end_offset = self.code.len();
-            self.code[jump_to_else] = LpsOpCode::JumpIfZero(end_offset as i32);
+            // Calculate relative offset: target - current_pc - 1
+            let relative_offset = (end_offset as i32) - (jump_to_else as i32) - 1;
+            self.code[jump_to_else] = LpsOpCode::JumpIfZero(relative_offset);
         }
     }
 }

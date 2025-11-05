@@ -38,6 +38,7 @@ pub enum TokenKind {
     // Logical
     And,
     Or,
+    Bang, // Logical not !
 
     // Delimiters
     LParen,
@@ -376,7 +377,7 @@ impl Lexer {
                             self.advance();
                             TokenKind::NotEq
                         } else {
-                            TokenKind::Eof // Single ! not supported yet
+                            TokenKind::Bang
                         }
                     }
                     '&' => {

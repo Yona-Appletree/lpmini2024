@@ -5,6 +5,7 @@
 mod literals_gen;
 mod literals_parse;
 mod literals_types;
+mod unary_gen;
 
 #[cfg(test)]
 mod literals_tests;

@@ -33,7 +33,7 @@ pub fn exec_jump_if_zero(stack: &mut [i32], sp: &mut usize, pc: usize, offset: i
     let value = stack[*sp];
     
     if value == 0 {
-        Ok(Some(((pc as i32) + offset) as usize))
+        Ok(Some(((pc as i32) + offset + 1) as usize))
     } else {
         Ok(None)
     }
@@ -50,7 +50,7 @@ pub fn exec_jump_if_nonzero(stack: &mut [i32], sp: &mut usize, pc: usize, offset
     let value = stack[*sp];
     
     if value != 0 {
-        Ok(Some(((pc as i32) + offset) as usize))
+        Ok(Some(((pc as i32) + offset + 1) as usize))
     } else {
         Ok(None)
     }
@@ -123,7 +123,7 @@ mod tests {
         let result = exec_jump_if_zero(&mut stack, &mut sp, 10, 5).unwrap();
         
         assert_eq!(sp, 0);
-        assert_eq!(result, Some(15));
+        assert_eq!(result, Some(16)); // pc + offset + 1 = 10 + 5 + 1 = 16
     }
     
     #[test]

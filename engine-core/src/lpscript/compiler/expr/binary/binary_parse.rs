@@ -81,7 +81,7 @@ impl Parser {
 
     // Exponential: ^ (right-associative)
     pub(in crate::lpscript) fn exponential(&mut self) -> Expr {
-        let mut expr = self.postfix();
+        let mut expr = self.unary();
 
         if matches!(self.current().kind, TokenKind::Caret) {
             let start = expr.span.start;
