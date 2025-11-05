@@ -1,9 +1,9 @@
 /// For loop type checking
 extern crate alloc;
-use alloc::boxed::Box;
-use crate::lpscript::ast::{Expr, Stmt};
+use crate::lpscript::compiler::ast::{Expr, Stmt};
+use crate::lpscript::compiler::typechecker::{FunctionTable, SymbolTable, TypeChecker};
 use crate::lpscript::error::TypeError;
-use crate::lpscript::typechecker::{TypeChecker, SymbolTable, FunctionTable};
+use alloc::boxed::Box;
 
 impl TypeChecker {
     pub(crate) fn check_for(
@@ -17,17 +17,17 @@ impl TypeChecker {
         if let Some(init_stmt) = init {
             Self::check_stmt(init_stmt, symbols, func_table)?;
         }
-        
+
         if let Some(cond) = condition {
             Self::infer_type(cond, symbols, func_table)?;
         }
-        
+
         if let Some(inc) = increment {
             Self::infer_type(inc, symbols, func_table)?;
         }
-        
+
         Self::check_stmt(body, symbols, func_table)?;
-        
+
         Ok(())
     }
 }

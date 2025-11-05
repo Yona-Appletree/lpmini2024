@@ -1,8 +1,8 @@
 /// Function tests
 #[cfg(test)]
 mod parse_tests {
-    use crate::lpscript::lexer::Lexer;
-    use crate::lpscript::parser::Parser;
+    use crate::lpscript::compiler::lexer::Lexer;
+    use crate::lpscript::compiler::parser::Parser;
 
     #[test]
     fn test_parse_function_no_params() {
@@ -10,7 +10,7 @@ mod parse_tests {
         let tokens = lexer.tokenize();
         let mut parser = Parser::new(tokens);
         let program = parser.parse_program();
-        
+
         assert_eq!(program.functions.len(), 1);
         assert_eq!(program.functions[0].name, "getPi");
         assert_eq!(program.functions[0].params.len(), 0);
@@ -22,7 +22,7 @@ mod parse_tests {
         let tokens = lexer.tokenize();
         let mut parser = Parser::new(tokens);
         let program = parser.parse_program();
-        
+
         assert_eq!(program.functions.len(), 1);
         assert_eq!(program.functions[0].params.len(), 2);
         assert_eq!(program.functions[0].params[0].name, "a");
@@ -35,21 +35,23 @@ mod parse_tests {
         let tokens = lexer.tokenize();
         let mut parser = Parser::new(tokens);
         let program = parser.parse_program();
-        
+
         assert_eq!(program.functions.len(), 1);
         assert!(!program.functions[0].body.is_empty());
     }
 
     #[test]
     fn test_parse_multiple_functions() {
-        let mut lexer = Lexer::new("
+        let mut lexer = Lexer::new(
+            "
             float add(float a, float b) { return a + b; }
             float sub(float a, float b) { return a - b; }
-        ");
+        ",
+        );
         let tokens = lexer.tokenize();
         let mut parser = Parser::new(tokens);
         let program = parser.parse_program();
-        
+
         assert_eq!(program.functions.len(), 2);
         assert_eq!(program.functions[0].name, "add");
         assert_eq!(program.functions[1].name, "sub");
@@ -58,11 +60,11 @@ mod parse_tests {
 
 #[cfg(test)]
 mod return_path_tests {
-    use crate::lpscript::ast::Program;
+    use crate::lpscript::compiler::ast::Program;
+    use crate::lpscript::compiler::lexer::Lexer;
+    use crate::lpscript::compiler::parser::Parser;
+    use crate::lpscript::compiler::typechecker::TypeChecker;
     use crate::lpscript::error::{TypeError, TypeErrorKind};
-    use crate::lpscript::lexer::Lexer;
-    use crate::lpscript::parser::Parser;
-    use crate::lpscript::typechecker::TypeChecker;
 
     fn parse_and_typecheck_program(input: &str) -> Result<Program, TypeError> {
         let mut lexer = Lexer::new(input);
@@ -81,7 +83,11 @@ mod return_path_tests {
             }
         ";
         let result = parse_and_typecheck_program(program);
-        assert!(result.is_ok(), "Function with return should pass: {:?}", result);
+        assert!(
+            result.is_ok(),
+            "Function with return should pass: {:?}",
+            result
+        );
     }
 
     #[test]
@@ -93,13 +99,17 @@ mod return_path_tests {
             }
         ";
         let result = parse_and_typecheck_program(program);
-        assert!(matches!(
-            result,
-            Err(TypeError {
-                kind: TypeErrorKind::MissingReturn(_),
-                ..
-            })
-        ), "Function without return should fail: {:?}", result);
+        assert!(
+            matches!(
+                result,
+                Err(TypeError {
+                    kind: TypeErrorKind::MissingReturn(_),
+                    ..
+                })
+            ),
+            "Function without return should fail: {:?}",
+            result
+        );
     }
 
     #[test]
@@ -115,7 +125,11 @@ mod return_path_tests {
             }
         ";
         let result = parse_and_typecheck_program(program);
-        assert!(result.is_ok(), "Function with if-else both returning should pass: {:?}", result);
+        assert!(
+            result.is_ok(),
+            "Function with if-else both returning should pass: {:?}",
+            result
+        );
     }
 
     #[test]
@@ -129,13 +143,17 @@ mod return_path_tests {
             }
         ";
         let result = parse_and_typecheck_program(program);
-        assert!(matches!(
-            result,
-            Err(TypeError {
-                kind: TypeErrorKind::MissingReturn(_),
-                ..
-            })
-        ), "Function with only then branch returning should fail: {:?}", result);
+        assert!(
+            matches!(
+                result,
+                Err(TypeError {
+                    kind: TypeErrorKind::MissingReturn(_),
+                    ..
+                })
+            ),
+            "Function with only then branch returning should fail: {:?}",
+            result
+        );
     }
 
     #[test]
@@ -150,7 +168,11 @@ mod return_path_tests {
             }
         ";
         let result = parse_and_typecheck_program(program);
-        assert!(result.is_ok(), "Function with return after if should pass: {:?}", result);
+        assert!(
+            result.is_ok(),
+            "Function with return after if should pass: {:?}",
+            result
+        );
     }
 
     #[test]
@@ -162,7 +184,11 @@ mod return_path_tests {
             }
         ";
         let result = parse_and_typecheck_program(program);
-        assert!(result.is_ok(), "Void function without return should pass: {:?}", result);
+        assert!(
+            result.is_ok(),
+            "Void function without return should pass: {:?}",
+            result
+        );
     }
 
     #[test]
@@ -182,7 +208,11 @@ mod return_path_tests {
             }
         ";
         let result = parse_and_typecheck_program(program);
-        assert!(result.is_ok(), "Function with nested if-else all returning should pass: {:?}", result);
+        assert!(
+            result.is_ok(),
+            "Function with nested if-else all returning should pass: {:?}",
+            result
+        );
     }
 
     #[test]
@@ -196,7 +226,11 @@ mod return_path_tests {
             }
         ";
         let result = parse_and_typecheck_program(program);
-        assert!(result.is_ok(), "Function with block containing return should pass: {:?}", result);
+        assert!(
+            result.is_ok(),
+            "Function with block containing return should pass: {:?}",
+            result
+        );
     }
 
     #[test]
@@ -210,13 +244,17 @@ mod return_path_tests {
             }
         ";
         let result = parse_and_typecheck_program(program);
-        assert!(matches!(
-            result,
-            Err(TypeError {
-                kind: TypeErrorKind::MissingReturn(_),
-                ..
-            })
-        ), "Function with only while loop returning should fail: {:?}", result);
+        assert!(
+            matches!(
+                result,
+                Err(TypeError {
+                    kind: TypeErrorKind::MissingReturn(_),
+                    ..
+                })
+            ),
+            "Function with only while loop returning should fail: {:?}",
+            result
+        );
     }
 
     #[test]
@@ -230,13 +268,16 @@ mod return_path_tests {
             }
         ";
         let result = parse_and_typecheck_program(program);
-        assert!(matches!(
-            result,
-            Err(TypeError {
-                kind: TypeErrorKind::MissingReturn(_),
-                ..
-            })
-        ), "Function with only for loop returning should fail: {:?}", result);
+        assert!(
+            matches!(
+                result,
+                Err(TypeError {
+                    kind: TypeErrorKind::MissingReturn(_),
+                    ..
+                })
+            ),
+            "Function with only for loop returning should fail: {:?}",
+            result
+        );
     }
 }
-

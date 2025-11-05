@@ -1,9 +1,9 @@
 /// If statement type checking
 extern crate alloc;
-use alloc::boxed::Box;
-use crate::lpscript::ast::{Expr, Stmt};
+use crate::lpscript::compiler::ast::{Expr, Stmt};
+use crate::lpscript::compiler::typechecker::{FunctionTable, SymbolTable, TypeChecker};
 use crate::lpscript::error::TypeError;
-use crate::lpscript::typechecker::{TypeChecker, SymbolTable, FunctionTable};
+use alloc::boxed::Box;
 
 impl TypeChecker {
     pub(crate) fn check_if(
@@ -15,11 +15,11 @@ impl TypeChecker {
     ) -> Result<(), TypeError> {
         Self::infer_type(condition, symbols, func_table)?;
         Self::check_stmt(then_stmt, symbols, func_table)?;
-        
+
         if let Some(else_block) = else_stmt {
             Self::check_stmt(else_block, symbols, func_table)?;
         }
-        
+
         Ok(())
     }
 }

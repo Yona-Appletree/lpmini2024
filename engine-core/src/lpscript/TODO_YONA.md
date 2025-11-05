@@ -25,3 +25,7 @@
 - test for protections against stack overflows, memory usage, etc.
 - test expressions with vector types
 - test functions with vector types
+
+## Error handling
+
+- needs testing and probably a lot of work

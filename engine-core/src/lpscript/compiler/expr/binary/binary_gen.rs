@@ -3,10 +3,10 @@ extern crate alloc;
 use alloc::boxed::Box;
 use alloc::vec::Vec;
 
-use crate::lpscript::ast::Expr;
+use crate::lpscript::compiler::ast::Expr;
+use crate::lpscript::compiler::codegen::CodeGenerator;
 use crate::lpscript::error::Type;
 use crate::lpscript::vm::opcodes::LpsOpCode;
-use crate::lpscript::compiler::generator::CodeGenerator;
 
 /// Binary operation types
 pub enum BinaryOp {
@@ -18,12 +18,7 @@ pub enum BinaryOp {
 }
 
 impl<'a> CodeGenerator<'a> {
-    pub(crate) fn gen_add(
-        &mut self,
-        left: &Box<Expr>,
-        right: &Box<Expr>,
-        result_ty: &Type,
-    ) {
+    pub(crate) fn gen_add(&mut self, left: &Box<Expr>, right: &Box<Expr>, result_ty: &Type) {
         self.gen_expr(left);
         self.gen_expr(right);
         gen_binary_op(
@@ -35,12 +30,7 @@ impl<'a> CodeGenerator<'a> {
         );
     }
 
-    pub(crate) fn gen_sub(
-        &mut self,
-        left: &Box<Expr>,
-        right: &Box<Expr>,
-        result_ty: &Type,
-    ) {
+    pub(crate) fn gen_sub(&mut self, left: &Box<Expr>, right: &Box<Expr>, result_ty: &Type) {
         self.gen_expr(left);
         self.gen_expr(right);
         gen_binary_op(
@@ -52,12 +42,7 @@ impl<'a> CodeGenerator<'a> {
         );
     }
 
-    pub(crate) fn gen_mul(
-        &mut self,
-        left: &Box<Expr>,
-        right: &Box<Expr>,
-        result_ty: &Type,
-    ) {
+    pub(crate) fn gen_mul(&mut self, left: &Box<Expr>, right: &Box<Expr>, result_ty: &Type) {
         self.gen_expr(left);
         self.gen_expr(right);
         gen_binary_op(
@@ -69,12 +54,7 @@ impl<'a> CodeGenerator<'a> {
         );
     }
 
-    pub(crate) fn gen_div(
-        &mut self,
-        left: &Box<Expr>,
-        right: &Box<Expr>,
-        result_ty: &Type,
-    ) {
+    pub(crate) fn gen_div(&mut self, left: &Box<Expr>, right: &Box<Expr>, result_ty: &Type) {
         self.gen_expr(left);
         self.gen_expr(right);
         gen_binary_op(
@@ -86,12 +66,7 @@ impl<'a> CodeGenerator<'a> {
         );
     }
 
-    pub(crate) fn gen_mod(
-        &mut self,
-        left: &Box<Expr>,
-        right: &Box<Expr>,
-        result_ty: &Type,
-    ) {
+    pub(crate) fn gen_mod(&mut self, left: &Box<Expr>, right: &Box<Expr>, result_ty: &Type) {
         self.gen_expr(left);
         self.gen_expr(right);
         gen_binary_op(
@@ -103,11 +78,7 @@ impl<'a> CodeGenerator<'a> {
         );
     }
 
-    pub(crate) fn gen_pow(
-        &mut self,
-        left: &Box<Expr>,
-        right: &Box<Expr>,
-    ) {
+    pub(crate) fn gen_pow(&mut self, left: &Box<Expr>, right: &Box<Expr>) {
         self.gen_expr(left);
         self.gen_expr(right);
         // Pow is always scalar for now (pow only works on Fixed types)
@@ -208,4 +179,3 @@ fn gen_binary_op(
         _ => {} // Void or unsupported
     }
 }
-

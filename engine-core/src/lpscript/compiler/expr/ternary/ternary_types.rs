@@ -1,14 +1,14 @@
 /// Ternary expression type checking
 extern crate alloc;
 
-use crate::lpscript::ast::Expr;
+use crate::lpscript::compiler::ast::Expr;
+use crate::lpscript::compiler::typechecker::{FunctionTable, SymbolTable, TypeChecker};
 use crate::lpscript::error::{Type, TypeError, TypeErrorKind};
-use crate::lpscript::typechecker::{TypeChecker, SymbolTable, FunctionTable};
 use alloc::boxed::Box;
 
 impl TypeChecker {
     /// Type check ternary operator (condition ? true_expr : false_expr)
-    /// 
+    ///
     /// Result type is the type of true_expr (must match false_expr).
     pub(crate) fn check_ternary(
         condition: &mut Box<Expr>,
@@ -39,4 +39,3 @@ impl TypeChecker {
         Ok(true_ty.clone())
     }
 }
-

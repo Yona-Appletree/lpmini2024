@@ -67,4 +67,15 @@ mod tests {
             .expect_result_fixed(0.5)
             .run()
     }
+
+    // Type checking tests (using ExprTest validates types automatically)
+    #[test]
+    fn test_simple_number_typecheck() -> Result<(), String> {
+        ExprTest::new("42.0").expect_result_fixed(42.0).run()
+    }
+
+    #[test]
+    fn test_int_number_typecheck() -> Result<(), String> {
+        ExprTest::new("42").expect_result_fixed(42.0).run()
+    }
 }

@@ -7,7 +7,7 @@ use alloc::boxed::Box;
 use alloc::string::String;
 use alloc::vec::Vec;
 
-use crate::lpscript::ast::{Expr, ExprKind, Program, Stmt, StmtKind};
+use crate::lpscript::compiler::ast::{Expr, ExprKind, Program, Stmt, StmtKind};
 use crate::lpscript::error::{Span, Type};
 
 // Re-export expression helpers for building statement contents
@@ -107,4 +107,3 @@ pub fn program(stmts: Vec<Stmt>) -> Program {
         span: Span::EMPTY,
     }
 }
-

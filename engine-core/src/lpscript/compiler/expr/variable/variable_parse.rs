@@ -1,7 +1,8 @@
 /// Variable parsing
-use crate::lpscript::ast::{Expr, ExprKind};
-use crate::lpscript::lexer::TokenKind;
+use crate::lpscript::compiler::ast::{Expr, ExprKind};
+use crate::lpscript::compiler::lexer::TokenKind;
 use crate::lpscript::compiler::parser::Parser;
+
 
 impl Parser {
     // Parse identifier (variable or function call)
@@ -26,4 +27,3 @@ impl Parser {
         }
     }
 }
-

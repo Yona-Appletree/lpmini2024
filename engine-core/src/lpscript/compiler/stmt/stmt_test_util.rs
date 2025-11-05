@@ -4,9 +4,10 @@ use alloc::format;
 use alloc::string::String;
 use alloc::vec::Vec;
 
-use crate::lpscript::ast::Program;
+use crate::lpscript::compiler::ast::Program;
+use crate::lpscript::compiler::codegen;
+use crate::lpscript::compiler::{lexer, parser, typechecker};
 use crate::lpscript::vm::{LpsOpCode, LpsProgram, LpsVm, VmLimits};
-use crate::lpscript::{codegen, compile_script, lexer, parser, typechecker};
 use crate::math::{Fixed, ToFixed, Vec2, Vec3, Vec4};
 
 /// Builder for testing scripts/statements through the compilation pipeline
@@ -286,8 +287,6 @@ impl ScriptTest {
 
 /// Compare Program AST ignoring spans
 fn program_eq_ignore_spans(actual: &Program, expected: &Program) -> bool {
-    use crate::lpscript::compiler::expr::expr_test_util::ast_eq_ignore_spans;
-
     if actual.stmts.len() != expected.stmts.len() {
         return false;
     }
@@ -301,10 +300,10 @@ fn program_eq_ignore_spans(actual: &Program, expected: &Program) -> bool {
 
 /// Compare Statement AST ignoring spans
 fn stmt_eq_ignore_spans(
-    actual: &crate::lpscript::ast::Stmt,
-    expected: &crate::lpscript::ast::Stmt,
+    actual: &crate::lpscript::compiler::ast::Stmt,
+    expected: &crate::lpscript::compiler::ast::Stmt,
 ) -> bool {
-    use crate::lpscript::ast::StmtKind;
+    use crate::lpscript::compiler::ast::StmtKind;
     use crate::lpscript::compiler::expr::expr_test_util::ast_eq_ignore_spans;
 
     match (&actual.kind, &expected.kind) {

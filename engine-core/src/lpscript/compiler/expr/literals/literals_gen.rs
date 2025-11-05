@@ -1,7 +1,7 @@
 /// Literal expression code generation
 extern crate alloc;
 
-use crate::lpscript::compiler::generator::CodeGenerator;
+use crate::lpscript::compiler::codegen::CodeGenerator;
 use crate::lpscript::vm::opcodes::LpsOpCode;
 use crate::math::ToFixed;
 

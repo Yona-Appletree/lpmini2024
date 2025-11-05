@@ -1,14 +1,14 @@
 /// Logical operation type checking
 extern crate alloc;
 
-use crate::lpscript::ast::Expr;
+use crate::lpscript::compiler::ast::Expr;
+use crate::lpscript::compiler::typechecker::{FunctionTable, SymbolTable, TypeChecker};
 use crate::lpscript::error::{Type, TypeError};
-use crate::lpscript::typechecker::{TypeChecker, SymbolTable, FunctionTable};
 use alloc::boxed::Box;
 
 impl TypeChecker {
     /// Type check logical operators (&&, ||)
-    /// 
+    ///
     /// Both operands are evaluated, result is always Bool.
     pub(crate) fn check_logical(
         left: &mut Box<Expr>,
@@ -23,4 +23,3 @@ impl TypeChecker {
         Ok(Type::Bool)
     }
 }
-

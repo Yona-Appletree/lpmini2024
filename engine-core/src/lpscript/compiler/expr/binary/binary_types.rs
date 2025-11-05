@@ -1,14 +1,14 @@
 /// Binary arithmetic type checking
 extern crate alloc;
 
-use crate::lpscript::ast::Expr;
+use crate::lpscript::compiler::ast::Expr;
+use crate::lpscript::compiler::typechecker::{FunctionTable, SymbolTable, TypeChecker};
 use crate::lpscript::error::{Type, TypeError, TypeErrorKind};
-use crate::lpscript::typechecker::{TypeChecker, SymbolTable, FunctionTable};
 use alloc::boxed::Box;
 
 impl TypeChecker {
     /// Type check binary arithmetic operators (+, -, *, /, %, ^)
-    /// 
+    ///
     /// Handles scalar-scalar, vector-vector, and vector-scalar operations.
     /// Returns the result type.
     pub(crate) fn check_binary_arithmetic(
@@ -50,16 +50,17 @@ impl TypeChecker {
             (Type::Fixed | Type::Int32, Type::Vec4) => Type::Vec4,
 
             // Mismatch
-            _ => return Err(TypeError {
-                kind: TypeErrorKind::Mismatch {
-                    expected: left_ty.clone(),
-                    found: right_ty.clone(),
-                },
-                span,
-            }),
+            _ => {
+                return Err(TypeError {
+                    kind: TypeErrorKind::Mismatch {
+                        expected: left_ty.clone(),
+                        found: right_ty.clone(),
+                    },
+                    span,
+                })
+            }
         };
 
         Ok(result_ty)
     }
 }
-

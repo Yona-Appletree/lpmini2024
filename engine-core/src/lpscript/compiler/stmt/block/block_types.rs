@@ -1,8 +1,8 @@
 /// Block statement type checking
 extern crate alloc;
-use crate::lpscript::ast::Stmt;
+use crate::lpscript::compiler::ast::Stmt;
+use crate::lpscript::compiler::typechecker::{FunctionTable, SymbolTable, TypeChecker};
 use crate::lpscript::error::TypeError;
-use crate::lpscript::typechecker::{TypeChecker, SymbolTable, FunctionTable};
 
 impl TypeChecker {
     pub(crate) fn check_block(

@@ -5,9 +5,9 @@ use alloc::format;
 use alloc::string::String;
 use alloc::vec::Vec;
 
-use crate::lpscript::ast::{FunctionDef, Stmt, StmtKind};
+use crate::lpscript::compiler::ast::{FunctionDef, Stmt, StmtKind};
+use crate::lpscript::compiler::typechecker::{SymbolTable, TypeChecker};
 use crate::lpscript::error::{Type, TypeError, TypeErrorKind};
-use crate::lpscript::typechecker::{TypeChecker, SymbolTable};
 
 /// Function signature for user-defined functions
 #[derive(Debug, Clone)]
@@ -123,10 +123,7 @@ impl TypeChecker {
             StmtKind::While { .. } | StmtKind::For { .. } => false,
 
             // Other statements don't return
-            StmtKind::VarDecl { .. }
-            | StmtKind::Assignment { .. }
-            | StmtKind::Expr(_) => false,
+            StmtKind::VarDecl { .. } | StmtKind::Assignment { .. } | StmtKind::Expr(_) => false,
         }
     }
 }
-

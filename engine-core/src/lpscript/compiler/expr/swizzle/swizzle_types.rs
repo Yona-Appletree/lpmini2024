@@ -1,16 +1,16 @@
 /// Swizzle operation type checking
 extern crate alloc;
 use alloc::string::String;
-use alloc::{vec, format};
+use alloc::{format, vec};
 
-use crate::lpscript::ast::Expr;
+use crate::lpscript::compiler::ast::Expr;
+use crate::lpscript::compiler::typechecker::{FunctionTable, SymbolTable, TypeChecker};
 use crate::lpscript::error::{Type, TypeError, TypeErrorKind};
-use crate::lpscript::typechecker::{TypeChecker, SymbolTable, FunctionTable};
 use alloc::boxed::Box;
 
 impl TypeChecker {
     /// Type check swizzle operation
-    /// 
+    ///
     /// Returns the result type based on component count.
     pub(crate) fn check_swizzle(
         base_expr: &mut Box<Expr>,
@@ -28,13 +28,15 @@ impl TypeChecker {
             Type::Vec2 => 2,
             Type::Vec3 => 3,
             Type::Vec4 => 4,
-            _ => return Err(TypeError {
-                kind: TypeErrorKind::InvalidOperation {
-                    op: String::from("Swizzle can only be applied to vector types"),
-                    types: vec![base_ty.clone()],
-                },
-                span,
-            }),
+            _ => {
+                return Err(TypeError {
+                    kind: TypeErrorKind::InvalidOperation {
+                        op: String::from("Swizzle can only be applied to vector types"),
+                        types: vec![base_ty.clone()],
+                    },
+                    span,
+                })
+            }
         };
 
         // Validate components
@@ -44,19 +46,25 @@ impl TypeChecker {
                 'y' | 'g' | 't' => 1,
                 'z' | 'b' | 'p' => 2,
                 'w' | 'a' | 'q' => 3,
-                _ => return Err(TypeError {
-                    kind: TypeErrorKind::InvalidOperation {
-                        op: format!("Invalid swizzle component: {}", c),
-                        types: vec![base_ty.clone()],
-                    },
-                    span,
-                }),
+                _ => {
+                    return Err(TypeError {
+                        kind: TypeErrorKind::InvalidOperation {
+                            op: format!("Invalid swizzle component: {}", c),
+                            types: vec![base_ty.clone()],
+                        },
+                        span,
+                    })
+                }
             };
 
             if idx >= base_size {
                 return Err(TypeError {
                     kind: TypeErrorKind::InvalidOperation {
-                        op: format!("Component {} out of range for type {}", c, type_to_string(base_ty)),
+                        op: format!(
+                            "Component {} out of range for type {}",
+                            c,
+                            type_to_string(base_ty)
+                        ),
                         types: vec![base_ty.clone()],
                     },
                     span,
@@ -70,13 +78,15 @@ impl TypeChecker {
             2 => Type::Vec2,
             3 => Type::Vec3,
             4 => Type::Vec4,
-            _ => return Err(TypeError {
-                kind: TypeErrorKind::InvalidOperation {
-                    op: String::from("Swizzle must have 1-4 components"),
-                    types: vec![base_ty.clone()],
-                },
-                span,
-            }),
+            _ => {
+                return Err(TypeError {
+                    kind: TypeErrorKind::InvalidOperation {
+                        op: String::from("Swizzle must have 1-4 components"),
+                        types: vec![base_ty.clone()],
+                    },
+                    span,
+                })
+            }
         })
     }
 }
@@ -92,4 +102,3 @@ fn type_to_string(ty: &Type) -> &str {
         Type::Void => "void",
     }
 }
-

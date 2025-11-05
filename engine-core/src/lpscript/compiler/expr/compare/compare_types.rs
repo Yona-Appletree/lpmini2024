@@ -1,14 +1,14 @@
 /// Comparison type checking
 extern crate alloc;
 
-use crate::lpscript::ast::Expr;
+use crate::lpscript::compiler::ast::Expr;
+use crate::lpscript::compiler::typechecker::{FunctionTable, SymbolTable, TypeChecker};
 use crate::lpscript::error::{Type, TypeError};
-use crate::lpscript::typechecker::{TypeChecker, SymbolTable, FunctionTable};
 use alloc::boxed::Box;
 
 impl TypeChecker {
     /// Type check comparison operators (<, >, <=, >=, ==, !=)
-    /// 
+    ///
     /// All comparisons return Bool (true or false).
     /// Returns the result type (always Type::Bool).
     pub(crate) fn check_comparison(
@@ -25,4 +25,3 @@ impl TypeChecker {
         Ok(Type::Bool)
     }
 }
-

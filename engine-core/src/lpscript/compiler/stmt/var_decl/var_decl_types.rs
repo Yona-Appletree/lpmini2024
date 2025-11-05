@@ -2,9 +2,9 @@
 extern crate alloc;
 use alloc::string::String;
 
-use crate::lpscript::ast::Expr;
+use crate::lpscript::compiler::ast::Expr;
+use crate::lpscript::compiler::typechecker::{FunctionTable, SymbolTable, TypeChecker};
 use crate::lpscript::error::{Type, TypeError, TypeErrorKind};
-use crate::lpscript::typechecker::{TypeChecker, SymbolTable, FunctionTable};
 
 impl TypeChecker {
     /// Type check variable declaration
@@ -39,4 +39,3 @@ impl TypeChecker {
         Ok(())
     }
 }
-

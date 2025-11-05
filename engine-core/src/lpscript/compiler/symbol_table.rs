@@ -10,28 +10,28 @@ use crate::lpscript::error::Type;
 
 /// Symbol table for tracking variables in scope
 #[derive(Debug, Clone)]
-pub(super) struct SymbolTable {
+pub(crate) struct SymbolTable {
     scopes: Vec<BTreeMap<String, Type>>,
 }
 
 impl SymbolTable {
-    pub(super) fn new() -> Self {
+    pub(crate) fn new() -> Self {
         SymbolTable {
             scopes: vec![BTreeMap::new()],
         }
     }
 
-    pub(super) fn push_scope(&mut self) {
+    pub(crate) fn push_scope(&mut self) {
         self.scopes.push(BTreeMap::new());
     }
 
-    pub(super) fn pop_scope(&mut self) {
+    pub(crate) fn pop_scope(&mut self) {
         if self.scopes.len() > 1 {
             self.scopes.pop();
         }
     }
 
-    pub(super) fn declare(&mut self, name: String, ty: Type) -> Result<(), String> {
+    pub(crate) fn declare(&mut self, name: String, ty: Type) -> Result<(), String> {
         // Check if already declared in current scope
         if let Some(scope) = self.scopes.last_mut() {
             if scope.contains_key(&name) {
@@ -45,7 +45,7 @@ impl SymbolTable {
         Ok(())
     }
 
-    pub(super) fn lookup(&self, name: &str) -> Option<Type> {
+    pub(crate) fn lookup(&self, name: &str) -> Option<Type> {
         // Search from innermost to outermost scope
         for scope in self.scopes.iter().rev() {
             if let Some(ty) = scope.get(name) {
@@ -55,5 +55,3 @@ impl SymbolTable {
         None
     }
 }
-
-

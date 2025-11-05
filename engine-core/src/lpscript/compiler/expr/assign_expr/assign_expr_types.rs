@@ -2,14 +2,14 @@
 extern crate alloc;
 use alloc::string::String;
 
-use crate::lpscript::ast::Expr;
+use crate::lpscript::compiler::ast::Expr;
+use crate::lpscript::compiler::typechecker::{FunctionTable, SymbolTable, TypeChecker};
 use crate::lpscript::error::{Type, TypeError, TypeErrorKind};
-use crate::lpscript::typechecker::{TypeChecker, SymbolTable, FunctionTable};
 use alloc::boxed::Box;
 
 impl TypeChecker {
     /// Type check assignment expression
-    /// 
+    ///
     /// Returns the type of the assigned value.
     pub(crate) fn check_assign_expr(
         target: &str,
@@ -43,4 +43,3 @@ impl TypeChecker {
         Ok(var_ty)
     }
 }
-

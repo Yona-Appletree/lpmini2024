@@ -1,8 +1,8 @@
 /// Return statement code generation
 extern crate alloc;
-use crate::lpscript::ast::Expr;
+use crate::lpscript::compiler::ast::Expr;
+use crate::lpscript::compiler::codegen::CodeGenerator;
 use crate::lpscript::vm::opcodes::LpsOpCode;
-use crate::lpscript::compiler::generator::CodeGenerator;
 
 impl<'a> CodeGenerator<'a> {
     pub(crate) fn gen_return(&mut self, expr: &Expr) {

@@ -2,9 +2,9 @@
 extern crate alloc;
 use alloc::boxed::Box;
 
-use crate::lpscript::ast::Expr;
+use crate::lpscript::compiler::ast::Expr;
+use crate::lpscript::compiler::codegen::CodeGenerator;
 use crate::lpscript::vm::opcodes::LpsOpCode;
-use crate::lpscript::compiler::generator::CodeGenerator;
 
 impl<'a> CodeGenerator<'a> {
     pub(crate) fn gen_ternary(
@@ -19,4 +19,3 @@ impl<'a> CodeGenerator<'a> {
         self.code.push(LpsOpCode::Select);
     }
 }
-

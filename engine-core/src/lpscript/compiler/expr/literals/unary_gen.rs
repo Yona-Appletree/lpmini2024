@@ -2,15 +2,15 @@
 extern crate alloc;
 use alloc::boxed::Box;
 
-use crate::lpscript::ast::Expr;
+use crate::lpscript::compiler::ast::Expr;
+use crate::lpscript::compiler::codegen::CodeGenerator;
 use crate::lpscript::error::Type;
 use crate::lpscript::vm::opcodes::LpsOpCode;
-use crate::lpscript::compiler::generator::CodeGenerator;
 
 impl<'a> CodeGenerator<'a> {
     pub(crate) fn gen_neg(&mut self, operand: &Box<Expr>) {
         self.gen_expr(operand);
-        
+
         // Use appropriate negation opcode based on type
         let ty = operand.ty.as_ref().unwrap();
         match ty {
@@ -23,4 +23,3 @@ impl<'a> CodeGenerator<'a> {
         }
     }
 }
-

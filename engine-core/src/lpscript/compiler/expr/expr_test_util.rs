@@ -4,10 +4,11 @@ use alloc::format;
 use alloc::string::String;
 use alloc::vec::Vec;
 
-use crate::lpscript::ast::{Expr, ExprKind};
+use crate::lpscript::compiler::ast::{Expr, ExprKind};
+use crate::lpscript::compiler::codegen;
+use crate::lpscript::compiler::{lexer, parser, typechecker};
 use crate::lpscript::error::Type;
 use crate::lpscript::vm::{LocalType, LpsOpCode, LpsProgram, LpsVm, VmLimits};
-use crate::lpscript::{codegen, lexer, parser, typechecker};
 use crate::math::{Fixed, ToFixed, Vec2, Vec3, Vec4};
 
 /// Builder for testing expressions through the compilation pipeline
@@ -164,7 +165,8 @@ impl ExprTest {
 
     /// Expect a specific value for a local variable after execution
     pub fn expect_local_fixed(mut self, name: &str, expected: f32) -> Self {
-        self.expected_locals.push((String::from(name), expected.to_fixed()));
+        self.expected_locals
+            .push((String::from(name), expected.to_fixed()));
         self
     }
 
@@ -225,7 +227,8 @@ impl ExprTest {
             .enumerate()
             .map(|(idx, (name, _))| (name.clone(), idx as u32))
             .collect();
-        let opcodes = codegen::CodeGenerator::generate_with_locals(&typed_ast, local_names_and_indices);
+        let opcodes =
+            codegen::CodeGenerator::generate_with_locals(&typed_ast, local_names_and_indices);
         let program = LpsProgram::new("test".into())
             .with_opcodes(opcodes)
             .with_source(self.input.clone().into());
@@ -247,103 +250,121 @@ impl ExprTest {
                     // Run with configured x, y, time values (for built-ins like time)
                     if let Some(expected_result) = self.expected_result {
                         match expected_result {
-                        TestResult::Fixed(expected) => {
-                            match vm.run_scalar(self.x, self.y, self.time) {
-                                Ok(result) => {
-                                    // Compare with some tolerance for floating point
-                                    // Using 0.01 tolerance to account for fixed-point precision
-                                    let expected_f32 = expected.to_f32();
-                                    let actual_f32 = result.to_f32();
-                                    let diff = (expected_f32 - actual_f32).abs();
+                            TestResult::Fixed(expected) => {
+                                match vm.run_scalar(self.x, self.y, self.time) {
+                                    Ok(result) => {
+                                        // Compare with some tolerance for floating point
+                                        // Using 0.01 tolerance to account for fixed-point precision
+                                        let expected_f32 = expected.to_f32();
+                                        let actual_f32 = result.to_f32();
+                                        let diff = (expected_f32 - actual_f32).abs();
 
-                                    if diff > 0.01 {
-                                        errors.push(format!(
+                                        if diff > 0.01 {
+                                            errors.push(format!(
                                             "Result mismatch:\nExpected: {}\nActual:   {}\nDiff:     {}",
                                             expected_f32, actual_f32, diff
                                         ));
+                                        }
+                                    }
+                                    Err(e) => {
+                                        errors.push(format!("Runtime error: {:?}", e));
                                     }
                                 }
-                                Err(e) => {
-                                    errors.push(format!("Runtime error: {:?}", e));
-                                }
                             }
-                        }
-                        TestResult::Vec2(expected) => {
-                            match vm.run_vec2(self.x, self.y, self.time) {
-                                Ok(result) => {
-                                    // Check all components
-                                    let x_diff = (expected.x.to_f32() - result.x.to_f32()).abs();
-                                    let y_diff = (expected.y.to_f32() - result.y.to_f32()).abs();
+                            TestResult::Vec2(expected) => {
+                                match vm.run_vec2(self.x, self.y, self.time) {
+                                    Ok(result) => {
+                                        // Check all components
+                                        let x_diff =
+                                            (expected.x.to_f32() - result.x.to_f32()).abs();
+                                        let y_diff =
+                                            (expected.y.to_f32() - result.y.to_f32()).abs();
 
-                                    if x_diff > 0.0001 || y_diff > 0.0001 {
-                                        errors.push(format!(
+                                        if x_diff > 0.0001 || y_diff > 0.0001 {
+                                            errors.push(format!(
                                             "Vec2 result mismatch:\nExpected: ({}, {})\nActual:   ({}, {})",
                                             expected.x.to_f32(), expected.y.to_f32(),
                                             result.x.to_f32(), result.y.to_f32()
                                         ));
+                                        }
+                                    }
+                                    Err(e) => {
+                                        errors.push(format!("Runtime error: {:?}", e));
                                     }
                                 }
-                                Err(e) => {
-                                    errors.push(format!("Runtime error: {:?}", e));
-                                }
                             }
-                        }
-                        TestResult::Vec3(expected) => {
-                            match vm.run_vec3(self.x, self.y, self.time) {
-                                Ok(result) => {
-                                    // Check all components
-                                    let x_diff = (expected.x.to_f32() - result.x.to_f32()).abs();
-                                    let y_diff = (expected.y.to_f32() - result.y.to_f32()).abs();
-                                    let z_diff = (expected.z.to_f32() - result.z.to_f32()).abs();
+                            TestResult::Vec3(expected) => {
+                                match vm.run_vec3(self.x, self.y, self.time) {
+                                    Ok(result) => {
+                                        // Check all components
+                                        let x_diff =
+                                            (expected.x.to_f32() - result.x.to_f32()).abs();
+                                        let y_diff =
+                                            (expected.y.to_f32() - result.y.to_f32()).abs();
+                                        let z_diff =
+                                            (expected.z.to_f32() - result.z.to_f32()).abs();
 
-                                    if x_diff > 0.0001 || y_diff > 0.0001 || z_diff > 0.0001 {
-                                        errors.push(format!(
+                                        if x_diff > 0.0001 || y_diff > 0.0001 || z_diff > 0.0001 {
+                                            errors.push(format!(
                                             "Vec3 result mismatch:\nExpected: ({}, {}, {})\nActual:   ({}, {}, {})",
                                             expected.x.to_f32(), expected.y.to_f32(), expected.z.to_f32(),
                                             result.x.to_f32(), result.y.to_f32(), result.z.to_f32()
                                         ));
+                                        }
+                                    }
+                                    Err(e) => {
+                                        errors.push(format!("Runtime error: {:?}", e));
                                     }
                                 }
-                                Err(e) => {
-                                    errors.push(format!("Runtime error: {:?}", e));
-                                }
                             }
-                        }
-                        TestResult::Vec4(expected) => {
-                            match vm.run_vec4(self.x, self.y, self.time) {
-                                Ok(result) => {
-                                    // Check all components
-                                    let x_diff = (expected.x.to_f32() - result.x.to_f32()).abs();
-                                    let y_diff = (expected.y.to_f32() - result.y.to_f32()).abs();
-                                    let z_diff = (expected.z.to_f32() - result.z.to_f32()).abs();
-                                    let w_diff = (expected.w.to_f32() - result.w.to_f32()).abs();
+                            TestResult::Vec4(expected) => {
+                                match vm.run_vec4(self.x, self.y, self.time) {
+                                    Ok(result) => {
+                                        // Check all components
+                                        let x_diff =
+                                            (expected.x.to_f32() - result.x.to_f32()).abs();
+                                        let y_diff =
+                                            (expected.y.to_f32() - result.y.to_f32()).abs();
+                                        let z_diff =
+                                            (expected.z.to_f32() - result.z.to_f32()).abs();
+                                        let w_diff =
+                                            (expected.w.to_f32() - result.w.to_f32()).abs();
 
-                                    if x_diff > 0.0001 || y_diff > 0.0001 || z_diff > 0.0001 || w_diff > 0.0001 {
-                                        errors.push(format!(
+                                        if x_diff > 0.0001
+                                            || y_diff > 0.0001
+                                            || z_diff > 0.0001
+                                            || w_diff > 0.0001
+                                        {
+                                            errors.push(format!(
                                             "Vec4 result mismatch:\nExpected: ({}, {}, {}, {})\nActual:   ({}, {}, {}, {})",
                                             expected.x.to_f32(), expected.y.to_f32(), expected.z.to_f32(), expected.w.to_f32(),
                                             result.x.to_f32(), result.y.to_f32(), result.z.to_f32(), result.w.to_f32()
                                         ));
+                                        }
+                                    }
+                                    Err(e) => {
+                                        errors.push(format!("Runtime error: {:?}", e));
                                     }
                                 }
-                                Err(e) => {
-                                    errors.push(format!("Runtime error: {:?}", e));
-                                }
                             }
-                        }
                         }
                     }
 
                     // Check expected local values
                     for (name, expected) in &self.expected_locals {
                         // Find the local index by looking it up in declared_locals
-                        if let Some((idx, _)) = self.declared_locals.iter().enumerate().find(|(_, (n, _))| n == name) {
+                        if let Some((idx, _)) = self
+                            .declared_locals
+                            .iter()
+                            .enumerate()
+                            .find(|(_, (n, _))| n == name)
+                        {
                             match vm.get_local(idx) {
                                 Some(LocalType::Fixed(actual)) => {
                                     let expected_f32 = expected.to_f32();
                                     let actual_f32 = actual.to_f32();
                                     let diff = (expected_f32 - actual_f32).abs();
-                                    
+
                                     if diff > 0.01 {
                                         errors.push(format!(
                                             "Local '{}' mismatch:\nExpected: {}\nActual:   {}\nDiff:     {}",
@@ -358,7 +379,10 @@ impl ExprTest {
                                     ));
                                 }
                                 None => {
-                                    errors.push(format!("Local '{}' not found at index {}", name, idx));
+                                    errors.push(format!(
+                                        "Local '{}' not found at index {}",
+                                        name, idx
+                                    ));
                                 }
                             }
                         } else {

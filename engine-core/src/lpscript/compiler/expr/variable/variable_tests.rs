@@ -75,4 +75,30 @@ mod tests {
             .expect_result_fixed(0.4)
             .run()
     }
+
+    // Type checking tests (using ExprTest validates types automatically)
+    #[test]
+    fn test_variable_typecheck() -> Result<(), String> {
+        ExprTest::new("xNorm")
+            .with_x(0.5)
+            .expect_result_fixed(0.5)
+            .run()
+    }
+
+    #[test]
+    fn test_uv_variable_typecheck() -> Result<(), String> {
+        ExprTest::new("uv.x + uv.y")
+            .with_x(0.3)
+            .with_y(0.7)
+            .expect_result_fixed(1.0)
+            .run()
+    }
+
+    #[test]
+    fn test_coord_variable_typecheck() -> Result<(), String> {
+        ExprTest::new("coord.x")
+            .with_x(5.0)
+            .expect_result_fixed(5.0)
+            .run()
+    }
 }

@@ -1,8 +1,8 @@
 /// Vector constructor code generation
 extern crate alloc;
 
-use crate::lpscript::ast::Expr;
-use crate::lpscript::compiler::generator::CodeGenerator;
+use crate::lpscript::compiler::ast::Expr;
+use crate::lpscript::compiler::codegen::CodeGenerator;
 
 impl<'a> CodeGenerator<'a> {
     pub(crate) fn gen_vec_constructor(&mut self, args: &[Expr]) {
@@ -14,4 +14,3 @@ impl<'a> CodeGenerator<'a> {
         // Components are now on stack in the correct order
     }
 }
-

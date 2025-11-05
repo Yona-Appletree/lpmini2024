@@ -1,9 +1,10 @@
 /// Variable declaration parsing
-use crate::lpscript::ast::{Stmt, StmtKind};
-use crate::lpscript::error::Span;
-use crate::lpscript::lexer::TokenKind;
+use crate::lpscript::compiler::ast::{Stmt, StmtKind};
+use crate::lpscript::compiler::lexer::TokenKind;
 use crate::lpscript::compiler::parser::Parser;
+use crate::lpscript::error::Span;
 use alloc::string::String;
+
 
 impl Parser {
     pub(in crate::lpscript) fn parse_var_decl(&mut self) -> Stmt {
@@ -40,4 +41,3 @@ impl Parser {
         Stmt::new(StmtKind::VarDecl { ty, name, init }, Span::new(start, end))
     }
 }
-

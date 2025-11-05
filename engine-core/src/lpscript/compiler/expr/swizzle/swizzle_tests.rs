@@ -140,4 +140,7 @@ mod tests {
             })
             .run()
     }
+
+    // Type checking tests (using ExprTest validates types automatically)
+    // These tests already exist above and validate type checking through execution
 }

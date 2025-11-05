@@ -2,12 +2,12 @@
 extern crate alloc;
 use alloc::string::String;
 
+use crate::lpscript::compiler::typechecker::{SymbolTable, TypeChecker};
 use crate::lpscript::error::{Type, TypeError, TypeErrorKind};
-use crate::lpscript::typechecker::{TypeChecker, SymbolTable};
 
 impl TypeChecker {
     /// Type check variable reference
-    /// 
+    ///
     /// Returns the type of the variable.
     pub(crate) fn check_variable(
         name: &str,
@@ -39,4 +39,3 @@ impl TypeChecker {
         Ok(var_type)
     }
 }
-

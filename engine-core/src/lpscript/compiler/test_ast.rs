@@ -2,7 +2,7 @@
 #![allow(dead_code)]
 
 /// Helper functions for building expected AST expressions in tests
-/// 
+///
 /// These functions create AST nodes with dummy spans (Span::EMPTY) so tests
 /// can focus on structure rather than source locations.
 /// Types are included to validate type inference.
@@ -11,7 +11,7 @@ use alloc::boxed::Box;
 use alloc::string::String;
 use alloc::vec::Vec;
 
-use crate::lpscript::ast::{Expr, ExprKind};
+use crate::lpscript::compiler::ast::{Expr, ExprKind};
 use crate::lpscript::error::{Span, Type};
 
 // ============================================================================
@@ -43,10 +43,7 @@ pub fn var(name: &str) -> Expr {
 
 /// Less than: left < right
 pub fn less(left: Expr, right: Expr) -> Expr {
-    let mut expr = Expr::new(
-        ExprKind::Less(Box::new(left), Box::new(right)),
-        Span::EMPTY,
-    );
+    let mut expr = Expr::new(ExprKind::Less(Box::new(left), Box::new(right)), Span::EMPTY);
     expr.ty = Some(Type::Bool);
     expr
 }
@@ -83,10 +80,7 @@ pub fn greater_eq(left: Expr, right: Expr) -> Expr {
 
 /// Equal: left == right
 pub fn eq(left: Expr, right: Expr) -> Expr {
-    let mut expr = Expr::new(
-        ExprKind::Eq(Box::new(left), Box::new(right)),
-        Span::EMPTY,
-    );
+    let mut expr = Expr::new(ExprKind::Eq(Box::new(left), Box::new(right)), Span::EMPTY);
     expr.ty = Some(Type::Bool);
     expr
 }
@@ -107,60 +101,42 @@ pub fn not_eq(left: Expr, right: Expr) -> Expr {
 
 /// Add: left + right
 pub fn add(left: Expr, right: Expr, ty: Type) -> Expr {
-    let mut expr = Expr::new(
-        ExprKind::Add(Box::new(left), Box::new(right)),
-        Span::EMPTY,
-    );
+    let mut expr = Expr::new(ExprKind::Add(Box::new(left), Box::new(right)), Span::EMPTY);
     expr.ty = Some(ty);
     expr
 }
 
 /// Subtract: left - right
 pub fn sub(left: Expr, right: Expr, ty: Type) -> Expr {
-    let mut expr = Expr::new(
-        ExprKind::Sub(Box::new(left), Box::new(right)),
-        Span::EMPTY,
-    );
+    let mut expr = Expr::new(ExprKind::Sub(Box::new(left), Box::new(right)), Span::EMPTY);
     expr.ty = Some(ty);
     expr
 }
 
 /// Multiply: left * right
 pub fn mul(left: Expr, right: Expr, ty: Type) -> Expr {
-    let mut expr = Expr::new(
-        ExprKind::Mul(Box::new(left), Box::new(right)),
-        Span::EMPTY,
-    );
+    let mut expr = Expr::new(ExprKind::Mul(Box::new(left), Box::new(right)), Span::EMPTY);
     expr.ty = Some(ty);
     expr
 }
 
 /// Divide: left / right
 pub fn div(left: Expr, right: Expr, ty: Type) -> Expr {
-    let mut expr = Expr::new(
-        ExprKind::Div(Box::new(left), Box::new(right)),
-        Span::EMPTY,
-    );
+    let mut expr = Expr::new(ExprKind::Div(Box::new(left), Box::new(right)), Span::EMPTY);
     expr.ty = Some(ty);
     expr
 }
 
 /// Modulo: left % right
 pub fn modulo(left: Expr, right: Expr, ty: Type) -> Expr {
-    let mut expr = Expr::new(
-        ExprKind::Mod(Box::new(left), Box::new(right)),
-        Span::EMPTY,
-    );
+    let mut expr = Expr::new(ExprKind::Mod(Box::new(left), Box::new(right)), Span::EMPTY);
     expr.ty = Some(ty);
     expr
 }
 
 /// Power: left ^ right
 pub fn pow(left: Expr, right: Expr, ty: Type) -> Expr {
-    let mut expr = Expr::new(
-        ExprKind::Pow(Box::new(left), Box::new(right)),
-        Span::EMPTY,
-    );
+    let mut expr = Expr::new(ExprKind::Pow(Box::new(left), Box::new(right)), Span::EMPTY);
     expr.ty = Some(ty);
     expr
 }
@@ -171,20 +147,14 @@ pub fn pow(left: Expr, right: Expr, ty: Type) -> Expr {
 
 /// Logical AND: left && right
 pub fn and(left: Expr, right: Expr, ty: Type) -> Expr {
-    let mut expr = Expr::new(
-        ExprKind::And(Box::new(left), Box::new(right)),
-        Span::EMPTY,
-    );
+    let mut expr = Expr::new(ExprKind::And(Box::new(left), Box::new(right)), Span::EMPTY);
     expr.ty = Some(ty);
     expr
 }
 
 /// Logical OR: left || right
 pub fn or(left: Expr, right: Expr, ty: Type) -> Expr {
-    let mut expr = Expr::new(
-        ExprKind::Or(Box::new(left), Box::new(right)),
-        Span::EMPTY,
-    );
+    let mut expr = Expr::new(ExprKind::Or(Box::new(left), Box::new(right)), Span::EMPTY);
     expr.ty = Some(ty);
     expr
 }
@@ -209,7 +179,7 @@ pub fn ternary(condition: Expr, true_expr: Expr, false_expr: Expr, ty: Type) -> 
 
 /// Swizzle: expr.components
 pub fn swizzle(base_expr: Expr, components: &str, ty: Type) -> Expr {
-    let mut expr =     Expr::new(
+    let mut expr = Expr::new(
         ExprKind::Swizzle {
             expr: Box::new(base_expr),
             components: String::from(components),
@@ -266,4 +236,3 @@ pub fn vec4_ctor(args: Vec<Expr>, ty: Type) -> Expr {
     expr.ty = Some(ty);
     expr
 }
-

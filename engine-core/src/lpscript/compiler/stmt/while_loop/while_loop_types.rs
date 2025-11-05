@@ -1,9 +1,9 @@
 /// While loop type checking
 extern crate alloc;
-use alloc::boxed::Box;
-use crate::lpscript::ast::{Expr, Stmt};
+use crate::lpscript::compiler::ast::{Expr, Stmt};
+use crate::lpscript::compiler::typechecker::{FunctionTable, SymbolTable, TypeChecker};
 use crate::lpscript::error::TypeError;
-use crate::lpscript::typechecker::{TypeChecker, SymbolTable, FunctionTable};
+use alloc::boxed::Box;
 
 impl TypeChecker {
     pub(crate) fn check_while(

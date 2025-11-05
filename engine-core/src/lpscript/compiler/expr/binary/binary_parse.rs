@@ -1,9 +1,10 @@
 /// Binary operator parsing (+, -, *, /, %, ^)
-use crate::lpscript::ast::{Expr, ExprKind};
-use crate::lpscript::error::Span;
-use crate::lpscript::lexer::TokenKind;
+use crate::lpscript::compiler::ast::{Expr, ExprKind};
+use crate::lpscript::compiler::lexer::TokenKind;
 use crate::lpscript::compiler::parser::Parser;
+use crate::lpscript::error::Span;
 use alloc::boxed::Box;
+
 
 impl Parser {
     // Additive: + -
@@ -97,4 +98,3 @@ impl Parser {
         expr
     }
 }
-

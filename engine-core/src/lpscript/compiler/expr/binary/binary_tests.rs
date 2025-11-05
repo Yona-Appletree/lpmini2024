@@ -77,4 +77,24 @@ mod tests {
 
         ExprTest::new("2.0 + 1").expect_result_fixed(3.0).run()
     }
+
+    #[test]
+    fn test_power_operator() -> Result<(), String> {
+        ExprTest::new("2.0 ^ 3.0")
+            .expect_ast(pow(num(2.0), num(3.0), Type::Fixed))
+            .expect_opcodes(vec![
+                LpsOpCode::Push(2.0.to_fixed()),
+                LpsOpCode::Push(3.0.to_fixed()),
+                LpsOpCode::PowFixed,
+                LpsOpCode::Return,
+            ])
+            .expect_result_fixed(8.0)
+            .run()
+    }
+
+    // Type checking test (using ExprTest validates types automatically)
+    #[test]
+    fn test_arithmetic_typecheck() -> Result<(), String> {
+        ExprTest::new("1.0 + 2.0").expect_result_fixed(3.0).run()
+    }
 }

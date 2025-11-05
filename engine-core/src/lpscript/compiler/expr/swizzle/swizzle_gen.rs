@@ -3,8 +3,8 @@ extern crate alloc;
 use alloc::boxed::Box;
 use alloc::vec::Vec;
 
-use crate::lpscript::ast::Expr;
-use crate::lpscript::compiler::generator::CodeGenerator;
+use crate::lpscript::compiler::ast::Expr;
+use crate::lpscript::compiler::codegen::CodeGenerator;
 use crate::lpscript::error::Type;
 use crate::lpscript::vm::opcodes::LpsOpCode;
 
