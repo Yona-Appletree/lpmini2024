@@ -347,3 +347,4 @@ mod tests {
         assert!(matches!(result, Err(RuntimeError::TypeMismatch)));
     }
 }
+

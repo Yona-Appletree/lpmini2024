@@ -1,12 +1,13 @@
 /// Variable parsing
-use crate::lpscript::compiler::ast::{Expr, ExprKind};
+use crate::lpscript::compiler::ast::{ExprId, ExprKind};
+use crate::lpscript::compiler::error::ParseError;
 use crate::lpscript::compiler::lexer::TokenKind;
 use crate::lpscript::compiler::parser::Parser;
 
 
 impl Parser {
     // Parse identifier (variable or function call)
-    pub(in crate::lpscript) fn parse_ident(&mut self) -> Expr {
+    pub(in crate::lpscript) fn parse_ident(&mut self) -> Result<ExprId, ParseError> {
         let token = self.current().clone();
 
         if let TokenKind::Ident(name) = &token.kind {
@@ -19,11 +20,15 @@ impl Parser {
                 self.parse_function_call()
             } else {
                 // Variable
-                Expr::new(ExprKind::Variable(name), token.span)
+                self.pool
+                    .alloc_expr(ExprKind::Variable(name), token.span)
+                    .map_err(|e| self.pool_error_to_parse_error(e))
             }
         } else {
             // Error fallback
-            Expr::new(ExprKind::Number(0.0), token.span)
+            self.pool
+                .alloc_expr(ExprKind::Number(0.0), token.span)
+                .map_err(|e| self.pool_error_to_parse_error(e))
         }
     }
 }

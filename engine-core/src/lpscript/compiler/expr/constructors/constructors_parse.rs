@@ -1,5 +1,6 @@
 /// Vector constructor parsing
-use crate::lpscript::compiler::ast::{Expr, ExprKind};
+use crate::lpscript::compiler::ast::{ExprId, ExprKind};
+use crate::lpscript::compiler::error::ParseError;
 use crate::lpscript::compiler::lexer::TokenKind;
 use crate::lpscript::compiler::parser::Parser;
 use crate::lpscript::shared::Span;
@@ -7,7 +8,7 @@ use crate::lpscript::shared::Span;
 
 impl Parser {
     // Parse vector constructor
-    pub(in crate::lpscript) fn parse_vec_constructor(&mut self) -> Expr {
+    pub(in crate::lpscript) fn parse_vec_constructor(&mut self) -> Result<ExprId, ParseError> {
         let token = self.current().clone();
         let vec_kind = token.kind.clone();
         let start = token.span.start;
@@ -15,7 +16,7 @@ impl Parser {
 
         // Must be followed by '(' for constructor
         self.expect(TokenKind::LParen);
-        let args = self.parse_args();
+        let args = self.parse_args()?;
         let end = if matches!(self.current().kind, TokenKind::RParen) {
             let span = self.current().span;
             self.advance(); // consume ')'
@@ -31,6 +32,8 @@ impl Parser {
             _ => unreachable!(),
         };
 
-        Expr::new(kind, Span::new(start, end))
+        self.pool
+            .alloc_expr(kind, Span::new(start, end))
+            .map_err(|e| self.pool_error_to_parse_error(e))
     }
 }

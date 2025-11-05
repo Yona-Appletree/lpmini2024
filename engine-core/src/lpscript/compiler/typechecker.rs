@@ -8,6 +8,9 @@
 ///
 /// Each expression and statement type has its own dedicated _types.rs file
 /// in the expr/ and stmt/ subdirectories respectively.
+use crate::lpscript::compiler::ast::{AstPool, ExprId, StmtId};
+use crate::lpscript::compiler::error::TypeError;
+
 // Import function-related types from compiler::func
 pub(crate) use crate::lpscript::compiler::func::FunctionTable;
 // Import symbol table from compiler::symbol_table
@@ -22,3 +25,14 @@ use crate::lpscript::compiler::expr::expr_types;
 use crate::lpscript::compiler::prog::prog_types;
 #[allow(unused_imports)]
 use crate::lpscript::compiler::stmt::stmt_types;
+
+impl TypeChecker {
+    /// Type check an expression (expression mode)
+    pub fn check(expr_id: ExprId, pool: AstPool) -> Result<(ExprId, AstPool), TypeError> {
+        let mut pool = pool;
+        let mut symbols = SymbolTable::new();
+        let func_table = FunctionTable::new(); // Empty for expression mode
+        Self::infer_type_id(&mut pool, expr_id, &mut symbols, &func_table)?;
+        Ok((expr_id, pool))
+    }
+}

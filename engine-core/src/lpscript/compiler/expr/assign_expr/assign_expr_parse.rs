@@ -1,263 +1,126 @@
 /// Assignment expression parsing
-use crate::lpscript::compiler::ast::{Expr, ExprKind};
+use crate::lpscript::compiler::ast::{ExprId, ExprKind};
+use crate::lpscript::compiler::error::ParseError;
 use crate::lpscript::compiler::lexer::TokenKind;
 use crate::lpscript::compiler::parser::Parser;
 use crate::lpscript::shared::Span;
-use alloc::boxed::Box;
 
 impl Parser {
     // Assignment expression: lvalue = rvalue (right-associative)
     // Supports simple assignment (=) and compound assignments (+=, -=, *=, /=, %=, &=, |=, ^=, <<=, >>=)
-    pub(in crate::lpscript) fn parse_assignment_expr(&mut self) -> Expr {
-        let expr = self.ternary();
+    pub(in crate::lpscript) fn parse_assignment_expr(&mut self) -> Result<ExprId, ParseError> {
+        self.enter_recursion()?;
+        let expr_id = self.ternary()?;
 
         // Check if this is an assignment (simple or compound)
         let op_token = self.current().kind.clone();
 
-        match op_token {
+        let result = match op_token {
             // Simple assignment
             TokenKind::Eq => {
+                let expr = self.pool.expr(expr_id);
                 if let ExprKind::Variable(name) = &expr.kind {
+                    let name = name.clone();
                     let start = expr.span.start;
                     self.advance(); // consume '='
-                    let value = Box::new(self.parse_assignment_expr()); // right-associative
-                    let end = value.span.end;
+                    let value_id = self.parse_assignment_expr()?; // right-associative
+                    let end = self.pool.expr(value_id).span.end;
 
-                    return Expr::new(
-                        ExprKind::Assign {
-                            target: name.clone(),
-                            value,
-                        },
-                        Span::new(start, end),
-                    );
+                    self.pool
+                        .alloc_expr(
+                            ExprKind::Assign {
+                                target: name,
+                                value: value_id,
+                            },
+                            Span::new(start, end),
+                        )
+                        .map_err(|e| self.pool_error_to_parse_error(e))
+                } else {
+                    Ok(expr_id)
                 }
             }
 
             // Compound assignments - desugar to simple assignment with binary operation
             // e.g., x += 5 becomes x = x + 5
             TokenKind::PlusEq => {
-                if let ExprKind::Variable(name) = &expr.kind {
-                    let start = expr.span.start;
-                    self.advance(); // consume '+='
-                    let rhs = self.ternary(); // Use ternary to avoid infinite recursion
-                    let var_ref =
-                        Expr::new(ExprKind::Variable(name.clone()), Span::new(start, start));
-                    let value = Box::new(Expr::new(
-                        ExprKind::Add(Box::new(var_ref), Box::new(rhs)),
-                        Span::new(start, self.current().span.end),
-                    ));
-
-                    return Expr::new(
-                        ExprKind::Assign {
-                            target: name.clone(),
-                            value,
-                        },
-                        Span::new(start, self.current().span.end),
-                    );
-                }
+                self.parse_compound_assignment(expr_id, |left, right| ExprKind::Add(left, right))
             }
-
             TokenKind::MinusEq => {
-                if let ExprKind::Variable(name) = &expr.kind {
-                    let start = expr.span.start;
-                    self.advance();
-                    let rhs = self.ternary();
-                    let var_ref =
-                        Expr::new(ExprKind::Variable(name.clone()), Span::new(start, start));
-                    let value = Box::new(Expr::new(
-                        ExprKind::Sub(Box::new(var_ref), Box::new(rhs)),
-                        Span::new(start, self.current().span.end),
-                    ));
-
-                    return Expr::new(
-                        ExprKind::Assign {
-                            target: name.clone(),
-                            value,
-                        },
-                        Span::new(start, self.current().span.end),
-                    );
-                }
+                self.parse_compound_assignment(expr_id, |left, right| ExprKind::Sub(left, right))
             }
-
             TokenKind::StarEq => {
-                if let ExprKind::Variable(name) = &expr.kind {
-                    let start = expr.span.start;
-                    self.advance();
-                    let rhs = self.ternary();
-                    let var_ref =
-                        Expr::new(ExprKind::Variable(name.clone()), Span::new(start, start));
-                    let value = Box::new(Expr::new(
-                        ExprKind::Mul(Box::new(var_ref), Box::new(rhs)),
-                        Span::new(start, self.current().span.end),
-                    ));
-
-                    return Expr::new(
-                        ExprKind::Assign {
-                            target: name.clone(),
-                            value,
-                        },
-                        Span::new(start, self.current().span.end),
-                    );
-                }
+                self.parse_compound_assignment(expr_id, |left, right| ExprKind::Mul(left, right))
             }
-
             TokenKind::SlashEq => {
-                if let ExprKind::Variable(name) = &expr.kind {
-                    let start = expr.span.start;
-                    self.advance();
-                    let rhs = self.ternary();
-                    let var_ref =
-                        Expr::new(ExprKind::Variable(name.clone()), Span::new(start, start));
-                    let value = Box::new(Expr::new(
-                        ExprKind::Div(Box::new(var_ref), Box::new(rhs)),
-                        Span::new(start, self.current().span.end),
-                    ));
-
-                    return Expr::new(
-                        ExprKind::Assign {
-                            target: name.clone(),
-                            value,
-                        },
-                        Span::new(start, self.current().span.end),
-                    );
-                }
+                self.parse_compound_assignment(expr_id, |left, right| ExprKind::Div(left, right))
             }
-
             TokenKind::PercentEq => {
-                if let ExprKind::Variable(name) = &expr.kind {
-                    let start = expr.span.start;
-                    self.advance();
-                    let rhs = self.ternary();
-                    let var_ref =
-                        Expr::new(ExprKind::Variable(name.clone()), Span::new(start, start));
-                    let value = Box::new(Expr::new(
-                        ExprKind::Mod(Box::new(var_ref), Box::new(rhs)),
-                        Span::new(start, self.current().span.end),
-                    ));
-
-                    return Expr::new(
-                        ExprKind::Assign {
-                            target: name.clone(),
-                            value,
-                        },
-                        Span::new(start, self.current().span.end),
-                    );
-                }
+                self.parse_compound_assignment(expr_id, |left, right| ExprKind::Mod(left, right))
             }
-
-            TokenKind::AmpersandEq => {
-                if let ExprKind::Variable(name) = &expr.kind {
-                    let start = expr.span.start;
-                    self.advance();
-                    let rhs = self.ternary();
-                    let var_ref =
-                        Expr::new(ExprKind::Variable(name.clone()), Span::new(start, start));
-                    let value = Box::new(Expr::new(
-                        ExprKind::BitwiseAnd(Box::new(var_ref), Box::new(rhs)),
-                        Span::new(start, self.current().span.end),
-                    ));
-
-                    return Expr::new(
-                        ExprKind::Assign {
-                            target: name.clone(),
-                            value,
-                        },
-                        Span::new(start, self.current().span.end),
-                    );
-                }
-            }
-
+            TokenKind::AmpersandEq => self.parse_compound_assignment(expr_id, |left, right| {
+                ExprKind::BitwiseAnd(left, right)
+            }),
             TokenKind::PipeEq => {
-                if let ExprKind::Variable(name) = &expr.kind {
-                    let start = expr.span.start;
-                    self.advance();
-                    let rhs = self.ternary();
-                    let var_ref =
-                        Expr::new(ExprKind::Variable(name.clone()), Span::new(start, start));
-                    let value = Box::new(Expr::new(
-                        ExprKind::BitwiseOr(Box::new(var_ref), Box::new(rhs)),
-                        Span::new(start, self.current().span.end),
-                    ));
-
-                    return Expr::new(
-                        ExprKind::Assign {
-                            target: name.clone(),
-                            value,
-                        },
-                        Span::new(start, self.current().span.end),
-                    );
-                }
+                self.parse_compound_assignment(expr_id, |left, right| ExprKind::BitwiseOr(left, right))
             }
+            TokenKind::CaretEq => self.parse_compound_assignment(expr_id, |left, right| {
+                ExprKind::BitwiseXor(left, right)
+            }),
+            TokenKind::LShiftEq => self.parse_compound_assignment(expr_id, |left, right| {
+                ExprKind::LeftShift(left, right)
+            }),
+            TokenKind::RShiftEq => self.parse_compound_assignment(expr_id, |left, right| {
+                ExprKind::RightShift(left, right)
+            }),
 
-            TokenKind::CaretEq => {
-                if let ExprKind::Variable(name) = &expr.kind {
-                    let start = expr.span.start;
-                    self.advance();
-                    let rhs = self.ternary();
-                    let var_ref =
-                        Expr::new(ExprKind::Variable(name.clone()), Span::new(start, start));
-                    let value = Box::new(Expr::new(
-                        ExprKind::BitwiseXor(Box::new(var_ref), Box::new(rhs)),
-                        Span::new(start, self.current().span.end),
-                    ));
+            _ => Ok(expr_id),
+        };
 
-                    return Expr::new(
-                        ExprKind::Assign {
-                            target: name.clone(),
-                            value,
-                        },
-                        Span::new(start, self.current().span.end),
-                    );
-                }
-            }
+        self.exit_recursion();
+        result
+    }
 
-            TokenKind::LShiftEq => {
-                if let ExprKind::Variable(name) = &expr.kind {
-                    let start = expr.span.start;
-                    self.advance();
-                    let rhs = self.ternary();
-                    let var_ref =
-                        Expr::new(ExprKind::Variable(name.clone()), Span::new(start, start));
-                    let value = Box::new(Expr::new(
-                        ExprKind::LeftShift(Box::new(var_ref), Box::new(rhs)),
-                        Span::new(start, self.current().span.end),
-                    ));
+    /// Helper for compound assignment operators
+    fn parse_compound_assignment<F>(
+        &mut self,
+        expr_id: ExprId,
+        make_op: F,
+    ) -> Result<ExprId, ParseError>
+    where
+        F: FnOnce(ExprId, ExprId) -> ExprKind,
+    {
+        let expr = self.pool.expr(expr_id);
+        if let ExprKind::Variable(name) = &expr.kind {
+            let name = name.clone();
+            let start = expr.span.start;
+            self.advance(); // consume compound operator
+            let rhs_id = self.ternary()?; // Use ternary to avoid infinite recursion
+            
+            // Create a reference to the variable for the left side of the operation
+            let var_ref_id = self
+                .pool
+                .alloc_expr(ExprKind::Variable(name.clone()), Span::new(start, start))
+                .map_err(|e| self.pool_error_to_parse_error(e))?;
+            
+            // Create the binary operation
+            let end = self.pool.expr(rhs_id).span.end;
+            let op_id = self
+                .pool
+                .alloc_expr(make_op(var_ref_id, rhs_id), Span::new(start, end))
+                .map_err(|e| self.pool_error_to_parse_error(e))?;
 
-                    return Expr::new(
-                        ExprKind::Assign {
-                            target: name.clone(),
-                            value,
-                        },
-                        Span::new(start, self.current().span.end),
-                    );
-                }
-            }
-
-            TokenKind::RShiftEq => {
-                if let ExprKind::Variable(name) = &expr.kind {
-                    let start = expr.span.start;
-                    self.advance();
-                    let rhs = self.ternary();
-                    let var_ref =
-                        Expr::new(ExprKind::Variable(name.clone()), Span::new(start, start));
-                    let value = Box::new(Expr::new(
-                        ExprKind::RightShift(Box::new(var_ref), Box::new(rhs)),
-                        Span::new(start, self.current().span.end),
-                    ));
-
-                    return Expr::new(
-                        ExprKind::Assign {
-                            target: name.clone(),
-                            value,
-                        },
-                        Span::new(start, self.current().span.end),
-                    );
-                }
-            }
-
-            _ => {}
+            // Create the assignment
+            self.pool
+                .alloc_expr(
+                    ExprKind::Assign {
+                        target: name,
+                        value: op_id,
+                    },
+                    Span::new(start, end),
+                )
+                .map_err(|e| self.pool_error_to_parse_error(e))
+        } else {
+            Ok(expr_id)
         }
-
-        expr
     }
 }

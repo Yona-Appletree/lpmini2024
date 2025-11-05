@@ -181,3 +181,4 @@ Potential optimizations not yet implemented:
 - Strength reduction (e.g., `x * 2` → `x + x`)
 - Constant propagation across statements
 - Function inlining
+

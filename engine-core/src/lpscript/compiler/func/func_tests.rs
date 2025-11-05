@@ -9,7 +9,7 @@ mod parse_tests {
         let mut lexer = Lexer::new("float getPi() { return 3.14; }");
         let tokens = lexer.tokenize();
         let mut parser = Parser::new(tokens);
-        let program = parser.parse_program();
+        let (program, _pool) = parser.parse_program().expect("parse should succeed");
 
         assert_eq!(program.functions.len(), 1);
         assert_eq!(program.functions[0].name, "getPi");
@@ -21,7 +21,7 @@ mod parse_tests {
         let mut lexer = Lexer::new("float add(float a, float b) { return a + b; }");
         let tokens = lexer.tokenize();
         let mut parser = Parser::new(tokens);
-        let program = parser.parse_program();
+        let (program, _pool) = parser.parse_program().expect("parse should succeed");
 
         assert_eq!(program.functions.len(), 1);
         assert_eq!(program.functions[0].params.len(), 2);
@@ -34,7 +34,7 @@ mod parse_tests {
         let mut lexer = Lexer::new("float double(float x) { return x * 2.0; }");
         let tokens = lexer.tokenize();
         let mut parser = Parser::new(tokens);
-        let program = parser.parse_program();
+        let (program, _pool) = parser.parse_program().expect("parse should succeed");
 
         assert_eq!(program.functions.len(), 1);
         assert!(!program.functions[0].body.is_empty());
@@ -50,7 +50,7 @@ mod parse_tests {
         );
         let tokens = lexer.tokenize();
         let mut parser = Parser::new(tokens);
-        let program = parser.parse_program();
+        let (program, _pool) = parser.parse_program().expect("parse should succeed");
 
         assert_eq!(program.functions.len(), 2);
         assert_eq!(program.functions[0].name, "add");
@@ -70,8 +70,12 @@ mod return_path_tests {
         let mut lexer = Lexer::new(input);
         let tokens = lexer.tokenize();
         let mut parser = Parser::new(tokens);
-        let ast = parser.parse_program();
-        TypeChecker::check_program(ast)
+        let (program, pool) = parser.parse_program().map_err(|e| TypeError {
+            kind: TypeErrorKind::UndefinedVariable(format!("Parse error: {}", e)),
+            span: crate::lpscript::shared::Span::EMPTY,
+        })?;
+        let (typed_program, _pool) = TypeChecker::check_program(program, pool)?;
+        Ok(typed_program)
     }
 
     #[test]

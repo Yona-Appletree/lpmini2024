@@ -2,7 +2,8 @@
 extern crate alloc;
 use alloc::vec::Vec;
 
-use crate::lpscript::compiler::ast::{Expr, Program, Stmt};
+use crate::lpscript::compiler::ast::{AstPool, ExprId, Program, StmtId};
+use crate::lpscript::compiler::error::{ParseError, ParseErrorKind};
 use crate::lpscript::compiler::lexer::{Token, TokenKind};
 use crate::lpscript::shared::{Span, Type};
 
@@ -14,11 +15,66 @@ mod func_parse;
 pub struct Parser {
     pub(in crate::lpscript) tokens: Vec<Token>,
     pub(in crate::lpscript) pos: usize,
+    pub(in crate::lpscript) pool: AstPool,
+    recursion_depth: usize,
+    max_recursion: usize,
 }
 
 impl Parser {
     pub fn new(tokens: Vec<Token>) -> Self {
-        Parser { tokens, pos: 0 }
+        Self::with_limits(tokens, 128, 20000, 10000)
+    }
+
+    pub fn with_limits(
+        tokens: Vec<Token>,
+        max_recursion: usize,
+        max_exprs: usize,
+        max_stmts: usize,
+    ) -> Self {
+        Parser {
+            tokens,
+            pos: 0,
+            pool: AstPool::with_capacity(max_exprs, max_stmts),
+            recursion_depth: 0,
+            max_recursion,
+        }
+    }
+
+    /// Track entering a recursive parse function
+    pub(in crate::lpscript) fn enter_recursion(&mut self) -> Result<(), ParseError> {
+        self.recursion_depth += 1;
+        if self.recursion_depth > self.max_recursion {
+            return Err(ParseError {
+                kind: ParseErrorKind::RecursionLimitExceeded {
+                    max: self.max_recursion,
+                },
+                span: self.current().span,
+            });
+        }
+        Ok(())
+    }
+
+    /// Track exiting a recursive parse function
+    pub(in crate::lpscript) fn exit_recursion(&mut self) {
+        if self.recursion_depth > 0 {
+            self.recursion_depth -= 1;
+        }
+    }
+
+    /// Helper to convert AstPoolError to ParseError
+    pub(in crate::lpscript) fn pool_error_to_parse_error(
+        &self,
+        err: crate::lpscript::compiler::ast::AstPoolError,
+    ) -> ParseError {
+        use crate::lpscript::compiler::ast::AstPoolError;
+        let kind = match err {
+            AstPoolError::ExprLimitExceeded { max } => ParseErrorKind::ExprLimitExceeded { max },
+            AstPoolError::StmtLimitExceeded { max } => ParseErrorKind::StmtLimitExceeded { max },
+        };
+        ParseError {
+            kind,
+            span: self.current().span,
+        }
     }
 
     pub(in crate::lpscript) fn current(&self) -> &Token {
@@ -32,37 +88,40 @@ impl Parser {
     }
 
     /// Parse an expression (expression mode) - delegated to expr module
-    // pub fn parse(&mut self) -> Expr is implemented in expr/mod.rs
+    // pub fn parse(&mut self) -> Result<ExprId, ParseError> is implemented in expr/mod.rs
 
     /// Parse a full program (script mode)
-    pub fn parse_program(&mut self) -> Program {
+    /// Consumes the parser and returns the program along with the AST pool
+    pub fn parse_program(mut self) -> Result<(Program, AstPool), ParseError> {
         let start = self.current().span.start;
         let mut functions = Vec::new();
         let mut stmts = Vec::new();
 
         // Parse function definitions first (must come before statements)
         while self.is_function_definition() {
-            functions.push(self.parse_function_def());
+            functions.push(self.parse_function_def()?);
         }
 
         // Parse top-level statements
         while !matches!(self.current().kind, TokenKind::Eof) {
-            stmts.push(self.parse_stmt());
+            stmts.push(self.parse_stmt()?);
         }
 
         let end = if !stmts.is_empty() {
-            stmts.last().unwrap().span.end
+            self.pool.stmt(*stmts.last().unwrap()).span.end
         } else if !functions.is_empty() {
             functions.last().unwrap().span.end
         } else {
             start
         };
 
-        Program {
+        let program = Program {
             functions,
             stmts,
             span: Span::new(start, end),
-        }
+        };
+
+        Ok((program, self.pool))
     }
 
     pub(in crate::lpscript) fn expect(&mut self, expected: TokenKind) -> bool {
@@ -97,7 +156,7 @@ impl Parser {
         ty
     }
 
-    pub(in crate::lpscript) fn parse_stmt(&mut self) -> Stmt {
+    pub(in crate::lpscript) fn parse_stmt(&mut self) -> Result<StmtId, ParseError> {
         match &self.current().kind {
             TokenKind::Float
             | TokenKind::Int
@@ -113,7 +172,7 @@ impl Parser {
         }
     }
 
-    pub(in crate::lpscript) fn parse(&mut self) -> Expr {
+    pub(in crate::lpscript) fn parse(&mut self) -> Result<ExprId, ParseError> {
         self.parse_assignment_expr()
     }
 }
@@ -129,7 +188,8 @@ mod tests {
         let mut lexer = Lexer::new("1.0 + 2.0");
         let tokens = lexer.tokenize();
         let mut parser = Parser::new(tokens);
-        let expr = parser.parse();
+        let expr_id = parser.parse().unwrap();
+        let expr = parser.pool.expr(expr_id);
 
         assert!(matches!(expr.kind, ExprKind::Add(_, _)));
     }
@@ -138,8 +198,8 @@ mod tests {
     fn test_parse_program_with_statements() {
         let mut lexer = Lexer::new("float x = 5.0; return x;");
         let tokens = lexer.tokenize();
-        let mut parser = Parser::new(tokens);
-        let program = parser.parse_program();
+        let parser = Parser::new(tokens);
+        let (program, _pool) = parser.parse_program().unwrap();
 
         assert_eq!(program.stmts.len(), 2);
         assert!(program.functions.is_empty());
@@ -150,8 +210,8 @@ mod tests {
         let mut lexer =
             Lexer::new("float add(float a, float b) { return a + b; } return add(1.0, 2.0);");
         let tokens = lexer.tokenize();
-        let mut parser = Parser::new(tokens);
-        let program = parser.parse_program();
+        let parser = Parser::new(tokens);
+        let (program, _pool) = parser.parse_program().unwrap();
 
         assert_eq!(program.functions.len(), 1);
         assert_eq!(program.stmts.len(), 1);

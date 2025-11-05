@@ -1,13 +1,14 @@
 /// For loop parsing
-use crate::lpscript::compiler::ast::{Stmt, StmtKind};
+use crate::lpscript::compiler::ast::{StmtId, StmtKind};
+use crate::lpscript::compiler::error::ParseError;
 use crate::lpscript::compiler::lexer::TokenKind;
 use crate::lpscript::compiler::parser::Parser;
 use crate::lpscript::shared::Span;
-use alloc::boxed::Box;
 
 
 impl Parser {
-    pub(in crate::lpscript) fn parse_for_stmt(&mut self) -> Stmt {
+    pub(in crate::lpscript) fn parse_for_stmt(&mut self) -> Result<StmtId, ParseError> {
+        self.enter_recursion()?;
         let start = self.current().span.start;
         self.advance(); // consume 'for'
 
@@ -19,15 +20,19 @@ impl Parser {
             None
         } else if matches!(self.current().kind, TokenKind::Float | TokenKind::Int) {
             // Parse var decl inline without consuming semicolon
-            let decl = self.parse_var_decl_no_semicolon();
+            let decl_id = self.parse_var_decl_no_semicolon()?;
             self.expect(TokenKind::Semicolon);
-            Some(Box::new(decl))
+            Some(decl_id)
         } else {
             // Parse expression and consume its semicolon
-            let expr = self.ternary();
+            let expr_id = self.ternary()?;
             self.expect(TokenKind::Semicolon);
-            let span = expr.span;
-            Some(Box::new(Stmt::new(StmtKind::Expr(expr), span)))
+            let span = self.pool.expr(expr_id).span;
+            let stmt_id = self
+                .pool
+                .alloc_stmt(StmtKind::Expr(expr_id), span)
+                .map_err(|e| self.pool_error_to_parse_error(e))?;
+            Some(stmt_id)
         };
 
         // Parse condition
@@ -35,7 +40,7 @@ impl Parser {
             self.advance();
             None
         } else {
-            let cond = self.ternary();
+            let cond = self.ternary()?;
             self.expect(TokenKind::Semicolon);
             Some(cond)
         };
@@ -44,22 +49,28 @@ impl Parser {
         let increment = if matches!(self.current().kind, TokenKind::RParen) {
             None
         } else {
-            Some(self.parse_assignment_expr())
+            Some(self.parse_assignment_expr()?)
         };
 
         self.expect(TokenKind::RParen);
 
-        let body = Box::new(self.parse_stmt());
-        let end = body.span.end;
+        let body = self.parse_stmt()?;
+        let end = self.pool.stmt(body).span.end;
 
-        Stmt::new(
-            StmtKind::For {
-                init,
-                condition,
-                increment,
-                body,
-            },
-            Span::new(start, end),
-        )
+        let result = self
+            .pool
+            .alloc_stmt(
+                StmtKind::For {
+                    init,
+                    condition,
+                    increment,
+                    body,
+                },
+                Span::new(start, end),
+            )
+            .map_err(|e| self.pool_error_to_parse_error(e));
+
+        self.exit_recursion();
+        result
     }
 }

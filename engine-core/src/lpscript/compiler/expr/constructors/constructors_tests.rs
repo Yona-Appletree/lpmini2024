@@ -10,7 +10,11 @@ mod tests {
     #[test]
     fn test_vec2_constructor() -> Result<(), String> {
         ExprTest::new("vec2(1.0, 2.0)")
-            .expect_ast(vec2_ctor(vec![num(1.0), num(2.0)], Type::Vec2))
+            .expect_ast(|b| {
+                let arg1 = b.num(1.0);
+                let arg2 = b.num(2.0);
+                b.vec2(vec![arg1, arg2])
+            })
             .expect_opcodes(vec![
                 LpsOpCode::Push(1.0.to_fixed()),
                 LpsOpCode::Push(2.0.to_fixed()),
@@ -26,7 +30,12 @@ mod tests {
     #[test]
     fn test_vec3_constructor() -> Result<(), String> {
         ExprTest::new("vec3(1.0, 2.0, 3.0)")
-            .expect_ast(vec3_ctor(vec![num(1.0), num(2.0), num(3.0)], Type::Vec3))
+            .expect_ast(|b| {
+                let arg1 = b.num(1.0);
+                let arg2 = b.num(2.0);
+                let arg3 = b.num(3.0);
+                b.vec3(vec![arg1, arg2, arg3])
+            })
             .expect_opcodes(vec![
                 LpsOpCode::Push(1.0.to_fixed()),
                 LpsOpCode::Push(2.0.to_fixed()),
@@ -44,10 +53,13 @@ mod tests {
     #[test]
     fn test_vec4_constructor() -> Result<(), String> {
         ExprTest::new("vec4(1.0, 2.0, 3.0, 4.0)")
-            .expect_ast(vec4_ctor(
-                vec![num(1.0), num(2.0), num(3.0), num(4.0)],
-                Type::Vec4,
-            ))
+            .expect_ast(|b| {
+                let arg1 = b.num(1.0);
+                let arg2 = b.num(2.0);
+                let arg3 = b.num(3.0);
+                let arg4 = b.num(4.0);
+                b.vec4(vec![arg1, arg2, arg3, arg4])
+            })
             .expect_opcodes(vec![
                 LpsOpCode::Push(1.0.to_fixed()),
                 LpsOpCode::Push(2.0.to_fixed()),

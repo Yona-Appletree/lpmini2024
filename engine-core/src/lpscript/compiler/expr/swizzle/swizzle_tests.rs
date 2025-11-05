@@ -10,11 +10,12 @@ mod tests {
     #[test]
     fn test_swizzle_single_component_x() -> Result<(), String> {
         ExprTest::new("vec2(1.0, 2.0).x")
-            .expect_ast(swizzle(
-                vec2_ctor(vec![num(1.0), num(2.0)], Type::Vec2),
-                "x",
-                Type::Fixed,
-            ))
+            .expect_ast(|b| {
+                let arg1 = b.num(1.0);
+                let arg2 = b.num(2.0);
+                let vec = b.vec2(vec![arg1, arg2]);
+                b.swizzle(vec, "x", Type::Fixed)
+            })
             .expect_opcodes(vec![
                 LpsOpCode::Push(1.0.to_fixed()),
                 LpsOpCode::Push(2.0.to_fixed()),
@@ -28,11 +29,12 @@ mod tests {
     #[test]
     fn test_swizzle_single_component_y() -> Result<(), String> {
         ExprTest::new("vec2(1.0, 2.0).y")
-            .expect_ast(swizzle(
-                vec2_ctor(vec![num(1.0), num(2.0)], Type::Vec2),
-                "y",
-                Type::Fixed,
-            ))
+            .expect_ast(|b| {
+                let arg1 = b.num(1.0);
+                let arg2 = b.num(2.0);
+                let vec = b.vec2(vec![arg1, arg2]);
+                b.swizzle(vec, "y", Type::Fixed)
+            })
             .expect_result_fixed(2.0)
             .run()
     }
@@ -40,11 +42,13 @@ mod tests {
     #[test]
     fn test_swizzle_two_components() -> Result<(), String> {
         ExprTest::new("vec3(1.0, 2.0, 3.0).xy")
-            .expect_ast(swizzle(
-                vec3_ctor(vec![num(1.0), num(2.0), num(3.0)], Type::Vec3),
-                "xy",
-                Type::Vec2,
-            ))
+            .expect_ast(|b| {
+                let arg1 = b.num(1.0);
+                let arg2 = b.num(2.0);
+                let arg3 = b.num(3.0);
+                let vec = b.vec3(vec![arg1, arg2, arg3]);
+                b.swizzle(vec, "xy", Type::Vec2)
+            })
             .expect_result_vec2(Vec2 {
                 x: 1.0.to_fixed(),
                 y: 2.0.to_fixed(),
@@ -62,11 +66,12 @@ mod tests {
     #[test]
     fn test_swizzle_reorder() -> Result<(), String> {
         ExprTest::new("vec2(1.0, 2.0).yx")
-            .expect_ast(swizzle(
-                vec2_ctor(vec![num(1.0), num(2.0)], Type::Vec2),
-                "yx",
-                Type::Vec2,
-            ))
+            .expect_ast(|b| {
+                let arg1 = b.num(1.0);
+                let arg2 = b.num(2.0);
+                let vec = b.vec2(vec![arg1, arg2]);
+                b.swizzle(vec, "yx", Type::Vec2)
+            })
             .expect_opcodes(vec![
                 LpsOpCode::Push(1.0.to_fixed()),
                 LpsOpCode::Push(2.0.to_fixed()),
@@ -83,11 +88,12 @@ mod tests {
     #[test]
     fn test_swizzle_duplicate() -> Result<(), String> {
         ExprTest::new("vec2(1.0, 2.0).xx")
-            .expect_ast(swizzle(
-                vec2_ctor(vec![num(1.0), num(2.0)], Type::Vec2),
-                "xx",
-                Type::Vec2,
-            ))
+            .expect_ast(|b| {
+                let arg1 = b.num(1.0);
+                let arg2 = b.num(2.0);
+                let vec = b.vec2(vec![arg1, arg2]);
+                b.swizzle(vec, "xx", Type::Vec2)
+            })
             .expect_opcodes(vec![
                 LpsOpCode::Push(1.0.to_fixed()),
                 LpsOpCode::Push(2.0.to_fixed()),
@@ -112,11 +118,12 @@ mod tests {
     #[test]
     fn test_swizzle_rgba() -> Result<(), String> {
         ExprTest::new("vec2(1.0, 2.0).gr")
-            .expect_ast(swizzle(
-                vec2_ctor(vec![num(1.0), num(2.0)], Type::Vec2),
-                "gr",
-                Type::Vec2,
-            ))
+            .expect_ast(|b| {
+                let arg1 = b.num(1.0);
+                let arg2 = b.num(2.0);
+                let vec = b.vec2(vec![arg1, arg2]);
+                b.swizzle(vec, "gr", Type::Vec2)
+            })
             .expect_result_vec2(Vec2 {
                 x: 2.0.to_fixed(),
                 y: 1.0.to_fixed(),

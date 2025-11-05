@@ -1,77 +1,82 @@
 /// Comparison operator parsing (<, >, <=, >=, ==, !=)
-use crate::lpscript::compiler::ast::{Expr, ExprKind};
+use crate::lpscript::compiler::ast::{ExprId, ExprKind};
+use crate::lpscript::compiler::error::ParseError;
 use crate::lpscript::compiler::lexer::TokenKind;
 use crate::lpscript::compiler::parser::Parser;
 use crate::lpscript::shared::Span;
-use alloc::boxed::Box;
 
 
 impl Parser {
     // Comparison: <, >, <=, >=, ==, !=
-    pub(in crate::lpscript) fn comparison(&mut self) -> Expr {
-        let mut expr = self.additive();
+    pub(in crate::lpscript) fn comparison(&mut self) -> Result<ExprId, ParseError> {
+        self.enter_recursion()?;
+        let mut expr_id = self.additive()?;
 
         loop {
-            let start = expr.span.start;
+            let start = self.pool.expr(expr_id).span.start;
             match &self.current().kind {
                 TokenKind::Less => {
                     self.advance();
-                    let right = self.additive();
-                    let end = right.span.end;
-                    expr = Expr::new(
-                        ExprKind::Less(Box::new(expr), Box::new(right)),
-                        Span::new(start, end),
-                    );
+                    let right_id = self.additive()?;
+                    let end = self.pool.expr(right_id).span.end;
+                    expr_id = self
+                        .pool
+                        .alloc_expr(ExprKind::Less(expr_id, right_id), Span::new(start, end))
+                        .map_err(|e| self.pool_error_to_parse_error(e))?;
                 }
                 TokenKind::Greater => {
                     self.advance();
-                    let right = self.additive();
-                    let end = right.span.end;
-                    expr = Expr::new(
-                        ExprKind::Greater(Box::new(expr), Box::new(right)),
-                        Span::new(start, end),
-                    );
+                    let right_id = self.additive()?;
+                    let end = self.pool.expr(right_id).span.end;
+                    expr_id = self
+                        .pool
+                        .alloc_expr(ExprKind::Greater(expr_id, right_id), Span::new(start, end))
+                        .map_err(|e| self.pool_error_to_parse_error(e))?;
                 }
                 TokenKind::LessEq => {
                     self.advance();
-                    let right = self.additive();
-                    let end = right.span.end;
-                    expr = Expr::new(
-                        ExprKind::LessEq(Box::new(expr), Box::new(right)),
-                        Span::new(start, end),
-                    );
+                    let right_id = self.additive()?;
+                    let end = self.pool.expr(right_id).span.end;
+                    expr_id = self
+                        .pool
+                        .alloc_expr(ExprKind::LessEq(expr_id, right_id), Span::new(start, end))
+                        .map_err(|e| self.pool_error_to_parse_error(e))?;
                 }
                 TokenKind::GreaterEq => {
                     self.advance();
-                    let right = self.additive();
-                    let end = right.span.end;
-                    expr = Expr::new(
-                        ExprKind::GreaterEq(Box::new(expr), Box::new(right)),
-                        Span::new(start, end),
-                    );
+                    let right_id = self.additive()?;
+                    let end = self.pool.expr(right_id).span.end;
+                    expr_id = self
+                        .pool
+                        .alloc_expr(
+                            ExprKind::GreaterEq(expr_id, right_id),
+                            Span::new(start, end),
+                        )
+                        .map_err(|e| self.pool_error_to_parse_error(e))?;
                 }
                 TokenKind::EqEq => {
                     self.advance();
-                    let right = self.additive();
-                    let end = right.span.end;
-                    expr = Expr::new(
-                        ExprKind::Eq(Box::new(expr), Box::new(right)),
-                        Span::new(start, end),
-                    );
+                    let right_id = self.additive()?;
+                    let end = self.pool.expr(right_id).span.end;
+                    expr_id = self
+                        .pool
+                        .alloc_expr(ExprKind::Eq(expr_id, right_id), Span::new(start, end))
+                        .map_err(|e| self.pool_error_to_parse_error(e))?;
                 }
                 TokenKind::NotEq => {
                     self.advance();
-                    let right = self.additive();
-                    let end = right.span.end;
-                    expr = Expr::new(
-                        ExprKind::NotEq(Box::new(expr), Box::new(right)),
-                        Span::new(start, end),
-                    );
+                    let right_id = self.additive()?;
+                    let end = self.pool.expr(right_id).span.end;
+                    expr_id = self
+                        .pool
+                        .alloc_expr(ExprKind::NotEq(expr_id, right_id), Span::new(start, end))
+                        .map_err(|e| self.pool_error_to_parse_error(e))?;
                 }
                 _ => break,
             }
         }
 
-        expr
+        self.exit_recursion();
+        Ok(expr_id)
     }
 }

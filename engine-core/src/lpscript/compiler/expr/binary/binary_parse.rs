@@ -1,88 +1,92 @@
 /// Binary operator parsing (+, -, *, /, %, ^)
-use crate::lpscript::compiler::ast::{Expr, ExprKind};
+use crate::lpscript::compiler::ast::{ExprId, ExprKind};
+use crate::lpscript::compiler::error::ParseError;
 use crate::lpscript::compiler::lexer::TokenKind;
 use crate::lpscript::compiler::parser::Parser;
 use crate::lpscript::shared::Span;
-use alloc::boxed::Box;
 
 
 impl Parser {
     // Additive: + -
-    pub(in crate::lpscript) fn additive(&mut self) -> Expr {
-        let mut expr = self.multiplicative();
+    pub(in crate::lpscript) fn additive(&mut self) -> Result<ExprId, ParseError> {
+        self.enter_recursion()?;
+        let mut expr_id = self.multiplicative()?;
 
         loop {
-            let start = expr.span.start;
+            let start = self.pool.expr(expr_id).span.start;
             match &self.current().kind {
                 TokenKind::Plus => {
                     self.advance();
-                    let right = self.multiplicative();
-                    let end = right.span.end;
-                    expr = Expr::new(
-                        ExprKind::Add(Box::new(expr), Box::new(right)),
-                        Span::new(start, end),
-                    );
+                    let right_id = self.multiplicative()?;
+                    let end = self.pool.expr(right_id).span.end;
+                    expr_id = self
+                        .pool
+                        .alloc_expr(ExprKind::Add(expr_id, right_id), Span::new(start, end))
+                        .map_err(|e| self.pool_error_to_parse_error(e))?;
                 }
                 TokenKind::Minus => {
                     self.advance();
-                    let right = self.multiplicative();
-                    let end = right.span.end;
-                    expr = Expr::new(
-                        ExprKind::Sub(Box::new(expr), Box::new(right)),
-                        Span::new(start, end),
-                    );
+                    let right_id = self.multiplicative()?;
+                    let end = self.pool.expr(right_id).span.end;
+                    expr_id = self
+                        .pool
+                        .alloc_expr(ExprKind::Sub(expr_id, right_id), Span::new(start, end))
+                        .map_err(|e| self.pool_error_to_parse_error(e))?;
                 }
                 _ => break,
             }
         }
 
-        expr
+        self.exit_recursion();
+        Ok(expr_id)
     }
 
     // Multiplicative: * / %
-    pub(in crate::lpscript) fn multiplicative(&mut self) -> Expr {
-        let mut expr = self.exponential();
+    pub(in crate::lpscript) fn multiplicative(&mut self) -> Result<ExprId, ParseError> {
+        self.enter_recursion()?;
+        let mut expr_id = self.exponential()?;
 
         loop {
-            let start = expr.span.start;
+            let start = self.pool.expr(expr_id).span.start;
             match &self.current().kind {
                 TokenKind::Star => {
                     self.advance();
-                    let right = self.exponential();
-                    let end = right.span.end;
-                    expr = Expr::new(
-                        ExprKind::Mul(Box::new(expr), Box::new(right)),
-                        Span::new(start, end),
-                    );
+                    let right_id = self.exponential()?;
+                    let end = self.pool.expr(right_id).span.end;
+                    expr_id = self
+                        .pool
+                        .alloc_expr(ExprKind::Mul(expr_id, right_id), Span::new(start, end))
+                        .map_err(|e| self.pool_error_to_parse_error(e))?;
                 }
                 TokenKind::Slash => {
                     self.advance();
-                    let right = self.exponential();
-                    let end = right.span.end;
-                    expr = Expr::new(
-                        ExprKind::Div(Box::new(expr), Box::new(right)),
-                        Span::new(start, end),
-                    );
+                    let right_id = self.exponential()?;
+                    let end = self.pool.expr(right_id).span.end;
+                    expr_id = self
+                        .pool
+                        .alloc_expr(ExprKind::Div(expr_id, right_id), Span::new(start, end))
+                        .map_err(|e| self.pool_error_to_parse_error(e))?;
                 }
                 TokenKind::Percent => {
                     self.advance();
-                    let right = self.exponential();
-                    let end = right.span.end;
-                    expr = Expr::new(
-                        ExprKind::Mod(Box::new(expr), Box::new(right)),
-                        Span::new(start, end),
-                    );
+                    let right_id = self.exponential()?;
+                    let end = self.pool.expr(right_id).span.end;
+                    expr_id = self
+                        .pool
+                        .alloc_expr(ExprKind::Mod(expr_id, right_id), Span::new(start, end))
+                        .map_err(|e| self.pool_error_to_parse_error(e))?;
                 }
                 _ => break,
             }
         }
 
-        expr
+        self.exit_recursion();
+        Ok(expr_id)
     }
 
     // Exponential: ^ removed (use pow() function instead)
     // This now just delegates to unary, will be re-added as bitwise XOR in Phase 2
-    pub(in crate::lpscript) fn exponential(&mut self) -> Expr {
+    pub(in crate::lpscript) fn exponential(&mut self) -> Result<ExprId, ParseError> {
         self.unary()
     }
 }

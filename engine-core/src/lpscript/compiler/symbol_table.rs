@@ -54,4 +54,19 @@ impl SymbolTable {
         }
         None
     }
+
+    /// Update an existing variable's type (for assignments)
+    pub(crate) fn set(&mut self, name: String, ty: Type) {
+        // Update in the most recent scope that has this variable
+        for scope in self.scopes.iter_mut().rev() {
+            if scope.contains_key(&name) {
+                scope.insert(name, ty);
+                return;
+            }
+        }
+        // If not found, add to current scope
+        if let Some(scope) = self.scopes.last_mut() {
+            scope.insert(name, ty);
+        }
+    }
 }

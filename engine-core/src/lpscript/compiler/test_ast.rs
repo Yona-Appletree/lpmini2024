@@ -3,292 +3,412 @@
 
 /// Helper functions for building expected AST expressions in tests
 ///
-/// These functions create AST nodes with dummy spans (Span::EMPTY) so tests
-/// can focus on structure rather than source locations.
-/// Types are included to validate type inference.
+/// These use a builder pattern with AstPool to create index-based AST nodes.
+/// Tests can focus on structure rather than memory management.
 extern crate alloc;
-use alloc::boxed::Box;
 use alloc::string::String;
 use alloc::vec::Vec;
 
-use crate::lpscript::compiler::ast::{Expr, ExprKind};
+use crate::lpscript::compiler::ast::{AstPool, ExprId, ExprKind};
 use crate::lpscript::shared::{Span, Type};
 
-// ============================================================================
-// Leaf nodes (return Expr with auto-typed)
-// ============================================================================
-
-/// Create an integer literal expression
-pub fn int32(value: i32) -> Expr {
-    let mut expr = Expr::new(ExprKind::IntNumber(value), Span::EMPTY);
-    expr.ty = Some(Type::Int32);
-    expr
+/// Builder for creating test AST nodes with a pool
+pub struct AstBuilder {
+    pool: AstPool,
 }
 
-/// Create a float literal expression
-pub fn num(value: f32) -> Expr {
-    let mut expr = Expr::new(ExprKind::Number(value), Span::EMPTY);
-    expr.ty = Some(Type::Fixed);
-    expr
+impl AstBuilder {
+    /// Create a new builder with an empty pool
+    pub fn new() -> Self {
+        Self {
+            pool: AstPool::new(),
+        }
+    }
+
+    /// Consume the builder and return the pool
+    pub fn into_pool(self) -> AstPool {
+        self.pool
+    }
+
+    /// Get a reference to the pool
+    pub fn pool(&self) -> &AstPool {
+        &self.pool
+    }
+
+    /// Get a mutable reference to the pool
+    pub fn pool_mut(&mut self) -> &mut AstPool {
+        &mut self.pool
+    }
+
+    // ============================================================================
+    // Leaf nodes (return ExprId with auto-typed)
+    // ============================================================================
+
+    /// Create an integer literal expression
+    pub fn int32(&mut self, value: i32) -> ExprId {
+        let id = self
+            .pool
+            .alloc_expr(ExprKind::IntNumber(value), Span::EMPTY)
+            .unwrap();
+        self.pool.expr_mut(id).ty = Some(Type::Int32);
+        id
+    }
+
+    /// Create a float literal expression
+    pub fn num(&mut self, value: f32) -> ExprId {
+        let id = self
+            .pool
+            .alloc_expr(ExprKind::Number(value), Span::EMPTY)
+            .unwrap();
+        self.pool.expr_mut(id).ty = Some(Type::Fixed);
+        id
+    }
+
+    /// Create a variable reference expression
+    pub fn var(&mut self, name: &str) -> ExprId {
+        self.pool
+            .alloc_expr(ExprKind::Variable(String::from(name)), Span::EMPTY)
+            .unwrap()
+    }
+
+    // ============================================================================
+    // Comparison operators (return ExprId, auto-typed to Bool)
+    // ============================================================================
+
+    /// Less than: left < right
+    pub fn less(&mut self, left: ExprId, right: ExprId) -> ExprId {
+        let id = self
+            .pool
+            .alloc_expr(ExprKind::Less(left, right), Span::EMPTY)
+            .unwrap();
+        self.pool.expr_mut(id).ty = Some(Type::Bool);
+        id
+    }
+
+    /// Greater than: left > right
+    pub fn greater(&mut self, left: ExprId, right: ExprId) -> ExprId {
+        let id = self
+            .pool
+            .alloc_expr(ExprKind::Greater(left, right), Span::EMPTY)
+            .unwrap();
+        self.pool.expr_mut(id).ty = Some(Type::Bool);
+        id
+    }
+
+    /// Less than or equal: left <= right
+    pub fn less_eq(&mut self, left: ExprId, right: ExprId) -> ExprId {
+        let id = self
+            .pool
+            .alloc_expr(ExprKind::LessEq(left, right), Span::EMPTY)
+            .unwrap();
+        self.pool.expr_mut(id).ty = Some(Type::Bool);
+        id
+    }
+
+    /// Greater than or equal: left >= right
+    pub fn greater_eq(&mut self, left: ExprId, right: ExprId) -> ExprId {
+        let id = self
+            .pool
+            .alloc_expr(ExprKind::GreaterEq(left, right), Span::EMPTY)
+            .unwrap();
+        self.pool.expr_mut(id).ty = Some(Type::Bool);
+        id
+    }
+
+    /// Equal: left == right
+    pub fn eq(&mut self, left: ExprId, right: ExprId) -> ExprId {
+        let id = self
+            .pool
+            .alloc_expr(ExprKind::Eq(left, right), Span::EMPTY)
+            .unwrap();
+        self.pool.expr_mut(id).ty = Some(Type::Bool);
+        id
+    }
+
+    /// Not equal: left != right
+    pub fn not_eq(&mut self, left: ExprId, right: ExprId) -> ExprId {
+        let id = self
+            .pool
+            .alloc_expr(ExprKind::NotEq(left, right), Span::EMPTY)
+            .unwrap();
+        self.pool.expr_mut(id).ty = Some(Type::Bool);
+        id
+    }
+
+    // ============================================================================
+    // Arithmetic operators (return ExprId, type parameter required)
+    // ============================================================================
+
+    /// Addition: left + right
+    pub fn add(&mut self, left: ExprId, right: ExprId, ty: Type) -> ExprId {
+        let id = self
+            .pool
+            .alloc_expr(ExprKind::Add(left, right), Span::EMPTY)
+            .unwrap();
+        self.pool.expr_mut(id).ty = Some(ty);
+        id
+    }
+
+    /// Subtraction: left - right
+    pub fn sub(&mut self, left: ExprId, right: ExprId, ty: Type) -> ExprId {
+        let id = self
+            .pool
+            .alloc_expr(ExprKind::Sub(left, right), Span::EMPTY)
+            .unwrap();
+        self.pool.expr_mut(id).ty = Some(ty);
+        id
+    }
+
+    /// Multiplication: left * right
+    pub fn mul(&mut self, left: ExprId, right: ExprId, ty: Type) -> ExprId {
+        let id = self
+            .pool
+            .alloc_expr(ExprKind::Mul(left, right), Span::EMPTY)
+            .unwrap();
+        self.pool.expr_mut(id).ty = Some(ty);
+        id
+    }
+
+    /// Division: left / right
+    pub fn div(&mut self, left: ExprId, right: ExprId, ty: Type) -> ExprId {
+        let id = self
+            .pool
+            .alloc_expr(ExprKind::Div(left, right), Span::EMPTY)
+            .unwrap();
+        self.pool.expr_mut(id).ty = Some(ty);
+        id
+    }
+
+    /// Modulo: left % right
+    pub fn modulo(&mut self, left: ExprId, right: ExprId, ty: Type) -> ExprId {
+        let id = self
+            .pool
+            .alloc_expr(ExprKind::Mod(left, right), Span::EMPTY)
+            .unwrap();
+        self.pool.expr_mut(id).ty = Some(ty);
+        id
+    }
+
+    // ============================================================================
+    // Bitwise operators (Int32 only, auto-typed)
+    // ============================================================================
+
+    /// Bitwise AND: left & right
+    pub fn bitwise_and(&mut self, left: ExprId, right: ExprId, ty: Type) -> ExprId {
+        let id = self
+            .pool
+            .alloc_expr(ExprKind::BitwiseAnd(left, right), Span::EMPTY)
+            .unwrap();
+        self.pool.expr_mut(id).ty = Some(ty);
+        id
+    }
+
+    /// Bitwise OR: left | right
+    pub fn bitwise_or(&mut self, left: ExprId, right: ExprId, ty: Type) -> ExprId {
+        let id = self
+            .pool
+            .alloc_expr(ExprKind::BitwiseOr(left, right), Span::EMPTY)
+            .unwrap();
+        self.pool.expr_mut(id).ty = Some(ty);
+        id
+    }
+
+    /// Bitwise XOR: left ^ right
+    pub fn bitwise_xor(&mut self, left: ExprId, right: ExprId, ty: Type) -> ExprId {
+        let id = self
+            .pool
+            .alloc_expr(ExprKind::BitwiseXor(left, right), Span::EMPTY)
+            .unwrap();
+        self.pool.expr_mut(id).ty = Some(ty);
+        id
+    }
+
+    /// Bitwise NOT: ~operand
+    pub fn bitwise_not(&mut self, operand: ExprId, ty: Type) -> ExprId {
+        let id = self
+            .pool
+            .alloc_expr(ExprKind::BitwiseNot(operand), Span::EMPTY)
+            .unwrap();
+        self.pool.expr_mut(id).ty = Some(ty);
+        id
+    }
+
+    /// Left shift: left << right
+    pub fn left_shift(&mut self, left: ExprId, right: ExprId, ty: Type) -> ExprId {
+        let id = self
+            .pool
+            .alloc_expr(ExprKind::LeftShift(left, right), Span::EMPTY)
+            .unwrap();
+        self.pool.expr_mut(id).ty = Some(ty);
+        id
+    }
+
+    /// Right shift: left >> right
+    pub fn right_shift(&mut self, left: ExprId, right: ExprId, ty: Type) -> ExprId {
+        let id = self
+            .pool
+            .alloc_expr(ExprKind::RightShift(left, right), Span::EMPTY)
+            .unwrap();
+        self.pool.expr_mut(id).ty = Some(ty);
+        id
+    }
+
+    // ============================================================================
+    // Logical operators (Bool, auto-typed)
+    // ============================================================================
+
+    /// Logical AND: left && right
+    pub fn logical_and(&mut self, left: ExprId, right: ExprId) -> ExprId {
+        let id = self
+            .pool
+            .alloc_expr(ExprKind::And(left, right), Span::EMPTY)
+            .unwrap();
+        self.pool.expr_mut(id).ty = Some(Type::Bool);
+        id
+    }
+
+    /// Logical OR: left || right
+    pub fn logical_or(&mut self, left: ExprId, right: ExprId) -> ExprId {
+        let id = self
+            .pool
+            .alloc_expr(ExprKind::Or(left, right), Span::EMPTY)
+            .unwrap();
+        self.pool.expr_mut(id).ty = Some(Type::Bool);
+        id
+    }
+
+    /// Logical NOT: !operand
+    pub fn logical_not(&mut self, operand: ExprId) -> ExprId {
+        let id = self
+            .pool
+            .alloc_expr(ExprKind::Not(operand), Span::EMPTY)
+            .unwrap();
+        self.pool.expr_mut(id).ty = Some(Type::Bool);
+        id
+    }
+
+    // ============================================================================
+    // Unary operators
+    // ============================================================================
+
+    /// Negation: -operand
+    pub fn neg(&mut self, operand: ExprId, ty: Type) -> ExprId {
+        let id = self
+            .pool
+            .alloc_expr(ExprKind::Neg(operand), Span::EMPTY)
+            .unwrap();
+        self.pool.expr_mut(id).ty = Some(ty);
+        id
+    }
+
+    // ============================================================================
+    // Other expressions
+    // ============================================================================
+
+    /// Ternary: condition ? true_expr : false_expr
+    pub fn ternary(
+        &mut self,
+        condition: ExprId,
+        true_expr: ExprId,
+        false_expr: ExprId,
+        ty: Type,
+    ) -> ExprId {
+        let id = self
+            .pool
+            .alloc_expr(
+                ExprKind::Ternary {
+                    condition,
+                    true_expr,
+                    false_expr,
+                },
+                Span::EMPTY,
+            )
+            .unwrap();
+        self.pool.expr_mut(id).ty = Some(ty);
+        id
+    }
+
+    /// Assignment: target = value
+    pub fn assign(&mut self, target: &str, value: ExprId, ty: Type) -> ExprId {
+        let id = self
+            .pool
+            .alloc_expr(
+                ExprKind::Assign {
+                    target: String::from(target),
+                    value,
+                },
+                Span::EMPTY,
+            )
+            .unwrap();
+        self.pool.expr_mut(id).ty = Some(ty);
+        id
+    }
+
+    /// Function call: name(args...)
+    pub fn call(&mut self, name: &str, args: Vec<ExprId>, ty: Type) -> ExprId {
+        let id = self
+            .pool
+            .alloc_expr(
+                ExprKind::Call {
+                    name: String::from(name),
+                    args,
+                },
+                Span::EMPTY,
+            )
+            .unwrap();
+        self.pool.expr_mut(id).ty = Some(ty);
+        id
+    }
+
+    /// Vector constructor: vec2(args...)
+    pub fn vec2(&mut self, args: Vec<ExprId>) -> ExprId {
+        let id = self
+            .pool
+            .alloc_expr(ExprKind::Vec2Constructor(args), Span::EMPTY)
+            .unwrap();
+        self.pool.expr_mut(id).ty = Some(Type::Vec2);
+        id
+    }
+
+    /// Vector constructor: vec3(args...)
+    pub fn vec3(&mut self, args: Vec<ExprId>) -> ExprId {
+        let id = self
+            .pool
+            .alloc_expr(ExprKind::Vec3Constructor(args), Span::EMPTY)
+            .unwrap();
+        self.pool.expr_mut(id).ty = Some(Type::Vec3);
+        id
+    }
+
+    /// Vector constructor: vec4(args...)
+    pub fn vec4(&mut self, args: Vec<ExprId>) -> ExprId {
+        let id = self
+            .pool
+            .alloc_expr(ExprKind::Vec4Constructor(args), Span::EMPTY)
+            .unwrap();
+        self.pool.expr_mut(id).ty = Some(Type::Vec4);
+        id
+    }
+
+    /// Swizzle: expr.components
+    pub fn swizzle(&mut self, expr: ExprId, components: &str, ty: Type) -> ExprId {
+        let id = self
+            .pool
+            .alloc_expr(
+                ExprKind::Swizzle {
+                    expr,
+                    components: String::from(components),
+                },
+                Span::EMPTY,
+            )
+            .unwrap();
+        self.pool.expr_mut(id).ty = Some(ty);
+        id
+    }
 }
 
-/// Create a variable reference expression (type must be inferred by context)
-pub fn var(name: &str) -> Expr {
-    Expr::new(ExprKind::Variable(String::from(name)), Span::EMPTY)
-}
-
-// ============================================================================
-// Comparison operators (return Expr, auto-typed to Bool)
-// ============================================================================
-
-/// Less than: left < right
-pub fn less(left: Expr, right: Expr) -> Expr {
-    let mut expr = Expr::new(ExprKind::Less(Box::new(left), Box::new(right)), Span::EMPTY);
-    expr.ty = Some(Type::Bool);
-    expr
-}
-
-/// Greater than: left > right
-pub fn greater(left: Expr, right: Expr) -> Expr {
-    let mut expr = Expr::new(
-        ExprKind::Greater(Box::new(left), Box::new(right)),
-        Span::EMPTY,
-    );
-    expr.ty = Some(Type::Bool);
-    expr
-}
-
-/// Less than or equal: left <= right
-pub fn less_eq(left: Expr, right: Expr) -> Expr {
-    let mut expr = Expr::new(
-        ExprKind::LessEq(Box::new(left), Box::new(right)),
-        Span::EMPTY,
-    );
-    expr.ty = Some(Type::Bool);
-    expr
-}
-
-/// Greater than or equal: left >= right
-pub fn greater_eq(left: Expr, right: Expr) -> Expr {
-    let mut expr = Expr::new(
-        ExprKind::GreaterEq(Box::new(left), Box::new(right)),
-        Span::EMPTY,
-    );
-    expr.ty = Some(Type::Bool);
-    expr
-}
-
-/// Equal: left == right
-pub fn eq(left: Expr, right: Expr) -> Expr {
-    let mut expr = Expr::new(ExprKind::Eq(Box::new(left), Box::new(right)), Span::EMPTY);
-    expr.ty = Some(Type::Bool);
-    expr
-}
-
-/// Not equal: left != right
-pub fn not_eq(left: Expr, right: Expr) -> Expr {
-    let mut expr = Expr::new(
-        ExprKind::NotEq(Box::new(left), Box::new(right)),
-        Span::EMPTY,
-    );
-    expr.ty = Some(Type::Bool);
-    expr
-}
-
-// ============================================================================
-// Arithmetic operators (return Expr, type parameter required)
-// ============================================================================
-
-/// Add: left + right
-pub fn add(left: Expr, right: Expr, ty: Type) -> Expr {
-    let mut expr = Expr::new(ExprKind::Add(Box::new(left), Box::new(right)), Span::EMPTY);
-    expr.ty = Some(ty);
-    expr
-}
-
-/// Subtract: left - right
-pub fn sub(left: Expr, right: Expr, ty: Type) -> Expr {
-    let mut expr = Expr::new(ExprKind::Sub(Box::new(left), Box::new(right)), Span::EMPTY);
-    expr.ty = Some(ty);
-    expr
-}
-
-/// Multiply: left * right
-pub fn mul(left: Expr, right: Expr, ty: Type) -> Expr {
-    let mut expr = Expr::new(ExprKind::Mul(Box::new(left), Box::new(right)), Span::EMPTY);
-    expr.ty = Some(ty);
-    expr
-}
-
-/// Divide: left / right
-pub fn div(left: Expr, right: Expr, ty: Type) -> Expr {
-    let mut expr = Expr::new(ExprKind::Div(Box::new(left), Box::new(right)), Span::EMPTY);
-    expr.ty = Some(ty);
-    expr
-}
-
-/// Modulo: left % right
-pub fn modulo(left: Expr, right: Expr, ty: Type) -> Expr {
-    let mut expr = Expr::new(ExprKind::Mod(Box::new(left), Box::new(right)), Span::EMPTY);
-    expr.ty = Some(ty);
-    expr
-}
-
-// Power operator removed - use pow() function instead
-
-// ============================================================================
-// Bitwise operators (return Expr, type parameter required)
-// ============================================================================
-
-/// Bitwise AND: left & right
-pub fn bitwise_and(left: Expr, right: Expr, ty: Type) -> Expr {
-    let mut expr = Expr::new(
-        ExprKind::BitwiseAnd(Box::new(left), Box::new(right)),
-        Span::EMPTY,
-    );
-    expr.ty = Some(ty);
-    expr
-}
-
-/// Bitwise OR: left | right
-pub fn bitwise_or(left: Expr, right: Expr, ty: Type) -> Expr {
-    let mut expr = Expr::new(
-        ExprKind::BitwiseOr(Box::new(left), Box::new(right)),
-        Span::EMPTY,
-    );
-    expr.ty = Some(ty);
-    expr
-}
-
-/// Bitwise XOR: left ^ right
-pub fn bitwise_xor(left: Expr, right: Expr, ty: Type) -> Expr {
-    let mut expr = Expr::new(
-        ExprKind::BitwiseXor(Box::new(left), Box::new(right)),
-        Span::EMPTY,
-    );
-    expr.ty = Some(ty);
-    expr
-}
-
-/// Bitwise NOT: ~operand
-pub fn bitwise_not(operand: Expr, ty: Type) -> Expr {
-    let mut expr = Expr::new(ExprKind::BitwiseNot(Box::new(operand)), Span::EMPTY);
-    expr.ty = Some(ty);
-    expr
-}
-
-/// Left shift: left << right
-pub fn left_shift(left: Expr, right: Expr, ty: Type) -> Expr {
-    let mut expr = Expr::new(
-        ExprKind::LeftShift(Box::new(left), Box::new(right)),
-        Span::EMPTY,
-    );
-    expr.ty = Some(ty);
-    expr
-}
-
-/// Right shift: left >> right
-pub fn right_shift(left: Expr, right: Expr, ty: Type) -> Expr {
-    let mut expr = Expr::new(
-        ExprKind::RightShift(Box::new(left), Box::new(right)),
-        Span::EMPTY,
-    );
-    expr.ty = Some(ty);
-    expr
-}
-
-// ============================================================================
-// Logical operators (return Expr, type parameter required)
-// ============================================================================
-
-/// Logical AND: left && right
-pub fn and(left: Expr, right: Expr, ty: Type) -> Expr {
-    let mut expr = Expr::new(ExprKind::And(Box::new(left), Box::new(right)), Span::EMPTY);
-    expr.ty = Some(ty);
-    expr
-}
-
-/// Logical OR: left || right
-pub fn or(left: Expr, right: Expr, ty: Type) -> Expr {
-    let mut expr = Expr::new(ExprKind::Or(Box::new(left), Box::new(right)), Span::EMPTY);
-    expr.ty = Some(ty);
-    expr
-}
-
-// ============================================================================
-// Other expressions (return Expr, type parameter required)
-// ============================================================================
-
-/// Ternary: condition ? true_expr : false_expr
-pub fn ternary(condition: Expr, true_expr: Expr, false_expr: Expr, ty: Type) -> Expr {
-    let mut expr = Expr::new(
-        ExprKind::Ternary {
-            condition: Box::new(condition),
-            true_expr: Box::new(true_expr),
-            false_expr: Box::new(false_expr),
-        },
-        Span::EMPTY,
-    );
-    expr.ty = Some(ty);
-    expr
-}
-
-/// Swizzle: expr.components
-pub fn swizzle(base_expr: Expr, components: &str, ty: Type) -> Expr {
-    let mut expr = Expr::new(
-        ExprKind::Swizzle {
-            expr: Box::new(base_expr),
-            components: String::from(components),
-        },
-        Span::EMPTY,
-    );
-    expr.ty = Some(ty);
-    expr
-}
-
-/// Assignment: target = value
-pub fn assign(target: &str, value: Expr, ty: Type) -> Expr {
-    let mut expr = Expr::new(
-        ExprKind::Assign {
-            target: String::from(target),
-            value: Box::new(value),
-        },
-        Span::EMPTY,
-    );
-    expr.ty = Some(ty);
-    expr
-}
-
-/// Function call: name(args)
-pub fn call(name: &str, args: Vec<Expr>, ty: Type) -> Expr {
-    let mut expr = Expr::new(
-        ExprKind::Call {
-            name: String::from(name),
-            args,
-        },
-        Span::EMPTY,
-    );
-    expr.ty = Some(ty);
-    expr
-}
-
-/// Vec2 constructor: vec2(args)
-pub fn vec2_ctor(args: Vec<Expr>, ty: Type) -> Expr {
-    let mut expr = Expr::new(ExprKind::Vec2Constructor(args), Span::EMPTY);
-    expr.ty = Some(ty);
-    expr
-}
-
-/// Vec3 constructor: vec3(args)
-pub fn vec3_ctor(args: Vec<Expr>, ty: Type) -> Expr {
-    let mut expr = Expr::new(ExprKind::Vec3Constructor(args), Span::EMPTY);
-    expr.ty = Some(ty);
-    expr
-}
-
-/// Vec4 constructor: vec4(args)
-pub fn vec4_ctor(args: Vec<Expr>, ty: Type) -> Expr {
-    let mut expr = Expr::new(ExprKind::Vec4Constructor(args), Span::EMPTY);
-    expr.ty = Some(ty);
-    expr
+impl Default for AstBuilder {
+    fn default() -> Self {
+        Self::new()
+    }
 }

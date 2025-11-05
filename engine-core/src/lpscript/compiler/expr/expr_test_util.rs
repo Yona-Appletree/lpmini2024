@@ -1,12 +1,14 @@
 /// Test utilities for lpscript expressions - builder pattern for clean testing
 extern crate alloc;
+use alloc::boxed::Box;
 use alloc::format;
 use alloc::string::String;
 use alloc::vec::Vec;
 
-use crate::lpscript::compiler::ast::{Expr, ExprKind};
+use crate::lpscript::compiler::ast::{AstPool, ExprId};
 use crate::lpscript::compiler::codegen;
 use crate::lpscript::compiler::optimize::OptimizeOptions;
+use crate::lpscript::compiler::test_ast::AstBuilder;
 use crate::lpscript::compiler::{lexer, optimize, parser, typechecker};
 use crate::lpscript::shared::Type;
 use crate::lpscript::vm::{LocalType, LpsOpCode, LpsProgram, LpsVm, VmLimits};
@@ -21,7 +23,7 @@ pub struct ExprTest {
     input: String,
     locals: Vec<(usize, LocalType)>,
     declared_locals: Vec<(String, Type)>, // For symbol table
-    expected_ast: Option<Expr>,
+    expected_ast_builder: Option<Box<dyn FnOnce(&mut AstBuilder) -> ExprId>>,
     expected_opcodes: Option<Vec<LpsOpCode>>,
     expected_result: Option<TestResult>,
     expected_locals: Vec<(String, Fixed)>, // Expected local values after execution
@@ -45,7 +47,7 @@ impl ExprTest {
             input: String::from(input),
             locals: Vec::new(),
             declared_locals: Vec::new(),
-            expected_ast: None,
+            expected_ast_builder: None,
             expected_opcodes: None,
             expected_result: None,
             expected_locals: Vec::new(),
@@ -128,9 +130,13 @@ impl ExprTest {
         self
     }
 
-    /// Expect a specific AST structure with types (ignoring spans)
-    pub fn expect_ast(mut self, expected: Expr) -> Self {
-        self.expected_ast = Some(expected);
+    /// Expect a specific AST structure built with a closure
+    /// The closure receives an AstBuilder and returns the root ExprId
+    pub fn expect_ast<F>(mut self, builder_fn: F) -> Self
+    where
+        F: FnOnce(&mut AstBuilder) -> ExprId + 'static,
+    {
+        self.expected_ast_builder = Some(Box::new(builder_fn));
         self
     }
 
@@ -197,56 +203,52 @@ impl ExprTest {
         let mut lexer = lexer::Lexer::new(&self.input);
         let tokens = lexer.tokenize();
         let mut parser = parser::Parser::new(tokens);
-        let mut ast = parser.parse();
+        let ast_id = match parser.parse() {
+            Ok(id) => id,
+            Err(e) => {
+                errors.push(format!("Parse error: {}", e));
+                return Err(errors.join("\n\n"));
+            }
+        };
+        let pool = parser.pool;
 
-        // Type check with pre-declared locals
-        let typed_ast = if self.declared_locals.is_empty() {
-            // No locals declared, use standard type checking
-            match typechecker::TypeChecker::check(ast) {
-                Ok(ast) => ast,
-                Err(e) => {
-                    errors.push(format!("Type check error: {}", e));
-                    return Err(errors.join("\n\n"));
-                }
-            }
-        } else {
-            // Declare locals in symbol table before type checking
-            let mut symbols = typechecker::SymbolTable::new();
-            for (name, ty) in &self.declared_locals {
-                if let Err(e) = symbols.declare(name.clone(), ty.clone()) {
-                    errors.push(format!("Failed to declare local '{}': {}", name, e));
-                    return Err(errors.join("\n\n"));
-                }
-            }
-            let func_table = typechecker::FunctionTable::new();
-            match typechecker::TypeChecker::infer_type(&mut ast, &mut symbols, &func_table) {
-                Ok(_) => ast,
-                Err(e) => {
-                    errors.push(format!("Type check error: {}", e));
-                    return Err(errors.join("\n\n"));
-                }
+        // Type check
+        let (typed_ast_id, mut pool) = match typechecker::TypeChecker::check(ast_id, pool) {
+            Ok(result) => result,
+            Err(e) => {
+                errors.push(format!("Type check error: {}", e));
+                return Err(errors.join("\n\n"));
             }
         };
 
         // Check AST if expected (after type checking so types are populated)
-        if let Some(expected_ast) = &self.expected_ast {
-            if !ast_eq_ignore_spans(&typed_ast, expected_ast) {
+        if let Some(builder_fn) = self.expected_ast_builder {
+            let mut expected_builder = AstBuilder::new();
+            let expected_ast_id = builder_fn(&mut expected_builder);
+            let expected_pool = expected_builder.into_pool();
+
+            if !ast_eq_ignore_spans_with_pool(&pool, typed_ast_id, &expected_pool, expected_ast_id)
+            {
                 errors.push(format!(
                     "AST mismatch:\nExpected: {:?}\nActual:   {:?}",
-                    expected_ast, typed_ast
+                    expected_pool.expr(expected_ast_id),
+                    pool.expr(typed_ast_id)
                 ));
             }
         }
 
-        // Generate opcodes (with pre-declared locals if any)
-        let local_names_and_indices: Vec<(String, u32)> = self
-            .declared_locals
-            .iter()
-            .enumerate()
-            .map(|(idx, (name, _))| (name.clone(), idx as u32))
-            .collect();
-        let mut opcodes =
-            codegen::CodeGenerator::generate_with_locals(&typed_ast, local_names_and_indices);
+        // Generate opcodes (with locals if any were declared)
+        let mut opcodes = if !self.declared_locals.is_empty() {
+            let predeclared: Vec<(String, u32, Type)> = self
+                .declared_locals
+                .iter()
+                .enumerate()
+                .map(|(idx, (name, ty))| (name.clone(), idx as u32, ty.clone()))
+                .collect();
+            codegen::CodeGenerator::generate_with_locals(&pool, typed_ast_id, predeclared)
+        } else {
+            codegen::CodeGenerator::generate(&pool, typed_ast_id)
+        };
 
         // Apply opcode optimization if configured
         if let Some(ref options) = self.optimize_options {
@@ -428,9 +430,18 @@ impl ExprTest {
     }
 }
 
-/// Compare AST expressions ignoring spans but checking types
-/// This is public so it can be used by other test utilities
-pub fn ast_eq_ignore_spans(actual: &Expr, expected: &Expr) -> bool {
+/// Compare AST expressions by ID in their respective pools, ignoring spans but checking types
+pub(crate) fn ast_eq_ignore_spans_with_pool(
+    actual_pool: &AstPool,
+    actual_id: ExprId,
+    expected_pool: &AstPool,
+    expected_id: ExprId,
+) -> bool {
+    use crate::lpscript::compiler::ast::ExprKind;
+
+    let actual = actual_pool.expr(actual_id);
+    let expected = expected_pool.expr(expected_id);
+
     // Check types match (both Some and equal, or both None)
     if actual.ty != expected.ty {
         return false;
@@ -444,37 +455,49 @@ pub fn ast_eq_ignore_spans(actual: &Expr, expected: &Expr) -> bool {
 
         // Binary operations
         (ExprKind::Add(l1, r1), ExprKind::Add(l2, r2)) => {
-            ast_eq_ignore_spans(l1, l2) && ast_eq_ignore_spans(r1, r2)
+            ast_eq_ignore_spans_with_pool(actual_pool, *l1, expected_pool, *l2)
+                && ast_eq_ignore_spans_with_pool(actual_pool, *r1, expected_pool, *r2)
         }
         (ExprKind::Sub(l1, r1), ExprKind::Sub(l2, r2)) => {
-            ast_eq_ignore_spans(l1, l2) && ast_eq_ignore_spans(r1, r2)
+            ast_eq_ignore_spans_with_pool(actual_pool, *l1, expected_pool, *l2)
+                && ast_eq_ignore_spans_with_pool(actual_pool, *r1, expected_pool, *r2)
         }
         (ExprKind::Mul(l1, r1), ExprKind::Mul(l2, r2)) => {
-            ast_eq_ignore_spans(l1, l2) && ast_eq_ignore_spans(r1, r2)
+            ast_eq_ignore_spans_with_pool(actual_pool, *l1, expected_pool, *l2)
+                && ast_eq_ignore_spans_with_pool(actual_pool, *r1, expected_pool, *r2)
         }
         (ExprKind::Div(l1, r1), ExprKind::Div(l2, r2)) => {
-            ast_eq_ignore_spans(l1, l2) && ast_eq_ignore_spans(r1, r2)
+            ast_eq_ignore_spans_with_pool(actual_pool, *l1, expected_pool, *l2)
+                && ast_eq_ignore_spans_with_pool(actual_pool, *r1, expected_pool, *r2)
         }
         (ExprKind::Mod(l1, r1), ExprKind::Mod(l2, r2)) => {
-            ast_eq_ignore_spans(l1, l2) && ast_eq_ignore_spans(r1, r2)
+            ast_eq_ignore_spans_with_pool(actual_pool, *l1, expected_pool, *l2)
+                && ast_eq_ignore_spans_with_pool(actual_pool, *r1, expected_pool, *r2)
         }
 
         // Bitwise operations
         (ExprKind::BitwiseAnd(l1, r1), ExprKind::BitwiseAnd(l2, r2)) => {
-            ast_eq_ignore_spans(l1, l2) && ast_eq_ignore_spans(r1, r2)
+            ast_eq_ignore_spans_with_pool(actual_pool, *l1, expected_pool, *l2)
+                && ast_eq_ignore_spans_with_pool(actual_pool, *r1, expected_pool, *r2)
         }
         (ExprKind::BitwiseOr(l1, r1), ExprKind::BitwiseOr(l2, r2)) => {
-            ast_eq_ignore_spans(l1, l2) && ast_eq_ignore_spans(r1, r2)
+            ast_eq_ignore_spans_with_pool(actual_pool, *l1, expected_pool, *l2)
+                && ast_eq_ignore_spans_with_pool(actual_pool, *r1, expected_pool, *r2)
         }
         (ExprKind::BitwiseXor(l1, r1), ExprKind::BitwiseXor(l2, r2)) => {
-            ast_eq_ignore_spans(l1, l2) && ast_eq_ignore_spans(r1, r2)
+            ast_eq_ignore_spans_with_pool(actual_pool, *l1, expected_pool, *l2)
+                && ast_eq_ignore_spans_with_pool(actual_pool, *r1, expected_pool, *r2)
         }
-        (ExprKind::BitwiseNot(o1), ExprKind::BitwiseNot(o2)) => ast_eq_ignore_spans(o1, o2),
+        (ExprKind::BitwiseNot(o1), ExprKind::BitwiseNot(o2)) => {
+            ast_eq_ignore_spans_with_pool(actual_pool, *o1, expected_pool, *o2)
+        }
         (ExprKind::LeftShift(l1, r1), ExprKind::LeftShift(l2, r2)) => {
-            ast_eq_ignore_spans(l1, l2) && ast_eq_ignore_spans(r1, r2)
+            ast_eq_ignore_spans_with_pool(actual_pool, *l1, expected_pool, *l2)
+                && ast_eq_ignore_spans_with_pool(actual_pool, *r1, expected_pool, *r2)
         }
         (ExprKind::RightShift(l1, r1), ExprKind::RightShift(l2, r2)) => {
-            ast_eq_ignore_spans(l1, l2) && ast_eq_ignore_spans(r1, r2)
+            ast_eq_ignore_spans_with_pool(actual_pool, *l1, expected_pool, *l2)
+                && ast_eq_ignore_spans_with_pool(actual_pool, *r1, expected_pool, *r2)
         }
 
         // Increment/Decrement
@@ -485,30 +508,44 @@ pub fn ast_eq_ignore_spans(actual: &Expr, expected: &Expr) -> bool {
 
         // Comparisons
         (ExprKind::Less(l1, r1), ExprKind::Less(l2, r2)) => {
-            ast_eq_ignore_spans(l1, l2) && ast_eq_ignore_spans(r1, r2)
+            ast_eq_ignore_spans_with_pool(actual_pool, *l1, expected_pool, *l2)
+                && ast_eq_ignore_spans_with_pool(actual_pool, *r1, expected_pool, *r2)
         }
         (ExprKind::Greater(l1, r1), ExprKind::Greater(l2, r2)) => {
-            ast_eq_ignore_spans(l1, l2) && ast_eq_ignore_spans(r1, r2)
+            ast_eq_ignore_spans_with_pool(actual_pool, *l1, expected_pool, *l2)
+                && ast_eq_ignore_spans_with_pool(actual_pool, *r1, expected_pool, *r2)
         }
         (ExprKind::LessEq(l1, r1), ExprKind::LessEq(l2, r2)) => {
-            ast_eq_ignore_spans(l1, l2) && ast_eq_ignore_spans(r1, r2)
+            ast_eq_ignore_spans_with_pool(actual_pool, *l1, expected_pool, *l2)
+                && ast_eq_ignore_spans_with_pool(actual_pool, *r1, expected_pool, *r2)
         }
         (ExprKind::GreaterEq(l1, r1), ExprKind::GreaterEq(l2, r2)) => {
-            ast_eq_ignore_spans(l1, l2) && ast_eq_ignore_spans(r1, r2)
+            ast_eq_ignore_spans_with_pool(actual_pool, *l1, expected_pool, *l2)
+                && ast_eq_ignore_spans_with_pool(actual_pool, *r1, expected_pool, *r2)
         }
         (ExprKind::Eq(l1, r1), ExprKind::Eq(l2, r2)) => {
-            ast_eq_ignore_spans(l1, l2) && ast_eq_ignore_spans(r1, r2)
+            ast_eq_ignore_spans_with_pool(actual_pool, *l1, expected_pool, *l2)
+                && ast_eq_ignore_spans_with_pool(actual_pool, *r1, expected_pool, *r2)
         }
         (ExprKind::NotEq(l1, r1), ExprKind::NotEq(l2, r2)) => {
-            ast_eq_ignore_spans(l1, l2) && ast_eq_ignore_spans(r1, r2)
+            ast_eq_ignore_spans_with_pool(actual_pool, *l1, expected_pool, *l2)
+                && ast_eq_ignore_spans_with_pool(actual_pool, *r1, expected_pool, *r2)
         }
 
         // Logical
         (ExprKind::And(l1, r1), ExprKind::And(l2, r2)) => {
-            ast_eq_ignore_spans(l1, l2) && ast_eq_ignore_spans(r1, r2)
+            ast_eq_ignore_spans_with_pool(actual_pool, *l1, expected_pool, *l2)
+                && ast_eq_ignore_spans_with_pool(actual_pool, *r1, expected_pool, *r2)
         }
         (ExprKind::Or(l1, r1), ExprKind::Or(l2, r2)) => {
-            ast_eq_ignore_spans(l1, l2) && ast_eq_ignore_spans(r1, r2)
+            ast_eq_ignore_spans_with_pool(actual_pool, *l1, expected_pool, *l2)
+                && ast_eq_ignore_spans_with_pool(actual_pool, *r1, expected_pool, *r2)
+        }
+        (ExprKind::Not(o1), ExprKind::Not(o2)) => {
+            ast_eq_ignore_spans_with_pool(actual_pool, *o1, expected_pool, *o2)
+        }
+        (ExprKind::Neg(o1), ExprKind::Neg(o2)) => {
+            ast_eq_ignore_spans_with_pool(actual_pool, *o1, expected_pool, *o2)
         }
 
         // Ternary
@@ -524,9 +561,9 @@ pub fn ast_eq_ignore_spans(actual: &Expr, expected: &Expr) -> bool {
                 false_expr: f2,
             },
         ) => {
-            ast_eq_ignore_spans(c1, c2)
-                && ast_eq_ignore_spans(t1, t2)
-                && ast_eq_ignore_spans(f1, f2)
+            ast_eq_ignore_spans_with_pool(actual_pool, *c1, expected_pool, *c2)
+                && ast_eq_ignore_spans_with_pool(actual_pool, *t1, expected_pool, *t2)
+                && ast_eq_ignore_spans_with_pool(actual_pool, *f1, expected_pool, *f2)
         }
 
         // Swizzle
@@ -539,16 +576,16 @@ pub fn ast_eq_ignore_spans(actual: &Expr, expected: &Expr) -> bool {
                 expr: e2,
                 components: c2,
             },
-        ) => ast_eq_ignore_spans(e1, e2) && c1 == c2,
+        ) => ast_eq_ignore_spans_with_pool(actual_pool, *e1, expected_pool, *e2) && c1 == c2,
 
         // Call
         (ExprKind::Call { name: n1, args: a1 }, ExprKind::Call { name: n2, args: a2 }) => {
             if n1 != n2 || a1.len() != a2.len() {
                 return false;
             }
-            a1.iter()
-                .zip(a2.iter())
-                .all(|(arg1, arg2)| ast_eq_ignore_spans(arg1, arg2))
+            a1.iter().zip(a2.iter()).all(|(arg1, arg2)| {
+                ast_eq_ignore_spans_with_pool(actual_pool, *arg1, expected_pool, *arg2)
+            })
         }
 
         // Vector constructors
@@ -556,25 +593,25 @@ pub fn ast_eq_ignore_spans(actual: &Expr, expected: &Expr) -> bool {
             if a1.len() != a2.len() {
                 return false;
             }
-            a1.iter()
-                .zip(a2.iter())
-                .all(|(arg1, arg2)| ast_eq_ignore_spans(arg1, arg2))
+            a1.iter().zip(a2.iter()).all(|(arg1, arg2)| {
+                ast_eq_ignore_spans_with_pool(actual_pool, *arg1, expected_pool, *arg2)
+            })
         }
         (ExprKind::Vec3Constructor(a1), ExprKind::Vec3Constructor(a2)) => {
             if a1.len() != a2.len() {
                 return false;
             }
-            a1.iter()
-                .zip(a2.iter())
-                .all(|(arg1, arg2)| ast_eq_ignore_spans(arg1, arg2))
+            a1.iter().zip(a2.iter()).all(|(arg1, arg2)| {
+                ast_eq_ignore_spans_with_pool(actual_pool, *arg1, expected_pool, *arg2)
+            })
         }
         (ExprKind::Vec4Constructor(a1), ExprKind::Vec4Constructor(a2)) => {
             if a1.len() != a2.len() {
                 return false;
             }
-            a1.iter()
-                .zip(a2.iter())
-                .all(|(arg1, arg2)| ast_eq_ignore_spans(arg1, arg2))
+            a1.iter().zip(a2.iter()).all(|(arg1, arg2)| {
+                ast_eq_ignore_spans_with_pool(actual_pool, *arg1, expected_pool, *arg2)
+            })
         }
 
         // Assignment
@@ -587,7 +624,7 @@ pub fn ast_eq_ignore_spans(actual: &Expr, expected: &Expr) -> bool {
                 target: t2,
                 value: v2,
             },
-        ) => t1 == t2 && ast_eq_ignore_spans(v1, v2),
+        ) => t1 == t2 && ast_eq_ignore_spans_with_pool(actual_pool, *v1, expected_pool, *v2),
 
         _ => false,
     }
@@ -596,7 +633,6 @@ pub fn ast_eq_ignore_spans(actual: &Expr, expected: &Expr) -> bool {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::lpscript::compiler::test_ast::*;
 
     #[test]
     fn test_case_simple_pass() {
@@ -608,7 +644,11 @@ mod tests {
     fn test_case_ast_check() {
         // Test AST checking
         ExprTest::new("1 + 2")
-            .expect_ast(add(int32(1), int32(2), Type::Int32))
+            .expect_ast(|b| {
+                let left = b.int32(1);
+                let right = b.int32(2);
+                b.add(left, right, Type::Int32)
+            })
             .run()
             .expect("AST should match");
     }
@@ -617,7 +657,11 @@ mod tests {
     fn test_case_ast_mismatch() {
         // Test that AST mismatch is caught
         let result = ExprTest::new("1 + 2")
-            .expect_ast(sub(int32(1), int32(2), Type::Int32)) // Wrong: should be Add, not Sub
+            .expect_ast(|b| {
+                let left = b.int32(1);
+                let right = b.int32(2);
+                b.sub(left, right, Type::Int32) // Wrong: should be Add, not Sub
+            })
             .run();
 
         assert!(result.is_err());
@@ -691,7 +735,11 @@ mod tests {
     fn test_case_multiple_expectations() {
         // Test multiple expectations at once
         ExprTest::new("2.0 * 3.0")
-            .expect_ast(mul(num(2.0), num(3.0), Type::Fixed))
+            .expect_ast(|b| {
+                let left = b.num(2.0);
+                let right = b.num(3.0);
+                b.mul(left, right, Type::Fixed)
+            })
             .expect_opcodes(vec![
                 LpsOpCode::Push(2.0.to_fixed()),
                 LpsOpCode::Push(3.0.to_fixed()),
@@ -707,7 +755,11 @@ mod tests {
     fn test_case_multiple_errors_collected() {
         // Test that multiple errors are collected and reported together
         let result = ExprTest::new("1.0 + 2.0")
-            .expect_ast(sub(num(1.0), num(2.0), Type::Fixed)) // WRONG: should be Add
+            .expect_ast(|b| {
+                let left = b.num(1.0);
+                let right = b.num(2.0);
+                b.sub(left, right, Type::Fixed) // WRONG: should be Add
+            })
             .expect_opcodes(vec![
                 LpsOpCode::Push(99.0.to_fixed()), // WRONG: wrong values
                 LpsOpCode::Return,
@@ -737,13 +789,21 @@ mod tests {
     fn test_case_comparison_operators() {
         // Test comparison operators work correctly
         ExprTest::new("5.0 > 3.0")
-            .expect_ast(greater(num(5.0), num(3.0)))
+            .expect_ast(|b| {
+                let left = b.num(5.0);
+                let right = b.num(3.0);
+                b.greater(left, right)
+            })
             .expect_result_fixed(1.0)
             .run()
             .expect("5.0 > 3.0 should be true");
 
         ExprTest::new("2.0 < 1.0")
-            .expect_ast(less(num(2.0), num(1.0)))
+            .expect_ast(|b| {
+                let left = b.num(2.0);
+                let right = b.num(1.0);
+                b.less(left, right)
+            })
             .expect_result_fixed(0.0)
             .run()
             .expect("2.0 < 1.0 should be false");
@@ -763,11 +823,11 @@ mod tests {
         // Test that builder methods can be chained in any order
         let result1 = ExprTest::new("1.0")
             .expect_result_fixed(1.0)
-            .expect_ast(num(1.0))
+            .expect_ast(|b| b.num(1.0))
             .run();
 
         let result2 = ExprTest::new("1.0")
-            .expect_ast(num(1.0))
+            .expect_ast(|b| b.num(1.0))
             .expect_result_fixed(1.0)
             .run();
 
@@ -790,7 +850,11 @@ mod tests {
     fn test_ast_comparison_ignores_spans() {
         // Test that AST comparison correctly ignores spans
         ExprTest::new("1 + 2")
-            .expect_ast(add(int32(1), int32(2), Type::Int32))
+            .expect_ast(|b| {
+                let left = b.int32(1);
+                let right = b.int32(2);
+                b.add(left, right, Type::Int32)
+            })
             .run()
             .expect("Should match despite different spans");
     }

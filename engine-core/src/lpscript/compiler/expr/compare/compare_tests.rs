@@ -15,7 +15,11 @@ mod tests {
     fn test_less_than() -> Result<(), String> {
         // Test with literals: AST + opcodes + result
         ExprTest::new("1.0 < 2.0")
-            .expect_ast(less(num(1.0), num(2.0)))
+            .expect_ast(|b| {
+                let left = b.num(1.0);
+                let right = b.num(2.0);
+                b.less(left, right)
+            })
             .expect_opcodes(vec![
                 LpsOpCode::Push(1.0.to_fixed()),
                 LpsOpCode::Push(2.0.to_fixed()),
@@ -42,7 +46,11 @@ mod tests {
     fn test_greater_than() -> Result<(), String> {
         // Test with literals: AST + opcodes + result
         ExprTest::new("5.0 > 3.0")
-            .expect_ast(greater(num(5.0), num(3.0)))
+            .expect_ast(|b| {
+                let left = b.num(5.0);
+                let right = b.num(3.0);
+                b.greater(left, right)
+            })
             .expect_opcodes(vec![
                 LpsOpCode::Push(5.0.to_fixed()),
                 LpsOpCode::Push(3.0.to_fixed()),
@@ -69,7 +77,11 @@ mod tests {
     fn test_less_equal() -> Result<(), String> {
         // Test with literals: AST + opcodes + result
         ExprTest::new("2.0 <= 3.0")
-            .expect_ast(less_eq(num(2.0), num(3.0)))
+            .expect_ast(|b| {
+                let left = b.num(2.0);
+                let right = b.num(3.0);
+                b.less_eq(left, right)
+            })
             .expect_opcodes(vec![
                 LpsOpCode::Push(2.0.to_fixed()),
                 LpsOpCode::Push(3.0.to_fixed()),
@@ -102,7 +114,11 @@ mod tests {
     fn test_greater_equal() -> Result<(), String> {
         // Test with literals: AST + opcodes + result
         ExprTest::new("5.0 >= 3.0")
-            .expect_ast(greater_eq(num(5.0), num(3.0)))
+            .expect_ast(|b| {
+                let left = b.num(5.0);
+                let right = b.num(3.0);
+                b.greater_eq(left, right)
+            })
             .expect_opcodes(vec![
                 LpsOpCode::Push(5.0.to_fixed()),
                 LpsOpCode::Push(3.0.to_fixed()),
@@ -135,7 +151,11 @@ mod tests {
     fn test_equal() -> Result<(), String> {
         // Test with literals: AST + opcodes + result
         ExprTest::new("2.0 == 2.0")
-            .expect_ast(eq(num(2.0), num(2.0)))
+            .expect_ast(|b| {
+                let left = b.num(2.0);
+                let right = b.num(2.0);
+                b.eq(left, right)
+            })
             .expect_opcodes(vec![
                 LpsOpCode::Push(2.0.to_fixed()),
                 LpsOpCode::Push(2.0.to_fixed()),
@@ -162,7 +182,11 @@ mod tests {
     fn test_not_equal() -> Result<(), String> {
         // Test with literals: AST + opcodes + result
         ExprTest::new("2.0 != 3.0")
-            .expect_ast(not_eq(num(2.0), num(3.0)))
+            .expect_ast(|b| {
+                let left = b.num(2.0);
+                let right = b.num(3.0);
+                b.not_eq(left, right)
+            })
             .expect_opcodes(vec![
                 LpsOpCode::Push(2.0.to_fixed()),
                 LpsOpCode::Push(3.0.to_fixed()),

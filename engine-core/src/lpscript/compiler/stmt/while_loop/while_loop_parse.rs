@@ -1,23 +1,30 @@
 /// While loop parsing
-use crate::lpscript::compiler::ast::{Stmt, StmtKind};
+use crate::lpscript::compiler::ast::{StmtId, StmtKind};
+use crate::lpscript::compiler::error::ParseError;
 use crate::lpscript::compiler::lexer::TokenKind;
 use crate::lpscript::compiler::parser::Parser;
 use crate::lpscript::shared::Span;
-use alloc::boxed::Box;
 
 
 impl Parser {
-    pub(in crate::lpscript) fn parse_while_stmt(&mut self) -> Stmt {
+    pub(in crate::lpscript) fn parse_while_stmt(&mut self) -> Result<StmtId, ParseError> {
+        self.enter_recursion()?;
         let start = self.current().span.start;
         self.advance(); // consume 'while'
 
         self.expect(TokenKind::LParen);
-        let condition = self.ternary();
+        let condition = self.ternary()?;
         self.expect(TokenKind::RParen);
 
-        let body = Box::new(self.parse_stmt());
-        let end = body.span.end;
+        let body = self.parse_stmt()?;
+        let end = self.pool.stmt(body).span.end;
 
-        Stmt::new(StmtKind::While { condition, body }, Span::new(start, end))
+        let result = self
+            .pool
+            .alloc_stmt(StmtKind::While { condition, body }, Span::new(start, end))
+            .map_err(|e| self.pool_error_to_parse_error(e));
+
+        self.exit_recursion();
+        result
     }
 }

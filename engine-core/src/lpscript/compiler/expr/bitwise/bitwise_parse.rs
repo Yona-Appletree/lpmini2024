@@ -1,178 +1,204 @@
 /// Bitwise operator parsing (&, |, ^, ~, <<, >>)
-use crate::lpscript::compiler::ast::{Expr, ExprKind};
+use crate::lpscript::compiler::ast::{ExprId, ExprKind};
+use crate::lpscript::compiler::error::ParseError;
 use crate::lpscript::compiler::lexer::TokenKind;
 use crate::lpscript::compiler::parser::Parser;
 use crate::lpscript::shared::Span;
-use alloc::boxed::Box;
 
 
 impl Parser {
     // Bitwise OR: |
-    pub(in crate::lpscript) fn bitwise_or(&mut self) -> Expr {
-        let mut expr = self.bitwise_xor();
+    pub(in crate::lpscript) fn bitwise_or(&mut self) -> Result<ExprId, ParseError> {
+        self.enter_recursion()?;
+        let mut expr_id = self.bitwise_xor()?;
 
         while matches!(self.current().kind, TokenKind::Pipe) {
-            let start = expr.span.start;
+            let start = self.pool.expr(expr_id).span.start;
             self.advance();
-            let right = self.bitwise_xor();
-            let end = right.span.end;
-            expr = Expr::new(
-                ExprKind::BitwiseOr(Box::new(expr), Box::new(right)),
-                Span::new(start, end),
-            );
+            let right_id = self.bitwise_xor()?;
+            let end = self.pool.expr(right_id).span.end;
+            expr_id = self
+                .pool
+                .alloc_expr(ExprKind::BitwiseOr(expr_id, right_id), Span::new(start, end))
+                .map_err(|e| self.pool_error_to_parse_error(e))?;
         }
 
-        expr
+        self.exit_recursion();
+        Ok(expr_id)
     }
 
     // Bitwise XOR: ^
-    pub(in crate::lpscript) fn bitwise_xor(&mut self) -> Expr {
-        let mut expr = self.bitwise_and();
+    pub(in crate::lpscript) fn bitwise_xor(&mut self) -> Result<ExprId, ParseError> {
+        self.enter_recursion()?;
+        let mut expr_id = self.bitwise_and()?;
 
         while matches!(self.current().kind, TokenKind::Caret) {
-            let start = expr.span.start;
+            let start = self.pool.expr(expr_id).span.start;
             self.advance();
-            let right = self.bitwise_and();
-            let end = right.span.end;
-            expr = Expr::new(
-                ExprKind::BitwiseXor(Box::new(expr), Box::new(right)),
-                Span::new(start, end),
-            );
+            let right_id = self.bitwise_and()?;
+            let end = self.pool.expr(right_id).span.end;
+            expr_id = self
+                .pool
+                .alloc_expr(
+                    ExprKind::BitwiseXor(expr_id, right_id),
+                    Span::new(start, end),
+                )
+                .map_err(|e| self.pool_error_to_parse_error(e))?;
         }
 
-        expr
+        self.exit_recursion();
+        Ok(expr_id)
     }
 
     // Bitwise AND: &
-    pub(in crate::lpscript) fn bitwise_and(&mut self) -> Expr {
-        let mut expr = self.equality();
+    pub(in crate::lpscript) fn bitwise_and(&mut self) -> Result<ExprId, ParseError> {
+        self.enter_recursion()?;
+        let mut expr_id = self.equality()?;
 
         while matches!(self.current().kind, TokenKind::Ampersand) {
-            let start = expr.span.start;
+            let start = self.pool.expr(expr_id).span.start;
             self.advance();
-            let right = self.equality();
-            let end = right.span.end;
-            expr = Expr::new(
-                ExprKind::BitwiseAnd(Box::new(expr), Box::new(right)),
-                Span::new(start, end),
-            );
+            let right_id = self.equality()?;
+            let end = self.pool.expr(right_id).span.end;
+            expr_id = self
+                .pool
+                .alloc_expr(
+                    ExprKind::BitwiseAnd(expr_id, right_id),
+                    Span::new(start, end),
+                )
+                .map_err(|e| self.pool_error_to_parse_error(e))?;
         }
 
-        expr
+        self.exit_recursion();
+        Ok(expr_id)
     }
 
     // Equality: == !=
-    pub(in crate::lpscript) fn equality(&mut self) -> Expr {
-        let mut expr = self.relational();
+    pub(in crate::lpscript) fn equality(&mut self) -> Result<ExprId, ParseError> {
+        self.enter_recursion()?;
+        let mut expr_id = self.relational()?;
 
         loop {
-            let start = expr.span.start;
+            let start = self.pool.expr(expr_id).span.start;
             match &self.current().kind {
                 TokenKind::EqEq => {
                     self.advance();
-                    let right = self.relational();
-                    let end = right.span.end;
-                    expr = Expr::new(
-                        ExprKind::Eq(Box::new(expr), Box::new(right)),
-                        Span::new(start, end),
-                    );
+                    let right_id = self.relational()?;
+                    let end = self.pool.expr(right_id).span.end;
+                    expr_id = self
+                        .pool
+                        .alloc_expr(ExprKind::Eq(expr_id, right_id), Span::new(start, end))
+                        .map_err(|e| self.pool_error_to_parse_error(e))?;
                 }
                 TokenKind::NotEq => {
                     self.advance();
-                    let right = self.relational();
-                    let end = right.span.end;
-                    expr = Expr::new(
-                        ExprKind::NotEq(Box::new(expr), Box::new(right)),
-                        Span::new(start, end),
-                    );
+                    let right_id = self.relational()?;
+                    let end = self.pool.expr(right_id).span.end;
+                    expr_id = self
+                        .pool
+                        .alloc_expr(ExprKind::NotEq(expr_id, right_id), Span::new(start, end))
+                        .map_err(|e| self.pool_error_to_parse_error(e))?;
                 }
                 _ => break,
             }
         }
 
-        expr
+        self.exit_recursion();
+        Ok(expr_id)
     }
 
     // Relational: < > <= >=
-    pub(in crate::lpscript) fn relational(&mut self) -> Expr {
-        let mut expr = self.shift();
+    pub(in crate::lpscript) fn relational(&mut self) -> Result<ExprId, ParseError> {
+        self.enter_recursion()?;
+        let mut expr_id = self.shift()?;
 
         loop {
-            let start = expr.span.start;
+            let start = self.pool.expr(expr_id).span.start;
             match &self.current().kind {
                 TokenKind::Less => {
                     self.advance();
-                    let right = self.shift();
-                    let end = right.span.end;
-                    expr = Expr::new(
-                        ExprKind::Less(Box::new(expr), Box::new(right)),
-                        Span::new(start, end),
-                    );
+                    let right_id = self.shift()?;
+                    let end = self.pool.expr(right_id).span.end;
+                    expr_id = self
+                        .pool
+                        .alloc_expr(ExprKind::Less(expr_id, right_id), Span::new(start, end))
+                        .map_err(|e| self.pool_error_to_parse_error(e))?;
                 }
                 TokenKind::Greater => {
                     self.advance();
-                    let right = self.shift();
-                    let end = right.span.end;
-                    expr = Expr::new(
-                        ExprKind::Greater(Box::new(expr), Box::new(right)),
-                        Span::new(start, end),
-                    );
+                    let right_id = self.shift()?;
+                    let end = self.pool.expr(right_id).span.end;
+                    expr_id = self
+                        .pool
+                        .alloc_expr(ExprKind::Greater(expr_id, right_id), Span::new(start, end))
+                        .map_err(|e| self.pool_error_to_parse_error(e))?;
                 }
                 TokenKind::LessEq => {
                     self.advance();
-                    let right = self.shift();
-                    let end = right.span.end;
-                    expr = Expr::new(
-                        ExprKind::LessEq(Box::new(expr), Box::new(right)),
-                        Span::new(start, end),
-                    );
+                    let right_id = self.shift()?;
+                    let end = self.pool.expr(right_id).span.end;
+                    expr_id = self
+                        .pool
+                        .alloc_expr(ExprKind::LessEq(expr_id, right_id), Span::new(start, end))
+                        .map_err(|e| self.pool_error_to_parse_error(e))?;
                 }
                 TokenKind::GreaterEq => {
                     self.advance();
-                    let right = self.shift();
-                    let end = right.span.end;
-                    expr = Expr::new(
-                        ExprKind::GreaterEq(Box::new(expr), Box::new(right)),
-                        Span::new(start, end),
-                    );
+                    let right_id = self.shift()?;
+                    let end = self.pool.expr(right_id).span.end;
+                    expr_id = self
+                        .pool
+                        .alloc_expr(
+                            ExprKind::GreaterEq(expr_id, right_id),
+                            Span::new(start, end),
+                        )
+                        .map_err(|e| self.pool_error_to_parse_error(e))?;
                 }
                 _ => break,
             }
         }
 
-        expr
+        self.exit_recursion();
+        Ok(expr_id)
     }
 
     // Shift: << >>
-    pub(in crate::lpscript) fn shift(&mut self) -> Expr {
-        let mut expr = self.additive();
+    pub(in crate::lpscript) fn shift(&mut self) -> Result<ExprId, ParseError> {
+        self.enter_recursion()?;
+        let mut expr_id = self.additive()?;
 
         loop {
-            let start = expr.span.start;
+            let start = self.pool.expr(expr_id).span.start;
             match &self.current().kind {
                 TokenKind::LShift => {
                     self.advance();
-                    let right = self.additive();
-                    let end = right.span.end;
-                    expr = Expr::new(
-                        ExprKind::LeftShift(Box::new(expr), Box::new(right)),
-                        Span::new(start, end),
-                    );
+                    let right_id = self.additive()?;
+                    let end = self.pool.expr(right_id).span.end;
+                    expr_id = self
+                        .pool
+                        .alloc_expr(
+                            ExprKind::LeftShift(expr_id, right_id),
+                            Span::new(start, end),
+                        )
+                        .map_err(|e| self.pool_error_to_parse_error(e))?;
                 }
                 TokenKind::RShift => {
                     self.advance();
-                    let right = self.additive();
-                    let end = right.span.end;
-                    expr = Expr::new(
-                        ExprKind::RightShift(Box::new(expr), Box::new(right)),
-                        Span::new(start, end),
-                    );
+                    let right_id = self.additive()?;
+                    let end = self.pool.expr(right_id).span.end;
+                    expr_id = self
+                        .pool
+                        .alloc_expr(
+                            ExprKind::RightShift(expr_id, right_id),
+                            Span::new(start, end),
+                        )
+                        .map_err(|e| self.pool_error_to_parse_error(e))?;
                 }
                 _ => break,
             }
         }
 
-        expr
+        self.exit_recursion();
+        Ok(expr_id)
     }
 }
-

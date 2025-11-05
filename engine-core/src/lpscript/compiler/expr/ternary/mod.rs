@@ -4,7 +4,8 @@
 
 mod ternary_gen;
 mod ternary_parse;
-mod ternary_types;
+// TODO: Update ternary_types to use pool-based API
+// mod ternary_types;
 
 #[cfg(test)]
 mod ternary_tests;

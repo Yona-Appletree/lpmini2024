@@ -5,6 +5,7 @@
 mod variable_gen;
 mod variable_parse;
 mod variable_types;
+pub(in crate::lpscript::compiler) use variable_types::{check_variable, check_incdec};
 
 #[cfg(test)]
 mod variable_tests;

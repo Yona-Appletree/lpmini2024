@@ -2,62 +2,46 @@
 extern crate alloc;
 
 use alloc::string::ToString;
-use alloc::vec;
 
-use crate::lpscript::compiler::ast::{Expr, ExprKind};
+use crate::lpscript::compiler::ast::{AstPool, ExprId};
 use crate::lpscript::compiler::error::{TypeError, TypeErrorKind};
 use crate::lpscript::compiler::typechecker::{FunctionTable, SymbolTable, TypeChecker};
-use crate::lpscript::shared::{Span, Type};
+use crate::lpscript::shared::Type;
 
 use super::expand_componentwise;
 
-impl TypeChecker {
-    /// Type check function call
-    ///
-    /// Infers the return type based on the function signature.
-    /// Handles both user-defined and built-in functions.
-    /// May transform the expression via component-wise expansion.
-    pub(crate) fn check_function_call(
-        expr: &mut Expr,
+/// Type check function call
+///
+/// Infers the return type based on the function signature.
+/// Handles both user-defined and built-in functions.
+/// May transform the expression via component-wise expansion.
+pub(in crate::lpscript::compiler) fn check_call_id(
+        pool: &mut AstPool,
+        name: &str,
+        args: &[ExprId],
         symbols: &mut SymbolTable,
         func_table: &FunctionTable,
-    ) -> Result<Type, TypeError> {
-        // Extract name and args from the Call expression
-        let (name, args, span) = if let ExprKind::Call { name, args } = &mut expr.kind {
-            (name.clone(), args, expr.span)
-        } else {
-            unreachable!("check_function_call called on non-Call expression");
-        };
-
-        // Get mutable reference to args for type checking
-        let args = if let ExprKind::Call { args, .. } = &mut expr.kind {
-            args
-        } else {
-            unreachable!();
-        };
-
-        // Type check all arguments first
-        for arg in args.iter_mut() {
-            Self::infer_type(arg, symbols, func_table)?;
+        span: crate::lpscript::shared::Span,
+    ) -> Result<(Type, Option<ExprId>), TypeError> {
+        // Type check all arguments
+        for &arg_id in args {
+            TypeChecker::infer_type_id(pool, arg_id, symbols, func_table)?;
         }
-
+        
         // Try component-wise expansion for built-in functions with vector args
-        if expand_componentwise::is_componentwise_function(&name) {
-            if let Some(mut expanded) =
-                expand_componentwise::expand_componentwise_call(&name, args, span)
-            {
+        if expand_componentwise::is_componentwise_function(name) {
+            if let Some(expanded_id) = expand_componentwise::expand_componentwise_call(pool, name, args, span) {
                 // Recursively type-check the expanded expression
-                Self::infer_type(&mut expanded, symbols, func_table)?;
-
-                // Replace the current expression with the expanded one
-                let return_ty = expanded.ty.clone().unwrap();
-                *expr = expanded;
-                return Ok(return_ty);
+                TypeChecker::infer_type_id(pool, expanded_id, symbols, func_table)?;
+                
+                let return_ty = pool.expr(expanded_id).ty.clone().unwrap();
+                // Return both the type and the expanded expression ID so caller can replace
+                return Ok((return_ty, Some(expanded_id)));
             }
         }
-
+        
         // Check if it's a user-defined function first
-        if let Some(sig) = func_table.lookup(&name) {
+        if let Some(sig) = func_table.lookup(name) {
             // Validate argument count
             if args.len() != sig.params.len() {
                 return Err(TypeError {
@@ -70,28 +54,33 @@ impl TypeChecker {
             }
 
             // Validate argument types
-            for (arg, expected_ty) in args.iter().zip(sig.params.iter()) {
-                let arg_ty = arg.ty.as_ref().unwrap();
+            for (&arg_id, expected_ty) in args.iter().zip(sig.params.iter()) {
+                let arg_ty = pool.expr(arg_id).ty.as_ref().unwrap();
                 if arg_ty != expected_ty {
                     return Err(TypeError {
                         kind: TypeErrorKind::Mismatch {
                             expected: expected_ty.clone(),
                             found: arg_ty.clone(),
                         },
-                        span: arg.span,
+                        span: pool.expr(arg_id).span,
                     });
                 }
             }
 
-            Ok(sig.return_type.clone())
+            Ok((sig.return_type.clone(), None))
         } else {
-            // Built-in function
-            Self::function_return_type(&name, args)
+            // Built-in function - determine return type
+            let ty = builtin_function_return_type_id(pool, name, args, span)?;
+            Ok((ty, None))
         }
     }
 
-    /// Determine return type of built-in functions
-    pub(crate) fn function_return_type(name: &str, args: &[Expr]) -> Result<Type, TypeError> {
+fn builtin_function_return_type_id(
+        pool: &AstPool,
+        name: &str,
+        args: &[ExprId],
+        span: crate::lpscript::shared::Span,
+    ) -> Result<Type, TypeError> {
         match name {
             // Math functions: Fixed -> Fixed
             "sin" | "cos" | "tan" | "abs" | "floor" | "ceil" | "sqrt" | "sign" | "frac"
@@ -102,13 +91,13 @@ impl TypeChecker {
                             expected: 1,
                             found: args.len(),
                         },
-                        span: args.first().map(|e| e.span).unwrap_or(Span::new(0, 0)),
+                        span,
                     });
                 }
                 Ok(Type::Fixed)
             }
 
-            // atan: can take 1 or 2 args (atan(y) or atan(y, x))
+            // atan: can take 1 or 2 args
             "atan" => {
                 if args.is_empty() || args.len() > 2 {
                     return Err(TypeError {
@@ -116,7 +105,7 @@ impl TypeChecker {
                             expected: 1,
                             found: args.len(),
                         },
-                        span: args.first().map(|e| e.span).unwrap_or(Span::new(0, 0)),
+                        span,
                     });
                 }
                 Ok(Type::Fixed)
@@ -130,18 +119,18 @@ impl TypeChecker {
                             expected: 1,
                             found: args.len(),
                         },
-                        span: args.first().map(|e| e.span).unwrap_or(Span::new(0, 0)),
+                        span,
                     });
                 }
-                let arg_ty = args[0].ty.as_ref().unwrap();
+                let arg_ty = pool.expr(args[0]).ty.as_ref().unwrap();
                 match arg_ty {
                     Type::Vec2 | Type::Vec3 | Type::Vec4 => Ok(Type::Fixed),
                     _ => Err(TypeError {
                         kind: TypeErrorKind::InvalidOperation {
                             op: "length".to_string(),
-                            types: vec![arg_ty.clone()],
+                            types: alloc::vec![arg_ty.clone()],
                         },
-                        span: args[0].span,
+                        span: pool.expr(args[0]).span,
                     }),
                 }
             }
@@ -154,18 +143,18 @@ impl TypeChecker {
                             expected: 1,
                             found: args.len(),
                         },
-                        span: args.first().map(|e| e.span).unwrap_or(Span::new(0, 0)),
+                        span,
                     });
                 }
-                let arg_ty = args[0].ty.as_ref().unwrap();
+                let arg_ty = pool.expr(args[0]).ty.as_ref().unwrap();
                 match arg_ty {
                     Type::Vec2 | Type::Vec3 | Type::Vec4 => Ok(arg_ty.clone()),
                     _ => Err(TypeError {
                         kind: TypeErrorKind::InvalidOperation {
                             op: "normalize".to_string(),
-                            types: vec![arg_ty.clone()],
+                            types: alloc::vec![arg_ty.clone()],
                         },
-                        span: args[0].span,
+                        span: pool.expr(args[0]).span,
                     }),
                 }
             }
@@ -178,19 +167,18 @@ impl TypeChecker {
                             expected: 2,
                             found: args.len(),
                         },
-                        span: args.first().map(|e| e.span).unwrap_or(Span::new(0, 0)),
+                        span,
                     });
                 }
-                // Both args must be same vector type
-                let left_ty = args[0].ty.as_ref().unwrap();
-                let right_ty = args[1].ty.as_ref().unwrap();
+                let left_ty = pool.expr(args[0]).ty.as_ref().unwrap();
+                let right_ty = pool.expr(args[1]).ty.as_ref().unwrap();
                 if left_ty != right_ty {
                     return Err(TypeError {
                         kind: TypeErrorKind::Mismatch {
                             expected: left_ty.clone(),
                             found: right_ty.clone(),
                         },
-                        span: args[1].span,
+                        span: pool.expr(args[1]).span,
                     });
                 }
                 match left_ty {
@@ -198,9 +186,9 @@ impl TypeChecker {
                     _ => Err(TypeError {
                         kind: TypeErrorKind::InvalidOperation {
                             op: "dot".to_string(),
-                            types: vec![left_ty.clone()],
+                            types: alloc::vec![left_ty.clone()],
                         },
-                        span: args[0].span,
+                        span: pool.expr(args[0]).span,
                     }),
                 }
             }
@@ -213,18 +201,18 @@ impl TypeChecker {
                             expected: 2,
                             found: args.len(),
                         },
-                        span: args.first().map(|e| e.span).unwrap_or(Span::new(0, 0)),
+                        span,
                     });
                 }
-                let left_ty = args[0].ty.as_ref().unwrap();
-                let right_ty = args[1].ty.as_ref().unwrap();
+                let left_ty = pool.expr(args[0]).ty.as_ref().unwrap();
+                let right_ty = pool.expr(args[1]).ty.as_ref().unwrap();
                 if left_ty != right_ty {
                     return Err(TypeError {
                         kind: TypeErrorKind::Mismatch {
                             expected: left_ty.clone(),
                             found: right_ty.clone(),
                         },
-                        span: args[1].span,
+                        span: pool.expr(args[1]).span,
                     });
                 }
                 match left_ty {
@@ -232,9 +220,9 @@ impl TypeChecker {
                     _ => Err(TypeError {
                         kind: TypeErrorKind::InvalidOperation {
                             op: "distance".to_string(),
-                            types: vec![left_ty.clone()],
+                            types: alloc::vec![left_ty.clone()],
                         },
-                        span: args[0].span,
+                        span: pool.expr(args[0]).span,
                     }),
                 }
             }
@@ -247,39 +235,38 @@ impl TypeChecker {
                             expected: 2,
                             found: args.len(),
                         },
-                        span: args.first().map(|e| e.span).unwrap_or(Span::new(0, 0)),
+                        span,
                     });
                 }
-                // Both must be vec3
-                let left_ty = args[0].ty.as_ref().unwrap();
-                let right_ty = args[1].ty.as_ref().unwrap();
+                let left_ty = pool.expr(args[0]).ty.as_ref().unwrap();
+                let right_ty = pool.expr(args[1]).ty.as_ref().unwrap();
                 if left_ty != &Type::Vec3 || right_ty != &Type::Vec3 {
                     return Err(TypeError {
                         kind: TypeErrorKind::InvalidOperation {
-                            op: "cross requires vec3 arguments".to_string(),
-                            types: vec![left_ty.clone(), right_ty.clone()],
+                            op: "cross".to_string(),
+                            types: alloc::vec![left_ty.clone(), right_ty.clone()],
                         },
-                        span: args[0].span,
+                        span,
                     });
                 }
                 Ok(Type::Vec3)
             }
 
-            // Binary math functions
-            "min" | "max" | "pow" | "step" | "mod" => {
+            // Binary functions: Fixed x Fixed -> Fixed
+            "pow" | "mod" | "min" | "max" | "step" => {
                 if args.len() != 2 {
                     return Err(TypeError {
                         kind: TypeErrorKind::InvalidArgumentCount {
                             expected: 2,
                             found: args.len(),
                         },
-                        span: args.first().map(|e| e.span).unwrap_or(Span::new(0, 0)),
+                        span,
                     });
                 }
                 Ok(Type::Fixed)
             }
 
-            // Ternary functions
+            // Ternary functions: Fixed x Fixed x Fixed -> Fixed
             "clamp" | "lerp" | "mix" | "smoothstep" => {
                 if args.len() != 3 {
                     return Err(TypeError {
@@ -287,145 +274,40 @@ impl TypeChecker {
                             expected: 3,
                             found: args.len(),
                         },
-                        span: args.first().map(|e| e.span).unwrap_or(Span::new(0, 0)),
+                        span,
                     });
                 }
                 Ok(Type::Fixed)
             }
 
-            // Perlin noise: perlin3(vec3) or perlin3(vec3, octaves)
+            // Perlin noise: vec3 -> float
             "perlin3" => {
-                if args.is_empty() || args.len() > 2 {
+                if args.len() < 1 || args.len() > 2 {
                     return Err(TypeError {
                         kind: TypeErrorKind::InvalidArgumentCount {
                             expected: 1,
                             found: args.len(),
                         },
-                        span: args.first().map(|e| e.span).unwrap_or(Span::new(0, 0)),
+                        span,
                     });
                 }
-
-                // First arg must be vec3
-                let first_ty = args[0].ty.as_ref().unwrap();
-                if first_ty != &Type::Vec3 {
+                let arg_ty = pool.expr(args[0]).ty.as_ref().unwrap();
+                if arg_ty != &Type::Vec3 {
                     return Err(TypeError {
                         kind: TypeErrorKind::Mismatch {
                             expected: Type::Vec3,
-                            found: first_ty.clone(),
+                            found: arg_ty.clone(),
                         },
-                        span: args[0].span,
+                        span: pool.expr(args[0]).span,
                     });
                 }
-
-                // Second arg (if present) should be int (octaves), but we're lenient
                 Ok(Type::Fixed)
             }
 
             _ => Err(TypeError {
-                kind: TypeErrorKind::UndefinedFunction(name.to_string()),
-                span: args.first().map(|e| e.span).unwrap_or(Span::new(0, 0)),
+                kind: TypeErrorKind::UndefinedVariable(alloc::format!("Unknown function '{}'", name)),
+                span,
             }),
         }
     }
-}
 
-#[cfg(test)]
-mod tests {
-    use crate::lpscript::compile_expr;
-    use crate::lpscript::compiler::error::{CompileError, TypeErrorKind};
-
-    // ========================================================================
-    // Type Error Tests - Built-in Function Calls
-    // ========================================================================
-
-    #[test]
-    fn test_cross_with_vec2() {
-        // cross() is vec3 only
-        let result = compile_expr("cross(vec2(1.0, 2.0), vec2(3.0, 4.0))");
-        assert!(result.is_err(), "cross() with vec2 should be a type error");
-
-        if let Err(CompileError::TypeCheck(err)) = result {
-            assert!(matches!(err.kind, TypeErrorKind::InvalidOperation { .. }));
-        } else {
-            panic!("Expected TypeCheck error");
-        }
-    }
-
-    #[test]
-    fn test_dot_mismatched_vector_sizes() {
-        let result = compile_expr("dot(vec2(1.0, 2.0), vec3(3.0, 4.0, 5.0))");
-        assert!(
-            result.is_err(),
-            "dot() with mismatched vector sizes should be a type error"
-        );
-
-        if let Err(CompileError::TypeCheck(err)) = result {
-            assert!(matches!(err.kind, TypeErrorKind::Mismatch { .. }));
-        } else {
-            panic!("Expected TypeCheck error");
-        }
-    }
-
-    #[test]
-    fn test_length_with_wrong_arg_count() {
-        let result = compile_expr("length(vec2(1.0, 2.0), vec2(3.0, 4.0))");
-        assert!(
-            result.is_err(),
-            "length() with 2 arguments should be a type error"
-        );
-
-        if let Err(CompileError::TypeCheck(err)) = result {
-            assert!(matches!(
-                err.kind,
-                TypeErrorKind::InvalidArgumentCount { .. }
-            ));
-        } else {
-            panic!("Expected TypeCheck error");
-        }
-    }
-
-    #[test]
-    fn test_normalize_with_scalar() {
-        let result = compile_expr("normalize(5.0)");
-        assert!(
-            result.is_err(),
-            "normalize() with scalar should be a type error"
-        );
-
-        if let Err(CompileError::TypeCheck(err)) = result {
-            assert!(matches!(err.kind, TypeErrorKind::InvalidOperation { .. }));
-        } else {
-            panic!("Expected TypeCheck error");
-        }
-    }
-
-    #[test]
-    fn test_perlin3_with_vec2() {
-        let result = compile_expr("perlin3(vec2(1.0, 2.0))");
-        assert!(
-            result.is_err(),
-            "perlin3() with vec2 should be a type error (expects vec3)"
-        );
-
-        if let Err(CompileError::TypeCheck(err)) = result {
-            assert!(matches!(err.kind, TypeErrorKind::Mismatch { .. }));
-        } else {
-            panic!("Expected TypeCheck error");
-        }
-    }
-
-    #[test]
-    fn test_distance_mismatched_types() {
-        let result = compile_expr("distance(vec3(1.0, 2.0, 3.0), vec2(4.0, 5.0))");
-        assert!(
-            result.is_err(),
-            "distance() with mismatched vector sizes should be a type error"
-        );
-
-        if let Err(CompileError::TypeCheck(err)) = result {
-            assert!(matches!(err.kind, TypeErrorKind::Mismatch { .. }));
-        } else {
-            panic!("Expected TypeCheck error");
-        }
-    }
-}

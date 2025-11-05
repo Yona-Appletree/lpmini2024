@@ -238,3 +238,4 @@ mod tests {
         assert_eq!(stack.pop_fixed().unwrap().to_f32(), 5.0);
     }
 }
+

@@ -2,7 +2,6 @@
 #[cfg(test)]
 mod tests {
     use crate::lpscript::compiler::expr::expr_test_util::ExprTest;
-    use crate::lpscript::compiler::test_ast::*;
     use crate::lpscript::shared::Type;
     use crate::lpscript::vm::opcodes::LpsOpCode;
     use crate::math::ToFixed;
@@ -10,7 +9,10 @@ mod tests {
     #[test]
     fn test_function_call_sin() -> Result<(), String> {
         ExprTest::new("sin(0.0)")
-            .expect_ast(call("sin", vec![num(0.0)], Type::Fixed))
+            .expect_ast(|b| {
+                let arg = b.num(0.0);
+                b.call("sin", vec![arg], Type::Fixed)
+            })
             .expect_opcodes(vec![
                 LpsOpCode::Push(0.0.to_fixed()),
                 LpsOpCode::SinFixed,
@@ -23,7 +25,10 @@ mod tests {
     #[test]
     fn test_function_call_cos() -> Result<(), String> {
         ExprTest::new("cos(0.0)")
-            .expect_ast(call("cos", vec![num(0.0)], Type::Fixed))
+            .expect_ast(|b| {
+                let arg = b.num(0.0);
+                b.call("cos", vec![arg], Type::Fixed)
+            })
             .expect_opcodes(vec![
                 LpsOpCode::Push(0.0.to_fixed()),
                 LpsOpCode::CosFixed,
@@ -36,7 +41,11 @@ mod tests {
     #[test]
     fn test_function_call_min() -> Result<(), String> {
         ExprTest::new("min(1.0, 2.0)")
-            .expect_ast(call("min", vec![num(1.0), num(2.0)], Type::Fixed))
+            .expect_ast(|b| {
+                let arg1 = b.num(1.0);
+                let arg2 = b.num(2.0);
+                b.call("min", vec![arg1, arg2], Type::Fixed)
+            })
             .expect_opcodes(vec![
                 LpsOpCode::Push(1.0.to_fixed()),
                 LpsOpCode::Push(2.0.to_fixed()),
@@ -54,7 +63,11 @@ mod tests {
     #[test]
     fn test_function_call_max() -> Result<(), String> {
         ExprTest::new("max(1.0, 2.0)")
-            .expect_ast(call("max", vec![num(1.0), num(2.0)], Type::Fixed))
+            .expect_ast(|b| {
+                let arg1 = b.num(1.0);
+                let arg2 = b.num(2.0);
+                b.call("max", vec![arg1, arg2], Type::Fixed)
+            })
             .expect_opcodes(vec![
                 LpsOpCode::Push(1.0.to_fixed()),
                 LpsOpCode::Push(2.0.to_fixed()),
@@ -72,7 +85,10 @@ mod tests {
     #[test]
     fn test_function_call_abs() -> Result<(), String> {
         ExprTest::new("abs(-5.0)")
-            .expect_ast(call("abs", vec![num(-5.0)], Type::Fixed))
+            .expect_ast(|b| {
+                let arg = b.num(-5.0);
+                b.call("abs", vec![arg], Type::Fixed)
+            })
             .expect_opcodes(vec![
                 LpsOpCode::Push((-5.0).to_fixed()),
                 LpsOpCode::AbsFixed,
@@ -87,7 +103,10 @@ mod tests {
     #[test]
     fn test_function_call_floor() -> Result<(), String> {
         ExprTest::new("floor(2.7)")
-            .expect_ast(call("floor", vec![num(2.7)], Type::Fixed))
+            .expect_ast(|b| {
+                let arg = b.num(2.7);
+                b.call("floor", vec![arg], Type::Fixed)
+            })
             .expect_opcodes(vec![
                 LpsOpCode::Push(2.7.to_fixed()),
                 LpsOpCode::FloorFixed,
@@ -100,7 +119,10 @@ mod tests {
     #[test]
     fn test_function_call_ceil() -> Result<(), String> {
         ExprTest::new("ceil(2.3)")
-            .expect_ast(call("ceil", vec![num(2.3)], Type::Fixed))
+            .expect_ast(|b| {
+                let arg = b.num(2.3);
+                b.call("ceil", vec![arg], Type::Fixed)
+            })
             .expect_opcodes(vec![
                 LpsOpCode::Push(2.3.to_fixed()),
                 LpsOpCode::CeilFixed,

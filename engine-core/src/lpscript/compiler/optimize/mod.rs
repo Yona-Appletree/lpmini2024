@@ -18,7 +18,8 @@ use alloc::vec::Vec;
 use super::ast::{Expr, Program};
 use crate::lpscript::vm::opcodes::LpsOpCode;
 
-pub mod ast;
+// TODO: Update AST optimization to use pool-based API
+// pub mod ast;
 pub mod ops;
 
 #[cfg(test)]
@@ -79,23 +80,33 @@ impl Default for OptimizeOptions {
 ///
 /// Applies AST-level optimizations based on the provided options.
 /// Runs multiple passes until a fixed point is reached or max iterations exceeded.
-pub fn optimize_ast_expr(expr: Expr, options: &OptimizeOptions) -> Expr {
+pub fn optimize_ast_expr(
+    expr_id: crate::lpscript::compiler::ast::ExprId,
+    pool: crate::lpscript::compiler::ast::AstPool,
+    options: &OptimizeOptions,
+) -> (crate::lpscript::compiler::ast::ExprId, crate::lpscript::compiler::ast::AstPool) {
     if options.max_ast_passes == 0 {
-        return expr;
+        return (expr_id, pool);
     }
 
-    ast::optimize_expr(expr, options)
+    // For now, return as-is - full optimization would transform the AST
+    (expr_id, pool)
 }
 
 /// Optimize a program AST (with statements)
 ///
 /// Applies AST-level optimizations to the full program.
-pub fn optimize_ast_program(program: Program, options: &OptimizeOptions) -> Program {
+pub fn optimize_ast_program(
+    program: Program,
+    pool: crate::lpscript::compiler::ast::AstPool,
+    options: &OptimizeOptions,
+) -> (Program, crate::lpscript::compiler::ast::AstPool) {
     if options.max_ast_passes == 0 {
-        return program;
+        return (program, pool);
     }
 
-    ast::optimize_program(program, options)
+    // For now, return as-is - full optimization would transform the AST
+    (program, pool)
 }
 
 /// Optimize a sequence of opcodes

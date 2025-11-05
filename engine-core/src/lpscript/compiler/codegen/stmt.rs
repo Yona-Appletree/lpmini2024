@@ -2,27 +2,14 @@
 extern crate alloc;
 
 use super::CodeGenerator;
-use crate::lpscript::compiler::ast::{Stmt, StmtKind};
+use crate::lpscript::compiler::ast::Stmt;
 
 impl<'a> CodeGenerator<'a> {
-    pub(in crate::lpscript) fn gen_stmt(&mut self, stmt: &Stmt) {
-        match &stmt.kind {
-            StmtKind::VarDecl { ty, name, init } => self.gen_var_decl(ty, name, init),
-            StmtKind::Return(expr) => self.gen_return(expr),
-            StmtKind::Expr(expr) => self.gen_expr_stmt(expr),
-            StmtKind::Block(stmts) => self.gen_block(stmts),
-            StmtKind::If {
-                condition,
-                then_stmt,
-                else_stmt,
-            } => self.gen_if(condition, then_stmt, else_stmt),
-            StmtKind::While { condition, body } => self.gen_while(condition, body),
-            StmtKind::For {
-                init,
-                condition,
-                increment,
-                body,
-            } => self.gen_for(init, condition, increment, body),
-        }
+    // Old gen_stmt method kept for compatibility with individual *_gen.rs files
+    // TODO: Once all *_gen.rs files are updated to pool-based API, this can be removed
+    #[allow(dead_code)]
+    pub(in crate::lpscript) fn gen_stmt(&mut self, _stmt: &Stmt) {
+        // Stub - not used in pool-based code path
+        // Individual *_gen.rs files still reference this but it's not called
     }
 }

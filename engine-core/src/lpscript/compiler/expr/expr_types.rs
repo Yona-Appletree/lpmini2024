@@ -1,110 +1,105 @@
 /// Expression type checking
 extern crate alloc;
+use alloc::vec;
 
-use crate::lpscript::compiler::ast::{Expr, ExprKind};
-use crate::lpscript::compiler::error::TypeError;
+use crate::lpscript::compiler::ast::{AstPool, Expr, ExprId, ExprKind};
+use crate::lpscript::compiler::error::{TypeError, TypeErrorKind};
 use crate::lpscript::compiler::typechecker::{FunctionTable, SymbolTable, TypeChecker};
 use crate::lpscript::shared::Type;
 
 impl TypeChecker {
-    /// Type check an expression, returning a typed AST
-    pub fn check_expr(mut expr: Expr) -> Result<Expr, TypeError> {
-        let mut symbols = SymbolTable::new();
-        let func_table = FunctionTable::new(); // Empty for expression mode
-        Self::infer_type(&mut expr, &mut symbols, &func_table)?;
-        Ok(expr)
-    }
-
-    /// Type check an expression, returning a typed AST
-    /// 
-    /// Alias for check_expr for backward compatibility
-    pub fn check(expr: Expr) -> Result<Expr, TypeError> {
-        Self::check_expr(expr)
-    }
-
-    pub(crate) fn infer_type(
-        expr: &mut Expr,
+    /// Type check an expression by ID, mutating the pool
+    pub(crate) fn infer_type_id(
+        pool: &mut AstPool,
+        expr_id: ExprId,
         symbols: &mut SymbolTable,
         func_table: &FunctionTable,
     ) -> Result<(), TypeError> {
-        match &mut expr.kind {
+        // Clone the expression kind to avoid borrow issues
+        let expr_kind = pool.expr(expr_id).kind.clone();
+        let expr_span = pool.expr(expr_id).span;
+        
+        match &expr_kind {
             // Literals
             ExprKind::Number(_) => {
-                expr.ty = Some(Self::check_number());
+                pool.expr_mut(expr_id).ty = Some(Self::check_number());
             }
 
             ExprKind::IntNumber(_) => {
-                expr.ty = Some(Self::check_int_number());
+                pool.expr_mut(expr_id).ty = Some(Self::check_int_number());
             }
 
             ExprKind::Variable(name) => {
-                let var_type = Self::check_variable(name, symbols, expr.span)?;
-                expr.ty = Some(var_type);
+                let var_type = crate::lpscript::compiler::expr::variable::check_variable(name, symbols, expr_span)?;
+                pool.expr_mut(expr_id).ty = Some(var_type);
             }
 
             // Binary arithmetic operations
-            ExprKind::Add(left, right)
-            | ExprKind::Sub(left, right)
-            | ExprKind::Mul(left, right)
-            | ExprKind::Div(left, right)
-            | ExprKind::Mod(left, right) => {
-                let result_ty =
-                    Self::check_binary_arithmetic(left, right, symbols, func_table, expr.span)?;
-                expr.ty = Some(result_ty);
+            ExprKind::Add(left_id, right_id)
+            | ExprKind::Sub(left_id, right_id)
+            | ExprKind::Mul(left_id, right_id)
+            | ExprKind::Div(left_id, right_id)
+            | ExprKind::Mod(left_id, right_id) => {
+                let result_ty = crate::lpscript::compiler::expr::binary::check_binary_arithmetic_id(
+                    pool, *left_id, *right_id, symbols, func_table, expr_span,
+                )?;
+                pool.expr_mut(expr_id).ty = Some(result_ty);
             }
 
             // Bitwise operations (Int32 only)
-            ExprKind::BitwiseAnd(left, right)
-            | ExprKind::BitwiseOr(left, right)
-            | ExprKind::BitwiseXor(left, right)
-            | ExprKind::LeftShift(left, right)
-            | ExprKind::RightShift(left, right) => {
+            ExprKind::BitwiseAnd(left_id, right_id)
+            | ExprKind::BitwiseOr(left_id, right_id)
+            | ExprKind::BitwiseXor(left_id, right_id)
+            | ExprKind::LeftShift(left_id, right_id)
+            | ExprKind::RightShift(left_id, right_id) => {
+                let result_ty = Self::check_bitwise_binary_id(
+                    pool, *left_id, *right_id, symbols, func_table, expr_span,
+                )?;
+                pool.expr_mut(expr_id).ty = Some(result_ty);
+            }
+
+            ExprKind::BitwiseNot(operand_id) => {
                 let result_ty =
-                    Self::check_bitwise_binary(left, right, symbols, func_table, expr.span)?;
-                expr.ty = Some(result_ty);
+                    Self::check_bitwise_not_id(pool, *operand_id, symbols, func_table, expr_span)?;
+                pool.expr_mut(expr_id).ty = Some(result_ty);
             }
 
-            ExprKind::BitwiseNot(operand) => {
-                let result_ty = Self::check_bitwise_not(operand, symbols, func_table, expr.span)?;
-                expr.ty = Some(result_ty);
-            }
-
-            // Comparisons return Fixed (0 or 1) - handled in compiler/expr/compare module
-            ExprKind::Less(left, right)
-            | ExprKind::Greater(left, right)
-            | ExprKind::LessEq(left, right)
-            | ExprKind::GreaterEq(left, right)
-            | ExprKind::Eq(left, right)
-            | ExprKind::NotEq(left, right) => {
-                let ty = Self::check_comparison(left, right, symbols, func_table)?;
-                expr.ty = Some(ty);
+            // Comparisons
+            ExprKind::Less(left_id, right_id)
+            | ExprKind::Greater(left_id, right_id)
+            | ExprKind::LessEq(left_id, right_id)
+            | ExprKind::GreaterEq(left_id, right_id)
+            | ExprKind::Eq(left_id, right_id)
+            | ExprKind::NotEq(left_id, right_id) => {
+                let ty = Self::check_comparison_id(pool, *left_id, *right_id, symbols, func_table)?;
+                pool.expr_mut(expr_id).ty = Some(ty);
             }
 
             // Logical operations
-            ExprKind::And(left, right) | ExprKind::Or(left, right) => {
-                let result_ty = Self::check_logical(left, right, symbols, func_table)?;
-                expr.ty = Some(result_ty);
+            ExprKind::And(left_id, right_id) | ExprKind::Or(left_id, right_id) => {
+                let result_ty = Self::check_logical_id(pool, *left_id, *right_id, symbols, func_table)?;
+                pool.expr_mut(expr_id).ty = Some(result_ty);
             }
 
-            ExprKind::Not(operand) => {
-                Self::infer_type(operand, symbols, func_table)?;
-                expr.ty = Some(Type::Bool);
+            ExprKind::Not(operand_id) => {
+                Self::infer_type_id(pool, *operand_id, symbols, func_table)?;
+                pool.expr_mut(expr_id).ty = Some(Type::Bool);
             }
 
             // Unary negation
-            ExprKind::Neg(operand) => {
-                Self::infer_type(operand, symbols, func_table)?;
-                // Type of negation is same as operand
-                expr.ty = operand.ty.clone();
+            ExprKind::Neg(operand_id) => {
+                Self::infer_type_id(pool, *operand_id, symbols, func_table)?;
+                let operand_ty = pool.expr(*operand_id).ty.clone();
+                pool.expr_mut(expr_id).ty = operand_ty;
             }
 
-            // Increment/Decrement operators
-            ExprKind::PreIncrement(var_name)
-            | ExprKind::PreDecrement(var_name)
-            | ExprKind::PostIncrement(var_name)
-            | ExprKind::PostDecrement(var_name) => {
-                let result_ty = Self::check_incdec(var_name, symbols, expr.span)?;
-                expr.ty = Some(result_ty);
+            // Increment/Decrement
+            ExprKind::PreIncrement(name)
+            | ExprKind::PreDecrement(name)
+            | ExprKind::PostIncrement(name)
+            | ExprKind::PostDecrement(name) => {
+                let ty = crate::lpscript::compiler::expr::variable::check_incdec(name, symbols, expr_span)?;
+                pool.expr_mut(expr_id).ty = Some(ty);
             }
 
             // Ternary
@@ -113,55 +108,266 @@ impl TypeChecker {
                 true_expr,
                 false_expr,
             } => {
-                let result_ty = Self::check_ternary(
-                    condition, true_expr, false_expr, symbols, func_table, expr.span,
+                let ty = Self::check_ternary_id(
+                    pool, *condition, *true_expr, *false_expr, symbols, func_table,
                 )?;
-                expr.ty = Some(result_ty);
+                pool.expr_mut(expr_id).ty = Some(ty);
             }
 
-            // Assignment expression
+            // Assignment
             ExprKind::Assign { target, value } => {
-                let result_ty =
-                    Self::check_assign_expr(target, value, symbols, func_table, expr.span)?;
-                expr.ty = Some(result_ty);
+                let ty = Self::check_assign_id(pool, target, *value, symbols, func_table)?;
+                pool.expr_mut(expr_id).ty = Some(ty);
             }
 
-            // Function calls
-            ExprKind::Call { .. } => {
-                // Type check the function call (may transform expr via expansion)
-                let return_ty =
-                    Self::check_function_call(expr, symbols, func_table)?;
-                expr.ty = Some(return_ty);
+            // Function call
+            ExprKind::Call { name, args } => {
+                let (ty, expanded_id) = crate::lpscript::compiler::expr::call::check_call_id(pool, name, args, symbols, func_table, expr_span)?;
+                
+                if let Some(expanded) = expanded_id {
+                    // Replace this call with the expanded component-wise version
+                    // Copy the expanded expression to this location
+                    let expanded_kind = pool.expr(expanded).kind.clone();
+                    let expanded_ty = pool.expr(expanded).ty.clone();
+                    pool.expr_mut(expr_id).kind = expanded_kind;
+                    pool.expr_mut(expr_id).ty = expanded_ty;
+                } else {
+                    pool.expr_mut(expr_id).ty = Some(ty);
+                }
             }
 
             // Vector constructors
-            // In GLSL, these can take mixed vec/scalar args: vec3(vec2, float) is valid
             ExprKind::Vec2Constructor(args) => {
-                Self::check_vector_constructor(args, 2, "vec2", expr.span, symbols, func_table)?;
-                expr.ty = Some(Type::Vec2);
+                let ty = Self::check_vec_constructor_id(pool, args, 2, symbols, func_table, expr_span)?;
+                pool.expr_mut(expr_id).ty = Some(ty);
             }
-
             ExprKind::Vec3Constructor(args) => {
-                Self::check_vector_constructor(args, 3, "vec3", expr.span, symbols, func_table)?;
-                expr.ty = Some(Type::Vec3);
+                let ty = Self::check_vec_constructor_id(pool, args, 3, symbols, func_table, expr_span)?;
+                pool.expr_mut(expr_id).ty = Some(ty);
             }
-
             ExprKind::Vec4Constructor(args) => {
-                Self::check_vector_constructor(args, 4, "vec4", expr.span, symbols, func_table)?;
-                expr.ty = Some(Type::Vec4);
+                let ty = Self::check_vec_constructor_id(pool, args, 4, symbols, func_table, expr_span)?;
+                pool.expr_mut(expr_id).ty = Some(ty);
             }
 
-            ExprKind::Swizzle {
-                expr: base_expr,
-                components,
-            } => {
-                let result_type =
-                    Self::check_swizzle(base_expr, components, symbols, func_table, expr.span)?;
-                expr.ty = Some(result_type);
+            // Swizzle
+            ExprKind::Swizzle { expr: swizzle_expr, components } => {
+                let ty = Self::check_swizzle_id(pool, *swizzle_expr, components, symbols, func_table)?;
+                pool.expr_mut(expr_id).ty = Some(ty);
             }
         }
 
         Ok(())
     }
+
+    // Helper methods for leaf node type checking
+    fn check_number() -> Type {
+        Type::Fixed
+    }
+
+    fn check_int_number() -> Type {
+        Type::Int32
+    }
+
+
+    // Helper methods delegated to specific modules:
+    // check_variable - delegated to variable/variable_types.rs
+    // check_incdec - delegated to variable/variable_types.rs
+    // Helper methods that work with IDs instead of references
+    // check_binary_arithmetic_id - delegated to binary/binary_types.rs
+
+    fn check_bitwise_binary_id(
+        pool: &mut AstPool,
+        left_id: ExprId,
+        right_id: ExprId,
+        symbols: &mut SymbolTable,
+        func_table: &FunctionTable,
+        _span: crate::lpscript::shared::Span,
+    ) -> Result<Type, TypeError> {
+        Self::infer_type_id(pool, left_id, symbols, func_table)?;
+        Self::infer_type_id(pool, right_id, symbols, func_table)?;
+        Ok(Type::Int32)
+    }
+
+    fn check_bitwise_not_id(
+        pool: &mut AstPool,
+        operand_id: ExprId,
+        symbols: &mut SymbolTable,
+        func_table: &FunctionTable,
+        _span: crate::lpscript::shared::Span,
+    ) -> Result<Type, TypeError> {
+        Self::infer_type_id(pool, operand_id, symbols, func_table)?;
+        Ok(Type::Int32)
+    }
+
+    fn check_comparison_id(
+        pool: &mut AstPool,
+        left_id: ExprId,
+        right_id: ExprId,
+        symbols: &mut SymbolTable,
+        func_table: &FunctionTable,
+    ) -> Result<Type, TypeError> {
+        Self::infer_type_id(pool, left_id, symbols, func_table)?;
+        Self::infer_type_id(pool, right_id, symbols, func_table)?;
+        Ok(Type::Bool)
+    }
+
+    fn check_logical_id(
+        pool: &mut AstPool,
+        left_id: ExprId,
+        right_id: ExprId,
+        symbols: &mut SymbolTable,
+        func_table: &FunctionTable,
+    ) -> Result<Type, TypeError> {
+        Self::infer_type_id(pool, left_id, symbols, func_table)?;
+        Self::infer_type_id(pool, right_id, symbols, func_table)?;
+        Ok(Type::Bool)
+    }
+
+    fn check_ternary_id(
+        pool: &mut AstPool,
+        condition_id: ExprId,
+        true_id: ExprId,
+        false_id: ExprId,
+        symbols: &mut SymbolTable,
+        func_table: &FunctionTable,
+    ) -> Result<Type, TypeError> {
+        Self::infer_type_id(pool, condition_id, symbols, func_table)?;
+        Self::infer_type_id(pool, true_id, symbols, func_table)?;
+        Self::infer_type_id(pool, false_id, symbols, func_table)?;
+        
+        let true_ty = pool.expr(true_id).ty.clone().unwrap_or(Type::Fixed);
+        Ok(true_ty)
+    }
+
+    fn check_assign_id(
+        pool: &mut AstPool,
+        target: &str,
+        value_id: ExprId,
+        symbols: &mut SymbolTable,
+        func_table: &FunctionTable,
+    ) -> Result<Type, TypeError> {
+        use alloc::string::ToString;
+        Self::infer_type_id(pool, value_id, symbols, func_table)?;
+        let value_ty = pool.expr(value_id).ty.clone().unwrap_or(Type::Fixed);
+        
+        // Update symbol table
+        symbols.set(target.to_string(), value_ty.clone());
+        Ok(value_ty)
+    }
+
+    // check_call_id - delegated to call/call_types.rs
+
+    fn check_vec_constructor_id(
+        pool: &mut AstPool,
+        args: &[ExprId],
+        _dim: usize,
+        symbols: &mut SymbolTable,
+        func_table: &FunctionTable,
+        _span: crate::lpscript::shared::Span,
+    ) -> Result<Type, TypeError> {
+        for &arg_id in args {
+            Self::infer_type_id(pool, arg_id, symbols, func_table)?;
+        }
+        
+        // Return appropriate vector type based on dimension
+        Ok(match _dim {
+            2 => Type::Vec2,
+            3 => Type::Vec3,
+            4 => Type::Vec4,
+            _ => Type::Fixed,
+        })
+    }
+
+    fn check_swizzle_id(
+        pool: &mut AstPool,
+        expr_id: ExprId,
+        components: &str,
+        symbols: &mut SymbolTable,
+        func_table: &FunctionTable,
+    ) -> Result<Type, TypeError> {
+        Self::infer_type_id(pool, expr_id, symbols, func_table)?;
+        
+        let base_expr = pool.expr(expr_id);
+        let base_ty = base_expr.ty.as_ref().unwrap();
+        let span = base_expr.span;
+
+        // Validate that base is a vector
+        let base_size = match base_ty {
+            Type::Vec2 => 2,
+            Type::Vec3 => 3,
+            Type::Vec4 => 4,
+            _ => {
+                return Err(TypeError {
+                    kind: TypeErrorKind::InvalidOperation {
+                        op: alloc::string::String::from("Swizzle can only be applied to vector types"),
+                        types: vec![base_ty.clone()],
+                    },
+                    span,
+                })
+            }
+        };
+
+        // Validate components
+        for c in components.chars() {
+            let idx = match c {
+                'x' | 'r' | 's' => 0,
+                'y' | 'g' | 't' => 1,
+                'z' | 'b' | 'p' => 2,
+                'w' | 'a' | 'q' => 3,
+                _ => {
+                    return Err(TypeError {
+                        kind: TypeErrorKind::InvalidOperation {
+                            op: alloc::format!("Invalid swizzle component: {}", c),
+                            types: vec![base_ty.clone()],
+                        },
+                        span,
+                    })
+                }
+            };
+
+            if idx >= base_size {
+                return Err(TypeError {
+                    kind: TypeErrorKind::InvalidOperation {
+                        op: alloc::format!(
+                            "Component {} out of range for type {}",
+                            c,
+                            type_to_string(base_ty)
+                        ),
+                        types: vec![base_ty.clone()],
+                    },
+                    span,
+                });
+            }
+        }
+
+        // Result type based on component count
+        Ok(match components.len() {
+            1 => Type::Fixed,
+            2 => Type::Vec2,
+            3 => Type::Vec3,
+            4 => Type::Vec4,
+            _ => {
+                return Err(TypeError {
+                    kind: TypeErrorKind::InvalidOperation {
+                        op: alloc::string::String::from("Swizzle must have 1-4 components"),
+                        types: vec![base_ty.clone()],
+                    },
+                    span,
+                })
+            }
+        })
+    }
 }
 
+fn type_to_string(ty: &Type) -> &str {
+    match ty {
+        Type::Fixed => "float",
+        Type::Int32 => "int",
+        Type::Bool => "bool",
+        Type::Vec2 => "vec2",
+        Type::Vec3 => "vec3",
+        Type::Vec4 => "vec4",
+        Type::Void => "void",
+    }
+}

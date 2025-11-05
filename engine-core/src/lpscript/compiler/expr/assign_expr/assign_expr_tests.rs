@@ -12,7 +12,10 @@ mod tests {
         // Assignment expression should return the assigned value
         ExprTest::new("x = 5.0")
             .local_fixed(0, "x", 0.0.to_fixed())
-            .expect_ast(assign("x", num(5.0), Type::Fixed))
+            .expect_ast(|b| {
+                let value = b.num(5.0);
+                b.assign("x", value, Type::Fixed)
+            })
             .expect_result_fixed(5.0)
             .expect_local_fixed("x", 5.0)
             .run()
@@ -65,11 +68,12 @@ mod tests {
         // Assignment of vec2 values
         ExprTest::new("v = vec2(1.0, 2.0)")
             .local_vec2(0, "v", Vec2::new(0.0.to_fixed(), 0.0.to_fixed()))
-            .expect_ast(assign(
-                "v",
-                vec2_ctor(vec![num(1.0), num(2.0)], Type::Vec2),
-                Type::Vec2,
-            ))
+            .expect_ast(|b| {
+                let arg1 = b.num(1.0);
+                let arg2 = b.num(2.0);
+                let value = b.vec2(vec![arg1, arg2]);
+                b.assign("v", value, Type::Vec2)
+            })
             .expect_result_vec2(Vec2::new(1.0.to_fixed(), 2.0.to_fixed()))
             .run()
             .expect("vec2 assignment should work");

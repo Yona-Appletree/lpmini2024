@@ -95,3 +95,4 @@ mod tests {
         assert_eq!(stack.pop_fixed().unwrap(), Fixed::ZERO);
     }
 }
+

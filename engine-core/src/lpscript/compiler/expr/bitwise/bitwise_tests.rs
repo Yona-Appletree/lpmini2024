@@ -2,14 +2,17 @@
 #[cfg(test)]
 mod tests {
     use crate::lpscript::compiler::expr::expr_test_util::ExprTest;
-    use crate::lpscript::compiler::test_ast::*;
     use crate::lpscript::shared::Type;
     use crate::lpscript::vm::opcodes::LpsOpCode;
 
     #[test]
     fn test_bitwise_and() -> Result<(), String> {
         ExprTest::new("12 & 10")
-            .expect_ast(bitwise_and(int32(12), int32(10), Type::Int32))
+            .expect_ast(|b| {
+                let left = b.int32(12);
+                let right = b.int32(10);
+                b.bitwise_and(left, right, Type::Int32)
+            })
             .expect_opcodes(vec![
                 LpsOpCode::PushInt32(12),
                 LpsOpCode::PushInt32(10),
@@ -23,7 +26,11 @@ mod tests {
     #[test]
     fn test_bitwise_or() -> Result<(), String> {
         ExprTest::new("12 | 10")
-            .expect_ast(bitwise_or(int32(12), int32(10), Type::Int32))
+            .expect_ast(|b| {
+                let left = b.int32(12);
+                let right = b.int32(10);
+                b.bitwise_or(left, right, Type::Int32)
+            })
             .expect_opcodes(vec![
                 LpsOpCode::PushInt32(12),
                 LpsOpCode::PushInt32(10),
@@ -37,7 +44,11 @@ mod tests {
     #[test]
     fn test_bitwise_xor() -> Result<(), String> {
         ExprTest::new("12 ^ 10")
-            .expect_ast(bitwise_xor(int32(12), int32(10), Type::Int32))
+            .expect_ast(|b| {
+                let left = b.int32(12);
+                let right = b.int32(10);
+                b.bitwise_xor(left, right, Type::Int32)
+            })
             .expect_opcodes(vec![
                 LpsOpCode::PushInt32(12),
                 LpsOpCode::PushInt32(10),
@@ -50,21 +61,28 @@ mod tests {
 
     #[test]
     fn test_bitwise_not() -> Result<(), String> {
-        ExprTest::new("~5")
-            .expect_ast(bitwise_not(int32(5), Type::Int32))
+        ExprTest::new("~42")
+            .expect_ast(|b| {
+                let operand = b.int32(42);
+                b.bitwise_not(operand, Type::Int32)
+            })
             .expect_opcodes(vec![
-                LpsOpCode::PushInt32(5),
+                LpsOpCode::PushInt32(42),
                 LpsOpCode::BitwiseNotInt32,
                 LpsOpCode::Return,
             ])
-            .expect_result_int(-6) // ~5 = -6
+            .expect_result_int(-43) // ~42 = -43
             .run()
     }
 
     #[test]
     fn test_left_shift() -> Result<(), String> {
         ExprTest::new("5 << 2")
-            .expect_ast(left_shift(int32(5), int32(2), Type::Int32))
+            .expect_ast(|b| {
+                let left = b.int32(5);
+                let right: crate::lpscript::compiler::ast::ExprId = b.int32(2);
+                b.left_shift(left, right, Type::Int32)
+            })
             .expect_opcodes(vec![
                 LpsOpCode::PushInt32(5),
                 LpsOpCode::PushInt32(2),
@@ -78,7 +96,11 @@ mod tests {
     #[test]
     fn test_right_shift() -> Result<(), String> {
         ExprTest::new("20 >> 2")
-            .expect_ast(right_shift(int32(20), int32(2), Type::Int32))
+            .expect_ast(|b| {
+                let left = b.int32(20);
+                let right = b.int32(2);
+                b.right_shift(left, right, Type::Int32)
+            })
             .expect_opcodes(vec![
                 LpsOpCode::PushInt32(20),
                 LpsOpCode::PushInt32(2),
@@ -90,30 +112,36 @@ mod tests {
     }
 
     #[test]
-    fn test_bitwise_precedence() -> Result<(), String> {
-        // Test that & has lower precedence than <<
-        // Should be 8 & (4 << 1) = 8 & 8 = 8
-        ExprTest::new("8 & 4 << 1")
-            .expect_ast(bitwise_and(
-                int32(8),
-                left_shift(int32(4), int32(1), Type::Int32),
-                Type::Int32,
-            ))
-            .expect_result_int(8)
+    fn test_negative_right_shift() -> Result<(), String> {
+        ExprTest::new("-8 >> 1")
+            .expect_ast(|b| {
+                let neg_eight = b.int32(-8); // Parser optimizes -8 to a single literal
+                let one = b.int32(1);
+                b.right_shift(neg_eight, one, Type::Int32)
+            })
+            .expect_opcodes(vec![
+                LpsOpCode::PushInt32(-8),
+                LpsOpCode::PushInt32(1),
+                LpsOpCode::RightShiftInt32,
+                LpsOpCode::Return,
+            ])
+            .expect_result_int(-4) // -8 >> 1 = -4 (arithmetic shift)
             .run()
     }
 
     #[test]
-    fn test_bitwise_complex() -> Result<(), String> {
-        // Complex expression with multiple bitwise operators
-        // (12 & 10) | (5 ^ 3) = 8 | 6 = 14
-        ExprTest::new("(12 & 10) | (5 ^ 3)")
-            .expect_ast(bitwise_or(
-                bitwise_and(int32(12), int32(10), Type::Int32),
-                bitwise_xor(int32(5), int32(3), Type::Int32),
-                Type::Int32,
-            ))
-            .expect_result_int(14)
+    fn test_bitwise_precedence() -> Result<(), String> {
+        // Test that & has higher precedence than |
+        // 12 | 8 & 4 should parse as 12 | (8 & 4) = 12 | 0 = 12
+        ExprTest::new("12 | 8 & 4")
+            .expect_ast(|b| {
+                let eight = b.int32(8);
+                let four = b.int32(4);
+                let and_result = b.bitwise_and(eight, four, Type::Int32);
+                let twelve = b.int32(12);
+                b.bitwise_or(twelve, and_result, Type::Int32)
+            })
+            .expect_result_int(12)
             .run()
     }
 }

@@ -324,3 +324,4 @@ mod tests {
         assert_eq!(stack.pop_int32().unwrap(), 5); // 20 >> 2 = 5
     }
 }
+

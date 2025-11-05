@@ -1,37 +1,42 @@
 /// Ternary expression parsing
-use crate::lpscript::compiler::ast::{Expr, ExprKind};
+use crate::lpscript::compiler::ast::{ExprId, ExprKind};
+use crate::lpscript::compiler::error::ParseError;
 use crate::lpscript::compiler::lexer::TokenKind;
 use crate::lpscript::compiler::parser::Parser;
 use crate::lpscript::shared::Span;
-use alloc::boxed::Box;
 
 
 impl Parser {
     // Ternary: condition ? true_expr : false_expr
-    pub(in crate::lpscript) fn ternary(&mut self) -> Expr {
-        let mut expr = self.logical_or();
+    pub(in crate::lpscript) fn ternary(&mut self) -> Result<ExprId, ParseError> {
+        self.enter_recursion()?;
+        let mut expr_id = self.logical_or()?;
 
         if matches!(self.current().kind, TokenKind::Question) {
-            let start = expr.span.start;
+            let start = self.pool.expr(expr_id).span.start;
             self.advance(); // consume '?'
-            let true_expr = Box::new(self.ternary());
+            let true_expr_id = self.ternary()?;
 
             if matches!(self.current().kind, TokenKind::Colon) {
                 self.advance(); // consume ':'
-                let false_expr = Box::new(self.ternary());
-                let end = false_expr.span.end;
+                let false_expr_id = self.ternary()?;
+                let end = self.pool.expr(false_expr_id).span.end;
 
-                expr = Expr::new(
-                    ExprKind::Ternary {
-                        condition: Box::new(expr),
-                        true_expr,
-                        false_expr,
-                    },
-                    Span::new(start, end),
-                );
+                expr_id = self
+                    .pool
+                    .alloc_expr(
+                        ExprKind::Ternary {
+                            condition: expr_id,
+                            true_expr: true_expr_id,
+                            false_expr: false_expr_id,
+                        },
+                        Span::new(start, end),
+                    )
+                    .map_err(|e| self.pool_error_to_parse_error(e))?;
             }
         }
 
-        expr
+        self.exit_recursion();
+        Ok(expr_id)
     }
 }

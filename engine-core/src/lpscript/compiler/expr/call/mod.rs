@@ -5,7 +5,9 @@
 mod call_gen;
 mod call_parse;
 mod call_types;
-pub(crate) mod expand_componentwise;
+mod expand_componentwise;
+
+pub(in crate::lpscript::compiler) use call_types::check_call_id;
 
 #[cfg(test)]
 mod call_tests;

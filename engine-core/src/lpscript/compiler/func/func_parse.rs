@@ -1,4 +1,5 @@
 use crate::lpscript::compiler::ast::{FunctionDef, Parameter};
+use crate::lpscript::compiler::error::ParseError;
 /// Function definition parsing methods
 use crate::lpscript::compiler::parser::Parser;
 use crate::lpscript::lexer::TokenKind;
@@ -37,7 +38,8 @@ impl Parser {
     }
 
     /// Parse a function definition
-    pub(in crate::lpscript) fn parse_function_def(&mut self) -> FunctionDef {
+    pub(in crate::lpscript) fn parse_function_def(&mut self) -> Result<FunctionDef, ParseError> {
+        self.enter_recursion()?;
         let start = self.current().span.start;
 
         // Parse return type
@@ -61,18 +63,19 @@ impl Parser {
         self.expect(TokenKind::LBrace);
         let mut body = Vec::new();
         while !matches!(self.current().kind, TokenKind::RBrace | TokenKind::Eof) {
-            body.push(self.parse_stmt());
+            body.push(self.parse_stmt()?);
         }
         let end = self.current().span.end;
         self.expect(TokenKind::RBrace);
 
-        FunctionDef {
+        self.exit_recursion();
+        Ok(FunctionDef {
             name,
             params,
             return_type,
             body,
             span: Span::new(start, end),
-        }
+        })
     }
 
     /// Parse function parameters

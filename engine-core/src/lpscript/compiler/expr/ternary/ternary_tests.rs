@@ -10,12 +10,14 @@ mod tests {
     #[test]
     fn test_ternary_basic() -> Result<(), String> {
         ExprTest::new("1.0 > 0.5 ? 1.0 : 0.0")
-            .expect_ast(ternary(
-                greater(num(1.0), num(0.5)),
-                num(1.0),
-                num(0.0),
-                Type::Fixed,
-            ))
+            .expect_ast(|b| {
+                let left = b.num(1.0);
+                let right = b.num(0.5);
+                let condition = b.greater(left, right);
+                let true_expr = b.num(1.0);
+                let false_expr = b.num(0.0);
+                b.ternary(condition, true_expr, false_expr, Type::Fixed)
+            })
             .expect_opcodes(vec![
                 LpsOpCode::Push(1.0.to_fixed()),
                 LpsOpCode::Push(0.5.to_fixed()),

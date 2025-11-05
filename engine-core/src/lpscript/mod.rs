@@ -112,16 +112,17 @@ pub fn compile_expr_with_options(
     let tokens = lexer.tokenize();
 
     let mut parser = parser::Parser::new(tokens);
-    let ast = parser.parse();
+    let ast_id = parser.parse()?;
+    let pool = parser.pool;
 
     // Type check the AST
-    let typed_ast = typechecker::TypeChecker::check(ast)?;
+    let (typed_ast_id, mut pool) = typechecker::TypeChecker::check(ast_id, pool)?;
 
     // Optimize AST
-    let optimized_ast = optimize::optimize_ast_expr(typed_ast, options);
+    let (optimized_ast_id, pool) = optimize::optimize_ast_expr(typed_ast_id, pool, options);
 
     // Generate opcodes
-    let opcodes = codegen::CodeGenerator::generate(&optimized_ast);
+    let opcodes = codegen::CodeGenerator::generate(&pool, optimized_ast_id);
 
     // Optimize opcodes
     let optimized_opcodes = optimize::optimize_opcodes(opcodes, options);
@@ -166,18 +167,18 @@ pub fn compile_script_with_options(
     let mut lexer = lexer::Lexer::new(input);
     let tokens = lexer.tokenize();
 
-    let mut parser = parser::Parser::new(tokens);
-    let program = parser.parse_program();
+    let parser = parser::Parser::new(tokens);
+    let (program, pool) = parser.parse_program()?;
 
     // Type check the program
-    let typed_program = typechecker::TypeChecker::check_program(program)?;
+    let (typed_program, mut pool) = typechecker::TypeChecker::check_program(program, pool)?;
 
     // Optimize program AST
-    let optimized_program = optimize::optimize_ast_program(typed_program, options);
+    let (optimized_program, pool) = optimize::optimize_ast_program(typed_program, pool, options);
 
     // Generate opcodes
     let (opcodes, local_count, local_types) =
-        codegen::CodeGenerator::generate_program(&optimized_program);
+        codegen::CodeGenerator::generate_program(&pool, &optimized_program);
 
     // Optimize opcodes
     let optimized_opcodes = optimize::optimize_opcodes(opcodes, options);
@@ -254,5 +255,6 @@ mod tests {
     mod control_flow;
     mod functions;
     mod operators;
+    mod recursion_limits;
     mod variables;
 }

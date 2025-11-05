@@ -10,10 +10,13 @@ mod tests {
     #[test]
     fn test_var_decl_with_init() -> Result<(), String> {
         ScriptTest::new("float x = 5.0; return x;")
-            .expect_ast(program(vec![
-                var_decl(Type::Fixed, "x", Some(num(5.0))),
-                return_stmt(typed_var("x", Type::Fixed)),
-            ]))
+            .expect_ast(|b| {
+                let init = b.num(5.0);
+                let var_stmt = b.var_decl(Type::Fixed, "x", Some(init));
+                let ret_var = b.typed_var("x", Type::Fixed);
+                let ret_stmt = b.return_stmt(ret_var);
+                b.program(vec![var_stmt, ret_stmt])
+            })
             .expect_opcodes(vec![
                 LpsOpCode::Push(5.0.to_fixed()),
                 LpsOpCode::StoreLocalFixed(0),
@@ -27,11 +30,15 @@ mod tests {
     #[test]
     fn test_var_decl_without_init() -> Result<(), String> {
         ScriptTest::new("float x; x = 10.0; return x;")
-            .expect_ast(program(vec![
-                var_decl(Type::Fixed, "x", None),
-                expr_stmt(assign("x", num(10.0), Type::Fixed)),
-                return_stmt(typed_var("x", Type::Fixed)),
-            ]))
+            .expect_ast(|b| {
+                let var_stmt = b.var_decl(Type::Fixed, "x", None);
+                let assign_value = b.num(10.0);
+                let assign_expr = b.assign("x", assign_value, Type::Fixed);
+                let assign_stmt = b.expr_stmt(assign_expr);
+                let ret_var = b.typed_var("x", Type::Fixed);
+                let ret_stmt = b.return_stmt(ret_var);
+                b.program(vec![var_stmt, assign_stmt, ret_stmt])
+            })
             .expect_opcodes(vec![
                 LpsOpCode::Push(10.0.to_fixed()),
                 LpsOpCode::Dup1,
@@ -47,15 +54,17 @@ mod tests {
     #[test]
     fn test_multiple_var_decls() -> Result<(), String> {
         ScriptTest::new("float x = 1.0; float y = 2.0; return x + y;")
-            .expect_ast(program(vec![
-                var_decl(Type::Fixed, "x", Some(num(1.0))),
-                var_decl(Type::Fixed, "y", Some(num(2.0))),
-                return_stmt(add(
-                    typed_var("x", Type::Fixed),
-                    typed_var("y", Type::Fixed),
-                    Type::Fixed,
-                )),
-            ]))
+            .expect_ast(|b| {
+                let x_init = b.num(1.0);
+                let x_decl = b.var_decl(Type::Fixed, "x", Some(x_init));
+                let y_init = b.num(2.0);
+                let y_decl = b.var_decl(Type::Fixed, "y", Some(y_init));
+                let x_var = b.typed_var("x", Type::Fixed);
+                let y_var = b.typed_var("y", Type::Fixed);
+                let add_expr = b.add(x_var, y_var, Type::Fixed);
+                let ret_stmt = b.return_stmt(add_expr);
+                b.program(vec![x_decl, y_decl, ret_stmt])
+            })
             .expect_opcodes(vec![
                 LpsOpCode::Push(1.0.to_fixed()),
                 LpsOpCode::StoreLocalFixed(0),
@@ -73,10 +82,15 @@ mod tests {
     #[test]
     fn test_var_decl_with_expression() -> Result<(), String> {
         ScriptTest::new("float x = 1.0 + 2.0; return x;")
-            .expect_ast(program(vec![
-                var_decl(Type::Fixed, "x", Some(add(num(1.0), num(2.0), Type::Fixed))),
-                return_stmt(typed_var("x", Type::Fixed)),
-            ]))
+            .expect_ast(|b| {
+                let left = b.num(1.0);
+                let right = b.num(2.0);
+                let init = b.add(left, right, Type::Fixed);
+                let var_stmt = b.var_decl(Type::Fixed, "x", Some(init));
+                let ret_var = b.typed_var("x", Type::Fixed);
+                let ret_stmt = b.return_stmt(ret_var);
+                b.program(vec![var_stmt, ret_stmt])
+            })
             .expect_opcodes(vec![
                 LpsOpCode::Push(1.0.to_fixed()),
                 LpsOpCode::Push(2.0.to_fixed()),
@@ -260,10 +274,15 @@ mod tests {
     #[test]
     fn test_var_decl_from_builtin() -> Result<(), String> {
         ScriptTest::new("float t = time; return t * 2.0;")
-            .expect_ast(program(vec![
-                var_decl(Type::Fixed, "t", Some(typed_var("time", Type::Fixed))),
-                return_stmt(mul(typed_var("t", Type::Fixed), num(2.0), Type::Fixed)),
-            ]))
+            .expect_ast(|b| {
+                let time_var = b.typed_var("time", Type::Fixed);
+                let t_decl = b.var_decl(Type::Fixed, "t", Some(time_var));
+                let t_var = b.typed_var("t", Type::Fixed);
+                let mul_right = b.num(2.0);
+                let mul_expr = b.mul(t_var, mul_right, Type::Fixed);
+                let ret_stmt = b.return_stmt(mul_expr);
+                b.program(vec![t_decl, ret_stmt])
+            })
             .expect_opcodes(vec![
                 LpsOpCode::Load(crate::test_engine::LoadSource::Time),
                 LpsOpCode::StoreLocalFixed(0),

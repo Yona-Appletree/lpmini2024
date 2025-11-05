@@ -4,7 +4,8 @@
 
 mod assign_expr_gen;
 mod assign_expr_parse;
-mod assign_expr_types;
+// TODO: Update assign_expr_types to use pool-based API
+// mod assign_expr_types;
 
 #[cfg(test)]
 mod assign_expr_tests;

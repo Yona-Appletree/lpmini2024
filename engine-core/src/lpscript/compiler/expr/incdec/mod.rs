@@ -3,7 +3,8 @@
 /// These operators work on Fixed and Int32 types and can be used as prefix or postfix.
 
 mod incdec_parse;
-mod incdec_types;
+// TODO: Update incdec_types to use pool-based API
+// mod incdec_types;
 mod incdec_gen;
 
 #[cfg(test)]

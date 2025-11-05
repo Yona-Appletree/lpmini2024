@@ -1,5 +1,6 @@
 /// Variable declaration parsing
-use crate::lpscript::compiler::ast::{Stmt, StmtKind};
+use crate::lpscript::compiler::ast::{StmtId, StmtKind};
+use crate::lpscript::compiler::error::ParseError;
 use crate::lpscript::compiler::lexer::TokenKind;
 use crate::lpscript::compiler::parser::Parser;
 use crate::lpscript::shared::Span;
@@ -7,13 +8,14 @@ use alloc::string::String;
 
 
 impl Parser {
-    pub(in crate::lpscript) fn parse_var_decl(&mut self) -> Stmt {
-        let stmt = self.parse_var_decl_no_semicolon();
+    pub(in crate::lpscript) fn parse_var_decl(&mut self) -> Result<StmtId, ParseError> {
+        let stmt_id = self.parse_var_decl_no_semicolon()?;
         self.consume_semicolon();
-        stmt
+        Ok(stmt_id)
     }
 
-    pub(in crate::lpscript) fn parse_var_decl_no_semicolon(&mut self) -> Stmt {
+    pub(in crate::lpscript) fn parse_var_decl_no_semicolon(&mut self) -> Result<StmtId, ParseError> {
+        self.enter_recursion()?;
         let start = self.current().span.start;
 
         // Parse type
@@ -31,13 +33,19 @@ impl Parser {
         // Parse optional initializer
         let init = if matches!(self.current().kind, TokenKind::Eq) {
             self.advance(); // consume '='
-            Some(self.parse_assignment_expr())
+            Some(self.parse_assignment_expr()?)
         } else {
             None
         };
 
         let end = self.current().span.end;
 
-        Stmt::new(StmtKind::VarDecl { ty, name, init }, Span::new(start, end))
+        let result = self
+            .pool
+            .alloc_stmt(StmtKind::VarDecl { ty, name, init }, Span::new(start, end))
+            .map_err(|e| self.pool_error_to_parse_error(e));
+
+        self.exit_recursion();
+        result
     }
 }

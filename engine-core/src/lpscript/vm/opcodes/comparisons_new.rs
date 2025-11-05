@@ -100,3 +100,4 @@ mod tests {
         assert_eq!(stack.pop_int32().unwrap(), FIXED_ONE);
     }
 }
+

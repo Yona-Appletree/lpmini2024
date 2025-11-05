@@ -4,8 +4,9 @@ use alloc::format;
 use alloc::string::String;
 use alloc::vec::Vec;
 
-use crate::lpscript::compiler::ast::Program;
+use crate::lpscript::compiler::ast::{AstPool, Program};
 use crate::lpscript::compiler::codegen;
+use crate::lpscript::compiler::stmt::stmt_test_ast::StmtBuilder;
 use crate::lpscript::compiler::{lexer, parser, typechecker};
 use crate::lpscript::shared::Type;
 use crate::lpscript::vm::{LpsOpCode, LpsProgram, LpsVm, VmLimits};
@@ -17,7 +18,7 @@ use crate::math::{Fixed, ToFixed, Vec2, Vec3, Vec4};
 /// Built-in variables like `x`, `y`, `time` from uv/coord still work.
 pub struct ScriptTest {
     input: String,
-    expected_ast: Option<Program>,
+    expected_ast_builder: Option<Box<dyn FnOnce(&mut StmtBuilder) -> Program>>,
     expected_opcodes: Option<Vec<LpsOpCode>>,
     expected_result: Option<TestResult>,
     x: Fixed,
@@ -37,7 +38,7 @@ impl ScriptTest {
     pub fn new(input: &str) -> Self {
         ScriptTest {
             input: String::from(input),
-            expected_ast: None,
+            expected_ast_builder: None,
             expected_opcodes: None,
             expected_result: None,
             x: 0.5.to_fixed(),
@@ -46,9 +47,12 @@ impl ScriptTest {
         }
     }
 
-    /// Expect a specific Program AST structure (ignoring spans)
-    pub fn expect_ast(mut self, expected: Program) -> Self {
-        self.expected_ast = Some(expected);
+    /// Expect a specific Program AST structure using a builder closure
+    pub fn expect_ast<F>(mut self, builder_fn: F) -> Self
+    where
+        F: FnOnce(&mut StmtBuilder) -> Program + 'static,
+    {
+        self.expected_ast_builder = Some(Box::new(builder_fn));
         self
     }
 
@@ -117,7 +121,7 @@ impl ScriptTest {
             return Err("No expectations set for opcodes.".to_string());
         }
 
-        if self.expected_ast.is_none() {
+        if self.expected_ast_builder.is_none() {
             return Err("No expectations set for ast.".to_string());
         }
 
@@ -129,11 +133,17 @@ impl ScriptTest {
         let mut lexer = lexer::Lexer::new(&self.input);
         let tokens = lexer.tokenize();
         let mut parser = parser::Parser::new(tokens);
-        let ast_program = parser.parse_program();
+        let (ast_program, pool) = match parser.parse_program() {
+            Ok(result) => result,
+            Err(e) => {
+                errors.push(format!("Parse error: {}", e));
+                return Err(errors.join("\n\n"));
+            }
+        };
 
         // Type check
-        let typed_program = match typechecker::TypeChecker::check_program(ast_program) {
-            Ok(prog) => prog,
+        let (typed_program, pool) = match typechecker::TypeChecker::check_program(ast_program, pool) {
+            Ok(result) => result,
             Err(e) => {
                 errors.push(format!("Type check error: {}", e));
                 return Err(errors.join("\n\n"));
@@ -141,18 +151,21 @@ impl ScriptTest {
         };
 
         // Check AST if expected (after type checking)
-        if let Some(expected_ast) = &self.expected_ast {
-            if !program_eq_ignore_spans(&typed_program, expected_ast) {
+        if let Some(builder_fn) = self.expected_ast_builder {
+            let mut builder = StmtBuilder::new();
+            let expected_program = builder_fn(&mut builder);
+            let expected_pool = builder.into_pool();
+            if !program_eq_ignore_spans_with_pool(&typed_program, &pool, &expected_program, &expected_pool) {
                 errors.push(format!(
                     "Program AST mismatch:\nExpected: {:#?}\nActual:   {:#?}",
-                    expected_ast, typed_program
+                    expected_program, typed_program
                 ));
             }
         }
 
         // Generate opcodes and create program
         let (opcodes, local_count, local_types) =
-            codegen::CodeGenerator::generate_program(&typed_program);
+            codegen::CodeGenerator::generate_program(&pool, &typed_program);
 
         // Create LocalDef entries with correct types
         let locals: Vec<crate::lpscript::vm::LocalDef> = (0..local_count)
@@ -297,8 +310,8 @@ impl ScriptTest {
     }
 }
 
-/// Compare Program AST ignoring spans
-fn program_eq_ignore_spans(actual: &Program, expected: &Program) -> bool {
+/// Compare Program AST ignoring spans with pools
+fn program_eq_ignore_spans_with_pool(actual: &Program, actual_pool: &AstPool, expected: &Program, expected_pool: &AstPool) -> bool {
     if actual.stmts.len() != expected.stmts.len() {
         return false;
     }
@@ -307,16 +320,66 @@ fn program_eq_ignore_spans(actual: &Program, expected: &Program) -> bool {
         .stmts
         .iter()
         .zip(expected.stmts.iter())
-        .all(|(a, e)| stmt_eq_ignore_spans(a, e))
+        .all(|(a, e)| stmt_eq_ignore_spans_with_pool(*a, actual_pool, *e, expected_pool))
 }
 
-/// Compare Statement AST ignoring spans
-fn stmt_eq_ignore_spans(
-    actual: &crate::lpscript::compiler::ast::Stmt,
-    expected: &crate::lpscript::compiler::ast::Stmt,
+/// Compare Expression AST ignoring spans with pools
+fn expr_eq_ignore_spans_with_pool(
+    actual_id: crate::lpscript::compiler::ast::ExprId,
+    actual_pool: &AstPool,
+    expected_id: crate::lpscript::compiler::ast::ExprId,
+    expected_pool: &AstPool,
+) -> bool {
+    use crate::lpscript::compiler::ast::ExprKind;
+    
+    let actual = actual_pool.expr(actual_id);
+    let expected = expected_pool.expr(expected_id);
+
+    // Compare types if both present
+    if actual.ty != expected.ty {
+        return false;
+    }
+
+    match (&actual.kind, &expected.kind) {
+        (ExprKind::Number(n1), ExprKind::Number(n2)) => (n1 - n2).abs() < 0.001,
+        (ExprKind::IntNumber(i1), ExprKind::IntNumber(i2)) => i1 == i2,
+        (ExprKind::Variable(v1), ExprKind::Variable(v2)) => v1 == v2,
+        
+        (ExprKind::Add(l1, r1), ExprKind::Add(l2, r2)) |
+        (ExprKind::Sub(l1, r1), ExprKind::Sub(l2, r2)) |
+        (ExprKind::Mul(l1, r1), ExprKind::Mul(l2, r2)) |
+        (ExprKind::Div(l1, r1), ExprKind::Div(l2, r2)) |
+        (ExprKind::Mod(l1, r1), ExprKind::Mod(l2, r2)) => {
+            expr_eq_ignore_spans_with_pool(*l1, actual_pool, *l2, expected_pool) &&
+            expr_eq_ignore_spans_with_pool(*r1, actual_pool, *r2, expected_pool)
+        }
+        
+        (ExprKind::Assign { target: t1, value: v1 }, ExprKind::Assign { target: t2, value: v2 }) => {
+            t1 == t2 && expr_eq_ignore_spans_with_pool(*v1, actual_pool, *v2, expected_pool)
+        }
+        
+        (ExprKind::Call { name: n1, args: a1 }, ExprKind::Call { name: n2, args: a2 }) => {
+            n1 == n2 &&
+            a1.len() == a2.len() &&
+            a1.iter().zip(a2.iter()).all(|(arg1, arg2)| {
+                expr_eq_ignore_spans_with_pool(*arg1, actual_pool, *arg2, expected_pool)
+            })
+        }
+        
+        _ => false, // Other cases not needed for current tests
+    }
+}
+
+fn stmt_eq_ignore_spans_with_pool(
+    actual_id: crate::lpscript::compiler::ast::StmtId,
+    actual_pool: &AstPool,
+    expected_id: crate::lpscript::compiler::ast::StmtId,
+    expected_pool: &AstPool,
 ) -> bool {
     use crate::lpscript::compiler::ast::StmtKind;
-    use crate::lpscript::compiler::expr::expr_test_util::ast_eq_ignore_spans;
+
+    let actual = actual_pool.stmt(actual_id);
+    let expected = expected_pool.stmt(expected_id);
 
     match (&actual.kind, &expected.kind) {
         (
@@ -335,21 +398,25 @@ fn stmt_eq_ignore_spans(
                 && n1 == n2
                 && match (i1, i2) {
                     (None, None) => true,
-                    (Some(e1), Some(e2)) => ast_eq_ignore_spans(e1, e2),
+                    (Some(e1), Some(e2)) => expr_eq_ignore_spans_with_pool(*e1, actual_pool, *e2, expected_pool),
                     _ => false,
                 }
         }
 
-        (StmtKind::Return(e1), StmtKind::Return(e2)) => ast_eq_ignore_spans(e1, e2),
+        (StmtKind::Return(e1), StmtKind::Return(e2)) => {
+            expr_eq_ignore_spans_with_pool(*e1, actual_pool, *e2, expected_pool)
+        }
 
-        (StmtKind::Expr(e1), StmtKind::Expr(e2)) => ast_eq_ignore_spans(e1, e2),
+        (StmtKind::Expr(e1), StmtKind::Expr(e2)) => {
+            expr_eq_ignore_spans_with_pool(*e1, actual_pool, *e2, expected_pool)
+        }
 
         (StmtKind::Block(s1), StmtKind::Block(s2)) => {
             s1.len() == s2.len()
                 && s1
                     .iter()
                     .zip(s2.iter())
-                    .all(|(a, b)| stmt_eq_ignore_spans(a, b))
+                    .all(|(a, b)| stmt_eq_ignore_spans_with_pool(*a, actual_pool, *b, expected_pool))
         }
 
         (
@@ -364,11 +431,11 @@ fn stmt_eq_ignore_spans(
                 else_stmt: e2,
             },
         ) => {
-            ast_eq_ignore_spans(c1, c2)
-                && stmt_eq_ignore_spans(t1, t2)
+            expr_eq_ignore_spans_with_pool(*c1, actual_pool, *c2, expected_pool)
+                && stmt_eq_ignore_spans_with_pool(*t1, actual_pool, *t2, expected_pool)
                 && match (e1, e2) {
                     (None, None) => true,
-                    (Some(s1), Some(s2)) => stmt_eq_ignore_spans(s1, s2),
+                    (Some(s1), Some(s2)) => stmt_eq_ignore_spans_with_pool(*s1, actual_pool, *s2, expected_pool),
                     _ => false,
                 }
         }
@@ -382,7 +449,10 @@ fn stmt_eq_ignore_spans(
                 condition: c2,
                 body: b2,
             },
-        ) => ast_eq_ignore_spans(c1, c2) && stmt_eq_ignore_spans(b1, b2),
+        ) => {
+            expr_eq_ignore_spans_with_pool(*c1, actual_pool, *c2, expected_pool) &&
+            stmt_eq_ignore_spans_with_pool(*b1, actual_pool, *b2, expected_pool)
+        }
 
         (
             StmtKind::For {
@@ -400,20 +470,20 @@ fn stmt_eq_ignore_spans(
         ) => {
             let init_match = match (i1, i2) {
                 (None, None) => true,
-                (Some(s1), Some(s2)) => stmt_eq_ignore_spans(s1, s2),
+                (Some(s1), Some(s2)) => stmt_eq_ignore_spans_with_pool(*s1, actual_pool, *s2, expected_pool),
                 _ => false,
             };
             let cond_match = match (c1, c2) {
                 (None, None) => true,
-                (Some(e1), Some(e2)) => ast_eq_ignore_spans(e1, e2),
+                (Some(e1), Some(e2)) => expr_eq_ignore_spans_with_pool(*e1, actual_pool, *e2, expected_pool),
                 _ => false,
             };
             let inc_match = match (inc1, inc2) {
                 (None, None) => true,
-                (Some(e1), Some(e2)) => ast_eq_ignore_spans(e1, e2),
+                (Some(e1), Some(e2)) => expr_eq_ignore_spans_with_pool(*e1, actual_pool, *e2, expected_pool),
                 _ => false,
             };
-            init_match && cond_match && inc_match && stmt_eq_ignore_spans(b1, b2)
+            init_match && cond_match && inc_match && stmt_eq_ignore_spans_with_pool(*b1, actual_pool, *b2, expected_pool)
         }
 
         _ => false,
@@ -429,10 +499,13 @@ mod tests {
     #[test]
     fn test_script_simple_var_decl() {
         ScriptTest::new("float x = 5.0; return x;")
-            .expect_ast(program(vec![
-                var_decl(Type::Fixed, "x", Some(num(5.0))),
-                return_stmt(typed_var("x", Type::Fixed)),
-            ]))
+            .expect_ast(|b| {
+                let init = b.num(5.0);
+                let var_stmt = b.var_decl(Type::Fixed, "x", Some(init));
+                let ret_var = b.typed_var("x", Type::Fixed);
+                let ret_stmt = b.return_stmt(ret_var);
+                b.program(vec![var_stmt, ret_stmt])
+            })
             .expect_opcodes(vec![
                 LpsOpCode::Push(5.0.to_fixed()),
                 LpsOpCode::StoreLocalFixed(0),
@@ -447,7 +520,11 @@ mod tests {
     #[test]
     fn test_script_with_ast() {
         ScriptTest::new("return 42.0;")
-            .expect_ast(program(vec![return_stmt(num(42.0))]))
+            .expect_ast(|b| {
+                let expr = b.num(42.0);
+                let stmt = b.return_stmt(expr);
+                b.program(vec![stmt])
+            })
             .expect_opcodes(vec![LpsOpCode::Push(42.0.to_fixed()), LpsOpCode::Return])
             .expect_result_fixed(42.0)
             .run()

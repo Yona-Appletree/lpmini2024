@@ -10,7 +10,11 @@ mod tests {
     #[test]
     fn test_addition() -> Result<(), String> {
         ExprTest::new("1.0 + 2.0")
-            .expect_ast(add(num(1.0), num(2.0), Type::Fixed))
+            .expect_ast(|b| {
+                let left = b.num(1.0);
+                let right = b.num(2.0);
+                b.add(left, right, Type::Fixed)
+            })
             .expect_opcodes(vec![
                 LpsOpCode::Push(1.0.to_fixed()),
                 LpsOpCode::Push(2.0.to_fixed()),
@@ -24,7 +28,11 @@ mod tests {
     #[test]
     fn test_subtraction() -> Result<(), String> {
         ExprTest::new("5.0 - 2.0")
-            .expect_ast(sub(num(5.0), num(2.0), Type::Fixed))
+            .expect_ast(|b| {
+                let left = b.num(5.0);
+                let right = b.num(2.0);
+                b.sub(left, right, Type::Fixed)
+            })
             .expect_result_fixed(3.0)
             .run()
     }
@@ -32,7 +40,11 @@ mod tests {
     #[test]
     fn test_multiplication() -> Result<(), String> {
         ExprTest::new("3.0 * 4.0")
-            .expect_ast(mul(num(3.0), num(4.0), Type::Fixed))
+            .expect_ast(|b| {
+                let left = b.num(3.0);
+                let right = b.num(4.0);
+                b.mul(left, right, Type::Fixed)
+            })
             .expect_result_fixed(12.0)
             .run()
     }
@@ -40,7 +52,11 @@ mod tests {
     #[test]
     fn test_division() -> Result<(), String> {
         ExprTest::new("10.0 / 2.0")
-            .expect_ast(div(num(10.0), num(2.0), Type::Fixed))
+            .expect_ast(|b| {
+                let left = b.num(10.0);
+                let right = b.num(2.0);
+                b.div(left, right, Type::Fixed)
+            })
             .expect_result_fixed(5.0)
             .run()
     }
@@ -49,11 +65,13 @@ mod tests {
     fn test_operator_precedence() -> Result<(), String> {
         // 1 + 2 * 3 should be 1 + (2 * 3) = 7
         ExprTest::new("1.0 + 2.0 * 3.0")
-            .expect_ast(add(
-                num(1.0),
-                mul(num(2.0), num(3.0), Type::Fixed),
-                Type::Fixed,
-            ))
+            .expect_ast(|b| {
+                let left = b.num(1.0);
+                let mul_left = b.num(2.0);
+                let mul_right = b.num(3.0);
+                let right = b.mul(mul_left, mul_right, Type::Fixed);
+                b.add(left, right, Type::Fixed)
+            })
             .expect_result_fixed(7.0)
             .run()
     }
@@ -62,11 +80,13 @@ mod tests {
     fn test_parenthesized_expression() -> Result<(), String> {
         // (1 + 2) * 3 should be 9
         ExprTest::new("(1.0 + 2.0) * 3.0")
-            .expect_ast(mul(
-                add(num(1.0), num(2.0), Type::Fixed),
-                num(3.0),
-                Type::Fixed,
-            ))
+            .expect_ast(|b| {
+                let add_left = b.num(1.0);
+                let add_right = b.num(2.0);
+                let left = b.add(add_left, add_right, Type::Fixed);
+                let right = b.num(3.0);
+                b.mul(left, right, Type::Fixed)
+            })
             .expect_result_fixed(9.0)
             .run()
     }

@@ -34,6 +34,8 @@
 
 - [x] AST optimization
 - [x] Opcode optimization
+- [ ] Push2,3,4 opcodes? run tests?
+-
 
 ## Tests
 

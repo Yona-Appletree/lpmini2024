@@ -10,11 +10,15 @@ mod tests {
     #[test]
     fn test_logical_and() -> Result<(), String> {
         ExprTest::new("1.0 > 0.5 && 2.0 < 1.5")
-            .expect_ast(and(
-                greater(num(1.0), num(0.5)),
-                less(num(2.0), num(1.5)),
-                Type::Bool,
-            ))
+            .expect_ast(|b| {
+                let left_left = b.num(1.0);
+                let left_right = b.num(0.5);
+                let left = b.greater(left_left, left_right);
+                let right_left = b.num(2.0);
+                let right_right = b.num(1.5);
+                let right = b.less(right_left, right_right);
+                b.logical_and(left, right)
+            })
             .expect_opcodes(vec![
                 LpsOpCode::Push(1.0.to_fixed()),
                 LpsOpCode::Push(0.5.to_fixed()),
@@ -32,11 +36,15 @@ mod tests {
     #[test]
     fn test_logical_or() -> Result<(), String> {
         ExprTest::new("1.0 < 0.5 || 2.0 > 1.5")
-            .expect_ast(or(
-                less(num(1.0), num(0.5)),
-                greater(num(2.0), num(1.5)),
-                Type::Bool,
-            ))
+            .expect_ast(|b| {
+                let left_left = b.num(1.0);
+                let left_right = b.num(0.5);
+                let left = b.less(left_left, left_right);
+                let right_left = b.num(2.0);
+                let right_right = b.num(1.5);
+                let right = b.greater(right_left, right_right);
+                b.logical_or(left, right)
+            })
             .expect_result_bool(true) // false || true = true
             .run()
     }

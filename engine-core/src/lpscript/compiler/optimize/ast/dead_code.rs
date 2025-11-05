@@ -95,3 +95,4 @@ fn get_constant_bool(expr: &Expr) -> Option<bool> {
         _ => None,
     }
 }
+

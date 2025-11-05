@@ -4,7 +4,8 @@
 
 mod swizzle_gen;
 mod swizzle_parse;
-mod swizzle_types;
+// TODO: Update swizzle_types to use pool-based API
+// mod swizzle_types;
 
 #[cfg(test)]
 mod swizzle_tests;

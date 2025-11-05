@@ -4,7 +4,8 @@
 
 mod literals_gen;
 mod literals_parse;
-mod literals_types;
+// TODO: Update literals_types to use pool-based API
+// mod literals_types;
 mod unary_gen;
 
 #[cfg(test)]

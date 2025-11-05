@@ -1,32 +1,43 @@
 /// Statement type checking
 extern crate alloc;
 
-use crate::lpscript::compiler::ast::{Stmt, StmtKind};
+use crate::lpscript::compiler::ast::{AstPool, StmtId, StmtKind};
 use crate::lpscript::compiler::error::TypeError;
 use crate::lpscript::compiler::typechecker::{FunctionTable, SymbolTable, TypeChecker};
 
 impl TypeChecker {
-    /// Type check a statement
-    pub(crate) fn check_stmt(
-        stmt: &mut Stmt,
+    /// Type check a statement by ID
+    pub(crate) fn check_stmt_id(
+        pool: &mut AstPool,
+        stmt_id: StmtId,
         symbols: &mut SymbolTable,
         func_table: &FunctionTable,
     ) -> Result<(), TypeError> {
-        match &mut stmt.kind {
+        // Clone the statement kind to avoid borrow issues
+        let stmt_kind = pool.stmt(stmt_id).kind.clone();
+        
+        match stmt_kind {
             StmtKind::VarDecl { ty, name, init } => {
-                Self::check_var_decl(ty, name, init, symbols, func_table, stmt.span)?;
+                if let Some(init_id) = init {
+                    Self::infer_type_id(pool, init_id, symbols, func_table)?;
+                }
+                symbols.declare(name, ty);
             }
 
-            StmtKind::Return(expr) => {
-                Self::check_return(expr, symbols, func_table)?;
+            StmtKind::Return(expr_id) => {
+                Self::infer_type_id(pool, expr_id, symbols, func_table)?;
             }
 
-            StmtKind::Expr(expr) => {
-                Self::check_expr_stmt(expr, symbols, func_table)?;
+            StmtKind::Expr(expr_id) => {
+                Self::infer_type_id(pool, expr_id, symbols, func_table)?;
             }
 
             StmtKind::Block(stmts) => {
-                Self::check_block(stmts, symbols, func_table)?;
+                symbols.push_scope();
+                for stmt_id in stmts {
+                    Self::check_stmt_id(pool, stmt_id, symbols, func_table)?;
+                }
+                symbols.pop_scope();
             }
 
             StmtKind::If {
@@ -34,11 +45,16 @@ impl TypeChecker {
                 then_stmt,
                 else_stmt,
             } => {
-                Self::check_if(condition, then_stmt, else_stmt, symbols, func_table)?;
+                Self::infer_type_id(pool, condition, symbols, func_table)?;
+                Self::check_stmt_id(pool, then_stmt, symbols, func_table)?;
+                if let Some(else_id) = else_stmt {
+                    Self::check_stmt_id(pool, else_id, symbols, func_table)?;
+                }
             }
 
             StmtKind::While { condition, body } => {
-                Self::check_while(condition, body, symbols, func_table)?;
+                Self::infer_type_id(pool, condition, symbols, func_table)?;
+                Self::check_stmt_id(pool, body, symbols, func_table)?;
             }
 
             StmtKind::For {
@@ -47,7 +63,18 @@ impl TypeChecker {
                 increment,
                 body,
             } => {
-                Self::check_for(init, condition, increment, body, symbols, func_table)?;
+                symbols.push_scope();
+                if let Some(init_id) = init {
+                    Self::check_stmt_id(pool, init_id, symbols, func_table)?;
+                }
+                if let Some(cond_id) = condition {
+                    Self::infer_type_id(pool, cond_id, symbols, func_table)?;
+                }
+                if let Some(inc_id) = increment {
+                    Self::infer_type_id(pool, inc_id, symbols, func_table)?;
+                }
+                Self::check_stmt_id(pool, body, symbols, func_table)?;
+                symbols.pop_scope();
             }
         }
 

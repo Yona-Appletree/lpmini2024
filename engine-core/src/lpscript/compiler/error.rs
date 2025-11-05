@@ -63,6 +63,9 @@ pub enum ParseErrorKind {
     UnexpectedToken { expected: String, found: String },
     UnexpectedEof,
     InvalidExpression,
+    RecursionLimitExceeded { max: usize },
+    ExprLimitExceeded { max: usize },
+    StmtLimitExceeded { max: usize },
 }
 
 impl fmt::Display for ParseError {
@@ -74,6 +77,15 @@ impl fmt::Display for ParseError {
             }
             ParseErrorKind::UnexpectedEof => write!(f, "unexpected end of input"),
             ParseErrorKind::InvalidExpression => write!(f, "invalid expression"),
+            ParseErrorKind::RecursionLimitExceeded { max } => {
+                write!(f, "parser recursion limit exceeded (max: {})", max)
+            }
+            ParseErrorKind::ExprLimitExceeded { max } => {
+                write!(f, "expression node limit exceeded (max: {})", max)
+            }
+            ParseErrorKind::StmtLimitExceeded { max } => {
+                write!(f, "statement node limit exceeded (max: {})", max)
+            }
         }
     }
 }

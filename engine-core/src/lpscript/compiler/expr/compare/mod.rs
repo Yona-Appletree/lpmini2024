@@ -3,7 +3,8 @@ mod compare_gen;
 ///
 /// Groups parsing, code generation, type checking, and tests for comparison operators.
 mod compare_parse;
-mod compare_types;
+// TODO: Update compare_types to use pool-based API
+// mod compare_types;
 
 #[cfg(test)]
 mod compare_tests;

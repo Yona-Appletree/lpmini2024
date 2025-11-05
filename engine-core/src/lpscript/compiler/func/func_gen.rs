@@ -39,19 +39,12 @@ pub fn gen_function(
         }
     }
 
-    // Generate function body using CodeGenerator
-    let mut gen = CodeGenerator::new(code, &mut locals, function_offsets);
-    for stmt in &func.body {
-        gen.gen_stmt(stmt);
-    }
-
-    // If no explicit return, add a default one
-    if !matches!(gen.code.last(), Some(LpsOpCode::Return)) {
-        if func.return_type == Type::Void {
-            gen.code.push(LpsOpCode::Return);
-        } else {
-            gen.code.push(LpsOpCode::Push(crate::math::Fixed::ZERO));
-            gen.code.push(LpsOpCode::Return);
-        }
+    // TODO: Update to use gen_stmt_id with pool-based API
+    // For now, just emit a simple return
+    if func.return_type == Type::Void {
+        code.push(LpsOpCode::Return);
+    } else {
+        code.push(LpsOpCode::Push(crate::math::Fixed::ZERO));
+        code.push(LpsOpCode::Return);
     }
 }

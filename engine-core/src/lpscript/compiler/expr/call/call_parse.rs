@@ -1,5 +1,6 @@
 /// Function call parsing
-use crate::lpscript::compiler::ast::{Expr, ExprKind};
+use crate::lpscript::compiler::ast::{ExprId, ExprKind};
+use crate::lpscript::compiler::error::ParseError;
 use crate::lpscript::compiler::lexer::TokenKind;
 use crate::lpscript::compiler::parser::Parser;
 use crate::lpscript::shared::Span;
@@ -8,7 +9,7 @@ use alloc::vec::Vec;
 
 impl Parser {
     // Parse function call
-    pub(in crate::lpscript) fn parse_function_call(&mut self) -> Expr {
+    pub(in crate::lpscript) fn parse_function_call(&mut self) -> Result<ExprId, ParseError> {
         let token = self.current().clone();
 
         if let TokenKind::Ident(name) = &token.kind {
@@ -19,7 +20,7 @@ impl Parser {
             if matches!(self.current().kind, TokenKind::LParen) {
                 // Function call
                 self.advance(); // consume '('
-                let args = self.parse_args();
+                let args = self.parse_args()?;
                 let end = if matches!(self.current().kind, TokenKind::RParen) {
                     let span = self.current().span;
                     self.advance(); // consume ')'
@@ -30,26 +31,32 @@ impl Parser {
 
                 let kind = ExprKind::Call { name, args };
 
-                Expr::new(kind, Span::new(start, end))
+                self.pool
+                    .alloc_expr(kind, Span::new(start, end))
+                    .map_err(|e| self.pool_error_to_parse_error(e))
             } else {
                 // Not a function call, return variable
-                Expr::new(ExprKind::Variable(name), token.span)
+                self.pool
+                    .alloc_expr(ExprKind::Variable(name), token.span)
+                    .map_err(|e| self.pool_error_to_parse_error(e))
             }
         } else {
             // Error fallback
-            Expr::new(ExprKind::Number(0.0), token.span)
+            self.pool
+                .alloc_expr(ExprKind::Number(0.0), token.span)
+                .map_err(|e| self.pool_error_to_parse_error(e))
         }
     }
 
-    pub(in crate::lpscript) fn parse_args(&mut self) -> Vec<Expr> {
+    pub(in crate::lpscript) fn parse_args(&mut self) -> Result<Vec<ExprId>, ParseError> {
         let mut args = Vec::new();
 
         if matches!(self.current().kind, TokenKind::RParen) {
-            return args;
+            return Ok(args);
         }
 
         loop {
-            args.push(self.ternary());
+            args.push(self.ternary()?);
             if matches!(self.current().kind, TokenKind::Comma) {
                 self.advance();
             } else {
@@ -57,6 +64,6 @@ impl Parser {
             }
         }
 
-        args
+        Ok(args)
     }
 }
