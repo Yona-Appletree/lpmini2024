@@ -3,10 +3,10 @@ extern crate alloc;
 use alloc::vec::Vec;
 
 use crate::lpscript::vm::call_stack::CallStack;
-use crate::lpscript::vm::error::RuntimeError;
-use crate::lpscript::vm::locals_storage::LocalsStorage;
-use crate::lpscript::vm::program::LpsProgram;
-use crate::lpscript::vm::vm_stack::Stack;
+use crate::lpscript::vm::error::LpsVmError;
+use crate::lpscript::vm::local_stack::LocalStack;
+use crate::lpscript::vm::lps_program::LpsProgram;
+use crate::lpscript::vm::value_stack::ValueStack;
 use crate::math::Fixed;
 
 /// Action to take after executing Return opcode
@@ -22,10 +22,10 @@ pub enum ReturnAction {
 /// Execute Return: pop call frame and continue, or exit if in main
 #[inline(always)]
 pub fn exec_return(
-    stack: &Stack,
+    stack: &ValueStack,
     call_stack: &mut CallStack,
-    locals: &mut LocalsStorage,
-) -> Result<ReturnAction, RuntimeError> {
+    locals: &mut LocalStack,
+) -> Result<ReturnAction, LpsVmError> {
     if let Some((return_pc, return_fn_idx, locals_restore_sp)) = call_stack.pop_frame() {
         // Returning from a function call
         // Deallocate this function's locals
@@ -44,7 +44,7 @@ pub fn exec_return(
 
 /// Execute Select (ternary): pop false_val, true_val, condition; push selected
 #[inline(always)]
-pub fn exec_select(stack: &mut Stack) -> Result<(), RuntimeError> {
+pub fn exec_select(stack: &mut ValueStack) -> Result<(), LpsVmError> {
     let (condition, true_val, false_val) = stack.pop3()?;
 
     stack.push_int32(if condition != 0 { true_val } else { false_val })?;
@@ -56,10 +56,10 @@ pub fn exec_select(stack: &mut Stack) -> Result<(), RuntimeError> {
 /// Returns Some(new_pc) if jump taken, None otherwise
 #[inline(always)]
 pub fn exec_jump_if_zero(
-    stack: &mut Stack,
+    stack: &mut ValueStack,
     pc: usize,
     offset: i32,
-) -> Result<Option<usize>, RuntimeError> {
+) -> Result<Option<usize>, LpsVmError> {
     let value = stack.pop_int32()?;
 
     if value == 0 {
@@ -72,10 +72,10 @@ pub fn exec_jump_if_zero(
 /// Execute JumpIfNonZero: pop value, jump if non-zero  
 #[inline(always)]
 pub fn exec_jump_if_nonzero(
-    stack: &mut Stack,
+    stack: &mut ValueStack,
     pc: usize,
     offset: i32,
-) -> Result<Option<usize>, RuntimeError> {
+) -> Result<Option<usize>, LpsVmError> {
     let value = stack.pop_int32()?;
 
     if value != 0 {
@@ -88,11 +88,11 @@ pub fn exec_jump_if_nonzero(
 /// Execute Jump: unconditional jump by offset
 /// Returns the new PC value
 #[inline(always)]
-pub fn exec_jump(pc: usize, offset: i32, max_pc: usize) -> Result<usize, RuntimeError> {
+pub fn exec_jump(pc: usize, offset: i32, max_pc: usize) -> Result<usize, LpsVmError> {
     let new_pc = (pc as i32) + offset + 1;
 
     if new_pc < 0 || new_pc as usize >= max_pc {
-        return Err(RuntimeError::ProgramCounterOutOfBounds {
+        return Err(LpsVmError::ProgramCounterOutOfBounds {
             pc: new_pc as usize,
             max: max_pc,
         });
@@ -110,13 +110,13 @@ pub fn exec_call(
     current_pc: usize,
     current_fn_idx: usize,
     target_fn_idx: usize,
-    locals: &mut LocalsStorage,
+    locals: &mut LocalStack,
     call_stack: &mut CallStack,
-) -> Result<(usize, usize), RuntimeError> {
+) -> Result<(usize, usize), LpsVmError> {
     // Get target function to allocate its locals
     let target_fn = program
         .function(target_fn_idx)
-        .ok_or(RuntimeError::InvalidFunctionIndex)?;
+        .ok_or(LpsVmError::InvalidFunctionIndex)?;
 
     // Allocate locals for the called function BEFORE storing parameters
     let new_frame_base = locals.local_count();
@@ -146,7 +146,7 @@ mod tests {
 
     #[test]
     fn test_select_true() {
-        let mut stack = Stack::new(64);
+        let mut stack = ValueStack::new(64);
 
         // condition = 1 (true)
         stack.push_fixed(1.0f32.to_fixed()).unwrap();
@@ -163,7 +163,7 @@ mod tests {
 
     #[test]
     fn test_select_false() {
-        let mut stack = Stack::new(64);
+        let mut stack = ValueStack::new(64);
 
         // condition = 0 (false)
         stack.push_int32(0).unwrap();
@@ -180,7 +180,7 @@ mod tests {
 
     #[test]
     fn test_select_underflow() {
-        let mut stack = Stack::new(64);
+        let mut stack = ValueStack::new(64);
         // Only push 2 items, need 3
         stack.push_int32(1).unwrap();
         stack.push_int32(2).unwrap();
@@ -188,7 +188,7 @@ mod tests {
         let result = exec_select(&mut stack);
         assert!(matches!(
             result,
-            Err(RuntimeError::StackUnderflow {
+            Err(LpsVmError::StackUnderflow {
                 required: 3,
                 actual: 2
             })
@@ -212,20 +212,20 @@ mod tests {
         let result = exec_jump(90, 20, 100);
         assert!(matches!(
             result,
-            Err(RuntimeError::ProgramCounterOutOfBounds { pc: 111, max: 100 })
+            Err(LpsVmError::ProgramCounterOutOfBounds { pc: 111, max: 100 })
         ));
 
         // Jump to negative
         let result = exec_jump(5, -10, 100);
         assert!(matches!(
             result,
-            Err(RuntimeError::ProgramCounterOutOfBounds { .. })
+            Err(LpsVmError::ProgramCounterOutOfBounds { .. })
         ));
     }
 
     #[test]
     fn test_jump_if_zero() {
-        let mut stack = Stack::new(64);
+        let mut stack = ValueStack::new(64);
 
         stack.push_int32(0).unwrap();
 
@@ -237,7 +237,7 @@ mod tests {
 
     #[test]
     fn test_jump_if_zero_no_jump() {
-        let mut stack = Stack::new(64);
+        let mut stack = ValueStack::new(64);
 
         stack.push_fixed(1.0f32.to_fixed()).unwrap();
 
@@ -249,9 +249,9 @@ mod tests {
 
     #[test]
     fn test_return_from_function() {
-        let stack = Stack::new(64);
+        let stack = ValueStack::new(64);
         let mut call_stack = CallStack::new(64);
-        let mut locals = LocalsStorage::new(1024);
+        let mut locals = LocalStack::new(1024);
 
         // Simulate a function call
         call_stack.push_frame(100, 0, 3, 3, 1).unwrap();
@@ -274,9 +274,9 @@ mod tests {
 
     #[test]
     fn test_return_from_main() {
-        let mut stack = Stack::new(64);
+        let mut stack = ValueStack::new(64);
         let mut call_stack = CallStack::new(64);
-        let mut locals = LocalsStorage::new(1024);
+        let mut locals = LocalStack::new(1024);
 
         // Push some values on the stack
         stack.push_fixed(1.5.to_fixed()).unwrap();
@@ -300,9 +300,9 @@ mod tests {
 
     #[test]
     fn test_return_nested_calls() {
-        let stack = Stack::new(64);
+        let stack = ValueStack::new(64);
         let mut call_stack = CallStack::new(64);
-        let mut locals = LocalsStorage::new(1024);
+        let mut locals = LocalStack::new(1024);
 
         // Simulate nested function calls
         call_stack.push_frame(100, 0, 3, 3, 1).unwrap();
@@ -355,7 +355,7 @@ mod tests {
     #[test]
     fn test_call() {
         use crate::lpscript::shared::Type;
-        use crate::lpscript::vm::program::{FunctionDef, LocalVarDef};
+        use crate::lpscript::vm::lps_program::{FunctionDef, LocalVarDef};
 
         // Create a simple program with 2 functions
         let main_fn = FunctionDef::new("main".into(), Type::Void)
@@ -368,7 +368,7 @@ mod tests {
 
         let program = LpsProgram::new("test".into()).with_functions(vec![main_fn, target_fn]);
 
-        let mut locals = LocalsStorage::new(1024);
+        let mut locals = LocalStack::new(1024);
         let mut call_stack = CallStack::new(64);
 
         // Allocate main's locals
@@ -397,12 +397,12 @@ mod tests {
     #[test]
     fn test_call_invalid_function() {
         use crate::lpscript::shared::Type;
-        use crate::lpscript::vm::program::FunctionDef;
+        use crate::lpscript::vm::lps_program::FunctionDef;
 
         let main_fn = FunctionDef::new("main".into(), Type::Void);
         let program = LpsProgram::new("test".into()).with_functions(vec![main_fn]);
 
-        let mut locals = LocalsStorage::new(1024);
+        let mut locals = LocalStack::new(1024);
         let mut call_stack = CallStack::new(64);
 
         // Try to call non-existent function
@@ -415,6 +415,6 @@ mod tests {
             &mut call_stack,
         );
 
-        assert!(matches!(result, Err(RuntimeError::InvalidFunctionIndex)));
+        assert!(matches!(result, Err(LpsVmError::InvalidFunctionIndex)));
     }
 }

@@ -82,9 +82,12 @@ pub use compiler::optimize::OptimizeOptions;
 use compiler::{codegen, lexer, optimize, parser, typechecker};
 pub use shared::{Span, Type};
 pub use vm::{
-    execute_program_lps, LocalVarDef, LocalsStorage, LpsOpCode, LpsProgram, LpsVm, ParamDef,
-    RuntimeError, RuntimeErrorWithContext, VmLimits,
+    LocalVarDef, LocalStack, LpsOpCode, LpsProgram, ParamDef,
+    LpsVmError, RuntimeErrorWithContext,
 };
+pub use vm::execute_program_lps;
+pub use vm::lps_vm::LpsVm;
+pub use vm::vm_limits::VmLimits;
 
 /// Parse an expression string and generate a compiled LPS program
 ///
@@ -117,7 +120,7 @@ pub fn compile_expr_with_options(
     let pool = parser.pool;
 
     // Type check the AST
-    let (typed_ast_id, mut pool) = typechecker::TypeChecker::check(ast_id, pool)?;
+    let (typed_ast_id, pool) = typechecker::TypeChecker::check(ast_id, pool)?;
 
     // Optimize AST
     let (optimized_ast_id, pool) = optimize::optimize_ast_expr(typed_ast_id, pool, options);

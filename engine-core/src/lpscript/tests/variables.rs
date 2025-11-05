@@ -1,4 +1,4 @@
-use crate::lpscript::vm::VmLimits;
+use crate::lpscript::vm::vm_limits::VmLimits;
 /// Tests for variable declarations, scoping, and mutations
 use crate::lpscript::*;
 use crate::math::{Fixed, ToFixed};

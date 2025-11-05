@@ -12,7 +12,9 @@ use crate::lpscript::compiler::optimize::OptimizeOptions;
 use crate::lpscript::compiler::test_ast::AstBuilder;
 use crate::lpscript::compiler::{lexer, optimize, parser, typechecker};
 use crate::lpscript::shared::Type;
-use crate::lpscript::vm::{LpsOpCode, LpsProgram, LpsVm, VmLimits};
+use crate::lpscript::vm::{LpsOpCode, LpsProgram};
+use crate::lpscript::vm::lps_vm::LpsVm;
+use crate::lpscript::vm::vm_limits::VmLimits;
 use crate::math::{Fixed, ToFixed, Vec2, Vec3, Vec4};
 
 /// Builder for testing expressions through the compilation pipeline

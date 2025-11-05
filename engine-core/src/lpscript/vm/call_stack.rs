@@ -3,7 +3,7 @@ extern crate alloc;
 use alloc::vec;
 use alloc::vec::Vec;
 
-use super::error::RuntimeError;
+use super::error::LpsVmError;
 
 /// Call frame for function calls
 ///
@@ -54,7 +54,7 @@ impl CallStack {
 
     /// Reset the call stack for a new execution
     #[inline(always)]
-    pub fn reset(&mut self, main_locals_count: usize) {
+    pub fn reset(&mut self, _main_locals_count: usize) {
         self.depth = 0;
         self.frame_base = 0;
         self.current_fn_idx = 0;
@@ -98,10 +98,10 @@ impl CallStack {
         new_frame_base: usize,
         current_locals_sp: usize,
         new_fn_idx: usize,
-    ) -> Result<(), RuntimeError> {
+    ) -> Result<(), LpsVmError> {
         // Check call stack depth
         if self.depth >= self.max_depth {
-            return Err(RuntimeError::CallStackOverflow {
+            return Err(LpsVmError::CallStackOverflow {
                 depth: self.depth,
             });
         }
@@ -233,7 +233,7 @@ mod tests {
         let result = stack.push_frame(400, 3, 18, 18, 4);
         assert!(matches!(
             result,
-            Err(RuntimeError::CallStackOverflow { depth: 3 })
+            Err(LpsVmError::CallStackOverflow { depth: 3 })
         ));
     }
 

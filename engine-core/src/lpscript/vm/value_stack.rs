@@ -3,23 +3,23 @@ extern crate alloc;
 use alloc::vec;
 use alloc::vec::Vec;
 
-use super::error::RuntimeError;
+use super::error::LpsVmError;
 use crate::math::{Fixed, Vec2, Vec3, Vec4};
 
 /// VM Stack for LPS execution
 ///
 /// Internally stores raw i32 values for type-independence and performance,
 /// but provides type-safe push/pop methods for Fixed, Int32, and vector types.
-pub struct Stack {
+pub struct ValueStack {
     data: Vec<i32>,
     sp: usize,
     max_size: usize,
 }
 
-impl Stack {
+impl ValueStack {
     /// Create a new stack with the given maximum size
     pub fn new(max_size: usize) -> Self {
-        Stack {
+        ValueStack {
             data: vec![0; max_size],
             sp: 0,
             max_size,
@@ -66,9 +66,9 @@ impl Stack {
 
     /// Push a Fixed value onto the stack
     #[inline(always)]
-    pub fn push_fixed(&mut self, val: Fixed) -> Result<(), RuntimeError> {
+    pub fn push_fixed(&mut self, val: Fixed) -> Result<(), LpsVmError> {
         if self.sp >= self.max_size {
-            return Err(RuntimeError::StackOverflow { sp: self.sp });
+            return Err(LpsVmError::StackOverflow { sp: self.sp });
         }
         self.data[self.sp] = val.0;
         self.sp += 1;
@@ -77,9 +77,9 @@ impl Stack {
 
     /// Pop a Fixed value from the stack
     #[inline(always)]
-    pub fn pop_fixed(&mut self) -> Result<Fixed, RuntimeError> {
+    pub fn pop_fixed(&mut self) -> Result<Fixed, LpsVmError> {
         if self.sp == 0 {
-            return Err(RuntimeError::StackUnderflow {
+            return Err(LpsVmError::StackUnderflow {
                 required: 1,
                 actual: 0,
             });
@@ -90,9 +90,9 @@ impl Stack {
 
     /// Push an Int32 value onto the stack
     #[inline(always)]
-    pub fn push_int32(&mut self, val: i32) -> Result<(), RuntimeError> {
+    pub fn push_int32(&mut self, val: i32) -> Result<(), LpsVmError> {
         if self.sp >= self.max_size {
-            return Err(RuntimeError::StackOverflow { sp: self.sp });
+            return Err(LpsVmError::StackOverflow { sp: self.sp });
         }
         self.data[self.sp] = val;
         self.sp += 1;
@@ -101,9 +101,9 @@ impl Stack {
 
     /// Pop an Int32 value from the stack
     #[inline(always)]
-    pub fn pop_int32(&mut self) -> Result<i32, RuntimeError> {
+    pub fn pop_int32(&mut self) -> Result<i32, LpsVmError> {
         if self.sp == 0 {
-            return Err(RuntimeError::StackUnderflow {
+            return Err(LpsVmError::StackUnderflow {
                 required: 1,
                 actual: 0,
             });
@@ -116,9 +116,9 @@ impl Stack {
 
     /// Pop 2 raw i32 values from the stack (returns in stack order: bottom, top)
     #[inline(always)]
-    pub fn pop2(&mut self) -> Result<(i32, i32), RuntimeError> {
+    pub fn pop2(&mut self) -> Result<(i32, i32), LpsVmError> {
         if self.sp < 2 {
-            return Err(RuntimeError::StackUnderflow {
+            return Err(LpsVmError::StackUnderflow {
                 required: 2,
                 actual: self.sp,
             });
@@ -132,9 +132,9 @@ impl Stack {
 
     /// Pop 3 raw i32 values from the stack
     #[inline(always)]
-    pub fn pop3(&mut self) -> Result<(i32, i32, i32), RuntimeError> {
+    pub fn pop3(&mut self) -> Result<(i32, i32, i32), LpsVmError> {
         if self.sp < 3 {
-            return Err(RuntimeError::StackUnderflow {
+            return Err(LpsVmError::StackUnderflow {
                 required: 3,
                 actual: self.sp,
             });
@@ -150,9 +150,9 @@ impl Stack {
 
     /// Pop 4 raw i32 values from the stack
     #[inline(always)]
-    pub fn pop4(&mut self) -> Result<(i32, i32, i32, i32), RuntimeError> {
+    pub fn pop4(&mut self) -> Result<(i32, i32, i32, i32), LpsVmError> {
         if self.sp < 4 {
-            return Err(RuntimeError::StackUnderflow {
+            return Err(LpsVmError::StackUnderflow {
                 required: 4,
                 actual: self.sp,
             });
@@ -170,9 +170,9 @@ impl Stack {
 
     /// Push 2 raw i32 values onto the stack
     #[inline(always)]
-    pub fn push2(&mut self, v0: i32, v1: i32) -> Result<(), RuntimeError> {
+    pub fn push2(&mut self, v0: i32, v1: i32) -> Result<(), LpsVmError> {
         if self.sp + 2 > self.max_size {
-            return Err(RuntimeError::StackOverflow { sp: self.sp });
+            return Err(LpsVmError::StackOverflow { sp: self.sp });
         }
         self.data[self.sp] = v0;
         self.data[self.sp + 1] = v1;
@@ -182,9 +182,9 @@ impl Stack {
 
     /// Push 3 raw i32 values onto the stack
     #[inline(always)]
-    pub fn push3(&mut self, v0: i32, v1: i32, v2: i32) -> Result<(), RuntimeError> {
+    pub fn push3(&mut self, v0: i32, v1: i32, v2: i32) -> Result<(), LpsVmError> {
         if self.sp + 3 > self.max_size {
-            return Err(RuntimeError::StackOverflow { sp: self.sp });
+            return Err(LpsVmError::StackOverflow { sp: self.sp });
         }
         self.data[self.sp] = v0;
         self.data[self.sp + 1] = v1;
@@ -195,9 +195,9 @@ impl Stack {
 
     /// Push 4 raw i32 values onto the stack
     #[inline(always)]
-    pub fn push4(&mut self, v0: i32, v1: i32, v2: i32, v3: i32) -> Result<(), RuntimeError> {
+    pub fn push4(&mut self, v0: i32, v1: i32, v2: i32, v3: i32) -> Result<(), LpsVmError> {
         if self.sp + 4 > self.max_size {
-            return Err(RuntimeError::StackOverflow { sp: self.sp });
+            return Err(LpsVmError::StackOverflow { sp: self.sp });
         }
         self.data[self.sp] = v0;
         self.data[self.sp + 1] = v1;
@@ -211,39 +211,39 @@ impl Stack {
 
     /// Push a Vec2 onto the stack (as 2 Fixed values)
     #[inline(always)]
-    pub fn push_vec2(&mut self, v: Vec2) -> Result<(), RuntimeError> {
+    pub fn push_vec2(&mut self, v: Vec2) -> Result<(), LpsVmError> {
         self.push2(v.x.0, v.y.0)
     }
 
     /// Pop a Vec2 from the stack
     #[inline(always)]
-    pub fn pop_vec2(&mut self) -> Result<Vec2, RuntimeError> {
+    pub fn pop_vec2(&mut self) -> Result<Vec2, LpsVmError> {
         let (x, y) = self.pop2()?;
         Ok(Vec2::new(Fixed(x), Fixed(y)))
     }
 
     /// Push a Vec3 onto the stack (as 3 Fixed values)
     #[inline(always)]
-    pub fn push_vec3(&mut self, v: Vec3) -> Result<(), RuntimeError> {
+    pub fn push_vec3(&mut self, v: Vec3) -> Result<(), LpsVmError> {
         self.push3(v.x.0, v.y.0, v.z.0)
     }
 
     /// Pop a Vec3 from the stack
     #[inline(always)]
-    pub fn pop_vec3(&mut self) -> Result<Vec3, RuntimeError> {
+    pub fn pop_vec3(&mut self) -> Result<Vec3, LpsVmError> {
         let (x, y, z) = self.pop3()?;
         Ok(Vec3::new(Fixed(x), Fixed(y), Fixed(z)))
     }
 
     /// Push a Vec4 onto the stack (as 4 Fixed values)
     #[inline(always)]
-    pub fn push_vec4(&mut self, v: Vec4) -> Result<(), RuntimeError> {
+    pub fn push_vec4(&mut self, v: Vec4) -> Result<(), LpsVmError> {
         self.push4(v.x.0, v.y.0, v.z.0, v.w.0)
     }
 
     /// Pop a Vec4 from the stack
     #[inline(always)]
-    pub fn pop_vec4(&mut self) -> Result<Vec4, RuntimeError> {
+    pub fn pop_vec4(&mut self) -> Result<Vec4, LpsVmError> {
         let (x, y, z, w) = self.pop4()?;
         Ok(Vec4::new(Fixed(x), Fixed(y), Fixed(z), Fixed(w)))
     }
@@ -252,15 +252,15 @@ impl Stack {
 
     /// Duplicate top 1 stack value
     #[inline(always)]
-    pub fn dup1(&mut self) -> Result<(), RuntimeError> {
+    pub fn dup1(&mut self) -> Result<(), LpsVmError> {
         if self.sp < 1 {
-            return Err(RuntimeError::StackUnderflow {
+            return Err(LpsVmError::StackUnderflow {
                 required: 1,
                 actual: self.sp,
             });
         }
         if self.sp >= self.max_size {
-            return Err(RuntimeError::StackOverflow { sp: self.sp });
+            return Err(LpsVmError::StackOverflow { sp: self.sp });
         }
 
         let val = self.data[self.sp - 1];
@@ -272,15 +272,15 @@ impl Stack {
 
     /// Duplicate top 2 stack values
     #[inline(always)]
-    pub fn dup2(&mut self) -> Result<(), RuntimeError> {
+    pub fn dup2(&mut self) -> Result<(), LpsVmError> {
         if self.sp < 2 {
-            return Err(RuntimeError::StackUnderflow {
+            return Err(LpsVmError::StackUnderflow {
                 required: 2,
                 actual: self.sp,
             });
         }
         if self.sp + 2 > self.max_size {
-            return Err(RuntimeError::StackOverflow { sp: self.sp });
+            return Err(LpsVmError::StackOverflow { sp: self.sp });
         }
 
         let x = self.data[self.sp - 2];
@@ -294,15 +294,15 @@ impl Stack {
 
     /// Duplicate top 3 stack values
     #[inline(always)]
-    pub fn dup3(&mut self) -> Result<(), RuntimeError> {
+    pub fn dup3(&mut self) -> Result<(), LpsVmError> {
         if self.sp < 3 {
-            return Err(RuntimeError::StackUnderflow {
+            return Err(LpsVmError::StackUnderflow {
                 required: 3,
                 actual: self.sp,
             });
         }
         if self.sp + 3 > self.max_size {
-            return Err(RuntimeError::StackOverflow { sp: self.sp });
+            return Err(LpsVmError::StackOverflow { sp: self.sp });
         }
 
         let x = self.data[self.sp - 3];
@@ -318,15 +318,15 @@ impl Stack {
 
     /// Duplicate top 4 stack values
     #[inline(always)]
-    pub fn dup4(&mut self) -> Result<(), RuntimeError> {
+    pub fn dup4(&mut self) -> Result<(), LpsVmError> {
         if self.sp < 4 {
-            return Err(RuntimeError::StackUnderflow {
+            return Err(LpsVmError::StackUnderflow {
                 required: 4,
                 actual: self.sp,
             });
         }
         if self.sp + 4 > self.max_size {
-            return Err(RuntimeError::StackOverflow { sp: self.sp });
+            return Err(LpsVmError::StackOverflow { sp: self.sp });
         }
 
         let x = self.data[self.sp - 4];
@@ -344,9 +344,9 @@ impl Stack {
 
     /// Remove top 1 value from stack
     #[inline(always)]
-    pub fn drop1(&mut self) -> Result<(), RuntimeError> {
+    pub fn drop1(&mut self) -> Result<(), LpsVmError> {
         if self.sp < 1 {
-            return Err(RuntimeError::StackUnderflow {
+            return Err(LpsVmError::StackUnderflow {
                 required: 1,
                 actual: self.sp,
             });
@@ -357,9 +357,9 @@ impl Stack {
 
     /// Remove top 2 values from stack
     #[inline(always)]
-    pub fn drop2(&mut self) -> Result<(), RuntimeError> {
+    pub fn drop2(&mut self) -> Result<(), LpsVmError> {
         if self.sp < 2 {
-            return Err(RuntimeError::StackUnderflow {
+            return Err(LpsVmError::StackUnderflow {
                 required: 2,
                 actual: self.sp,
             });
@@ -370,9 +370,9 @@ impl Stack {
 
     /// Remove top 3 values from stack
     #[inline(always)]
-    pub fn drop3(&mut self) -> Result<(), RuntimeError> {
+    pub fn drop3(&mut self) -> Result<(), LpsVmError> {
         if self.sp < 3 {
-            return Err(RuntimeError::StackUnderflow {
+            return Err(LpsVmError::StackUnderflow {
                 required: 3,
                 actual: self.sp,
             });
@@ -383,9 +383,9 @@ impl Stack {
 
     /// Remove top 4 values from stack
     #[inline(always)]
-    pub fn drop4(&mut self) -> Result<(), RuntimeError> {
+    pub fn drop4(&mut self) -> Result<(), LpsVmError> {
         if self.sp < 4 {
-            return Err(RuntimeError::StackUnderflow {
+            return Err(LpsVmError::StackUnderflow {
                 required: 4,
                 actual: self.sp,
             });
@@ -396,9 +396,9 @@ impl Stack {
 
     /// Swap top two stack items
     #[inline(always)]
-    pub fn swap(&mut self) -> Result<(), RuntimeError> {
+    pub fn swap(&mut self) -> Result<(), LpsVmError> {
         if self.sp < 2 {
-            return Err(RuntimeError::StackUnderflow {
+            return Err(LpsVmError::StackUnderflow {
                 required: 2,
                 actual: self.sp,
             });
@@ -416,9 +416,9 @@ impl Stack {
 
     /// Swizzle vec3 to vec2
     #[inline(always)]
-    pub fn swizzle3to2(&mut self, idx0: u8, idx1: u8) -> Result<(), RuntimeError> {
+    pub fn swizzle3to2(&mut self, idx0: u8, idx1: u8) -> Result<(), LpsVmError> {
         if self.sp < 3 {
-            return Err(RuntimeError::StackUnderflow {
+            return Err(LpsVmError::StackUnderflow {
                 required: 3,
                 actual: self.sp,
             });
@@ -442,9 +442,9 @@ impl Stack {
 
     /// Swizzle vec3 to vec3
     #[inline(always)]
-    pub fn swizzle3to3(&mut self, idx0: u8, idx1: u8, idx2: u8) -> Result<(), RuntimeError> {
+    pub fn swizzle3to3(&mut self, idx0: u8, idx1: u8, idx2: u8) -> Result<(), LpsVmError> {
         if self.sp < 3 {
-            return Err(RuntimeError::StackUnderflow {
+            return Err(LpsVmError::StackUnderflow {
                 required: 3,
                 actual: self.sp,
             });
@@ -470,9 +470,9 @@ impl Stack {
 
     /// Swizzle vec4 to vec2
     #[inline(always)]
-    pub fn swizzle4to2(&mut self, idx0: u8, idx1: u8) -> Result<(), RuntimeError> {
+    pub fn swizzle4to2(&mut self, idx0: u8, idx1: u8) -> Result<(), LpsVmError> {
         if self.sp < 4 {
-            return Err(RuntimeError::StackUnderflow {
+            return Err(LpsVmError::StackUnderflow {
                 required: 4,
                 actual: self.sp,
             });
@@ -497,9 +497,9 @@ impl Stack {
 
     /// Swizzle vec4 to vec3
     #[inline(always)]
-    pub fn swizzle4to3(&mut self, idx0: u8, idx1: u8, idx2: u8) -> Result<(), RuntimeError> {
+    pub fn swizzle4to3(&mut self, idx0: u8, idx1: u8, idx2: u8) -> Result<(), LpsVmError> {
         if self.sp < 4 {
-            return Err(RuntimeError::StackUnderflow {
+            return Err(LpsVmError::StackUnderflow {
                 required: 4,
                 actual: self.sp,
             });
@@ -532,9 +532,9 @@ impl Stack {
         idx1: u8,
         idx2: u8,
         idx3: u8,
-    ) -> Result<(), RuntimeError> {
+    ) -> Result<(), LpsVmError> {
         if self.sp < 4 {
-            return Err(RuntimeError::StackUnderflow {
+            return Err(LpsVmError::StackUnderflow {
                 required: 4,
                 actual: self.sp,
             });
@@ -569,14 +569,14 @@ mod tests {
 
     #[test]
     fn test_stack_creation() {
-        let stack = Stack::new(64);
+        let stack = ValueStack::new(64);
         assert_eq!(stack.sp(), 0);
         assert_eq!(stack.raw_slice().len(), 64);
     }
 
     #[test]
     fn test_push_pop_fixed() {
-        let mut stack = Stack::new(64);
+        let mut stack = ValueStack::new(64);
 
         stack.push_fixed(1.5.to_fixed()).unwrap();
         stack.push_fixed(2.5.to_fixed()).unwrap();
@@ -593,7 +593,7 @@ mod tests {
 
     #[test]
     fn test_push_pop_int32() {
-        let mut stack = Stack::new(64);
+        let mut stack = ValueStack::new(64);
 
         stack.push_int32(42).unwrap();
         stack.push_int32(99).unwrap();
@@ -610,7 +610,7 @@ mod tests {
 
     #[test]
     fn test_pop2() {
-        let mut stack = Stack::new(64);
+        let mut stack = ValueStack::new(64);
 
         stack.push_int32(10).unwrap();
         stack.push_int32(20).unwrap();
@@ -623,7 +623,7 @@ mod tests {
 
     #[test]
     fn test_pop3() {
-        let mut stack = Stack::new(64);
+        let mut stack = ValueStack::new(64);
 
         stack.push_int32(10).unwrap();
         stack.push_int32(20).unwrap();
@@ -638,7 +638,7 @@ mod tests {
 
     #[test]
     fn test_pop4() {
-        let mut stack = Stack::new(64);
+        let mut stack = ValueStack::new(64);
 
         stack.push_int32(10).unwrap();
         stack.push_int32(20).unwrap();
@@ -655,7 +655,7 @@ mod tests {
 
     #[test]
     fn test_push2() {
-        let mut stack = Stack::new(64);
+        let mut stack = ValueStack::new(64);
 
         stack.push2(10, 20).unwrap();
 
@@ -667,7 +667,7 @@ mod tests {
 
     #[test]
     fn test_push3() {
-        let mut stack = Stack::new(64);
+        let mut stack = ValueStack::new(64);
 
         stack.push3(10, 20, 30).unwrap();
 
@@ -680,7 +680,7 @@ mod tests {
 
     #[test]
     fn test_push4() {
-        let mut stack = Stack::new(64);
+        let mut stack = ValueStack::new(64);
 
         stack.push4(10, 20, 30, 40).unwrap();
 
@@ -694,7 +694,7 @@ mod tests {
 
     #[test]
     fn test_push_pop_vec2() {
-        let mut stack = Stack::new(64);
+        let mut stack = ValueStack::new(64);
 
         let v = Vec2::new(1.5.to_fixed(), 2.5.to_fixed());
         stack.push_vec2(v).unwrap();
@@ -709,7 +709,7 @@ mod tests {
 
     #[test]
     fn test_push_pop_vec3() {
-        let mut stack = Stack::new(64);
+        let mut stack = ValueStack::new(64);
 
         let v = Vec3::new(1.5.to_fixed(), 2.5.to_fixed(), 3.5.to_fixed());
         stack.push_vec3(v).unwrap();
@@ -725,7 +725,7 @@ mod tests {
 
     #[test]
     fn test_push_pop_vec4() {
-        let mut stack = Stack::new(64);
+        let mut stack = ValueStack::new(64);
 
         let v = Vec4::new(
             1.5.to_fixed(),
@@ -747,23 +747,23 @@ mod tests {
 
     #[test]
     fn test_stack_overflow() {
-        let mut stack = Stack::new(2);
+        let mut stack = ValueStack::new(2);
 
         stack.push_int32(1).unwrap();
         stack.push_int32(2).unwrap();
 
         let result = stack.push_int32(3);
-        assert!(matches!(result, Err(RuntimeError::StackOverflow { sp: 2 })));
+        assert!(matches!(result, Err(LpsVmError::StackOverflow { sp: 2 })));
     }
 
     #[test]
     fn test_stack_underflow() {
-        let mut stack = Stack::new(64);
+        let mut stack = ValueStack::new(64);
 
         let result = stack.pop_int32();
         assert!(matches!(
             result,
-            Err(RuntimeError::StackUnderflow {
+            Err(LpsVmError::StackUnderflow {
                 required: 1,
                 actual: 0
             })
@@ -772,7 +772,7 @@ mod tests {
 
     #[test]
     fn test_reset() {
-        let mut stack = Stack::new(64);
+        let mut stack = ValueStack::new(64);
 
         stack.push_int32(1).unwrap();
         stack.push_int32(2).unwrap();
@@ -786,7 +786,7 @@ mod tests {
 
     #[test]
     fn test_dup1() {
-        let mut stack = Stack::new(64);
+        let mut stack = ValueStack::new(64);
 
         stack.push_int32(42).unwrap();
         stack.dup1().unwrap();
@@ -798,7 +798,7 @@ mod tests {
 
     #[test]
     fn test_dup2() {
-        let mut stack = Stack::new(64);
+        let mut stack = ValueStack::new(64);
 
         stack.push_int32(10).unwrap();
         stack.push_int32(20).unwrap();
@@ -813,7 +813,7 @@ mod tests {
 
     #[test]
     fn test_dup3() {
-        let mut stack = Stack::new(64);
+        let mut stack = ValueStack::new(64);
 
         stack.push_int32(10).unwrap();
         stack.push_int32(20).unwrap();
@@ -831,7 +831,7 @@ mod tests {
 
     #[test]
     fn test_dup4() {
-        let mut stack = Stack::new(64);
+        let mut stack = ValueStack::new(64);
 
         stack.push_int32(10).unwrap();
         stack.push_int32(20).unwrap();
@@ -852,7 +852,7 @@ mod tests {
 
     #[test]
     fn test_drop1() {
-        let mut stack = Stack::new(64);
+        let mut stack = ValueStack::new(64);
 
         stack.push_int32(10).unwrap();
         stack.push_int32(20).unwrap();
@@ -864,7 +864,7 @@ mod tests {
 
     #[test]
     fn test_drop2() {
-        let mut stack = Stack::new(64);
+        let mut stack = ValueStack::new(64);
 
         stack.push_int32(10).unwrap();
         stack.push_int32(20).unwrap();
@@ -877,7 +877,7 @@ mod tests {
 
     #[test]
     fn test_drop3() {
-        let mut stack = Stack::new(64);
+        let mut stack = ValueStack::new(64);
 
         stack.push_int32(10).unwrap();
         stack.push_int32(20).unwrap();
@@ -891,7 +891,7 @@ mod tests {
 
     #[test]
     fn test_drop4() {
-        let mut stack = Stack::new(64);
+        let mut stack = ValueStack::new(64);
 
         stack.push_int32(10).unwrap();
         stack.push_int32(20).unwrap();
@@ -906,7 +906,7 @@ mod tests {
 
     #[test]
     fn test_swap() {
-        let mut stack = Stack::new(64);
+        let mut stack = ValueStack::new(64);
 
         stack.push_int32(10).unwrap();
         stack.push_int32(20).unwrap();
@@ -919,7 +919,7 @@ mod tests {
 
     #[test]
     fn test_swizzle3to2_xy() {
-        let mut stack = Stack::new(64);
+        let mut stack = ValueStack::new(64);
 
         // Push vec3(10, 20, 30)
         stack.push3(10, 20, 30).unwrap();
@@ -934,7 +934,7 @@ mod tests {
 
     #[test]
     fn test_swizzle3to2_yz() {
-        let mut stack = Stack::new(64);
+        let mut stack = ValueStack::new(64);
 
         // Push vec3(10, 20, 30)
         stack.push3(10, 20, 30).unwrap();
@@ -949,7 +949,7 @@ mod tests {
 
     #[test]
     fn test_swizzle3to3_zyx() {
-        let mut stack = Stack::new(64);
+        let mut stack = ValueStack::new(64);
 
         // Push vec3(10, 20, 30)
         stack.push3(10, 20, 30).unwrap();
@@ -965,7 +965,7 @@ mod tests {
 
     #[test]
     fn test_swizzle4to2_xy() {
-        let mut stack = Stack::new(64);
+        let mut stack = ValueStack::new(64);
 
         // Push vec4(10, 20, 30, 40)
         stack.push4(10, 20, 30, 40).unwrap();
@@ -980,7 +980,7 @@ mod tests {
 
     #[test]
     fn test_swizzle4to2_zw() {
-        let mut stack = Stack::new(64);
+        let mut stack = ValueStack::new(64);
 
         // Push vec4(10, 20, 30, 40)
         stack.push4(10, 20, 30, 40).unwrap();
@@ -995,7 +995,7 @@ mod tests {
 
     #[test]
     fn test_swizzle4to3_xyz() {
-        let mut stack = Stack::new(64);
+        let mut stack = ValueStack::new(64);
 
         // Push vec4(10, 20, 30, 40)
         stack.push4(10, 20, 30, 40).unwrap();
@@ -1011,7 +1011,7 @@ mod tests {
 
     #[test]
     fn test_swizzle4to4_wzyx() {
-        let mut stack = Stack::new(64);
+        let mut stack = ValueStack::new(64);
 
         // Push vec4(10, 20, 30, 40)
         stack.push4(10, 20, 30, 40).unwrap();
@@ -1028,12 +1028,12 @@ mod tests {
 
     #[test]
     fn test_dup_underflow() {
-        let mut stack = Stack::new(64);
+        let mut stack = ValueStack::new(64);
 
         let result = stack.dup1();
         assert!(matches!(
             result,
-            Err(RuntimeError::StackUnderflow {
+            Err(LpsVmError::StackUnderflow {
                 required: 1,
                 actual: 0
             })
@@ -1042,12 +1042,12 @@ mod tests {
 
     #[test]
     fn test_drop_underflow() {
-        let mut stack = Stack::new(64);
+        let mut stack = ValueStack::new(64);
 
         let result = stack.drop1();
         assert!(matches!(
             result,
-            Err(RuntimeError::StackUnderflow {
+            Err(LpsVmError::StackUnderflow {
                 required: 1,
                 actual: 0
             })
@@ -1056,14 +1056,14 @@ mod tests {
 
     #[test]
     fn test_swizzle_underflow() {
-        let mut stack = Stack::new(64);
+        let mut stack = ValueStack::new(64);
 
         stack.push2(10, 20).unwrap(); // Only 2 values on stack
 
         let result = stack.swizzle3to2(0, 1);
         assert!(matches!(
             result,
-            Err(RuntimeError::StackUnderflow {
+            Err(LpsVmError::StackUnderflow {
                 required: 3,
                 actual: 2
             })

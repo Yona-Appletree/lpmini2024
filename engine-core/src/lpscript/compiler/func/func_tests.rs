@@ -294,8 +294,9 @@ mod return_path_tests {
 
 #[cfg(test)]
 mod vector_function_tests {
-    use crate::lpscript::vm::{LpsVm, VmLimits};
+    use crate::lpscript::vm::vm_limits::VmLimits;
     use crate::lpscript::{compile_script_with_options, OptimizeOptions};
+    use crate::lpscript::vm::lps_vm::LpsVm;
     use crate::math::ToFixed;
 
     // ========================================================================

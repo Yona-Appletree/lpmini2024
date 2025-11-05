@@ -1,13 +1,13 @@
 /// Int32 arithmetic and bitwise operations
-use crate::lpscript::vm::error::RuntimeError;
-use crate::lpscript::vm::vm_stack::Stack;
-use crate::math::{Fixed, FIXED_ONE};
+use crate::lpscript::vm::error::LpsVmError;
+use crate::lpscript::vm::value_stack::ValueStack;
+use crate::math::FIXED_ONE;
 
 // === Arithmetic Operations ===
 
 /// Execute AddInt32: pop b, a; push a + b
 #[inline(always)]
-pub fn exec_add_int32(stack: &mut Stack) -> Result<(), RuntimeError> {
+pub fn exec_add_int32(stack: &mut ValueStack) -> Result<(), LpsVmError> {
     let (a, b) = stack.pop2()?;
     stack.push_int32(a.wrapping_add(b))?;
     Ok(())
@@ -15,7 +15,7 @@ pub fn exec_add_int32(stack: &mut Stack) -> Result<(), RuntimeError> {
 
 /// Execute SubInt32: pop b, a; push a - b
 #[inline(always)]
-pub fn exec_sub_int32(stack: &mut Stack) -> Result<(), RuntimeError> {
+pub fn exec_sub_int32(stack: &mut ValueStack) -> Result<(), LpsVmError> {
     let (a, b) = stack.pop2()?;
     stack.push_int32(a.wrapping_sub(b))?;
     Ok(())
@@ -23,7 +23,7 @@ pub fn exec_sub_int32(stack: &mut Stack) -> Result<(), RuntimeError> {
 
 /// Execute MulInt32: pop b, a; push a * b
 #[inline(always)]
-pub fn exec_mul_int32(stack: &mut Stack) -> Result<(), RuntimeError> {
+pub fn exec_mul_int32(stack: &mut ValueStack) -> Result<(), LpsVmError> {
     let (a, b) = stack.pop2()?;
     stack.push_int32(a.wrapping_mul(b))?;
     Ok(())
@@ -31,11 +31,11 @@ pub fn exec_mul_int32(stack: &mut Stack) -> Result<(), RuntimeError> {
 
 /// Execute DivInt32: pop b, a; push a / b
 #[inline(always)]
-pub fn exec_div_int32(stack: &mut Stack) -> Result<(), RuntimeError> {
+pub fn exec_div_int32(stack: &mut ValueStack) -> Result<(), LpsVmError> {
     let (a, b) = stack.pop2()?;
 
     if b == 0 {
-        return Err(RuntimeError::DivisionByZero);
+        return Err(LpsVmError::DivisionByZero);
     }
 
     stack.push_int32(a / b)?;
@@ -44,11 +44,11 @@ pub fn exec_div_int32(stack: &mut Stack) -> Result<(), RuntimeError> {
 
 /// Execute ModInt32: pop b, a; push a % b
 #[inline(always)]
-pub fn exec_mod_int32(stack: &mut Stack) -> Result<(), RuntimeError> {
+pub fn exec_mod_int32(stack: &mut ValueStack) -> Result<(), LpsVmError> {
     let (a, b) = stack.pop2()?;
 
     if b == 0 {
-        return Err(RuntimeError::DivisionByZero);
+        return Err(LpsVmError::DivisionByZero);
     }
 
     stack.push_int32(a % b)?;
@@ -57,7 +57,7 @@ pub fn exec_mod_int32(stack: &mut Stack) -> Result<(), RuntimeError> {
 
 /// Execute NegInt32: pop a; push -a
 #[inline(always)]
-pub fn exec_neg_int32(stack: &mut Stack) -> Result<(), RuntimeError> {
+pub fn exec_neg_int32(stack: &mut ValueStack) -> Result<(), LpsVmError> {
     let a = stack.pop_int32()?;
     stack.push_int32(-a)?;
     Ok(())
@@ -65,7 +65,7 @@ pub fn exec_neg_int32(stack: &mut Stack) -> Result<(), RuntimeError> {
 
 /// Execute AbsInt32: pop a; push abs(a)
 #[inline(always)]
-pub fn exec_abs_int32(stack: &mut Stack) -> Result<(), RuntimeError> {
+pub fn exec_abs_int32(stack: &mut ValueStack) -> Result<(), LpsVmError> {
     let a = stack.pop_int32()?;
     stack.push_int32(a.abs())?;
     Ok(())
@@ -73,7 +73,7 @@ pub fn exec_abs_int32(stack: &mut Stack) -> Result<(), RuntimeError> {
 
 /// Execute MinInt32: pop b, a; push min(a, b)
 #[inline(always)]
-pub fn exec_min_int32(stack: &mut Stack) -> Result<(), RuntimeError> {
+pub fn exec_min_int32(stack: &mut ValueStack) -> Result<(), LpsVmError> {
     let (a, b) = stack.pop2()?;
     stack.push_int32(a.min(b))?;
     Ok(())
@@ -81,7 +81,7 @@ pub fn exec_min_int32(stack: &mut Stack) -> Result<(), RuntimeError> {
 
 /// Execute MaxInt32: pop b, a; push max(a, b)
 #[inline(always)]
-pub fn exec_max_int32(stack: &mut Stack) -> Result<(), RuntimeError> {
+pub fn exec_max_int32(stack: &mut ValueStack) -> Result<(), LpsVmError> {
     let (a, b) = stack.pop2()?;
     stack.push_int32(a.max(b))?;
     Ok(())
@@ -91,7 +91,7 @@ pub fn exec_max_int32(stack: &mut Stack) -> Result<(), RuntimeError> {
 
 /// Execute GreaterInt32: pop b, a; push (a > b ? 1.0 : 0.0)
 #[inline(always)]
-pub fn exec_greater_int32(stack: &mut Stack) -> Result<(), RuntimeError> {
+pub fn exec_greater_int32(stack: &mut ValueStack) -> Result<(), LpsVmError> {
     let (a, b) = stack.pop2()?;
     let result = if a > b { FIXED_ONE } else { 0 };
     stack.push_int32(result)?;
@@ -100,7 +100,7 @@ pub fn exec_greater_int32(stack: &mut Stack) -> Result<(), RuntimeError> {
 
 /// Execute LessInt32: pop b, a; push (a < b ? 1.0 : 0.0)
 #[inline(always)]
-pub fn exec_less_int32(stack: &mut Stack) -> Result<(), RuntimeError> {
+pub fn exec_less_int32(stack: &mut ValueStack) -> Result<(), LpsVmError> {
     let (a, b) = stack.pop2()?;
     let result = if a < b { FIXED_ONE } else { 0 };
     stack.push_int32(result)?;
@@ -111,7 +111,7 @@ pub fn exec_less_int32(stack: &mut Stack) -> Result<(), RuntimeError> {
 
 /// Execute BitwiseAndInt32: pop b, a; push a & b
 #[inline(always)]
-pub fn exec_bitwise_and_int32(stack: &mut Stack) -> Result<(), RuntimeError> {
+pub fn exec_bitwise_and_int32(stack: &mut ValueStack) -> Result<(), LpsVmError> {
     let (a, b) = stack.pop2()?;
     stack.push_int32(a & b)?;
     Ok(())
@@ -119,7 +119,7 @@ pub fn exec_bitwise_and_int32(stack: &mut Stack) -> Result<(), RuntimeError> {
 
 /// Execute BitwiseOrInt32: pop b, a; push a | b
 #[inline(always)]
-pub fn exec_bitwise_or_int32(stack: &mut Stack) -> Result<(), RuntimeError> {
+pub fn exec_bitwise_or_int32(stack: &mut ValueStack) -> Result<(), LpsVmError> {
     let (a, b) = stack.pop2()?;
     stack.push_int32(a | b)?;
     Ok(())
@@ -127,7 +127,7 @@ pub fn exec_bitwise_or_int32(stack: &mut Stack) -> Result<(), RuntimeError> {
 
 /// Execute BitwiseXorInt32: pop b, a; push a ^ b
 #[inline(always)]
-pub fn exec_bitwise_xor_int32(stack: &mut Stack) -> Result<(), RuntimeError> {
+pub fn exec_bitwise_xor_int32(stack: &mut ValueStack) -> Result<(), LpsVmError> {
     let (a, b) = stack.pop2()?;
     stack.push_int32(a ^ b)?;
     Ok(())
@@ -135,7 +135,7 @@ pub fn exec_bitwise_xor_int32(stack: &mut Stack) -> Result<(), RuntimeError> {
 
 /// Execute BitwiseNotInt32: pop a; push !a
 #[inline(always)]
-pub fn exec_bitwise_not_int32(stack: &mut Stack) -> Result<(), RuntimeError> {
+pub fn exec_bitwise_not_int32(stack: &mut ValueStack) -> Result<(), LpsVmError> {
     let a = stack.pop_int32()?;
     stack.push_int32(!a)?;
     Ok(())
@@ -143,7 +143,7 @@ pub fn exec_bitwise_not_int32(stack: &mut Stack) -> Result<(), RuntimeError> {
 
 /// Execute LeftShiftInt32: pop b, a; push a << b
 #[inline(always)]
-pub fn exec_left_shift_int32(stack: &mut Stack) -> Result<(), RuntimeError> {
+pub fn exec_left_shift_int32(stack: &mut ValueStack) -> Result<(), LpsVmError> {
     let (a, b) = stack.pop2()?;
     // Clamp shift amount to prevent overflow
     let shift = (b as u32) & 0x1F; // Limit to 0-31
@@ -153,7 +153,7 @@ pub fn exec_left_shift_int32(stack: &mut Stack) -> Result<(), RuntimeError> {
 
 /// Execute RightShiftInt32: pop b, a; push a >> b (arithmetic shift)
 #[inline(always)]
-pub fn exec_right_shift_int32(stack: &mut Stack) -> Result<(), RuntimeError> {
+pub fn exec_right_shift_int32(stack: &mut ValueStack) -> Result<(), LpsVmError> {
     let (a, b) = stack.pop2()?;
     // Clamp shift amount to prevent overflow
     let shift = (b as u32) & 0x1F; // Limit to 0-31
@@ -164,7 +164,7 @@ pub fn exec_right_shift_int32(stack: &mut Stack) -> Result<(), RuntimeError> {
 /// Execute Int32ToFixed: convert Int32 to Fixed format
 /// pop a (raw int32); push a << 16 (Fixed format)
 #[inline(always)]
-pub fn exec_int32_to_fixed(stack: &mut Stack) -> Result<(), RuntimeError> {
+pub fn exec_int32_to_fixed(stack: &mut ValueStack) -> Result<(), LpsVmError> {
     let a = stack.pop_int32()?;
     // Convert from raw int32 to Fixed format by shifting left
     stack.push_fixed(crate::math::Fixed::from_i32(a))?;
@@ -174,7 +174,7 @@ pub fn exec_int32_to_fixed(stack: &mut Stack) -> Result<(), RuntimeError> {
 /// Execute FixedToInt32: convert Fixed to Int32 format
 /// pop a (Fixed format); push a >> 16 (raw int32)
 #[inline(always)]
-pub fn exec_fixed_to_int32(stack: &mut Stack) -> Result<(), RuntimeError> {
+pub fn exec_fixed_to_int32(stack: &mut ValueStack) -> Result<(), LpsVmError> {
     let a = stack.pop_fixed()?;
     // Convert from Fixed format to raw int32 by extracting integer part
     stack.push_int32(a.to_i32())?;
@@ -187,7 +187,7 @@ mod tests {
 
     #[test]
     fn test_add() {
-        let mut stack = Stack::new(64);
+        let mut stack = ValueStack::new(64);
         stack.push_int32(5).unwrap();
         stack.push_int32(3).unwrap();
         exec_add_int32(&mut stack).unwrap();
@@ -196,7 +196,7 @@ mod tests {
 
     #[test]
     fn test_sub() {
-        let mut stack = Stack::new(64);
+        let mut stack = ValueStack::new(64);
         stack.push_int32(10).unwrap();
         stack.push_int32(3).unwrap();
         exec_sub_int32(&mut stack).unwrap();
@@ -205,7 +205,7 @@ mod tests {
 
     #[test]
     fn test_mul() {
-        let mut stack = Stack::new(64);
+        let mut stack = ValueStack::new(64);
         stack.push_int32(4).unwrap();
         stack.push_int32(3).unwrap();
         exec_mul_int32(&mut stack).unwrap();
@@ -214,7 +214,7 @@ mod tests {
 
     #[test]
     fn test_div() {
-        let mut stack = Stack::new(64);
+        let mut stack = ValueStack::new(64);
         stack.push_int32(15).unwrap();
         stack.push_int32(3).unwrap();
         exec_div_int32(&mut stack).unwrap();
@@ -223,16 +223,16 @@ mod tests {
 
     #[test]
     fn test_div_by_zero() {
-        let mut stack = Stack::new(64);
+        let mut stack = ValueStack::new(64);
         stack.push_int32(10).unwrap();
         stack.push_int32(0).unwrap();
         let result = exec_div_int32(&mut stack);
-        assert!(matches!(result, Err(RuntimeError::DivisionByZero)));
+        assert!(matches!(result, Err(LpsVmError::DivisionByZero)));
     }
 
     #[test]
     fn test_mod() {
-        let mut stack = Stack::new(64);
+        let mut stack = ValueStack::new(64);
         stack.push_int32(10).unwrap();
         stack.push_int32(3).unwrap();
         exec_mod_int32(&mut stack).unwrap();
@@ -241,7 +241,7 @@ mod tests {
 
     #[test]
     fn test_neg() {
-        let mut stack = Stack::new(64);
+        let mut stack = ValueStack::new(64);
         stack.push_int32(5).unwrap();
         exec_neg_int32(&mut stack).unwrap();
         assert_eq!(stack.pop_int32().unwrap(), -5);
@@ -249,7 +249,7 @@ mod tests {
 
     #[test]
     fn test_abs() {
-        let mut stack = Stack::new(64);
+        let mut stack = ValueStack::new(64);
         stack.push_int32(-7).unwrap();
         exec_abs_int32(&mut stack).unwrap();
         assert_eq!(stack.pop_int32().unwrap(), 7);
@@ -257,7 +257,7 @@ mod tests {
 
     #[test]
     fn test_min() {
-        let mut stack = Stack::new(64);
+        let mut stack = ValueStack::new(64);
         stack.push_int32(5).unwrap();
         stack.push_int32(3).unwrap();
         exec_min_int32(&mut stack).unwrap();
@@ -266,7 +266,7 @@ mod tests {
 
     #[test]
     fn test_max() {
-        let mut stack = Stack::new(64);
+        let mut stack = ValueStack::new(64);
         stack.push_int32(5).unwrap();
         stack.push_int32(3).unwrap();
         exec_max_int32(&mut stack).unwrap();
@@ -275,7 +275,7 @@ mod tests {
 
     #[test]
     fn test_greater() {
-        let mut stack = Stack::new(64);
+        let mut stack = ValueStack::new(64);
         stack.push_int32(5).unwrap();
         stack.push_int32(3).unwrap();
         exec_greater_int32(&mut stack).unwrap();
@@ -284,7 +284,7 @@ mod tests {
 
     #[test]
     fn test_less() {
-        let mut stack = Stack::new(64);
+        let mut stack = ValueStack::new(64);
         stack.push_int32(3).unwrap();
         stack.push_int32(5).unwrap();
         exec_less_int32(&mut stack).unwrap();
@@ -293,7 +293,7 @@ mod tests {
 
     #[test]
     fn test_bitwise_and() {
-        let mut stack = Stack::new(64);
+        let mut stack = ValueStack::new(64);
         stack.push_int32(0b1100).unwrap();
         stack.push_int32(0b1010).unwrap();
         exec_bitwise_and_int32(&mut stack).unwrap();
@@ -302,7 +302,7 @@ mod tests {
 
     #[test]
     fn test_bitwise_or() {
-        let mut stack = Stack::new(64);
+        let mut stack = ValueStack::new(64);
         stack.push_int32(0b1100).unwrap();
         stack.push_int32(0b1010).unwrap();
         exec_bitwise_or_int32(&mut stack).unwrap();
@@ -311,7 +311,7 @@ mod tests {
 
     #[test]
     fn test_bitwise_xor() {
-        let mut stack = Stack::new(64);
+        let mut stack = ValueStack::new(64);
         stack.push_int32(0b1100).unwrap();
         stack.push_int32(0b1010).unwrap();
         exec_bitwise_xor_int32(&mut stack).unwrap();
@@ -320,7 +320,7 @@ mod tests {
 
     #[test]
     fn test_bitwise_not() {
-        let mut stack = Stack::new(64);
+        let mut stack = ValueStack::new(64);
         stack.push_int32(0).unwrap();
         exec_bitwise_not_int32(&mut stack).unwrap();
         assert_eq!(stack.pop_int32().unwrap(), -1);
@@ -328,7 +328,7 @@ mod tests {
 
     #[test]
     fn test_left_shift() {
-        let mut stack = Stack::new(64);
+        let mut stack = ValueStack::new(64);
         stack.push_int32(5).unwrap();
         stack.push_int32(2).unwrap();
         exec_left_shift_int32(&mut stack).unwrap();
@@ -337,7 +337,7 @@ mod tests {
 
     #[test]
     fn test_right_shift() {
-        let mut stack = Stack::new(64);
+        let mut stack = ValueStack::new(64);
         stack.push_int32(20).unwrap();
         stack.push_int32(2).unwrap();
         exec_right_shift_int32(&mut stack).unwrap();

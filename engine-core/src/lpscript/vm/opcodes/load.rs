@@ -1,13 +1,13 @@
 /// Load coordinate/builtin variable operations
-use crate::lpscript::vm::error::RuntimeError;
-use crate::lpscript::vm::vm_stack::Stack;
+use crate::lpscript::vm::error::LpsVmError;
+use crate::lpscript::vm::value_stack::ValueStack;
 use crate::math::{Fixed, FIXED_ONE, FIXED_SHIFT};
 use crate::test_engine::LoadSource;
 
 /// Execute Load: push built-in variable value onto stack
 #[inline(always)]
 pub fn exec_load(
-    stack: &mut Stack,
+    stack: &mut ValueStack,
     source: LoadSource,
     x_norm: Fixed,
     y_norm: Fixed,
@@ -16,7 +16,7 @@ pub fn exec_load(
     time: Fixed,
     width: usize,
     height: usize,
-) -> Result<(), RuntimeError> {
+) -> Result<(), LpsVmError> {
     let value = match source {
         LoadSource::XNorm => x_norm,
         LoadSource::YNorm => y_norm,
@@ -100,7 +100,7 @@ mod tests {
 
     #[test]
     fn test_load_x_norm() {
-        let mut stack = Stack::new(64);
+        let mut stack = ValueStack::new(64);
 
         exec_load(
             &mut stack,
@@ -121,7 +121,7 @@ mod tests {
 
     #[test]
     fn test_load_y_norm() {
-        let mut stack = Stack::new(64);
+        let mut stack = ValueStack::new(64);
 
         exec_load(
             &mut stack,
@@ -142,7 +142,7 @@ mod tests {
 
     #[test]
     fn test_load_time() {
-        let mut stack = Stack::new(64);
+        let mut stack = ValueStack::new(64);
 
         exec_load(
             &mut stack,
@@ -163,7 +163,7 @@ mod tests {
 
     #[test]
     fn test_load_time_norm() {
-        let mut stack = Stack::new(64);
+        let mut stack = ValueStack::new(64);
 
         // Time = 2.3 should wrap to 0.3
         exec_load(
@@ -185,7 +185,7 @@ mod tests {
 
     #[test]
     fn test_load_center_dist() {
-        let mut stack = Stack::new(64);
+        let mut stack = ValueStack::new(64);
 
         // Load at center (50, 50) of 100x100 image
         exec_load(
@@ -208,7 +208,7 @@ mod tests {
 
     #[test]
     fn test_load_center_angle() {
-        let mut stack = Stack::new(64);
+        let mut stack = ValueStack::new(64);
 
         // Load at center (50, 50) of 100x100 image
         exec_load(
@@ -231,7 +231,7 @@ mod tests {
 
     #[test]
     fn test_load_stack_overflow() {
-        let mut stack = Stack::new(2); // Small stack
+        let mut stack = ValueStack::new(2); // Small stack
                                        // Fill the stack
         stack.push_int32(1).unwrap();
         stack.push_int32(2).unwrap();
@@ -248,6 +248,6 @@ mod tests {
             100,
         );
 
-        assert!(matches!(result, Err(RuntimeError::StackOverflow { sp: 2 })));
+        assert!(matches!(result, Err(LpsVmError::StackOverflow { sp: 2 })));
     }
 }

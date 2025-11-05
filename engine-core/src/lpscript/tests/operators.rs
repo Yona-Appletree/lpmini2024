@@ -1,8 +1,9 @@
 //! Integration tests for new operators (bitwise, increment/decrement, compound assignment)
 
 use crate::lpscript::compile_script;
-use crate::lpscript::vm::{LpsVm, VmLimits};
-use crate::math::{Fixed, ToFixed};
+use crate::lpscript::vm::vm_limits::VmLimits;
+use crate::lpscript::vm::lps_vm::LpsVm;
+use crate::math::ToFixed;
 
 #[test]
 fn test_bitwise_and() {

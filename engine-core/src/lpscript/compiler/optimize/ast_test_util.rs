@@ -11,7 +11,7 @@ use crate::lpscript::compiler::ast::{AstPool, ExprId};
 use crate::lpscript::compiler::expr::expr_test_util::ast_eq_ignore_spans_with_pool;
 use crate::lpscript::compiler::{codegen, lexer, parser, typechecker};
 use crate::lpscript::shared::Type;
-use crate::lpscript::vm::{FunctionDef, LpsProgram, LpsVm, VmLimits};
+use crate::lpscript::vm::{LpsVm, VmLimits, FunctionDef, LpsProgram};
 use crate::math::{Fixed, ToFixed};
 
 /// Type alias for optimization pass functions (pool-based)
@@ -232,11 +232,6 @@ impl AstOptTest {
 #[cfg(test)]
 mod tests {
     use super::*;
-    // TODO: Re-enable when algebraic optimizer module is updated
-    // use crate::lpscript::compiler::optimize::ast::algebraic;
-    use crate::lpscript::compiler::test_ast::*;
-    use crate::lpscript::shared::Type;
-
     // TODO: Re-enable when algebraic optimizer is updated to use AstPool
     /*
     #[test]

@@ -1,16 +1,16 @@
 /// Local variable operations (updated for optimized storage)
-use crate::lpscript::vm::error::RuntimeError;
-use crate::lpscript::vm::locals_storage::LocalsStorage;
-use crate::lpscript::vm::vm_stack::Stack;
+use crate::lpscript::vm::error::LpsVmError;
+use crate::lpscript::vm::local_stack::LocalStack;
+use crate::lpscript::vm::value_stack::ValueStack;
 use crate::math::Fixed;
 
 /// Execute LoadLocalFixed: pop nothing; push local[idx]
 #[inline(always)]
 pub fn exec_load_local_fixed(
-    stack: &mut Stack,
-    locals: &LocalsStorage,
+    stack: &mut ValueStack,
+    locals: &LocalStack,
     idx: usize,
-) -> Result<(), RuntimeError> {
+) -> Result<(), LpsVmError> {
     let val = locals.get_fixed(idx)?;
     stack.push_fixed(val)?;
     Ok(())
@@ -19,10 +19,10 @@ pub fn exec_load_local_fixed(
 /// Execute StoreLocalFixed: pop value; store to local[idx]
 #[inline(always)]
 pub fn exec_store_local_fixed(
-    stack: &mut Stack,
-    locals: &mut LocalsStorage,
+    stack: &mut ValueStack,
+    locals: &mut LocalStack,
     idx: usize,
-) -> Result<(), RuntimeError> {
+) -> Result<(), LpsVmError> {
     let val = stack.pop_fixed()?;
     locals.set_fixed(idx, val)?;
     Ok(())
@@ -31,10 +31,10 @@ pub fn exec_store_local_fixed(
 /// Execute LoadLocalInt32: pop nothing; push local[idx]
 #[inline(always)]
 pub fn exec_load_local_int32(
-    stack: &mut Stack,
-    locals: &LocalsStorage,
+    stack: &mut ValueStack,
+    locals: &LocalStack,
     idx: usize,
-) -> Result<(), RuntimeError> {
+) -> Result<(), LpsVmError> {
     let val = locals.get_int32(idx)?;
     stack.push_int32(val)?;
     Ok(())
@@ -43,10 +43,10 @@ pub fn exec_load_local_int32(
 /// Execute StoreLocalInt32: pop value; store to local[idx]
 #[inline(always)]
 pub fn exec_store_local_int32(
-    stack: &mut Stack,
-    locals: &mut LocalsStorage,
+    stack: &mut ValueStack,
+    locals: &mut LocalStack,
     idx: usize,
-) -> Result<(), RuntimeError> {
+) -> Result<(), LpsVmError> {
     let val = stack.pop_int32()?;
     locals.set_int32(idx, val)?;
     Ok(())
@@ -55,10 +55,10 @@ pub fn exec_store_local_int32(
 /// Execute LoadLocalVec2: pop nothing; push local[idx] as 2 Fixed
 #[inline(always)]
 pub fn exec_load_local_vec2(
-    stack: &mut Stack,
-    locals: &LocalsStorage,
+    stack: &mut ValueStack,
+    locals: &LocalStack,
     idx: usize,
-) -> Result<(), RuntimeError> {
+) -> Result<(), LpsVmError> {
     let (x, y) = locals.get_vec2(idx)?;
     stack.push2(x.0, y.0)?;
     Ok(())
@@ -67,10 +67,10 @@ pub fn exec_load_local_vec2(
 /// Execute StoreLocalVec2: pop 2 Fixed; store to local[idx]
 #[inline(always)]
 pub fn exec_store_local_vec2(
-    stack: &mut Stack,
-    locals: &mut LocalsStorage,
+    stack: &mut ValueStack,
+    locals: &mut LocalStack,
     idx: usize,
-) -> Result<(), RuntimeError> {
+) -> Result<(), LpsVmError> {
     let (x, y) = stack.pop2()?;
     locals.set_vec2(idx, Fixed(x), Fixed(y))?;
     Ok(())
@@ -79,10 +79,10 @@ pub fn exec_store_local_vec2(
 /// Execute LoadLocalVec3: pop nothing; push local[idx] as 3 Fixed
 #[inline(always)]
 pub fn exec_load_local_vec3(
-    stack: &mut Stack,
-    locals: &LocalsStorage,
+    stack: &mut ValueStack,
+    locals: &LocalStack,
     idx: usize,
-) -> Result<(), RuntimeError> {
+) -> Result<(), LpsVmError> {
     let (x, y, z) = locals.get_vec3(idx)?;
     stack.push3(x.0, y.0, z.0)?;
     Ok(())
@@ -91,10 +91,10 @@ pub fn exec_load_local_vec3(
 /// Execute StoreLocalVec3: pop 3 Fixed; store to local[idx]
 #[inline(always)]
 pub fn exec_store_local_vec3(
-    stack: &mut Stack,
-    locals: &mut LocalsStorage,
+    stack: &mut ValueStack,
+    locals: &mut LocalStack,
     idx: usize,
-) -> Result<(), RuntimeError> {
+) -> Result<(), LpsVmError> {
     let (x, y, z) = stack.pop3()?;
     locals.set_vec3(idx, Fixed(x), Fixed(y), Fixed(z))?;
     Ok(())
@@ -103,10 +103,10 @@ pub fn exec_store_local_vec3(
 /// Execute LoadLocalVec4: pop nothing; push local[idx] as 4 Fixed
 #[inline(always)]
 pub fn exec_load_local_vec4(
-    stack: &mut Stack,
-    locals: &LocalsStorage,
+    stack: &mut ValueStack,
+    locals: &LocalStack,
     idx: usize,
-) -> Result<(), RuntimeError> {
+) -> Result<(), LpsVmError> {
     let (x, y, z, w) = locals.get_vec4(idx)?;
     stack.push4(x.0, y.0, z.0, w.0)?;
     Ok(())
@@ -115,10 +115,10 @@ pub fn exec_load_local_vec4(
 /// Execute StoreLocalVec4: pop 4 Fixed; store to local[idx]
 #[inline(always)]
 pub fn exec_store_local_vec4(
-    stack: &mut Stack,
-    locals: &mut LocalsStorage,
+    stack: &mut ValueStack,
+    locals: &mut LocalStack,
     idx: usize,
-) -> Result<(), RuntimeError> {
+) -> Result<(), LpsVmError> {
     let (x, y, z, w) = stack.pop4()?;
     locals.set_vec4(idx, Fixed(x), Fixed(y), Fixed(z), Fixed(w))?;
     Ok(())
@@ -128,13 +128,13 @@ pub fn exec_store_local_vec4(
 mod tests {
     use super::*;
     use crate::lpscript::shared::Type;
-    use crate::lpscript::vm::program::LocalVarDef;
+    use crate::lpscript::vm::lps_program::LocalVarDef;
     use crate::math::ToFixed;
 
     #[test]
     fn test_load_store_fixed() {
-        let mut stack = Stack::new(64);
-        let mut locals = LocalsStorage::new(64);
+        let mut stack = ValueStack::new(64);
+        let mut locals = LocalStack::new(64);
         
         // Allocate a Fixed local
         let defs = vec![LocalVarDef::new("x".into(), Type::Fixed)];
@@ -151,8 +151,8 @@ mod tests {
 
     #[test]
     fn test_load_store_int32() {
-        let mut stack = Stack::new(64);
-        let mut locals = LocalsStorage::new(64);
+        let mut stack = ValueStack::new(64);
+        let mut locals = LocalStack::new(64);
 
         // Allocate an Int32 local
         let defs = vec![LocalVarDef::new("count".into(), Type::Int32)];
@@ -169,8 +169,8 @@ mod tests {
 
     #[test]
     fn test_load_store_vec2() {
-        let mut stack = Stack::new(64);
-        let mut locals = LocalsStorage::new(64);
+        let mut stack = ValueStack::new(64);
+        let mut locals = LocalStack::new(64);
 
         // Allocate a Vec2 local
         let defs = vec![LocalVarDef::new("pos".into(), Type::Vec2)];
@@ -189,8 +189,8 @@ mod tests {
 
     #[test]
     fn test_load_store_vec3() {
-        let mut stack = Stack::new(64);
-        let mut locals = LocalsStorage::new(64);
+        let mut stack = ValueStack::new(64);
+        let mut locals = LocalStack::new(64);
 
         // Allocate a Vec3 local
         let defs = vec![LocalVarDef::new("pos".into(), Type::Vec3)];
@@ -212,8 +212,8 @@ mod tests {
 
     #[test]
     fn test_load_store_vec4() {
-        let mut stack = Stack::new(64);
-        let mut locals = LocalsStorage::new(64);
+        let mut stack = ValueStack::new(64);
+        let mut locals = LocalStack::new(64);
 
         // Allocate a Vec4 local
         let defs = vec![LocalVarDef::new("color".into(), Type::Vec4)];
@@ -241,14 +241,14 @@ mod tests {
 
     #[test]
     fn test_local_out_of_bounds() {
-        let mut stack = Stack::new(64);
-        let locals = LocalsStorage::new(64);
+        let mut stack = ValueStack::new(64);
+        let locals = LocalStack::new(64);
 
         // No locals allocated
         let result = exec_load_local_fixed(&mut stack, &locals, 0);
         assert!(matches!(
             result,
-            Err(RuntimeError::LocalOutOfBounds {
+            Err(LpsVmError::LocalOutOfBounds {
                 local_idx: 0,
                 max: 0
             })
@@ -257,8 +257,8 @@ mod tests {
 
     #[test]
     fn test_type_mismatch() {
-        let mut stack = Stack::new(64);
-        let mut locals = LocalsStorage::new(64);
+        let mut stack = ValueStack::new(64);
+        let mut locals = LocalStack::new(64);
 
         // Allocate a Fixed local
         let defs = vec![LocalVarDef::new("x".into(), Type::Fixed)];
@@ -266,13 +266,13 @@ mod tests {
 
         // Try to load as Int32 when it's Fixed
         let result = exec_load_local_int32(&mut stack, &locals, 0);
-        assert!(matches!(result, Err(RuntimeError::TypeMismatch)));
+        assert!(matches!(result, Err(LpsVmError::TypeMismatch)));
     }
 
     #[test]
     fn test_multiple_locals() {
-        let mut stack = Stack::new(64);
-        let mut locals = LocalsStorage::new(64);
+        let mut stack = ValueStack::new(64);
+        let mut locals = LocalStack::new(64);
 
         // Allocate multiple locals of different types
         let defs = vec![

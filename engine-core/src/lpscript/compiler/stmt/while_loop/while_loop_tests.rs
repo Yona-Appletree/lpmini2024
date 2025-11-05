@@ -1,7 +1,7 @@
 /// While loop tests
 #[cfg(test)]
 mod tests {
-    use crate::lpscript::vm::VmLimits;
+    use crate::lpscript::vm::vm_limits::VmLimits;
     use crate::lpscript::*;
     use crate::math::Fixed;
 

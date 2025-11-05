@@ -1,10 +1,11 @@
 /// Variable declaration tests
 #[cfg(test)]
 mod tests {
-    use crate::lpscript::compiler::stmt::stmt_test_ast::*;
     use crate::lpscript::compiler::stmt::stmt_test_util::ScriptTest;
     use crate::lpscript::shared::Type;
+    use crate::lpscript::vm::lps_vm::LpsVm;
     use crate::lpscript::vm::opcodes::LpsOpCode;
+    use crate::lpscript::vm::vm_limits::VmLimits;
     use crate::math::ToFixed;
 
     #[test]
@@ -105,7 +106,7 @@ mod tests {
 
     #[test]
     fn test_var_decl_vec2() -> Result<(), String> {
-        use crate::lpscript::vm::{LpsVm, VmLimits};
+        use crate::lpscript::vm::{};
         use crate::lpscript::{compile_script_with_options, OptimizeOptions};
 
         let program = compile_script_with_options(
@@ -133,7 +134,7 @@ mod tests {
 
     #[test]
     fn test_var_decl_vec3() -> Result<(), String> {
-        use crate::lpscript::vm::{LpsVm, VmLimits};
+        use crate::lpscript::vm::{};
         use crate::lpscript::{compile_script_with_options, OptimizeOptions};
 
         let program = compile_script_with_options(
@@ -161,7 +162,7 @@ mod tests {
 
     #[test]
     fn test_var_decl_vec4() -> Result<(), String> {
-        use crate::lpscript::vm::{LpsVm, VmLimits};
+        use crate::lpscript::vm::{};
         use crate::lpscript::{compile_script_with_options, OptimizeOptions};
 
         let program = compile_script_with_options(
@@ -189,7 +190,7 @@ mod tests {
 
     #[test]
     fn test_vec2_in_expression() -> Result<(), String> {
-        use crate::lpscript::vm::{LpsVm, VmLimits};
+        use crate::lpscript::vm::{};
         use crate::lpscript::{compile_script_with_options, OptimizeOptions};
 
         let program = compile_script_with_options(
@@ -217,7 +218,7 @@ mod tests {
 
     #[test]
     fn test_vec3_in_expression() -> Result<(), String> {
-        use crate::lpscript::vm::{LpsVm, VmLimits};
+        use crate::lpscript::vm::{};
         use crate::lpscript::{compile_script_with_options, OptimizeOptions};
 
         let program = compile_script_with_options(
@@ -245,7 +246,7 @@ mod tests {
 
     #[test]
     fn test_vec4_uninitialized() -> Result<(), String> {
-        use crate::lpscript::vm::{LpsVm, VmLimits};
+        use crate::lpscript::vm::{};
         use crate::lpscript::{compile_script_with_options, OptimizeOptions};
 
         let program = compile_script_with_options(

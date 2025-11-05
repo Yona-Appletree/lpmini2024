@@ -1,4 +1,4 @@
-use crate::lpscript::vm::VmLimits;
+use crate::lpscript::vm::vm_limits::VmLimits;
 /// Comprehensive tests for user-defined functions
 use crate::lpscript::*;
 use crate::math::{Fixed, ToFixed};

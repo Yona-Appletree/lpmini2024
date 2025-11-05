@@ -5,8 +5,8 @@
 extern crate alloc;
 use alloc::vec::Vec;
 
-use super::LpsVm;
-use crate::lpscript::vm::error::{RuntimeError, RuntimeErrorWithContext};
+use crate::lpscript::vm::lps_vm::LpsVm;
+use crate::lpscript::vm::error::{LpsVmError, RuntimeErrorWithContext};
 use crate::lpscript::vm::opcodes::{
     arrays, comparisons, control_flow, fixed_advanced, fixed_basic, fixed_logic, int32,
     int32_compare, load, locals, textures, vec2, vec3, vec4, LpsOpCode, ReturnAction,
@@ -115,7 +115,7 @@ impl<'a> LpsVm<'a> {
                 {
                     let max_pc = self.current_function_len();
                     if new_pc >= max_pc {
-                        return Err(self.runtime_error(RuntimeError::ProgramCounterOutOfBounds {
+                        return Err(self.runtime_error(LpsVmError::ProgramCounterOutOfBounds {
                             pc: new_pc,
                             max: max_pc,
                         }));
@@ -135,7 +135,7 @@ impl<'a> LpsVm<'a> {
                 {
                     let max_pc = self.current_function_len();
                     if new_pc >= max_pc {
-                        return Err(self.runtime_error(RuntimeError::ProgramCounterOutOfBounds {
+                        return Err(self.runtime_error(LpsVmError::ProgramCounterOutOfBounds {
                             pc: new_pc,
                             max: max_pc,
                         }));

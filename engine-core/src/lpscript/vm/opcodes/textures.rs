@@ -1,12 +1,12 @@
 /// Texture sampling opcodes (stub implementations)
-use crate::lpscript::vm::error::RuntimeError;
-use crate::lpscript::vm::vm_stack::Stack;
+use crate::lpscript::vm::error::LpsVmError;
+use crate::lpscript::vm::value_stack::ValueStack;
 use crate::math::Fixed;
 
 /// Execute TextureSampleR: pop 2 Fixed (UV), push 1 Fixed (R)
 /// Stub implementation - returns 0.5
 #[inline(always)]
-pub fn exec_texture_sample_r(stack: &mut Stack, _texture_idx: u32) -> Result<(), RuntimeError> {
+pub fn exec_texture_sample_r(stack: &mut ValueStack, _texture_idx: u32) -> Result<(), LpsVmError> {
     // Pop UV coordinates
     let (_u, _v) = stack.pop2()?;
 
@@ -21,9 +21,9 @@ pub fn exec_texture_sample_r(stack: &mut Stack, _texture_idx: u32) -> Result<(),
 /// Stub implementation - returns (0.5, 0.5, 0.5, 1.0)
 #[inline(always)]
 pub fn exec_texture_sample_rgba(
-    stack: &mut Stack,
+    stack: &mut ValueStack,
     _texture_idx: u32,
-) -> Result<(), RuntimeError> {
+) -> Result<(), LpsVmError> {
     // Pop UV coordinates
     let (_u, _v) = stack.pop2()?;
 
@@ -46,7 +46,7 @@ mod tests {
 
     #[test]
     fn test_texture_sample_r_stub() {
-        let mut stack = Stack::new(64);
+        let mut stack = ValueStack::new(64);
 
         // Push UV coordinates
         stack.push_fixed(0.5.to_fixed()).unwrap(); // u
@@ -60,7 +60,7 @@ mod tests {
 
     #[test]
     fn test_texture_sample_rgba_stub() {
-        let mut stack = Stack::new(64);
+        let mut stack = ValueStack::new(64);
 
         // Push UV coordinates
         stack.push_fixed(0.5.to_fixed()).unwrap(); // u
@@ -77,13 +77,13 @@ mod tests {
 
     #[test]
     fn test_texture_sample_underflow() {
-        let mut stack = Stack::new(64);
+        let mut stack = ValueStack::new(64);
         stack.push_int32(1).unwrap(); // Only 1 value, need 2 (UV)
 
         let result = exec_texture_sample_r(&mut stack, 0);
         assert!(matches!(
             result,
-            Err(RuntimeError::StackUnderflow {
+            Err(LpsVmError::StackUnderflow {
                 required: 2,
                 actual: 1
             })

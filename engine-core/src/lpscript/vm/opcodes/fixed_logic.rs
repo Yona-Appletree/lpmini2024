@@ -1,11 +1,11 @@
 /// Fixed-point logical operations (boolean logic on Fixed values)
-use crate::lpscript::vm::error::RuntimeError;
-use crate::lpscript::vm::vm_stack::Stack;
+use crate::lpscript::vm::error::LpsVmError;
+use crate::lpscript::vm::value_stack::ValueStack;
 use crate::math::Fixed;
 
 /// Execute AndFixed: pop b, a; push (a && b) as Fixed
 #[inline(always)]
-pub fn exec_and_fixed(stack: &mut Stack) -> Result<(), RuntimeError> {
+pub fn exec_and_fixed(stack: &mut ValueStack) -> Result<(), LpsVmError> {
     let (a, b) = stack.pop2()?;
     let result = if a != 0 && b != 0 { Fixed::ONE } else { Fixed::ZERO };
     stack.push_fixed(result)?;
@@ -14,7 +14,7 @@ pub fn exec_and_fixed(stack: &mut Stack) -> Result<(), RuntimeError> {
 
 /// Execute OrFixed: pop b, a; push (a || b) as Fixed
 #[inline(always)]
-pub fn exec_or_fixed(stack: &mut Stack) -> Result<(), RuntimeError> {
+pub fn exec_or_fixed(stack: &mut ValueStack) -> Result<(), LpsVmError> {
     let (a, b) = stack.pop2()?;
     let result = if a != 0 || b != 0 { Fixed::ONE } else { Fixed::ZERO };
     stack.push_fixed(result)?;
@@ -23,7 +23,7 @@ pub fn exec_or_fixed(stack: &mut Stack) -> Result<(), RuntimeError> {
 
 /// Execute NotFixed: pop a; push (!a) as Fixed
 #[inline(always)]
-pub fn exec_not_fixed(stack: &mut Stack) -> Result<(), RuntimeError> {
+pub fn exec_not_fixed(stack: &mut ValueStack) -> Result<(), LpsVmError> {
     let a = stack.pop_int32()?;
     let result = if a == 0 { Fixed::ONE } else { Fixed::ZERO };
     stack.push_fixed(result)?;
@@ -37,7 +37,7 @@ mod tests {
 
     #[test]
     fn test_and_true() {
-        let mut stack = Stack::new(64);
+        let mut stack = ValueStack::new(64);
         stack.push_fixed(1.0.to_fixed()).unwrap();
         stack.push_fixed(1.0.to_fixed()).unwrap();
         exec_and_fixed(&mut stack).unwrap();
@@ -46,7 +46,7 @@ mod tests {
 
     #[test]
     fn test_and_false() {
-        let mut stack = Stack::new(64);
+        let mut stack = ValueStack::new(64);
         stack.push_fixed(1.0.to_fixed()).unwrap();
         stack.push_fixed(0.0.to_fixed()).unwrap();
         exec_and_fixed(&mut stack).unwrap();
@@ -55,7 +55,7 @@ mod tests {
 
     #[test]
     fn test_or_true() {
-        let mut stack = Stack::new(64);
+        let mut stack = ValueStack::new(64);
         stack.push_fixed(1.0.to_fixed()).unwrap();
         stack.push_fixed(0.0.to_fixed()).unwrap();
         exec_or_fixed(&mut stack).unwrap();
@@ -64,7 +64,7 @@ mod tests {
 
     #[test]
     fn test_or_false() {
-        let mut stack = Stack::new(64);
+        let mut stack = ValueStack::new(64);
         stack.push_fixed(0.0.to_fixed()).unwrap();
         stack.push_fixed(0.0.to_fixed()).unwrap();
         exec_or_fixed(&mut stack).unwrap();
@@ -73,7 +73,7 @@ mod tests {
 
     #[test]
     fn test_not_true() {
-        let mut stack = Stack::new(64);
+        let mut stack = ValueStack::new(64);
         stack.push_fixed(0.0.to_fixed()).unwrap();
         exec_not_fixed(&mut stack).unwrap();
         assert_eq!(stack.pop_fixed().unwrap(), Fixed::ONE);
@@ -81,7 +81,7 @@ mod tests {
 
     #[test]
     fn test_not_false() {
-        let mut stack = Stack::new(64);
+        let mut stack = ValueStack::new(64);
         stack.push_fixed(1.0.to_fixed()).unwrap();
         exec_not_fixed(&mut stack).unwrap();
         assert_eq!(stack.pop_fixed().unwrap(), Fixed::ZERO);
