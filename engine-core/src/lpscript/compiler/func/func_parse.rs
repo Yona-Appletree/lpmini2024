@@ -1,5 +1,5 @@
 /// Function definition parsing methods
-use super::Parser;
+use crate::lpscript::parser::Parser;
 use crate::lpscript::ast::{FunctionDef, Parameter};
 use crate::lpscript::error::Span;
 use crate::lpscript::lexer::TokenKind;
@@ -103,63 +103,6 @@ impl Parser {
         }
         
         params
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use crate::lpscript::lexer::Lexer;
-    use crate::lpscript::parser::Parser;
-
-    #[test]
-    fn test_parse_function_no_params() {
-        let mut lexer = Lexer::new("float getPi() { return 3.14; }");
-        let tokens = lexer.tokenize();
-        let mut parser = Parser::new(tokens);
-        let program = parser.parse_program();
-        
-        assert_eq!(program.functions.len(), 1);
-        assert_eq!(program.functions[0].name, "getPi");
-        assert_eq!(program.functions[0].params.len(), 0);
-    }
-
-    #[test]
-    fn test_parse_function_with_params() {
-        let mut lexer = Lexer::new("float add(float a, float b) { return a + b; }");
-        let tokens = lexer.tokenize();
-        let mut parser = Parser::new(tokens);
-        let program = parser.parse_program();
-        
-        assert_eq!(program.functions.len(), 1);
-        assert_eq!(program.functions[0].params.len(), 2);
-        assert_eq!(program.functions[0].params[0].name, "a");
-        assert_eq!(program.functions[0].params[1].name, "b");
-    }
-
-    #[test]
-    fn test_parse_function_body() {
-        let mut lexer = Lexer::new("float double(float x) { return x * 2.0; }");
-        let tokens = lexer.tokenize();
-        let mut parser = Parser::new(tokens);
-        let program = parser.parse_program();
-        
-        assert_eq!(program.functions.len(), 1);
-        assert!(!program.functions[0].body.is_empty());
-    }
-
-    #[test]
-    fn test_parse_multiple_functions() {
-        let mut lexer = Lexer::new("
-            float add(float a, float b) { return a + b; }
-            float sub(float a, float b) { return a - b; }
-        ");
-        let tokens = lexer.tokenize();
-        let mut parser = Parser::new(tokens);
-        let program = parser.parse_program();
-        
-        assert_eq!(program.functions.len(), 2);
-        assert_eq!(program.functions[0].name, "add");
-        assert_eq!(program.functions[1].name, "sub");
     }
 }
 

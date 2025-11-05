@@ -3,60 +3,15 @@
 /// Performs type inference and validation on the AST.
 extern crate alloc;
 use alloc::collections::BTreeMap;
-use alloc::format;
 use alloc::string::{String, ToString};
 use alloc::vec;
 use alloc::vec::Vec;
 
-use crate::lpscript::ast::{Expr, ExprKind, FunctionDef, Parameter, Program, Stmt, StmtKind};
+use crate::lpscript::ast::{Expr, ExprKind, Program, Stmt, StmtKind};
 use crate::lpscript::error::{Span, Type, TypeError, TypeErrorKind};
 
-// Import comparison type checking from compiler module
-use crate::lpscript::compiler::expr::compare;
-
-/// Function signature for user-defined functions
-#[derive(Debug, Clone)]
-struct FunctionSignature {
-    params: Vec<Type>,
-    return_type: Type,
-}
-
-/// Function table for tracking user-defined functions
-#[derive(Debug, Clone)]
-pub(crate) struct FunctionTable {
-    functions: BTreeMap<String, FunctionSignature>,
-}
-
-impl FunctionTable {
-    pub(crate) fn new() -> Self {
-        FunctionTable {
-            functions: BTreeMap::new(),
-        }
-    }
-
-    pub(crate) fn declare(
-        &mut self,
-        name: String,
-        params: Vec<Type>,
-        return_type: Type,
-    ) -> Result<(), String> {
-        if self.functions.contains_key(&name) {
-            return Err(format!("Function '{}' already declared", name));
-        }
-        self.functions.insert(
-            name,
-            FunctionSignature {
-                params,
-                return_type,
-            },
-        );
-        Ok(())
-    }
-
-    pub(crate) fn lookup(&self, name: &str) -> Option<&FunctionSignature> {
-        self.functions.get(name)
-    }
-}
+// Import function-related types from compiler::func
+pub(crate) use crate::lpscript::compiler::func::{FunctionSignature, FunctionTable};
 
 /// Symbol table for tracking variables in scope
 #[derive(Debug, Clone)]
@@ -134,7 +89,7 @@ impl TypeChecker {
 
         // Second pass: Type check each function body
         for func in &mut program.functions {
-            Self::check_function(func, &func_table)?;
+            TypeChecker::check_function(func, &func_table)?;
         }
 
         // Third pass: Type check top-level statements
@@ -144,30 +99,6 @@ impl TypeChecker {
         }
 
         Ok(program)
-    }
-
-    /// Type check a function definition
-    fn check_function(func: &mut FunctionDef, func_table: &FunctionTable) -> Result<(), TypeError> {
-        let mut symbols = SymbolTable::new();
-
-        // Add parameters to symbol table
-        for param in &func.params {
-            symbols
-                .declare(param.name.clone(), param.ty.clone())
-                .map_err(|msg| TypeError {
-                    kind: TypeErrorKind::UndefinedVariable(msg),
-                    span: func.span,
-                })?;
-        }
-
-        // Type check function body
-        for stmt in &mut func.body {
-            Self::check_stmt(stmt, &mut symbols, func_table)?;
-        }
-
-        // TODO: Verify all code paths return a value (if return_type != Void)
-
-        Ok(())
     }
 
     /// Type check a statement
@@ -494,7 +425,7 @@ impl TypeChecker {
                     }
 
                     // Validate argument types
-                    for (i, (arg, expected_ty)) in args.iter().zip(sig.params.iter()).enumerate() {
+                    for (arg, expected_ty) in args.iter().zip(sig.params.iter()) {
                         let arg_ty = arg.ty.as_ref().unwrap();
                         if arg_ty != expected_ty {
                             return Err(TypeError {

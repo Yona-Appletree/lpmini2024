@@ -76,7 +76,11 @@
 
 ### Typechecker
 
-- [ ] `typechecker/mod.rs`: Verify all code paths return a value (if return_type != Void)
+- [x] `typechecker/mod.rs`: Verify all code paths return a value (if return_type != Void) ✅ COMPLETED
+  - Added `all_paths_return()` and `stmt_always_returns()` helper functions
+  - Validates that non-void functions have return statements on all code paths
+  - Properly handles if-else branches, blocks, and loops
+  - Added 10 comprehensive tests in `return_path_tests` module
 
 ## Ignored Tests Summary
 

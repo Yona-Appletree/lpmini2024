@@ -3,6 +3,7 @@
 /// Organizes compilation into feature-grouped submodules.
 pub mod expr;
 pub mod stmt;
+pub mod func;
 
 pub mod generator;
 pub mod parser;

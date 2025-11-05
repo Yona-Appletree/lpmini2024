@@ -7,15 +7,15 @@ use alloc::string::String;
 use crate::lpscript::ast::{FunctionDef, Stmt};
 use crate::lpscript::error::Type;
 use crate::lpscript::vm::opcodes::LpsOpCode;
-use super::local_allocator::LocalAllocator;
-use super::CodeGenerator;
+use crate::lpscript::codegen::local_allocator::LocalAllocator;
+use crate::lpscript::codegen::CodeGenerator;
 
 /// Generate code for a single function definition
 pub fn gen_function(
     func: &FunctionDef,
     code: &mut Vec<LpsOpCode>,
     function_offsets: &BTreeMap<String, u32>,
-    gen_stmt: impl Fn(&Stmt, &mut Vec<LpsOpCode>, &mut LocalAllocator, &BTreeMap<String, u32>),
+    _gen_stmt: impl Fn(&Stmt, &mut Vec<LpsOpCode>, &mut LocalAllocator, &BTreeMap<String, u32>),
 ) {
     let mut locals = LocalAllocator::new();
     

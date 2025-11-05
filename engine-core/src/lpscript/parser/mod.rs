@@ -9,7 +9,11 @@ use super::lexer::{Token, TokenKind};
 use crate::lpscript::error::{Span, Type};
 
 mod expr;
-mod functions;
+
+// Function parsing is now in compiler::func::func_parse
+// Include it here to add impl methods to Parser
+#[path = "../compiler/func/func_parse.rs"]
+mod func_parse;
 
 pub struct Parser {
     pub(in crate::lpscript) tokens: Vec<Token>,

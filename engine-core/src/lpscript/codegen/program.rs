@@ -7,7 +7,7 @@ use alloc::string::String;
 use crate::lpscript::ast::{Program, Stmt};
 use crate::lpscript::vm::opcodes::LpsOpCode;
 use super::local_allocator::LocalAllocator;
-use super::functions::gen_function;
+use crate::lpscript::compiler::func::gen_function;
 
 /// Generate opcodes for a program (script mode)
 /// Returns (opcodes, local_count) tuple

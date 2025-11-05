@@ -7,15 +7,14 @@ use alloc::string::String;
 use super::ast::{Expr, Program};
 use super::vm::opcodes::LpsOpCode;
 
-mod local_allocator;
+pub(crate) mod local_allocator;
 mod native_functions;
 mod expr;
 mod stmt;
-mod functions;
 mod program;
 
 pub use native_functions::NativeFunction;
-use local_allocator::LocalAllocator;
+pub(crate) use local_allocator::LocalAllocator;
 
 pub struct CodeGenerator<'a> {
     pub(in crate::lpscript) code: &'a mut Vec<LpsOpCode>,
@@ -25,7 +24,7 @@ pub struct CodeGenerator<'a> {
 
 impl<'a> CodeGenerator<'a> {
     /// Create a new code generator instance
-    fn new(
+    pub(crate) fn new(
         code: &'a mut Vec<LpsOpCode>,
         locals: &'a mut LocalAllocator,
         func_offsets: &'a BTreeMap<String, u32>,

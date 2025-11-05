@@ -136,6 +136,7 @@ pub enum TypeErrorKind {
     InvalidArgumentCount { expected: usize, found: usize },
     InvalidOperation { op: String, types: Vec<Type> },
     InvalidSwizzle(String),
+    MissingReturn(String),
 }
 
 impl fmt::Display for TypeError {
@@ -159,6 +160,9 @@ impl fmt::Display for TypeError {
             }
             TypeErrorKind::InvalidSwizzle(msg) => {
                 write!(f, "invalid swizzle: {}", msg)
+            }
+            TypeErrorKind::MissingReturn(name) => {
+                write!(f, "function '{}' is missing a return statement on all code paths", name)
             }
         }
     }

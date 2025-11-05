@@ -10,6 +10,16 @@
 - get rid of LoadSource and such
 - outputs like glsl
 
+## Organization
+
+- compiler/runtime errors need to be separated
+- lpscript should be a library, runtime and compiler should be separate crates
+
+## Optimization
+
+- ast optimization
+- opcode optimization
+
 ## Tests
 
 - test for protections against stack overflows, memory usage, etc.
