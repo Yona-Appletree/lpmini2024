@@ -50,6 +50,18 @@ impl Stack {
         &mut self.data
     }
 
+    /// Get current stack contents as Vec<Fixed>
+    ///
+    /// Returns all values currently on the stack (0..sp) as Fixed values.
+    /// This allocates a new Vec - use sparingly.
+    #[inline(always)]
+    pub fn to_vec_fixed(&self) -> Vec<Fixed> {
+        self.data[0..self.sp]
+            .iter()
+            .map(|&i| Fixed(i))
+            .collect()
+    }
+
     // === Basic push/pop for single values ===
 
     /// Push a Fixed value onto the stack

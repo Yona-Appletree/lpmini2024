@@ -386,7 +386,7 @@ impl ExprTest {
                             .find(|(_, (n, _))| n == name)
                         {
                             match vm.get_local(idx) {
-                                Some(LocalType::Fixed(actual)) => {
+                                Ok(LocalType::Fixed(actual)) => {
                                     let expected_f32 = expected.to_f32();
                                     let actual_f32 = actual.to_f32();
                                     let diff = (expected_f32 - actual_f32).abs();
@@ -398,16 +398,16 @@ impl ExprTest {
                                         ));
                                     }
                                 }
-                                Some(other) => {
+                                Ok(other) => {
                                     errors.push(format!(
                                         "Local '{}' type mismatch: expected Fixed, got {:?}",
                                         name, other
                                     ));
                                 }
-                                None => {
+                                Err(e) => {
                                     errors.push(format!(
-                                        "Local '{}' not found at index {}",
-                                        name, idx
+                                        "Error getting local '{}' at index {}: {:?}",
+                                        name, idx, e
                                     ));
                                 }
                             }

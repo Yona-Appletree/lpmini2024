@@ -26,6 +26,8 @@ pub mod vec4;
 pub mod control;
 pub mod stack;
 
+pub use control::ReturnAction;
+
 // Local variables
 pub mod locals;
 

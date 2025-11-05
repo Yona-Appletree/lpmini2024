@@ -1,6 +1,39 @@
 /// Control flow opcodes with error handling
+extern crate alloc;
+use alloc::vec::Vec;
+
+use crate::lpscript::vm::call_stack::CallStack;
 use crate::lpscript::vm::error::RuntimeError;
 use crate::lpscript::vm::vm_stack::Stack;
+use crate::math::Fixed;
+
+/// Action to take after executing Return opcode
+#[derive(Debug)]
+pub enum ReturnAction {
+    /// Continue execution at the given PC (returning from function)
+    Continue(usize),
+    /// Exit program with the given stack values (returning from main)
+    Exit(Vec<Fixed>),
+}
+
+/// Execute Return: pop call frame and continue, or exit if in main
+#[inline(always)]
+pub fn exec_return(
+    stack: &Stack,
+    call_stack: &mut CallStack,
+) -> Result<ReturnAction, RuntimeError> {
+    if let Some(return_pc) = call_stack.pop_frame() {
+        // Returning from a function call
+        Ok(ReturnAction::Continue(return_pc))
+    } else {
+        // Exiting main - return all stack values as result
+        let result: Vec<Fixed> = stack.raw_slice()[0..stack.sp()]
+            .iter()
+            .map(|&i| Fixed(i))
+            .collect();
+        Ok(ReturnAction::Exit(result))
+    }
+}
 
 /// Execute Select (ternary): pop false_val, true_val, condition; push selected
 #[inline(always)]
@@ -123,5 +156,95 @@ mod tests {
 
         assert_eq!(stack.sp(), 0);
         assert_eq!(result, None);
+    }
+
+    #[test]
+    fn test_return_from_function() {
+        let stack = Stack::new(64);
+        let mut call_stack = CallStack::new(64, 32);
+
+        // Simulate a function call
+        call_stack.push_frame(100, 2048).unwrap();
+
+        // Execute return
+        let result = exec_return(&stack, &mut call_stack).unwrap();
+
+        // Should return to PC 100
+        match result {
+            ReturnAction::Continue(pc) => assert_eq!(pc, 100),
+            _ => panic!("Expected Continue action"),
+        }
+
+        // Call stack should be back at depth 0
+        assert_eq!(call_stack.depth(), 0);
+    }
+
+    #[test]
+    fn test_return_from_main() {
+        let mut stack = Stack::new(64);
+        let mut call_stack = CallStack::new(64, 32);
+
+        // Push some values on the stack
+        stack.push_fixed(1.5.to_fixed()).unwrap();
+        stack.push_fixed(2.5.to_fixed()).unwrap();
+        stack.push_fixed(3.5.to_fixed()).unwrap();
+
+        // Execute return from main (depth 0)
+        let result = exec_return(&stack, &mut call_stack).unwrap();
+
+        // Should exit with stack values
+        match result {
+            ReturnAction::Exit(values) => {
+                assert_eq!(values.len(), 3);
+                assert_eq!(values[0].to_f32(), 1.5);
+                assert_eq!(values[1].to_f32(), 2.5);
+                assert_eq!(values[2].to_f32(), 3.5);
+            }
+            _ => panic!("Expected Exit action"),
+        }
+    }
+
+    #[test]
+    fn test_return_nested_calls() {
+        let stack = Stack::new(64);
+        let mut call_stack = CallStack::new(64, 32);
+
+        // Simulate nested function calls
+        call_stack.push_frame(100, 2048).unwrap();
+        call_stack.push_frame(200, 2048).unwrap();
+        call_stack.push_frame(300, 2048).unwrap();
+
+        assert_eq!(call_stack.depth(), 3);
+
+        // Return from innermost function
+        let result = exec_return(&stack, &mut call_stack).unwrap();
+        match result {
+            ReturnAction::Continue(pc) => assert_eq!(pc, 300),
+            _ => panic!("Expected Continue action"),
+        }
+        assert_eq!(call_stack.depth(), 2);
+
+        // Return from middle function
+        let result = exec_return(&stack, &mut call_stack).unwrap();
+        match result {
+            ReturnAction::Continue(pc) => assert_eq!(pc, 200),
+            _ => panic!("Expected Continue action"),
+        }
+        assert_eq!(call_stack.depth(), 1);
+
+        // Return from outer function
+        let result = exec_return(&stack, &mut call_stack).unwrap();
+        match result {
+            ReturnAction::Continue(pc) => assert_eq!(pc, 100),
+            _ => panic!("Expected Continue action"),
+        }
+        assert_eq!(call_stack.depth(), 0);
+
+        // Return from main should exit
+        let result = exec_return(&stack, &mut call_stack).unwrap();
+        match result {
+            ReturnAction::Exit(_) => {}
+            _ => panic!("Expected Exit action"),
+        }
     }
 }
