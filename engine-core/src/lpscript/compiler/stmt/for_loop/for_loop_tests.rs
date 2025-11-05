@@ -218,4 +218,35 @@ mod tests {
         .expect_result_fixed(33.0) // (10+0) + (10+1) + (10+2) = 10 + 11 + 12 = 33
         .run()
     }
+
+    #[test]
+    fn test_for_loop_sum_integration() -> Result<(), String> {
+        // Integration test from tests/control_flow.rs
+        ScriptTest::new(
+            "float sum = 0.0;
+             for (float i = 1.0; i <= 4.0; i = i + 1.0) {
+                 sum = sum + i;
+             }
+             return sum;"
+        )
+        .expect_result_fixed(10.0) // 1 + 2 + 3 + 4 = 10
+        .run()
+    }
+
+    #[test]
+    fn test_for_loop_with_break_condition_integration() -> Result<(), String> {
+        // Integration test from tests/control_flow.rs
+        ScriptTest::new(
+            "float result = 0.0;
+             for (float i = 0.0; i < 100.0; i = i + 1.0) {
+                 if (i >= 3.0) {
+                     return i;
+                 }
+                 result = i;
+             }
+             return result;"
+        )
+        .expect_result_fixed(3.0)
+        .run()
+    }
 }

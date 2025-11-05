@@ -297,3 +297,62 @@ mod tests {
             .run()
     }
 }
+
+#[cfg(test)]
+mod variable_integration_tests {
+    use crate::lpscript::vm::vm_limits::VmLimits;
+    use crate::lpscript::*;
+    use crate::math::{Fixed, ToFixed};
+
+    #[test]
+    fn test_variable_mutation() {
+        let script = "
+            float x = 1.0;
+            x = x + 2.0;
+            x = x * 3.0;
+            return x;
+        ";
+        let program = parse_script(script);
+        let mut vm = LpsVm::new(&program, VmLimits::default()).unwrap();
+
+        let result = vm
+            .run_scalar(Fixed::ZERO, Fixed::ZERO, Fixed::ZERO)
+            .unwrap();
+        // (1 + 2) * 3 = 9
+        assert_eq!(result.to_f32(), 9.0);
+    }
+
+    #[test]
+    fn test_assignment_expression_value() {
+        let script = "
+            float x = 0.0;
+            float y = (x = 5.0);  // Assignment returns the assigned value
+            return y;
+        ";
+        let program = parse_script(script);
+        let mut vm = LpsVm::new(&program, VmLimits::default()).unwrap();
+
+        let result = vm
+            .run_scalar(Fixed::ZERO, Fixed::ZERO, Fixed::ZERO)
+            .unwrap();
+        assert_eq!(result.to_f32(), 5.0);
+    }
+
+    #[test]
+    fn test_chained_assignments() {
+        let script = "
+            float x = 0.0;
+            float y = 0.0;
+            float z = 0.0;
+            z = y = x = 7.0;  // Right-associative
+            return x + y + z;
+        ";
+        let program = parse_script(script);
+        let mut vm = LpsVm::new(&program, VmLimits::default()).unwrap();
+
+        let result = vm
+            .run_scalar(Fixed::ZERO, Fixed::ZERO, Fixed::ZERO)
+            .unwrap();
+        assert_eq!(result.to_f32(), 21.0);
+    }
+}

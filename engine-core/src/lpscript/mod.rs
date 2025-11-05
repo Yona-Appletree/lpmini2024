@@ -247,11 +247,3 @@ pub fn parse_script(input: &str) -> LpsProgram {
         panic!("Failed to compile LPS script: {}", e);
     })
 }
-
-#[cfg(test)]
-mod tests {
-    mod control_flow;
-    mod functions;
-    mod operators;
-    mod variables;
-}

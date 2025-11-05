@@ -114,3 +114,52 @@ mod tests {
             .run()
     }
 }
+
+#[cfg(test)]
+mod scoping_integration_tests {
+    use crate::lpscript::vm::vm_limits::VmLimits;
+    use crate::lpscript::*;
+    use crate::math::{Fixed, ToFixed};
+
+    #[test]
+    fn test_block_scoping() {
+        let script = "
+            float x = 1.0;
+            {
+                float x = 2.0;
+                x = x + 10.0;  // Inner x becomes 12
+            }
+            return x;  // Outer x is still 1
+        ";
+        let program = parse_script(script);
+        let mut vm = LpsVm::new(&program, VmLimits::default()).unwrap();
+
+        let result = vm
+            .run_scalar(Fixed::ZERO, Fixed::ZERO, Fixed::ZERO)
+            .unwrap();
+        assert_eq!(result.to_f32(), 1.0);
+    }
+
+    #[test]
+    fn test_nested_scopes() {
+        let script = "
+            float x = 1.0;
+            {
+                float y = 2.0;
+                {
+                    float z = 3.0;
+                    x = x + y + z;  // Can access outer variables
+                }
+            }
+            return x;
+        ";
+        let program = parse_script(script);
+        let mut vm = LpsVm::new(&program, VmLimits::default()).unwrap();
+
+        let result = vm
+            .run_scalar(Fixed::ZERO, Fixed::ZERO, Fixed::ZERO)
+            .unwrap();
+        // 1 + 2 + 3 = 6
+        assert_eq!(result.to_f32(), 6.0);
+    }
+}
