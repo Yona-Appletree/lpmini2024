@@ -126,8 +126,10 @@ pub enum LpsOpCode {
     // Vec2 operations (operate on stack)
     AddVec2,       // pop 4, push 2
     SubVec2,       // pop 4, push 2
+    NegVec2,       // pop 2, push 2 (negate components)
     MulVec2,       // pop 4, push 2 (component-wise)
     DivVec2,       // pop 4, push 2 (component-wise)
+    ModVec2,       // pop 4, push 2 (component-wise)
     MulVec2Scalar, // pop 3 (vec2 + scalar), push 2
     DivVec2Scalar, // pop 3 (vec2 + scalar), push 2
     Dot2,          // pop 4, push 1
@@ -138,8 +140,10 @@ pub enum LpsOpCode {
     // Vec3 operations
     AddVec3,       // pop 6, push 3
     SubVec3,       // pop 6, push 3
+    NegVec3,       // pop 3, push 3 (negate components)
     MulVec3,       // pop 6, push 3 (component-wise)
     DivVec3,       // pop 6, push 3 (component-wise)
+    ModVec3,       // pop 6, push 3 (component-wise)
     MulVec3Scalar, // pop 4 (vec3 + scalar), push 3
     DivVec3Scalar, // pop 4 (vec3 + scalar), push 3
     Dot3,          // pop 6, push 1
@@ -151,8 +155,10 @@ pub enum LpsOpCode {
     // Vec4 operations
     AddVec4,       // pop 8, push 4
     SubVec4,       // pop 8, push 4
+    NegVec4,       // pop 4, push 4 (negate components)
     MulVec4,       // pop 8, push 4 (component-wise)
     DivVec4,       // pop 8, push 4 (component-wise)
+    ModVec4,       // pop 8, push 4 (component-wise)
     MulVec4Scalar, // pop 5 (vec4 + scalar), push 4
     DivVec4Scalar, // pop 5 (vec4 + scalar), push 4
     Dot4,          // pop 8, push 1
@@ -272,8 +278,10 @@ impl LpsOpCode {
             LpsOpCode::RightShiftInt32 => "RightShiftInt32",
             LpsOpCode::AddVec2 => "AddVec2",
             LpsOpCode::SubVec2 => "SubVec2",
+            LpsOpCode::NegVec2 => "NegVec2",
             LpsOpCode::MulVec2 => "MulVec2",
             LpsOpCode::DivVec2 => "DivVec2",
+            LpsOpCode::ModVec2 => "ModVec2",
             LpsOpCode::MulVec2Scalar => "MulVec2Scalar",
             LpsOpCode::DivVec2Scalar => "DivVec2Scalar",
             LpsOpCode::Dot2 => "Dot2",
@@ -282,8 +290,10 @@ impl LpsOpCode {
             LpsOpCode::Distance2 => "Distance2",
             LpsOpCode::AddVec3 => "AddVec3",
             LpsOpCode::SubVec3 => "SubVec3",
+            LpsOpCode::NegVec3 => "NegVec3",
             LpsOpCode::MulVec3 => "MulVec3",
             LpsOpCode::DivVec3 => "DivVec3",
+            LpsOpCode::ModVec3 => "ModVec3",
             LpsOpCode::MulVec3Scalar => "MulVec3Scalar",
             LpsOpCode::DivVec3Scalar => "DivVec3Scalar",
             LpsOpCode::Dot3 => "Dot3",
@@ -293,8 +303,10 @@ impl LpsOpCode {
             LpsOpCode::Distance3 => "Distance3",
             LpsOpCode::AddVec4 => "AddVec4",
             LpsOpCode::SubVec4 => "SubVec4",
+            LpsOpCode::NegVec4 => "NegVec4",
             LpsOpCode::MulVec4 => "MulVec4",
             LpsOpCode::DivVec4 => "DivVec4",
+            LpsOpCode::ModVec4 => "ModVec4",
             LpsOpCode::MulVec4Scalar => "MulVec4Scalar",
             LpsOpCode::DivVec4Scalar => "DivVec4Scalar",
             LpsOpCode::Dot4 => "Dot4",

@@ -4,30 +4,60 @@ extern crate alloc;
 use alloc::string::ToString;
 use alloc::vec;
 
-use crate::lpscript::compiler::ast::Expr;
+use crate::lpscript::compiler::ast::{Expr, ExprKind};
 use crate::lpscript::compiler::error::{TypeError, TypeErrorKind};
 use crate::lpscript::compiler::typechecker::{FunctionTable, SymbolTable, TypeChecker};
 use crate::lpscript::shared::{Span, Type};
+
+use super::expand_componentwise;
 
 impl TypeChecker {
     /// Type check function call
     ///
     /// Infers the return type based on the function signature.
     /// Handles both user-defined and built-in functions.
+    /// May transform the expression via component-wise expansion.
     pub(crate) fn check_function_call(
-        name: &str,
-        args: &mut [Expr],
+        expr: &mut Expr,
         symbols: &mut SymbolTable,
         func_table: &FunctionTable,
-        span: Span,
     ) -> Result<Type, TypeError> {
+        // Extract name and args from the Call expression
+        let (name, args, span) = if let ExprKind::Call { name, args } = &mut expr.kind {
+            (name.clone(), args, expr.span)
+        } else {
+            unreachable!("check_function_call called on non-Call expression");
+        };
+
+        // Get mutable reference to args for type checking
+        let args = if let ExprKind::Call { args, .. } = &mut expr.kind {
+            args
+        } else {
+            unreachable!();
+        };
+
         // Type check all arguments first
         for arg in args.iter_mut() {
             Self::infer_type(arg, symbols, func_table)?;
         }
 
+        // Try component-wise expansion for built-in functions with vector args
+        if expand_componentwise::is_componentwise_function(&name) {
+            if let Some(mut expanded) =
+                expand_componentwise::expand_componentwise_call(&name, args, span)
+            {
+                // Recursively type-check the expanded expression
+                Self::infer_type(&mut expanded, symbols, func_table)?;
+
+                // Replace the current expression with the expanded one
+                let return_ty = expanded.ty.clone().unwrap();
+                *expr = expanded;
+                return Ok(return_ty);
+            }
+        }
+
         // Check if it's a user-defined function first
-        if let Some(sig) = func_table.lookup(name) {
+        if let Some(sig) = func_table.lookup(&name) {
             // Validate argument count
             if args.len() != sig.params.len() {
                 return Err(TypeError {
@@ -56,7 +86,7 @@ impl TypeChecker {
             Ok(sig.return_type.clone())
         } else {
             // Built-in function
-            Self::function_return_type(name, args)
+            Self::function_return_type(&name, args)
         }
     }
 

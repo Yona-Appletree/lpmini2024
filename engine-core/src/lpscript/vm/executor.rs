@@ -843,6 +843,12 @@ impl<'a> LpsVm<'a> {
                     self.pc += 1;
                 }
 
+                LpsOpCode::NegVec2 => {
+                    vec2::exec_neg_vec2(&mut self.stack, &mut self.sp)
+                        .map_err(|e| self.runtime_error(e))?;
+                    self.pc += 1;
+                }
+
                 LpsOpCode::MulVec2 => {
                     vec2::exec_mul_vec2(&mut self.stack, &mut self.sp)
                         .map_err(|e| self.runtime_error(e))?;
@@ -851,6 +857,12 @@ impl<'a> LpsVm<'a> {
 
                 LpsOpCode::DivVec2 => {
                     vec2::exec_div_vec2(&mut self.stack, &mut self.sp)
+                        .map_err(|e| self.runtime_error(e))?;
+                    self.pc += 1;
+                }
+
+                LpsOpCode::ModVec2 => {
+                    vec2::exec_mod_vec2(&mut self.stack, &mut self.sp)
                         .map_err(|e| self.runtime_error(e))?;
                     self.pc += 1;
                 }
@@ -904,6 +916,12 @@ impl<'a> LpsVm<'a> {
                     self.pc += 1;
                 }
 
+                LpsOpCode::NegVec3 => {
+                    vec3::exec_neg_vec3(&mut self.stack, &mut self.sp)
+                        .map_err(|e| self.runtime_error(e))?;
+                    self.pc += 1;
+                }
+
                 LpsOpCode::MulVec3 => {
                     vec3::exec_mul_vec3(&mut self.stack, &mut self.sp)
                         .map_err(|e| self.runtime_error(e))?;
@@ -912,6 +930,12 @@ impl<'a> LpsVm<'a> {
 
                 LpsOpCode::DivVec3 => {
                     vec3::exec_div_vec3(&mut self.stack, &mut self.sp)
+                        .map_err(|e| self.runtime_error(e))?;
+                    self.pc += 1;
+                }
+
+                LpsOpCode::ModVec3 => {
+                    vec3::exec_mod_vec3(&mut self.stack, &mut self.sp)
                         .map_err(|e| self.runtime_error(e))?;
                     self.pc += 1;
                 }
@@ -971,6 +995,12 @@ impl<'a> LpsVm<'a> {
                     self.pc += 1;
                 }
 
+                LpsOpCode::NegVec4 => {
+                    vec4::exec_neg_vec4(&mut self.stack, &mut self.sp)
+                        .map_err(|e| self.runtime_error(e))?;
+                    self.pc += 1;
+                }
+
                 LpsOpCode::MulVec4 => {
                     vec4::exec_mul_vec4(&mut self.stack, &mut self.sp)
                         .map_err(|e| self.runtime_error(e))?;
@@ -979,6 +1009,12 @@ impl<'a> LpsVm<'a> {
 
                 LpsOpCode::DivVec4 => {
                     vec4::exec_div_vec4(&mut self.stack, &mut self.sp)
+                        .map_err(|e| self.runtime_error(e))?;
+                    self.pc += 1;
+                }
+
+                LpsOpCode::ModVec4 => {
+                    vec4::exec_mod_vec4(&mut self.stack, &mut self.sp)
                         .map_err(|e| self.runtime_error(e))?;
                     self.pc += 1;
                 }

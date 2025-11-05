@@ -59,6 +59,29 @@ pub fn exec_sub_vec2(stack: &mut [i32], sp: &mut usize) -> Result<(), RuntimeErr
     Ok(())
 }
 
+/// Execute NegVec2: negate all components, pop 2, push 2
+#[inline(always)]
+pub fn exec_neg_vec2(stack: &mut [i32], sp: &mut usize) -> Result<(), RuntimeError> {
+    if *sp < 2 {
+        return Err(RuntimeError::StackUnderflow { required: 2, actual: *sp });
+    }
+    
+    *sp -= 1;
+    let vy = Fixed(stack[*sp]);
+    *sp -= 1;
+    let vx = Fixed(stack[*sp]);
+    
+    let v = Vec2::new(vx, vy);
+    let result = Vec2::new(-v.x, -v.y);
+    
+    stack[*sp] = result.x.0;
+    *sp += 1;
+    stack[*sp] = result.y.0;
+    *sp += 1;
+    
+    Ok(())
+}
+
 /// Execute MulVec2: component-wise multiplication, pop 4, push 2
 #[inline(always)]
 pub fn exec_mul_vec2(stack: &mut [i32], sp: &mut usize) -> Result<(), RuntimeError> {
@@ -110,6 +133,34 @@ pub fn exec_div_vec2(stack: &mut [i32], sp: &mut usize) -> Result<(), RuntimeErr
     stack[*sp] = result.x.0;
     *sp += 1;
     stack[*sp] = result.y.0;
+    *sp += 1;
+    
+    Ok(())
+}
+
+/// Execute ModVec2: component-wise modulo, pop 4, push 2
+#[inline(always)]
+pub fn exec_mod_vec2(stack: &mut [i32], sp: &mut usize) -> Result<(), RuntimeError> {
+    if *sp < 4 {
+        return Err(RuntimeError::StackUnderflow { required: 4, actual: *sp });
+    }
+    
+    *sp -= 1;
+    let by = Fixed(stack[*sp]);
+    *sp -= 1;
+    let bx = Fixed(stack[*sp]);
+    *sp -= 1;
+    let ay = Fixed(stack[*sp]);
+    *sp -= 1;
+    let ax = Fixed(stack[*sp]);
+    
+    // Component-wise modulo: (ax % bx, ay % by)
+    let result_x = crate::math::modulo(ax, bx);
+    let result_y = crate::math::modulo(ay, by);
+    
+    stack[*sp] = result_x.0;
+    *sp += 1;
+    stack[*sp] = result_y.0;
     *sp += 1;
     
     Ok(())

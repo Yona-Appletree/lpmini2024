@@ -127,9 +127,10 @@ impl TypeChecker {
             }
 
             // Function calls
-            ExprKind::Call { name, args } => {
+            ExprKind::Call { .. } => {
+                // Type check the function call (may transform expr via expansion)
                 let return_ty =
-                    Self::check_function_call(name, args, symbols, func_table, expr.span)?;
+                    Self::check_function_call(expr, symbols, func_table)?;
                 expr.ty = Some(return_ty);
             }
 

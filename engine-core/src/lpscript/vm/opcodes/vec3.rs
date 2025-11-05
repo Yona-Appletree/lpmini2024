@@ -71,6 +71,33 @@ pub fn exec_sub_vec3(stack: &mut [i32], sp: &mut usize) -> Result<(), RuntimeErr
     Ok(())
 }
 
+/// Execute NegVec3: negate all components, pop 3, push 3
+#[inline(always)]
+pub fn exec_neg_vec3(stack: &mut [i32], sp: &mut usize) -> Result<(), RuntimeError> {
+    if *sp < 3 {
+        return Err(RuntimeError::StackUnderflow { required: 3, actual: *sp });
+    }
+    
+    *sp -= 1;
+    let vz = Fixed(stack[*sp]);
+    *sp -= 1;
+    let vy = Fixed(stack[*sp]);
+    *sp -= 1;
+    let vx = Fixed(stack[*sp]);
+    
+    let v = Vec3::new(vx, vy, vz);
+    let result = Vec3::new(-v.x, -v.y, -v.z);
+    
+    stack[*sp] = result.x.0;
+    *sp += 1;
+    stack[*sp] = result.y.0;
+    *sp += 1;
+    stack[*sp] = result.z.0;
+    *sp += 1;
+    
+    Ok(())
+}
+
 /// Execute MulVec3: component-wise multiplication, pop 6, push 3
 #[inline(always)]
 pub fn exec_mul_vec3(stack: &mut [i32], sp: &mut usize) -> Result<(), RuntimeError> {
@@ -134,6 +161,41 @@ pub fn exec_div_vec3(stack: &mut [i32], sp: &mut usize) -> Result<(), RuntimeErr
     stack[*sp] = result.y.0;
     *sp += 1;
     stack[*sp] = result.z.0;
+    *sp += 1;
+    
+    Ok(())
+}
+
+/// Execute ModVec3: component-wise modulo, pop 6, push 3
+#[inline(always)]
+pub fn exec_mod_vec3(stack: &mut [i32], sp: &mut usize) -> Result<(), RuntimeError> {
+    if *sp < 6 {
+        return Err(RuntimeError::StackUnderflow { required: 6, actual: *sp });
+    }
+    
+    *sp -= 1;
+    let bz = Fixed(stack[*sp]);
+    *sp -= 1;
+    let by = Fixed(stack[*sp]);
+    *sp -= 1;
+    let bx = Fixed(stack[*sp]);
+    *sp -= 1;
+    let az = Fixed(stack[*sp]);
+    *sp -= 1;
+    let ay = Fixed(stack[*sp]);
+    *sp -= 1;
+    let ax = Fixed(stack[*sp]);
+    
+    // Component-wise modulo: (ax % bx, ay % by, az % bz)
+    let result_x = crate::math::modulo(ax, bx);
+    let result_y = crate::math::modulo(ay, by);
+    let result_z = crate::math::modulo(az, bz);
+    
+    stack[*sp] = result_x.0;
+    *sp += 1;
+    stack[*sp] = result_y.0;
+    *sp += 1;
+    stack[*sp] = result_z.0;
     *sp += 1;
     
     Ok(())

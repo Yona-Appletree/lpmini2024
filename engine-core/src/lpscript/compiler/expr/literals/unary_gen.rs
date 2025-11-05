@@ -16,10 +16,10 @@ impl<'a> CodeGenerator<'a> {
         match ty {
             Type::Int32 => self.code.push(LpsOpCode::NegInt32),
             Type::Fixed => self.code.push(LpsOpCode::NegFixed),
-            // For vector types, negate each component
-            // This shouldn't happen since we optimize `-literal` during parsing,
-            // but handle it just in case
-            _ => self.code.push(LpsOpCode::NegFixed),
+            Type::Vec2 => self.code.push(LpsOpCode::NegVec2),
+            Type::Vec3 => self.code.push(LpsOpCode::NegVec3),
+            Type::Vec4 => self.code.push(LpsOpCode::NegVec4),
+            _ => {} // Bool or Void - shouldn't happen
         }
     }
 }

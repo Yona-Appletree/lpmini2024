@@ -64,15 +64,48 @@ impl<'a> CodeGenerator<'a> {
     }
 
     pub(crate) fn gen_div(&mut self, left: &Box<Expr>, right: &Box<Expr>, result_ty: &Type) {
-        self.gen_expr(left);
-        self.gen_expr(right);
-        gen_binary_op(
-            BinaryOp::Div,
-            left.ty.as_ref().unwrap(),
-            right.ty.as_ref().unwrap(),
-            result_ty,
-            self.code,
-        );
+        let left_ty = left.ty.as_ref().unwrap();
+        let right_ty = right.ty.as_ref().unwrap();
+
+        // Special case: scalar / vector needs special handling
+        // We'll broadcast the scalar to each component
+        if matches!(left_ty, Type::Fixed | Type::Int32)
+            && matches!(right_ty, Type::Vec2 | Type::Vec3 | Type::Vec4)
+        {
+            // For scalar / vector, we need to duplicate the scalar for each component
+            // Stack layout will be: [scalar, scalar, ..., vec_components...]
+            self.gen_expr(left);
+            
+            // Duplicate scalar based on vector size
+            match right_ty {
+                Type::Vec2 => {
+                    self.code.push(LpsOpCode::Dup1); // Now have [scalar, scalar]
+                }
+                Type::Vec3 => {
+                    self.code.push(LpsOpCode::Dup1); // [scalar, scalar]
+                    self.code.push(LpsOpCode::Dup1); // [scalar, scalar, scalar]
+                }
+                Type::Vec4 => {
+                    self.code.push(LpsOpCode::Dup1); // [scalar, scalar]
+                    self.code.push(LpsOpCode::Dup1); // [scalar, scalar, scalar]
+                    self.code.push(LpsOpCode::Dup1); // [scalar, scalar, scalar, scalar]
+                }
+                _ => {}
+            }
+            
+            // Now push vector components on top
+            self.gen_expr(right);
+            
+            // Use component-wise division
+            // Stack is now: [scalar, scalar, ..., vec_components...]
+            // DivVec will do component-wise division
+        } else {
+            // Normal order
+            self.gen_expr(left);
+            self.gen_expr(right);
+        }
+
+        gen_binary_op(BinaryOp::Div, left_ty, right_ty, result_ty, self.code);
     }
 
     pub(crate) fn gen_mod(&mut self, left: &Box<Expr>, right: &Box<Expr>, result_ty: &Type) {
@@ -123,15 +156,16 @@ fn gen_binary_op(
         }
         (BinaryOp::Div, Type::Vec2) => {
             if matches!(right_ty, Type::Fixed | Type::Int32) {
+                // vec / scalar
                 code.push(LpsOpCode::DivVec2Scalar);
             } else {
+                // vec / vec OR scalar / vec (after broadcasting in gen_div)
                 code.push(LpsOpCode::DivVec2);
             }
         }
         (BinaryOp::Mod, Type::Vec2) => {
-            // Vec2 modulo not commonly supported, but we can implement component-wise
-            // For now, this is a placeholder - proper implementation would need ModVec2 opcode
-            code.push(LpsOpCode::MulVec2);
+            // Vec2 modulo - component-wise operation
+            code.push(LpsOpCode::ModVec2);
         }
 
         // Vec3 operations
@@ -149,15 +183,16 @@ fn gen_binary_op(
         }
         (BinaryOp::Div, Type::Vec3) => {
             if matches!(right_ty, Type::Fixed | Type::Int32) {
+                // vec / scalar
                 code.push(LpsOpCode::DivVec3Scalar);
             } else {
+                // vec / vec OR scalar / vec (after broadcasting in gen_div)
                 code.push(LpsOpCode::DivVec3);
             }
         }
         (BinaryOp::Mod, Type::Vec3) => {
-            // Vec3 modulo not commonly supported, but we can implement component-wise
-            // For now, this is a placeholder - proper implementation would need ModVec3 opcode
-            code.push(LpsOpCode::MulVec3);
+            // Vec3 modulo - component-wise operation
+            code.push(LpsOpCode::ModVec3);
         }
 
         // Vec4 operations
@@ -175,15 +210,16 @@ fn gen_binary_op(
         }
         (BinaryOp::Div, Type::Vec4) => {
             if matches!(right_ty, Type::Fixed | Type::Int32) {
+                // vec / scalar
                 code.push(LpsOpCode::DivVec4Scalar);
             } else {
+                // vec / vec OR scalar / vec (after broadcasting in gen_div)
                 code.push(LpsOpCode::DivVec4);
             }
         }
         (BinaryOp::Mod, Type::Vec4) => {
-            // Vec4 modulo not commonly supported, but we can implement component-wise
-            // For now, this is a placeholder - proper implementation would need ModVec4 opcode
-            code.push(LpsOpCode::MulVec4);
+            // Vec4 modulo - component-wise operation
+            code.push(LpsOpCode::ModVec4);
         }
 
         _ => {} // Void or unsupported
