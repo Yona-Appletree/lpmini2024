@@ -4,47 +4,80 @@ use alloc::collections::BTreeMap;
 use alloc::string::String;
 use alloc::vec::Vec;
 
-use crate::lpscript::compiler::ast::{FunctionDef, Stmt};
-use crate::lpscript::compiler::codegen::local_allocator::LocalAllocator;
+use crate::lpscript::compiler::ast::{AstPool, FunctionDef as AstFunctionDef};
+use crate::lpscript::compiler::codegen::{CodeGenerator, LocalAllocator};
+use crate::lpscript::compiler::func::{FunctionMetadata, FunctionTable};
 use crate::lpscript::shared::Type;
 use crate::lpscript::vm::opcodes::LpsOpCode;
+use crate::lpscript::vm::{FunctionDef as VmFunctionDef, LocalVarDef, ParamDef};
 
-/// Generate code for a single function definition
-#[allow(dead_code)] // Legacy function - not currently used
-pub fn gen_function(
-    func: &FunctionDef,
-    code: &mut Vec<LpsOpCode>,
-    _function_offsets: &BTreeMap<String, u32>,
-    _gen_stmt: impl Fn(&Stmt, &mut Vec<LpsOpCode>, &mut LocalAllocator, &BTreeMap<String, u32>),
-) {
+/// Generate code for a single user-defined function
+///
+/// This is the core function generation logic using the pool-based API.
+/// It handles parameter allocation, function body code generation, and metadata conversion.
+pub fn gen_user_function(
+    pool: &AstPool,
+    ast_func: &AstFunctionDef,
+    func_table: &FunctionTable,
+    function_indices: &BTreeMap<String, u32>,
+) -> VmFunctionDef {
+    let mut func_code = Vec::new();
+
+    // Get pre-analyzed metadata for this function
+    let metadata: &FunctionMetadata = func_table
+        .lookup(&ast_func.name)
+        .expect("Function should have metadata from analysis pass");
+
+    // Create a fresh LocalAllocator and allocate parameters
+    // This must match the order used in the analyzer
     let mut locals = LocalAllocator::new();
-
-    // Allocate space for parameters (they're passed on stack)
-    // First, allocate locals for all parameters to reserve their indices
-    for param in func.params.iter() {
+    for param in &ast_func.params {
         locals.allocate_typed(param.name.clone(), param.ty.clone());
     }
 
-    // Then, generate store instructions in REVERSE order
-    // because parameters are on stack with last param on top
-    for (i, param) in func.params.iter().enumerate().rev() {
-        // Parameters are already on stack, need to store them
+    // Generate parameter store code (reverse order - last param on top of stack)
+    for (i, param) in ast_func.params.iter().enumerate().rev() {
         match param.ty {
-            Type::Bool | Type::Fixed => code.push(LpsOpCode::StoreLocalFixed(i as u32)),
-            Type::Int32 => code.push(LpsOpCode::StoreLocalInt32(i as u32)),
-            Type::Vec2 => code.push(LpsOpCode::StoreLocalVec2(i as u32)),
-            Type::Vec3 => code.push(LpsOpCode::StoreLocalVec3(i as u32)),
-            Type::Vec4 => code.push(LpsOpCode::StoreLocalVec4(i as u32)),
+            Type::Bool | Type::Fixed => func_code.push(LpsOpCode::StoreLocalFixed(i as u32)),
+            Type::Int32 => func_code.push(LpsOpCode::StoreLocalInt32(i as u32)),
+            Type::Vec2 => func_code.push(LpsOpCode::StoreLocalVec2(i as u32)),
+            Type::Vec3 => func_code.push(LpsOpCode::StoreLocalVec3(i as u32)),
+            Type::Vec4 => func_code.push(LpsOpCode::StoreLocalVec4(i as u32)),
             Type::Void => {}
         }
     }
 
-    // TODO: Update to use gen_stmt_id with pool-based API
-    // For now, just emit a simple return
-    if func.return_type == Type::Void {
-        code.push(LpsOpCode::Return);
-    } else {
-        code.push(LpsOpCode::Push(crate::math::Fixed::ZERO));
-        code.push(LpsOpCode::Return);
+    // Generate function body
+    let mut gen = CodeGenerator::new(&mut func_code, &mut locals, function_indices);
+    for &stmt_id in &ast_func.body {
+        gen.gen_stmt_id(pool, stmt_id);
     }
+
+    // Add return if missing
+    if !matches!(func_code.last(), Some(LpsOpCode::Return)) {
+        if ast_func.return_type == Type::Void {
+            func_code.push(LpsOpCode::Return);
+        } else {
+            func_code.push(LpsOpCode::Push(crate::math::Fixed::ZERO));
+            func_code.push(LpsOpCode::Return);
+        }
+    }
+
+    // Convert to VmFunctionDef using metadata
+    let params_defs: Vec<ParamDef> = ast_func
+        .params
+        .iter()
+        .map(|p| ParamDef::new(p.name.clone(), p.ty.clone()))
+        .collect();
+
+    let local_defs: Vec<LocalVarDef> = metadata
+        .locals
+        .iter()
+        .map(|local_info| LocalVarDef::new(local_info.name.clone(), local_info.ty.clone()))
+        .collect();
+
+    VmFunctionDef::new(ast_func.name.clone(), ast_func.return_type.clone())
+        .with_params(params_defs)
+        .with_locals(local_defs)
+        .with_opcodes(func_code)
 }

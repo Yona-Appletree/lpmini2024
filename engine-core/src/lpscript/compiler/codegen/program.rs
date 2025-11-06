@@ -10,7 +10,7 @@ use crate::lpscript::compiler::ast::{AstPool, Program, StmtId};
 use crate::lpscript::compiler::func::FunctionTable;
 use crate::lpscript::shared::Type;
 use crate::lpscript::vm::opcodes::LpsOpCode;
-use crate::lpscript::vm::{FunctionDef as VmFunctionDef, LocalVarDef, ParamDef};
+use crate::lpscript::vm::{FunctionDef as VmFunctionDef, LocalVarDef};
 
 /// Generate a complete program with functions (new API with FunctionTable)
 /// Returns a vector of FunctionDef with main at index 0
@@ -39,66 +39,12 @@ pub fn gen_program_with_functions(
 
     // Generate user-defined functions first (we'll reorder later)
     for ast_func in &program.functions {
-        let mut func_code = Vec::new();
-
-        // Get pre-analyzed metadata for this function
-        let metadata = func_table
-            .lookup(&ast_func.name)
-            .expect("Function should have metadata from analysis pass");
-
-        // Create a fresh LocalAllocator and allocate parameters
-        // This must match the order used in the analyzer
-        let mut locals = LocalAllocator::new();
-        for param in &ast_func.params {
-            locals.allocate_typed(param.name.clone(), param.ty.clone());
-        }
-
-        // Generate parameter store code (reverse order - last param on top of stack)
-        for (i, param) in ast_func.params.iter().enumerate().rev() {
-            match param.ty {
-                Type::Bool | Type::Fixed => func_code.push(LpsOpCode::StoreLocalFixed(i as u32)),
-                Type::Int32 => func_code.push(LpsOpCode::StoreLocalInt32(i as u32)),
-                Type::Vec2 => func_code.push(LpsOpCode::StoreLocalVec2(i as u32)),
-                Type::Vec3 => func_code.push(LpsOpCode::StoreLocalVec3(i as u32)),
-                Type::Vec4 => func_code.push(LpsOpCode::StoreLocalVec4(i as u32)),
-                Type::Void => {}
-            }
-        }
-
-        // Generate function body
-        let mut gen = super::CodeGenerator::new(&mut func_code, &mut locals, &function_indices);
-        for &stmt_id in &ast_func.body {
-            gen.gen_stmt_id(pool, stmt_id);
-        }
-
-        // Add return if missing
-        if !matches!(func_code.last(), Some(LpsOpCode::Return)) {
-            if ast_func.return_type == Type::Void {
-                func_code.push(LpsOpCode::Return);
-            } else {
-                func_code.push(LpsOpCode::Push(crate::math::Fixed::ZERO));
-                func_code.push(LpsOpCode::Return);
-            }
-        }
-
-        // Convert to VmFunctionDef using metadata
-        let params_defs: Vec<ParamDef> = ast_func
-            .params
-            .iter()
-            .map(|p| ParamDef::new(p.name.clone(), p.ty.clone()))
-            .collect();
-
-        let local_defs: Vec<LocalVarDef> = metadata
-            .locals
-            .iter()
-            .map(|local_info| LocalVarDef::new(local_info.name.clone(), local_info.ty.clone()))
-            .collect();
-
-        let vm_func = VmFunctionDef::new(ast_func.name.clone(), ast_func.return_type.clone())
-            .with_params(params_defs)
-            .with_locals(local_defs)
-            .with_opcodes(func_code);
-
+        let vm_func = crate::lpscript::compiler::func::func_gen::gen_user_function(
+            pool,
+            ast_func,
+            func_table,
+            &function_indices,
+        );
         result_functions.push(vm_func);
     }
 

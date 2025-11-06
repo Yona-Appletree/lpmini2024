@@ -12,6 +12,10 @@ use crate::lpscript::shared::Type;
 pub(crate) struct LocalVarInfo {
     pub(crate) name: String,
     pub(crate) ty: Type,
+
+    // used in tests
+    #[allow(dead_code)]
+    pub(crate) index: u32,
 }
 
 /// Function metadata including signature and local variables
@@ -20,6 +24,10 @@ pub(crate) struct FunctionMetadata {
     pub(crate) params: Vec<Type>,
     pub(crate) return_type: Type,
     pub(crate) locals: Vec<LocalVarInfo>,
+
+    // used in tests
+    #[allow(dead_code)]
+    pub(crate) local_count: u32,
 }
 
 /// Function table for tracking user-defined functions

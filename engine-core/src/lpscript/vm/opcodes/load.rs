@@ -2,7 +2,19 @@
 use crate::lpscript::vm::error::LpsVmError;
 use crate::lpscript::vm::value_stack::ValueStack;
 use crate::math::{Fixed, FIXED_ONE, FIXED_SHIFT};
-use crate::test_engine::LoadSource;
+
+/// Load source specifier for built-in variables
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub enum LoadSource {
+    XInt,        // Integer X coordinate (0..width-1)
+    YInt,        // Integer Y coordinate (0..height-1)
+    XNorm,       // Normalized X (0..1)
+    YNorm,       // Normalized Y (0..1)
+    Time,        // Time value
+    TimeNorm,    // Time normalized to 0..1 range (wraps at 1.0)
+    CenterDist,  // Distance from center (0 at center, 1 at farthest corner)
+    CenterAngle, // Angle from center (0-1 for 0-2π, 0 = east/right)
+}
 
 /// Execute Load: push built-in variable value onto stack
 #[inline(always)]
@@ -232,7 +244,7 @@ mod tests {
     #[test]
     fn test_load_stack_overflow() {
         let mut stack = ValueStack::new(2); // Small stack
-                                       // Fill the stack
+                                            // Fill the stack
         stack.push_int32(1).unwrap();
         stack.push_int32(2).unwrap();
 
