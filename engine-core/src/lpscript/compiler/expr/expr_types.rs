@@ -2,7 +2,7 @@
 extern crate alloc;
 use alloc::vec;
 
-use crate::lpscript::compiler::ast::{AstPool, Expr, ExprId, ExprKind};
+use crate::lpscript::compiler::ast::{AstPool, ExprId, ExprKind};
 use crate::lpscript::compiler::error::{TypeError, TypeErrorKind};
 use crate::lpscript::compiler::typechecker::{FunctionTable, SymbolTable, TypeChecker};
 use crate::lpscript::shared::Type;

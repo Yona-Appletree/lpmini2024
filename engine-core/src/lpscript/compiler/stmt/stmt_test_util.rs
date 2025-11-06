@@ -11,9 +11,9 @@ use crate::lpscript::compiler::func::FunctionMetadata;
 use crate::lpscript::compiler::stmt::stmt_test_ast::StmtBuilder;
 use crate::lpscript::compiler::{lexer, parser, typechecker};
 use crate::lpscript::shared::Type;
-use crate::lpscript::vm::{LpsOpCode, LpsProgram};
 use crate::lpscript::vm::lps_vm::LpsVm;
 use crate::lpscript::vm::vm_limits::VmLimits;
+use crate::lpscript::vm::{LpsOpCode, LpsProgram};
 use crate::math::{Fixed, ToFixed, Vec2, Vec3, Vec4};
 
 /// Function metadata assertion helper
@@ -304,7 +304,7 @@ impl ScriptTest {
         // Parse the script
         let mut lexer = lexer::Lexer::new(&self.input);
         let tokens = lexer.tokenize();
-        let mut parser = parser::Parser::new(tokens);
+        let parser = parser::Parser::new(tokens);
         let (ast_program, pool) = match parser.parse_program() {
             Ok(result) => result,
             Err(e) => {

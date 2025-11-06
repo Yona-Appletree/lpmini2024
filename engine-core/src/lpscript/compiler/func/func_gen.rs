@@ -6,15 +6,15 @@ use alloc::vec::Vec;
 
 use crate::lpscript::compiler::ast::{FunctionDef, Stmt};
 use crate::lpscript::compiler::codegen::local_allocator::LocalAllocator;
-use crate::lpscript::compiler::codegen::CodeGenerator;
 use crate::lpscript::shared::Type;
 use crate::lpscript::vm::opcodes::LpsOpCode;
 
 /// Generate code for a single function definition
+#[allow(dead_code)] // Legacy function - not currently used
 pub fn gen_function(
     func: &FunctionDef,
     code: &mut Vec<LpsOpCode>,
-    function_offsets: &BTreeMap<String, u32>,
+    _function_offsets: &BTreeMap<String, u32>,
     _gen_stmt: impl Fn(&Stmt, &mut Vec<LpsOpCode>, &mut LocalAllocator, &BTreeMap<String, u32>),
 ) {
     let mut locals = LocalAllocator::new();

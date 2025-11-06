@@ -1,227 +1,122 @@
 /// Binary operation code generation
 extern crate alloc;
-use alloc::boxed::Box;
-use alloc::vec::Vec;
 
-use crate::lpscript::compiler::ast::Expr;
+use crate::lpscript::compiler::ast::{AstPool, ExprId};
 use crate::lpscript::compiler::codegen::CodeGenerator;
 use crate::lpscript::shared::Type;
 use crate::lpscript::vm::opcodes::LpsOpCode;
 
-/// Binary operation types
-pub enum BinaryOp {
-    Add,
-    Sub,
-    Mul,
-    Div,
-    Mod,
-}
-
 impl<'a> CodeGenerator<'a> {
-    pub(crate) fn gen_add(&mut self, left: &Box<Expr>, right: &Box<Expr>, result_ty: &Type) {
-        self.gen_expr(left);
-        self.gen_expr(right);
-        gen_binary_op(
-            BinaryOp::Add,
-            left.ty.as_ref().unwrap(),
-            right.ty.as_ref().unwrap(),
-            result_ty,
-            self.code,
-        );
+    pub(crate) fn gen_add_id(&mut self, pool: &AstPool, left: ExprId, right: ExprId, ty: &Type) {
+        self.gen_expr_id(pool, left);
+        self.gen_expr_id(pool, right);
+        self.code.push(match ty {
+            Type::Fixed => LpsOpCode::AddFixed,
+            Type::Int32 => LpsOpCode::AddInt32,
+            Type::Vec2 => LpsOpCode::AddVec2,
+            Type::Vec3 => LpsOpCode::AddVec3,
+            Type::Vec4 => LpsOpCode::AddVec4,
+            _ => LpsOpCode::AddFixed,
+        });
     }
 
-    pub(crate) fn gen_sub(&mut self, left: &Box<Expr>, right: &Box<Expr>, result_ty: &Type) {
-        self.gen_expr(left);
-        self.gen_expr(right);
-        gen_binary_op(
-            BinaryOp::Sub,
-            left.ty.as_ref().unwrap(),
-            right.ty.as_ref().unwrap(),
-            result_ty,
-            self.code,
-        );
+    pub(crate) fn gen_sub_id(&mut self, pool: &AstPool, left: ExprId, right: ExprId, ty: &Type) {
+        self.gen_expr_id(pool, left);
+        self.gen_expr_id(pool, right);
+        self.code.push(match ty {
+            Type::Fixed => LpsOpCode::SubFixed,
+            Type::Int32 => LpsOpCode::SubInt32,
+            Type::Vec2 => LpsOpCode::SubVec2,
+            Type::Vec3 => LpsOpCode::SubVec3,
+            Type::Vec4 => LpsOpCode::SubVec4,
+            _ => LpsOpCode::SubFixed,
+        });
     }
 
-    pub(crate) fn gen_mul(&mut self, left: &Box<Expr>, right: &Box<Expr>, result_ty: &Type) {
-        let left_ty = left.ty.as_ref().unwrap();
-        let right_ty = right.ty.as_ref().unwrap();
-
-        // Special case: scalar * vector needs to be reordered to vector * scalar
-        // because MulVecNScalar expects [..., vec_components, scalar] on stack
-        if matches!(left_ty, Type::Fixed | Type::Int32)
-            && matches!(right_ty, Type::Vec2 | Type::Vec3 | Type::Vec4)
-        {
-            // Generate right (vector) first, then left (scalar)
-            self.gen_expr(right);
-            self.gen_expr(left);
+    pub(crate) fn gen_mul_id(&mut self, pool: &AstPool, left: ExprId, right: ExprId, ty: &Type) {
+        let left_ty = pool.expr(left).ty.as_ref().unwrap();
+        let right_ty = pool.expr(right).ty.as_ref().unwrap();
+        
+        // For scalar-vector operations, generate in reverse order to get correct stack layout
+        let is_scalar_vector = matches!((left_ty, right_ty), 
+            (Type::Fixed | Type::Int32, Type::Vec2 | Type::Vec3 | Type::Vec4));
+        
+        if is_scalar_vector {
+            // Generate: scalar * vector -> [vec_components..., scalar]
+            self.gen_expr_id(pool, right); // Vector first
+            self.gen_expr_id(pool, left);  // Scalar on top
         } else {
             // Normal order
-            self.gen_expr(left);
-            self.gen_expr(right);
+            self.gen_expr_id(pool, left);
+            self.gen_expr_id(pool, right);
         }
-
-        gen_binary_op(BinaryOp::Mul, left_ty, right_ty, result_ty, self.code);
+        
+        // Emit appropriate opcode
+        let opcode = match (left_ty, right_ty, ty) {
+            // Scalar operations
+            (Type::Fixed, Type::Fixed, Type::Fixed) => LpsOpCode::MulFixed,
+            (Type::Int32, Type::Int32, Type::Int32) => LpsOpCode::MulInt32,
+            
+            // Vector-Vector operations
+            (Type::Vec2, Type::Vec2, Type::Vec2) => LpsOpCode::MulVec2,
+            (Type::Vec3, Type::Vec3, Type::Vec3) => LpsOpCode::MulVec3,
+            (Type::Vec4, Type::Vec4, Type::Vec4) => LpsOpCode::MulVec4,
+            
+            // Vector-Scalar operations
+            (Type::Vec2, Type::Fixed | Type::Int32, Type::Vec2) => LpsOpCode::MulVec2Scalar,
+            (Type::Vec3, Type::Fixed | Type::Int32, Type::Vec3) => LpsOpCode::MulVec3Scalar,
+            (Type::Vec4, Type::Fixed | Type::Int32, Type::Vec4) => LpsOpCode::MulVec4Scalar,
+            
+            // Scalar-Vector operations (already generated in correct order)
+            (Type::Fixed | Type::Int32, Type::Vec2, Type::Vec2) => LpsOpCode::MulVec2Scalar,
+            (Type::Fixed | Type::Int32, Type::Vec3, Type::Vec3) => LpsOpCode::MulVec3Scalar,
+            (Type::Fixed | Type::Int32, Type::Vec4, Type::Vec4) => LpsOpCode::MulVec4Scalar,
+            
+            _ => LpsOpCode::MulFixed, // Fallback
+        };
+        
+        self.code.push(opcode);
     }
 
-    pub(crate) fn gen_div(&mut self, left: &Box<Expr>, right: &Box<Expr>, result_ty: &Type) {
-        let left_ty = left.ty.as_ref().unwrap();
-        let right_ty = right.ty.as_ref().unwrap();
-
-        // Special case: scalar / vector needs special handling
-        // We'll broadcast the scalar to each component
-        if matches!(left_ty, Type::Fixed | Type::Int32)
-            && matches!(right_ty, Type::Vec2 | Type::Vec3 | Type::Vec4)
-        {
-            // For scalar / vector, we need to duplicate the scalar for each component
-            // Stack layout will be: [scalar, scalar, ..., vec_components...]
-            self.gen_expr(left);
+    pub(crate) fn gen_div_id(&mut self, pool: &AstPool, left: ExprId, right: ExprId, ty: &Type) {
+        let left_ty = pool.expr(left).ty.as_ref().unwrap();
+        let right_ty = pool.expr(right).ty.as_ref().unwrap();
+        
+        self.gen_expr_id(pool, left);
+        self.gen_expr_id(pool, right);
+        
+        // Emit appropriate opcode
+        let opcode = match (left_ty, right_ty, ty) {
+            // Scalar operations
+            (Type::Fixed, Type::Fixed, Type::Fixed) => LpsOpCode::DivFixed,
+            (Type::Int32, Type::Int32, Type::Int32) => LpsOpCode::DivInt32,
             
-            // Duplicate scalar based on vector size
-            match right_ty {
-                Type::Vec2 => {
-                    self.code.push(LpsOpCode::Dup1); // Now have [scalar, scalar]
-                }
-                Type::Vec3 => {
-                    self.code.push(LpsOpCode::Dup1); // [scalar, scalar]
-                    self.code.push(LpsOpCode::Dup1); // [scalar, scalar, scalar]
-                }
-                Type::Vec4 => {
-                    self.code.push(LpsOpCode::Dup1); // [scalar, scalar]
-                    self.code.push(LpsOpCode::Dup1); // [scalar, scalar, scalar]
-                    self.code.push(LpsOpCode::Dup1); // [scalar, scalar, scalar, scalar]
-                }
-                _ => {}
-            }
+            // Vector-Vector operations
+            (Type::Vec2, Type::Vec2, Type::Vec2) => LpsOpCode::DivVec2,
+            (Type::Vec3, Type::Vec3, Type::Vec3) => LpsOpCode::DivVec3,
+            (Type::Vec4, Type::Vec4, Type::Vec4) => LpsOpCode::DivVec4,
             
-            // Now push vector components on top
-            self.gen_expr(right);
+            // Vector-Scalar operations (vec / scalar)
+            (Type::Vec2, Type::Fixed | Type::Int32, Type::Vec2) => LpsOpCode::DivVec2Scalar,
+            (Type::Vec3, Type::Fixed | Type::Int32, Type::Vec3) => LpsOpCode::DivVec3Scalar,
+            (Type::Vec4, Type::Fixed | Type::Int32, Type::Vec4) => LpsOpCode::DivVec4Scalar,
             
-            // Use component-wise division
-            // Stack is now: [scalar, scalar, ..., vec_components...]
-            // DivVec will do component-wise division
-        } else {
-            // Normal order
-            self.gen_expr(left);
-            self.gen_expr(right);
-        }
-
-        gen_binary_op(BinaryOp::Div, left_ty, right_ty, result_ty, self.code);
+            _ => LpsOpCode::DivFixed, // Fallback
+        };
+        
+        self.code.push(opcode);
     }
 
-    pub(crate) fn gen_mod(&mut self, left: &Box<Expr>, right: &Box<Expr>, result_ty: &Type) {
-        self.gen_expr(left);
-        self.gen_expr(right);
-        gen_binary_op(
-            BinaryOp::Mod,
-            left.ty.as_ref().unwrap(),
-            right.ty.as_ref().unwrap(),
-            result_ty,
-            self.code,
-        );
-    }
-}
-
-/// Generate typed binary operation based on operand and result types
-fn gen_binary_op(
-    op: BinaryOp,
-    left_ty: &Type,
-    right_ty: &Type,
-    result_ty: &Type,
-    code: &mut Vec<LpsOpCode>,
-) {
-    match (op, result_ty) {
-        // Fixed operations
-        (BinaryOp::Add, Type::Fixed | Type::Int32) => code.push(LpsOpCode::AddFixed),
-        (BinaryOp::Sub, Type::Fixed | Type::Int32) => code.push(LpsOpCode::SubFixed),
-        (BinaryOp::Mul, Type::Fixed | Type::Int32) => code.push(LpsOpCode::MulFixed),
-        (BinaryOp::Div, Type::Fixed | Type::Int32) => code.push(LpsOpCode::DivFixed),
-        (BinaryOp::Mod, Type::Fixed | Type::Int32) => {
-            // Modulo operation for fixed-point numbers
-            code.push(LpsOpCode::ModFixed);
-        }
-
-        // Vec2 operations
-        (BinaryOp::Add, Type::Vec2) => code.push(LpsOpCode::AddVec2),
-        (BinaryOp::Sub, Type::Vec2) => code.push(LpsOpCode::SubVec2),
-        (BinaryOp::Mul, Type::Vec2) => {
-            // Check if it's vec * scalar or vec * vec
-            // Note: scalar * vec is handled by reordering in gen_mul()
-            if matches!(right_ty, Type::Fixed | Type::Int32)
-                || matches!(left_ty, Type::Fixed | Type::Int32)
-            {
-                code.push(LpsOpCode::MulVec2Scalar);
-            } else {
-                code.push(LpsOpCode::MulVec2);
-            }
-        }
-        (BinaryOp::Div, Type::Vec2) => {
-            if matches!(right_ty, Type::Fixed | Type::Int32) {
-                // vec / scalar
-                code.push(LpsOpCode::DivVec2Scalar);
-            } else {
-                // vec / vec OR scalar / vec (after broadcasting in gen_div)
-                code.push(LpsOpCode::DivVec2);
-            }
-        }
-        (BinaryOp::Mod, Type::Vec2) => {
-            // Vec2 modulo - component-wise operation
-            code.push(LpsOpCode::ModVec2);
-        }
-
-        // Vec3 operations
-        (BinaryOp::Add, Type::Vec3) => code.push(LpsOpCode::AddVec3),
-        (BinaryOp::Sub, Type::Vec3) => code.push(LpsOpCode::SubVec3),
-        (BinaryOp::Mul, Type::Vec3) => {
-            // Note: scalar * vec is handled by reordering in gen_mul()
-            if matches!(right_ty, Type::Fixed | Type::Int32)
-                || matches!(left_ty, Type::Fixed | Type::Int32)
-            {
-                code.push(LpsOpCode::MulVec3Scalar);
-            } else {
-                code.push(LpsOpCode::MulVec3);
-            }
-        }
-        (BinaryOp::Div, Type::Vec3) => {
-            if matches!(right_ty, Type::Fixed | Type::Int32) {
-                // vec / scalar
-                code.push(LpsOpCode::DivVec3Scalar);
-            } else {
-                // vec / vec OR scalar / vec (after broadcasting in gen_div)
-                code.push(LpsOpCode::DivVec3);
-            }
-        }
-        (BinaryOp::Mod, Type::Vec3) => {
-            // Vec3 modulo - component-wise operation
-            code.push(LpsOpCode::ModVec3);
-        }
-
-        // Vec4 operations
-        (BinaryOp::Add, Type::Vec4) => code.push(LpsOpCode::AddVec4),
-        (BinaryOp::Sub, Type::Vec4) => code.push(LpsOpCode::SubVec4),
-        (BinaryOp::Mul, Type::Vec4) => {
-            // Note: scalar * vec is handled by reordering in gen_mul()
-            if matches!(right_ty, Type::Fixed | Type::Int32)
-                || matches!(left_ty, Type::Fixed | Type::Int32)
-            {
-                code.push(LpsOpCode::MulVec4Scalar);
-            } else {
-                code.push(LpsOpCode::MulVec4);
-            }
-        }
-        (BinaryOp::Div, Type::Vec4) => {
-            if matches!(right_ty, Type::Fixed | Type::Int32) {
-                // vec / scalar
-                code.push(LpsOpCode::DivVec4Scalar);
-            } else {
-                // vec / vec OR scalar / vec (after broadcasting in gen_div)
-                code.push(LpsOpCode::DivVec4);
-            }
-        }
-        (BinaryOp::Mod, Type::Vec4) => {
-            // Vec4 modulo - component-wise operation
-            code.push(LpsOpCode::ModVec4);
-        }
-
-        _ => {} // Void or unsupported
+    pub(crate) fn gen_mod_id(&mut self, pool: &AstPool, left: ExprId, right: ExprId, ty: &Type) {
+        self.gen_expr_id(pool, left);
+        self.gen_expr_id(pool, right);
+        self.code.push(match ty {
+            Type::Fixed => LpsOpCode::ModFixed,
+            Type::Int32 => LpsOpCode::ModInt32,
+            Type::Vec2 => LpsOpCode::ModVec2,
+            Type::Vec3 => LpsOpCode::ModVec3,
+            Type::Vec4 => LpsOpCode::ModVec4,
+            _ => LpsOpCode::ModFixed,
+        });
     }
 }

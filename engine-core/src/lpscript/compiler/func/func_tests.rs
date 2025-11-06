@@ -8,7 +8,7 @@ mod parse_tests {
     fn test_parse_function_no_params() {
         let mut lexer = Lexer::new("float getPi() { return 3.14; }");
         let tokens = lexer.tokenize();
-        let mut parser = Parser::new(tokens);
+        let parser = Parser::new(tokens);
         let (program, _pool) = parser.parse_program().expect("parse should succeed");
 
         assert_eq!(program.functions.len(), 1);
@@ -20,7 +20,7 @@ mod parse_tests {
     fn test_parse_function_with_params() {
         let mut lexer = Lexer::new("float add(float a, float b) { return a + b; }");
         let tokens = lexer.tokenize();
-        let mut parser = Parser::new(tokens);
+        let parser = Parser::new(tokens);
         let (program, _pool) = parser.parse_program().expect("parse should succeed");
 
         assert_eq!(program.functions.len(), 1);
@@ -33,7 +33,7 @@ mod parse_tests {
     fn test_parse_function_body() {
         let mut lexer = Lexer::new("float double(float x) { return x * 2.0; }");
         let tokens = lexer.tokenize();
-        let mut parser = Parser::new(tokens);
+        let parser = Parser::new(tokens);
         let (program, _pool) = parser.parse_program().expect("parse should succeed");
 
         assert_eq!(program.functions.len(), 1);
@@ -49,7 +49,7 @@ mod parse_tests {
         ",
         );
         let tokens = lexer.tokenize();
-        let mut parser = Parser::new(tokens);
+        let parser = Parser::new(tokens);
         let (program, _pool) = parser.parse_program().expect("parse should succeed");
 
         assert_eq!(program.functions.len(), 2);
@@ -70,7 +70,7 @@ mod return_path_tests {
     fn parse_and_typecheck_program(input: &str) -> Result<Program, TypeError> {
         let mut lexer = Lexer::new(input);
         let tokens = lexer.tokenize();
-        let mut parser = Parser::new(tokens);
+        let parser = Parser::new(tokens);
         let (program, pool) = parser.parse_program().map_err(|e| TypeError {
             kind: TypeErrorKind::UndefinedVariable(format!("Parse error: {}", e)),
             span: crate::lpscript::shared::Span::EMPTY,
@@ -532,7 +532,7 @@ mod vector_function_tests {
 mod integration_tests {
     use crate::lpscript::vm::vm_limits::VmLimits;
     use crate::lpscript::*;
-    use crate::math::{Fixed, ToFixed};
+    use crate::math::Fixed;
 
     #[test]
     fn test_function_no_params() {

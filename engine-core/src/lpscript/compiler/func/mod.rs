@@ -15,6 +15,5 @@ mod func_types;
 mod func_tests;
 
 // Re-export public items
-pub(crate) use func_gen::gen_function;
-pub(crate) use func_types::{FunctionMetadata, FunctionSignature, FunctionTable, LocalVarInfo};
+pub(crate) use func_types::{FunctionMetadata, FunctionTable, LocalVarInfo};
 

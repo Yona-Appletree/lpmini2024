@@ -8,12 +8,12 @@ use crate::lpscript::compiler::ast::{AstPool, ExprId, ExprKind};
 /// Simplify an expression tree using algebraic identities
 pub fn simplify_expr(expr_id: ExprId, pool: AstPool) -> (ExprId, AstPool) {
     let kind = pool.expr(expr_id).kind.clone();
-    let span = pool.expr(expr_id).span;
+    let _span = pool.expr(expr_id).span;
 
     match kind {
         // x + 0 = x, 0 + x = x
         ExprKind::Add(left_id, right_id) => {
-            let (new_left, mut pool2) = simplify_expr(left_id, pool);
+            let (new_left, pool2) = simplify_expr(left_id, pool);
             let (new_right, mut pool3) = simplify_expr(right_id, pool2);
 
             let left = &pool3.expr(new_left).kind;
@@ -33,7 +33,7 @@ pub fn simplify_expr(expr_id: ExprId, pool: AstPool) -> (ExprId, AstPool) {
         // x * 1 = x, 1 * x = x
         // x * 0 = 0, 0 * x = 0
         ExprKind::Mul(left_id, right_id) => {
-            let (new_left, mut pool2) = simplify_expr(left_id, pool);
+            let (new_left, pool2) = simplify_expr(left_id, pool);
             let (new_right, mut pool3) = simplify_expr(right_id, pool2);
 
             let left = &pool3.expr(new_left).kind;
@@ -58,7 +58,7 @@ pub fn simplify_expr(expr_id: ExprId, pool: AstPool) -> (ExprId, AstPool) {
 
         // x - 0 = x
         ExprKind::Sub(left_id, right_id) => {
-            let (new_left, mut pool2) = simplify_expr(left_id, pool);
+            let (new_left, pool2) = simplify_expr(left_id, pool);
             let (new_right, mut pool3) = simplify_expr(right_id, pool2);
 
             let right = &pool3.expr(new_right).kind;
@@ -72,7 +72,7 @@ pub fn simplify_expr(expr_id: ExprId, pool: AstPool) -> (ExprId, AstPool) {
 
         // x / 1 = x
         ExprKind::Div(left_id, right_id) => {
-            let (new_left, mut pool2) = simplify_expr(left_id, pool);
+            let (new_left, pool2) = simplify_expr(left_id, pool);
             let (new_right, mut pool3) = simplify_expr(right_id, pool2);
 
             let right = &pool3.expr(new_right).kind;
@@ -104,7 +104,7 @@ pub fn simplify_expr(expr_id: ExprId, pool: AstPool) -> (ExprId, AstPool) {
         // 2. For floats: x % 1 = frac(x) (not a simple constant)
         // The simplification would need to generate a frac() call, which isn't simpler
         ExprKind::Mod(left_id, right_id) => {
-            let (new_left, mut pool2) = simplify_expr(left_id, pool);
+            let (new_left, pool2) = simplify_expr(left_id, pool);
             let (new_right, mut pool3) = simplify_expr(right_id, pool2);
 
             pool3.expr_mut(expr_id).kind = ExprKind::Mod(new_left, new_right);

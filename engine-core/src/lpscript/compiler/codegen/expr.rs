@@ -2,7 +2,7 @@
 extern crate alloc;
 
 use super::CodeGenerator;
-use crate::lpscript::compiler::ast::{Expr, ExprKind};
+use crate::lpscript::compiler::ast::Expr;
 
 impl<'a> CodeGenerator<'a> {
     // Old gen_expr method kept for compatibility with individual *_gen.rs files

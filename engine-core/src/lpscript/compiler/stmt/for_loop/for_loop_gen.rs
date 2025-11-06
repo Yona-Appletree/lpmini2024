@@ -1,55 +1,61 @@
 /// For loop code generation
 extern crate alloc;
-use crate::lpscript::compiler::ast::{Expr, Stmt};
+
+use crate::lpscript::compiler::ast::{AstPool, ExprId, StmtId};
 use crate::lpscript::compiler::codegen::CodeGenerator;
 use crate::lpscript::vm::opcodes::LpsOpCode;
-use alloc::boxed::Box;
 
 impl<'a> CodeGenerator<'a> {
-    pub(crate) fn gen_for(
+    pub(crate) fn gen_for_stmt_id(
         &mut self,
-        init: &Option<Box<Stmt>>,
-        condition: &Option<Expr>,
-        increment: &Option<Expr>,
-        body: &Box<Stmt>,
+        pool: &AstPool,
+        init: &Option<StmtId>,
+        condition: &Option<ExprId>,
+        increment: &Option<ExprId>,
+        body: StmtId,
     ) {
-        // Generate init
-        if let Some(init_stmt) = init {
-            self.gen_stmt(init_stmt);
+        self.locals.push_scope();
+        
+        // Init
+        if let Some(init_id) = init {
+            self.gen_stmt_id(pool, *init_id);
         }
-
+        
         let loop_start = self.code.len();
-
-        // Generate condition (default to true if none)
-        let jump_to_end = if let Some(cond) = condition {
-            self.gen_expr(cond);
-            let jump = self.code.len();
+        
+        // Condition (defaults to true if omitted)
+        let jump_to_end = if let Some(cond_id) = condition {
+            self.gen_expr_id(pool, *cond_id);
+            let jump_idx = self.code.len();
             self.code.push(LpsOpCode::JumpIfZero(0)); // Placeholder
-            jump
+            Some(jump_idx)
         } else {
-            0 // No jump needed if no condition
+            None
         };
-
-        // Generate body
-        self.gen_stmt(body);
-
-        // Generate increment
-        if let Some(inc) = increment {
-            self.gen_expr(inc);
-            // Pop the result since we don't need it
-            self.code.push(LpsOpCode::Drop1);
+        
+        // Body
+        self.gen_stmt_id(pool, body);
+        
+        // Increment
+        if let Some(inc_id) = increment {
+            self.gen_expr_id(pool, *inc_id);
+            self.code.push(LpsOpCode::Drop1); // Discard result
         }
-
-        // Jump back to loop start - calculate relative offset
-        let jump_back_pos = self.code.len();
-        let relative_offset = (loop_start as i32) - (jump_back_pos as i32) - 1;
-        self.code.push(LpsOpCode::Jump(relative_offset));
-
-        // Fix jump_to_end if we have a condition - calculate relative offset
-        if condition.is_some() {
-            let end_offset = self.code.len();
-            let relative_offset = (end_offset as i32) - (jump_to_end as i32) - 1;
-            self.code[jump_to_end] = LpsOpCode::JumpIfZero(relative_offset);
+        
+        // Jump back to loop start
+        let jump_back_idx = self.code.len();
+        self.code.push(LpsOpCode::Jump(
+            (loop_start as i32) - (jump_back_idx as i32) - 1,
+        ));
+        
+        // Patch jump to end
+        if let Some(jump_idx) = jump_to_end {
+            let end = self.code.len();
+            if let LpsOpCode::JumpIfZero(ref mut offset) = self.code[jump_idx] {
+                *offset = (end as i32) - (jump_idx as i32) - 1;
+            }
         }
+        
+        self.locals.pop_scope();
     }
 }

@@ -15,7 +15,7 @@
 extern crate alloc;
 use alloc::vec::Vec;
 
-use super::ast::{Expr, Program};
+use super::ast::Program;
 use crate::lpscript::vm::opcodes::LpsOpCode;
 
 pub mod ast;

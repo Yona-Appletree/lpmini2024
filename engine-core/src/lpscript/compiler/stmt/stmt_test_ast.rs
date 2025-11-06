@@ -9,8 +9,6 @@ use alloc::vec::Vec;
 use crate::lpscript::compiler::ast::{AstPool, ExprId, ExprKind, Program, StmtId, StmtKind};
 use crate::lpscript::shared::{Span, Type};
 
-/// Re-export expression builder for building statement contents
-pub use crate::lpscript::compiler::test_ast::AstBuilder;
 
 /// Builder for creating test statement ASTs with a pool
 pub struct StmtBuilder {

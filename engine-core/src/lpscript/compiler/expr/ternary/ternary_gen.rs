@@ -1,21 +1,43 @@
 /// Ternary conditional code generation
 extern crate alloc;
-use alloc::boxed::Box;
 
-use crate::lpscript::compiler::ast::Expr;
+use crate::lpscript::compiler::ast::{AstPool, ExprId};
 use crate::lpscript::compiler::codegen::CodeGenerator;
 use crate::lpscript::vm::opcodes::LpsOpCode;
 
 impl<'a> CodeGenerator<'a> {
-    pub(crate) fn gen_ternary(
+    pub(crate) fn gen_ternary_id(
         &mut self,
-        condition: &Box<Expr>,
-        true_expr: &Box<Expr>,
-        false_expr: &Box<Expr>,
+        pool: &AstPool,
+        condition: ExprId,
+        true_expr: ExprId,
+        false_expr: ExprId,
     ) {
-        self.gen_expr(condition);
-        self.gen_expr(true_expr);
-        self.gen_expr(false_expr);
-        self.code.push(LpsOpCode::Select);
+        // Generate condition
+        self.gen_expr_id(pool, condition);
+
+        // JumpIfZero to false branch
+        let jump_to_false = self.code.len();
+        self.code.push(LpsOpCode::JumpIfZero(0)); // Placeholder
+
+        // True branch
+        self.gen_expr_id(pool, true_expr);
+        let jump_to_end = self.code.len();
+        self.code.push(LpsOpCode::Jump(0)); // Placeholder
+
+        // Patch jump to false
+        let false_start = self.code.len();
+        if let LpsOpCode::JumpIfZero(ref mut offset) = self.code[jump_to_false] {
+            *offset = (false_start as i32) - (jump_to_false as i32) - 1;
+        }
+
+        // False branch
+        self.gen_expr_id(pool, false_expr);
+
+        // Patch jump to end
+        let end = self.code.len();
+        if let LpsOpCode::Jump(ref mut offset) = self.code[jump_to_end] {
+            *offset = (end as i32) - (jump_to_end as i32) - 1;
+        }
     }
 }

@@ -1,37 +1,39 @@
 /// Swizzle operation code generation
 extern crate alloc;
-use alloc::boxed::Box;
 use alloc::vec::Vec;
 
-use crate::lpscript::compiler::ast::Expr;
+use crate::lpscript::compiler::ast::{AstPool, ExprId};
 use crate::lpscript::compiler::codegen::CodeGenerator;
 use crate::lpscript::shared::Type;
 use crate::lpscript::vm::opcodes::LpsOpCode;
 
 impl<'a> CodeGenerator<'a> {
-    pub(crate) fn gen_swizzle(&mut self, base_expr: &Box<Expr>, components: &str) {
-        // Generate code for base expression (pushes vector components)
-        self.gen_expr(base_expr);
-
-        // Get base type to know how many components to pop
-        let base_type = base_expr.ty.as_ref().unwrap();
-        let source_size = match base_type {
+    pub(crate) fn gen_swizzle_id(&mut self, pool: &AstPool, expr: ExprId, components: &str) {
+        // Generate the base expression (leaves vector components on stack)
+        self.gen_expr_id(pool, expr);
+        
+        // Generate swizzle opcodes based on component string
+        let expr_obj = pool.expr(expr);
+        let source_type = expr_obj.ty.as_ref().unwrap();
+        let source_size = match source_type {
             Type::Vec2 => 2,
             Type::Vec3 => 3,
             Type::Vec4 => 4,
-            _ => unreachable!("Type checker should catch non-vector swizzles"),
+            _ => 1,
         };
-
-        // Generate swizzle opcodes
-        gen_swizzle_opcodes(components, source_size, self.code);
+        
+        // Call the helper function
+        gen_swizzle_opcodes(components, source_size, &mut self.code);
     }
 }
 
 /// Generate opcodes for swizzling
 /// Stack layout: components are pushed in order, so for vec2(x,y), stack is [x, y] with y on top
 fn gen_swizzle_opcodes(components: &str, source_size: usize, code: &mut Vec<LpsOpCode>) {
+    use alloc::vec::Vec as AllocVec;
+    
     // Map component characters to indices
-    let indices: Vec<usize> = components
+    let indices: AllocVec<usize> = components
         .chars()
         .map(|c| match c {
             'x' | 'r' | 's' => 0,
@@ -66,13 +68,6 @@ fn gen_swizzle_opcodes(components: &str, source_size: usize, code: &mut Vec<LpsO
         }
     } else {
         // Multi-component swizzle
-        // General algorithm: For each output component, pick from the input
-        //
-        // Stack has components in order: [c0, c1, ..., c(n-1)] with c(n-1) on top
-        // We need to produce [result0, result1, ..., result(m-1)]
-        //
-        // Strategy: Use helper function to access component at any index
-
         // Check if it's an identity swizzle first (optimization)
         let is_identity = indices.iter().enumerate().all(|(i, &idx)| i == idx);
         if is_identity && indices.len() == source_size {

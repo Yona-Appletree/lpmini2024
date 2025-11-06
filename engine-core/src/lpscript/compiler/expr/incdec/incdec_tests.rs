@@ -2,7 +2,6 @@
 #[cfg(test)]
 mod tests {
     use crate::lpscript::compile_script;
-    use crate::lpscript::vm::LpsOpCode;
 
     #[test]
     fn test_prefix_increment_opcodes() {
@@ -11,15 +10,16 @@ mod tests {
         let program = compile_script(script).unwrap();
 
         println!("Opcodes for 'int y = ++x':");
-        for (i, op) in program.opcodes.iter().enumerate() {
+        let main_fn = program.main_function().unwrap();
+        for (i, op) in main_fn.opcodes.iter().enumerate() {
             println!("  {}: {}", i, op.name());
         }
 
         // Check we don't have an absurd number of opcodes (indicating infinite loop)
         assert!(
-            program.opcodes.len() < 100,
+            main_fn.opcodes.len() < 100,
             "Too many opcodes generated: {}",
-            program.opcodes.len()
+            main_fn.opcodes.len()
         );
     }
 
@@ -29,14 +29,15 @@ mod tests {
         let program = compile_script(script).unwrap();
 
         println!("Opcodes for 'int y = x++':");
-        for (i, op) in program.opcodes.iter().enumerate() {
+        let main_fn = program.main_function().unwrap();
+        for (i, op) in main_fn.opcodes.iter().enumerate() {
             println!("  {}: {}", i, op.name());
         }
 
         assert!(
-            program.opcodes.len() < 100,
+            main_fn.opcodes.len() < 100,
             "Too many opcodes generated: {}",
-            program.opcodes.len()
+            main_fn.opcodes.len()
         );
     }
 
@@ -46,14 +47,15 @@ mod tests {
         let program = compile_script(script).unwrap();
 
         println!("Opcodes for 'x += 5':");
-        for (i, op) in program.opcodes.iter().enumerate() {
+        let main_fn = program.main_function().unwrap();
+        for (i, op) in main_fn.opcodes.iter().enumerate() {
             println!("  {}: {}", i, op.name());
         }
 
         assert!(
-            program.opcodes.len() < 100,
+            main_fn.opcodes.len() < 100,
             "Too many opcodes generated: {}",
-            program.opcodes.len()
+            main_fn.opcodes.len()
         );
 
         // Note: We don't run this in the VM because there's a bug that causes infinite execution

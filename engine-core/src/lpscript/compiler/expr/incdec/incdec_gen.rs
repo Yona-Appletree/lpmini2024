@@ -4,7 +4,7 @@ extern crate alloc;
 use crate::lpscript::compiler::codegen::CodeGenerator;
 use crate::lpscript::shared::Type;
 use crate::lpscript::vm::opcodes::LpsOpCode;
-use crate::math::{Fixed, ToFixed};
+use crate::math::ToFixed;
 use alloc::string::String;
 
 impl<'a> CodeGenerator<'a> {

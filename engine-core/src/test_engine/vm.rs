@@ -1,23 +1,9 @@
+#![allow(dead_code)] // Legacy test VM implementation
+
 use crate::math::noise::perlin3;
 use crate::math::trig::{cos, sin};
 /// Stack-based VM for pixel operations using fixed-point arithmetic
 use crate::math::{Fixed, FIXED_ONE, FIXED_SHIFT};
-
-// Re-export for backward compatibility
-#[deprecated(note = "Use Fixed::from_f32 instead")]
-pub fn fixed_from_f32(f: f32) -> i32 {
-    Fixed::from_f32(f).0
-}
-
-#[deprecated(note = "Use Fixed::from_i32 instead")]
-pub fn fixed_from_int(i: i32) -> i32 {
-    Fixed::from_i32(i).0
-}
-
-#[deprecated(note = "Use Fixed::to_f32 instead")]
-pub fn fixed_to_f32(f: i32) -> f32 {
-    Fixed(f).to_f32()
-}
 
 /// Execute a native function call
 fn execute_native_function(func_id: u8, vm: &mut VM) {
@@ -126,7 +112,7 @@ fn execute_native_function(func_id: u8, vm: &mut VM) {
             vm.push(tan(x));
         }
         id if id == NativeFunction::Atan as u8 => {
-            use crate::math::{atan, atan2};
+            use crate::math::atan;
             // Check stack size to determine if it's atan(y) or atan(y, x)
             // Actually, we need to handle this based on args count from codegen
             // For simplicity, check if there are 2 args (this is a hack, will fix properly later)

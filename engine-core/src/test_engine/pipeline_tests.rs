@@ -3,10 +3,10 @@
 mod pipeline_tests {
     use crate::test_engine::{
         FxPipelineConfig, PipelineStep, BufferRef, BufferFormat, 
-        Palette, RuntimeOptions, FxPipeline, LoadSource,
+        Palette, RuntimeOptions, FxPipeline,
     };
     use crate::lpscript::parse_expr;
-    use crate::math::{Fixed, ToFixed};
+    use crate::math::Fixed;
     
     #[test]
     fn test_simple_pipeline() {

@@ -11,7 +11,7 @@ use crate::lpscript::compiler::ast::{AstPool, ExprId};
 use crate::lpscript::compiler::expr::expr_test_util::ast_eq_ignore_spans_with_pool;
 use crate::lpscript::compiler::{codegen, lexer, parser, typechecker};
 use crate::lpscript::shared::Type;
-use crate::lpscript::vm::{LpsVm, VmLimits, FunctionDef, LpsProgram};
+use crate::lpscript::vm::{FunctionDef, LpsProgram, LpsVm, VmLimits};
 use crate::math::{Fixed, ToFixed};
 
 /// Type alias for optimization pass functions (pool-based)
@@ -47,7 +47,8 @@ pub type OptPassFn = fn(ExprId, AstPool) -> (ExprId, AstPool);
 pub struct AstOptTest {
     input: String,
     pass: Option<OptPassFn>,
-    expected_ast_builder: Option<Box<dyn FnOnce(&mut crate::lpscript::compiler::test_ast::AstBuilder) -> ExprId>>,
+    expected_ast_builder:
+        Option<Box<dyn FnOnce(&mut crate::lpscript::compiler::test_ast::AstBuilder) -> ExprId>>,
     check_semantics: bool,
     x: Fixed,
     y: Fixed,
@@ -131,7 +132,7 @@ impl AstOptTest {
                 return Err(errors.join("\n\n"));
             }
         };
-        
+
         // Extract the pool from the parser after parsing
         let pool = parser.pool;
 
@@ -158,11 +159,13 @@ impl AstOptTest {
             let mut expected_builder = crate::lpscript::compiler::test_ast::AstBuilder::new();
             let expected_id = builder_fn(&mut expected_builder);
             let expected_pool = expected_builder.into_pool();
-            
-            if !ast_eq_ignore_spans_with_pool(&pool, optimized_ast_id, &expected_pool, expected_id) {
+
+            if !ast_eq_ignore_spans_with_pool(&pool, optimized_ast_id, &expected_pool, expected_id)
+            {
                 errors.push(format!(
                     "AST mismatch after optimization:\nExpected: {:?}\nActual:   {:?}",
-                    expected_pool.expr(expected_id), pool.expr(optimized_ast_id)
+                    expected_pool.expr(expected_id),
+                    pool.expr(optimized_ast_id)
                 ));
             }
         }
@@ -183,21 +186,26 @@ impl AstOptTest {
     }
 
     /// Check that optimized AST produces same runtime result as original
-    fn check_semantic_preservation(&self, original_id: ExprId, optimized_id: ExprId, pool: &AstPool) -> Result<(), String> {
+    fn check_semantic_preservation(
+        &self,
+        original_id: ExprId,
+        optimized_id: ExprId,
+        pool: &AstPool,
+    ) -> Result<(), String> {
         // Generate opcodes for both versions (no optimization at opcode level)
         let original_opcodes = codegen::CodeGenerator::generate(pool, original_id);
         let optimized_opcodes = codegen::CodeGenerator::generate(pool, optimized_id);
 
         // Create main functions for both programs
-        let original_main = FunctionDef::new("main".into(), Type::Void)
-            .with_opcodes(original_opcodes);
-        let optimized_main = FunctionDef::new("main".into(), Type::Void)
-            .with_opcodes(optimized_opcodes);
-        
-        let original_program = LpsProgram::new("original".into())
-            .with_functions(vec![original_main]);
-        let optimized_program = LpsProgram::new("optimized".into())
-            .with_functions(vec![optimized_main]);
+        let original_main =
+            FunctionDef::new("main".into(), Type::Void).with_opcodes(original_opcodes);
+        let optimized_main =
+            FunctionDef::new("main".into(), Type::Void).with_opcodes(optimized_opcodes);
+
+        let original_program =
+            LpsProgram::new("original".into()).with_functions(vec![original_main]);
+        let optimized_program =
+            LpsProgram::new("optimized".into()).with_functions(vec![optimized_main]);
 
         // Create VMs
         let mut original_vm = LpsVm::new(&original_program, VmLimits::default())

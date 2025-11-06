@@ -81,13 +81,12 @@ pub use compiler::error::CompileError;
 pub use compiler::optimize::OptimizeOptions;
 use compiler::{codegen, lexer, optimize, parser, typechecker};
 pub use shared::{Span, Type};
-pub use vm::{
-    LocalVarDef, LocalStack, LpsOpCode, LpsProgram, ParamDef,
-    LpsVmError, RuntimeErrorWithContext,
-};
 pub use vm::execute_program_lps;
 pub use vm::lps_vm::LpsVm;
 pub use vm::vm_limits::VmLimits;
+pub use vm::{
+    LocalStack, LocalVarDef, LpsOpCode, LpsProgram, LpsVmError, ParamDef, RuntimeErrorWithContext,
+};
 
 /// Parse an expression string and generate a compiled LPS program
 ///
@@ -95,6 +94,7 @@ pub use vm::vm_limits::VmLimits;
 ///
 /// # Example
 /// ```
+/// use engine_core::lpscript::compile_expr;
 /// let program = compile_expr("cos(perlin3(vec3(uv * 0.3, time), 3))").unwrap();
 /// ```
 pub fn compile_expr(input: &str) -> Result<LpsProgram, CompileError> {
@@ -105,7 +105,7 @@ pub fn compile_expr(input: &str) -> Result<LpsProgram, CompileError> {
 ///
 /// # Example
 /// ```
-/// use engine_core::lpscript::OptimizeOptions;
+/// use engine_core::lpscript::{compile_expr_with_options, OptimizeOptions};
 /// let program = compile_expr_with_options("2.0 + 3.0", &OptimizeOptions::all()).unwrap();
 /// ```
 pub fn compile_expr_with_options(
@@ -146,10 +146,11 @@ pub fn compile_expr_with_options(
 ///
 /// # Example
 /// ```
+/// use engine_core::lpscript::compile_script;
 /// let script = "
 ///     float radius = length(uv - vec2(0.5));
 ///     if (radius < 0.3) {
-///         return sin(time * Fixed::TAU);
+///         return sin(time);
 ///     } else {
 ///         return 0.0;
 ///     }
@@ -164,7 +165,7 @@ pub fn compile_script(input: &str) -> Result<LpsProgram, CompileError> {
 ///
 /// # Example
 /// ```
-/// use engine_core::lpscript::OptimizeOptions;
+/// use engine_core::lpscript::{compile_script_with_options, OptimizeOptions};
 /// let script = "float x = 2.0 + 3.0; return x;";
 /// let program = compile_script_with_options(script, &OptimizeOptions::all()).unwrap();
 /// ```
@@ -218,6 +219,7 @@ pub fn compile_script_with_options(
 ///
 /// # Example
 /// ```
+/// use engine_core::lpscript::parse_expr;
 /// let program = parse_expr("cos(perlin3(vec3(uv * 0.3, time), 3))");
 /// ```
 pub fn parse_expr(input: &str) -> LpsProgram {
@@ -232,6 +234,7 @@ pub fn parse_expr(input: &str) -> LpsProgram {
 ///
 /// # Example
 /// ```
+/// use engine_core::lpscript::parse_script;
 /// let script = "
 ///     float x = uv.x;
 ///     if (x > 0.5) {

@@ -21,7 +21,7 @@ impl TypeChecker {
                 if let Some(init_id) = init {
                     Self::infer_type_id(pool, init_id, symbols, func_table)?;
                 }
-                symbols.declare(name, ty);
+                let _ = symbols.declare(name, ty);
             }
 
             StmtKind::Return(expr_id) => {

@@ -1,7 +1,7 @@
 /// Return statement tests
 #[cfg(test)]
 mod tests {
-    use crate::lpscript::compiler::stmt::stmt_test_ast::*;
+    
     use crate::lpscript::compiler::stmt::stmt_test_util::ScriptTest;
     use crate::lpscript::shared::Type;
     use crate::lpscript::vm::opcodes::LpsOpCode;

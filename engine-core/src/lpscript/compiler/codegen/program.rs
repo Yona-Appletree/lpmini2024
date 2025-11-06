@@ -18,13 +18,14 @@ pub fn gen_program_with_functions(
     pool: &AstPool,
     program: &Program,
     func_table: &FunctionTable,
-    _gen_stmt: impl Fn(&AstPool, StmtId, &mut Vec<LpsOpCode>, &mut LocalAllocator, &BTreeMap<String, u32>) + Copy,
+    _gen_stmt: impl Fn(&AstPool, StmtId, &mut Vec<LpsOpCode>, &mut LocalAllocator, &BTreeMap<String, u32>)
+        + Copy,
 ) -> Vec<VmFunctionDef> {
     // Build function index map: function name -> final index in output
     // Main will always be at index 0, other functions follow in order (excluding main)
     let mut function_indices = BTreeMap::new();
     function_indices.insert(String::from("main"), 0);
-    
+
     // Assign indices for non-main functions
     let mut next_index = 1;
     for func in &program.functions {
@@ -105,7 +106,8 @@ pub fn gen_program_with_functions(
     let mut main_code = Vec::new();
     let mut main_locals = LocalAllocator::new();
     {
-        let mut gen = super::CodeGenerator::new(&mut main_code, &mut main_locals, &function_indices);
+        let mut gen =
+            super::CodeGenerator::new(&mut main_code, &mut main_locals, &function_indices);
         for &stmt_id in &program.stmts {
             gen.gen_stmt_id(pool, stmt_id);
         }
@@ -119,7 +121,11 @@ pub fn gen_program_with_functions(
 
     let main_local_defs: Vec<LocalVarDef> = (0..main_locals.next_index)
         .map(|i| {
-            let ty = main_locals.local_types.get(&i).cloned().unwrap_or(Type::Fixed);
+            let ty = main_locals
+                .local_types
+                .get(&i)
+                .cloned()
+                .unwrap_or(Type::Fixed);
             LocalVarDef::new(alloc::format!("local_{}", i), ty)
         })
         .collect();
@@ -130,7 +136,7 @@ pub fn gen_program_with_functions(
 
     // Ensure main is at index 0
     let mut final_functions = vec![main_func];
-    
+
     // Add other functions (those that aren't "main")
     for func in result_functions {
         if func.name != "main" {
@@ -143,10 +149,12 @@ pub fn gen_program_with_functions(
 
 /// Generate opcodes for a program (script mode) - Legacy API
 /// Returns (opcodes, local_count, local_types) tuple
+#[cfg(test)]
 pub fn gen_program(
     pool: &AstPool,
     program: &Program,
-    _gen_stmt: impl Fn(&AstPool, StmtId, &mut Vec<LpsOpCode>, &mut LocalAllocator, &BTreeMap<String, u32>) + Copy,
+    _gen_stmt: impl Fn(&AstPool, StmtId, &mut Vec<LpsOpCode>, &mut LocalAllocator, &BTreeMap<String, u32>)
+        + Copy,
 ) -> (
     Vec<LpsOpCode>,
     u32,

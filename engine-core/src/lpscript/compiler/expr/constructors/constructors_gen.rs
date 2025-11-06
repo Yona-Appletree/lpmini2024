@@ -1,16 +1,16 @@
 /// Vector constructor code generation
 extern crate alloc;
 
-use crate::lpscript::compiler::ast::Expr;
+use crate::lpscript::compiler::ast::{AstPool, ExprId};
 use crate::lpscript::compiler::codegen::CodeGenerator;
 
 impl<'a> CodeGenerator<'a> {
-    pub(crate) fn gen_vec_constructor(&mut self, args: &[Expr]) {
-        // Generate code for each argument, which pushes its components
-        // Supports GLSL-style mixed args: vec3(vec2, float), vec4(vec3, float), etc.
-        for arg in args {
-            self.gen_expr(arg);
+    pub(crate) fn gen_vec_constructor_id(&mut self, pool: &AstPool, args: &[ExprId]) {
+        // Generate code for each argument (leaves values on stack in order)
+        for arg_id in args {
+            self.gen_expr_id(pool, *arg_id);
         }
-        // Components are now on stack in the correct order
+        // Vector constructors don't need a special opcode - args are already on stack
+        // Vec2(x, y) leaves x, y on stack (that IS a vec2)
     }
 }

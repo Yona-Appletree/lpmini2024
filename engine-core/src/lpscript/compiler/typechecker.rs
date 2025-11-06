@@ -8,7 +8,7 @@
 ///
 /// Each expression and statement type has its own dedicated _types.rs file
 /// in the expr/ and stmt/ subdirectories respectively.
-use crate::lpscript::compiler::ast::{AstPool, ExprId, StmtId};
+use crate::lpscript::compiler::ast::{AstPool, ExprId};
 use crate::lpscript::compiler::error::TypeError;
 
 // Import function-related types from compiler::func

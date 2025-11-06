@@ -1,29 +1,39 @@
 /// While loop code generation
 extern crate alloc;
-use crate::lpscript::compiler::ast::{Expr, Stmt};
+
+use crate::lpscript::compiler::ast::{AstPool, ExprId, StmtId};
 use crate::lpscript::compiler::codegen::CodeGenerator;
 use crate::lpscript::vm::opcodes::LpsOpCode;
-use alloc::boxed::Box;
 
 impl<'a> CodeGenerator<'a> {
-    pub(crate) fn gen_while(&mut self, condition: &Expr, body: &Box<Stmt>) {
+    pub(crate) fn gen_while_stmt_id(
+        &mut self,
+        pool: &AstPool,
+        condition: ExprId,
+        body: StmtId,
+    ) {
         let loop_start = self.code.len();
-
-        self.gen_expr(condition);
-
+        
+        // Generate condition
+        self.gen_expr_id(pool, condition);
+        
+        // JumpIfZero to end
         let jump_to_end = self.code.len();
         self.code.push(LpsOpCode::JumpIfZero(0)); // Placeholder
-
-        self.gen_stmt(body);
-
-        // Jump back to loop start - calculate relative offset
-        let jump_back_pos = self.code.len();
-        let relative_offset = (loop_start as i32) - (jump_back_pos as i32) - 1;
-        self.code.push(LpsOpCode::Jump(relative_offset));
-
-        // Patch the jump to end - calculate relative offset
-        let end_offset = self.code.len();
-        let relative_offset = (end_offset as i32) - (jump_to_end as i32) - 1;
-        self.code[jump_to_end] = LpsOpCode::JumpIfZero(relative_offset);
+        
+        // Body
+        self.gen_stmt_id(pool, body);
+        
+        // Jump back to loop start
+        let jump_back_idx = self.code.len();
+        self.code.push(LpsOpCode::Jump(
+            (loop_start as i32) - (jump_back_idx as i32) - 1,
+        ));
+        
+        // Patch jump to end
+        let end = self.code.len();
+        if let LpsOpCode::JumpIfZero(ref mut offset) = self.code[jump_to_end] {
+            *offset = (end as i32) - (jump_to_end as i32) - 1;
+        }
     }
 }

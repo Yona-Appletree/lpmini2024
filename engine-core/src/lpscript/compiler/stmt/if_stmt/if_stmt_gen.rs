@@ -1,44 +1,53 @@
 /// If statement code generation
 extern crate alloc;
-use crate::lpscript::compiler::ast::{Expr, Stmt};
+
+use crate::lpscript::compiler::ast::{AstPool, ExprId, StmtId};
 use crate::lpscript::compiler::codegen::CodeGenerator;
 use crate::lpscript::vm::opcodes::LpsOpCode;
-use alloc::boxed::Box;
 
 impl<'a> CodeGenerator<'a> {
-    pub(crate) fn gen_if(
+    pub(crate) fn gen_if_stmt_id(
         &mut self,
-        condition: &Expr,
-        then_stmt: &Box<Stmt>,
-        else_stmt: &Option<Box<Stmt>>,
+        pool: &AstPool,
+        condition: ExprId,
+        then_stmt: StmtId,
+        else_stmt: Option<StmtId>,
     ) {
-        self.gen_expr(condition);
-
+        // Generate condition
+        self.gen_expr_id(pool, condition);
+        
+        // JumpIfZero to else/end
         let jump_to_else = self.code.len();
         self.code.push(LpsOpCode::JumpIfZero(0)); // Placeholder
-
-        self.gen_stmt(then_stmt);
-
-        if let Some(else_block) = else_stmt {
+        
+        // Then branch
+        self.gen_stmt_id(pool, then_stmt);
+        
+        if let Some(else_id) = else_stmt {
+            // Jump over else
             let jump_to_end = self.code.len();
             self.code.push(LpsOpCode::Jump(0)); // Placeholder
-
-            let else_offset = self.code.len();
-            // Calculate relative offset: target - current_pc - 1
-            let relative_offset = (else_offset as i32) - (jump_to_else as i32) - 1;
-            self.code[jump_to_else] = LpsOpCode::JumpIfZero(relative_offset);
-
-            self.gen_stmt(else_block);
-
-            let end_offset = self.code.len();
-            // Calculate relative offset: target - current_pc - 1
-            let relative_offset = (end_offset as i32) - (jump_to_end as i32) - 1;
-            self.code[jump_to_end] = LpsOpCode::Jump(relative_offset);
+            
+            // Patch jump to else
+            let else_start = self.code.len();
+            if let LpsOpCode::JumpIfZero(ref mut offset) = self.code[jump_to_else] {
+                *offset = (else_start as i32) - (jump_to_else as i32) - 1;
+            }
+            
+            // Else branch
+            self.gen_stmt_id(pool, else_id);
+            
+            // Patch jump to end
+            let end = self.code.len();
+            if let LpsOpCode::Jump(ref mut offset) = self.code[jump_to_end] {
+                *offset = (end as i32) - (jump_to_end as i32) - 1;
+            }
         } else {
-            let end_offset = self.code.len();
-            // Calculate relative offset: target - current_pc - 1
-            let relative_offset = (end_offset as i32) - (jump_to_else as i32) - 1;
-            self.code[jump_to_else] = LpsOpCode::JumpIfZero(relative_offset);
+            // No else, patch jump to end
+            let end = self.code.len();
+            if let LpsOpCode::JumpIfZero(ref mut offset) = self.code[jump_to_else] {
+                *offset = (end as i32) - (jump_to_else as i32) - 1;
+            }
         }
     }
 }

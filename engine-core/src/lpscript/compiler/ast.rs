@@ -88,6 +88,7 @@ impl AstPool {
     }
 
     /// Get statistics about pool usage
+    #[allow(dead_code)] // Utility for debugging/profiling
     pub fn stats(&self) -> AstPoolStats {
         AstPoolStats {
             expr_count: self.exprs.len(),
@@ -105,6 +106,7 @@ impl Default for AstPool {
 }
 
 /// Statistics about AST pool usage
+#[allow(dead_code)] // Utility for debugging/profiling
 #[derive(Debug, Clone, Copy)]
 pub struct AstPoolStats {
     pub expr_count: usize,
@@ -155,6 +157,7 @@ pub struct FunctionDef {
 pub struct Program {
     pub functions: Vec<FunctionDef>,
     pub stmts: Vec<StmtId>,
+    #[allow(dead_code)] // Metadata field - may be used for error reporting
     pub span: Span,
 }
 
@@ -166,6 +169,7 @@ pub struct Stmt {
 }
 
 impl Stmt {
+    #[allow(dead_code)] // Only used in dead_code.rs optimization module (currently disabled)
     pub fn new(kind: StmtKind, span: Span) -> Self {
         Stmt { kind, span }
     }
@@ -198,10 +202,7 @@ pub enum StmtKind {
     },
 
     /// While loop: `while (cond) body`
-    While {
-        condition: ExprId,
-        body: StmtId,
-    },
+    While { condition: ExprId, body: StmtId },
 
     /// For loop: `for (init; condition; increment) body`
     For {
@@ -221,6 +222,7 @@ pub struct Expr {
 }
 
 impl Expr {
+    #[allow(dead_code)] // Only used in dead_code.rs optimization module (currently disabled)
     pub fn new(kind: ExprKind, span: Span) -> Self {
         Expr {
             kind,
@@ -229,7 +231,7 @@ impl Expr {
         }
     }
 
-    #[allow(dead_code)]
+    #[cfg(test)]
     pub fn with_type(mut self, ty: Type) -> Self {
         self.ty = Some(ty);
         self
@@ -290,10 +292,16 @@ pub enum ExprKind {
 
     // Assignment expression (returns the assigned value)
     // In C/GLSL, assignments are expressions: x = y = 5
-    Assign { target: String, value: ExprId },
+    Assign {
+        target: String,
+        value: ExprId,
+    },
 
     // Function call
-    Call { name: String, args: Vec<ExprId> },
+    Call {
+        name: String,
+        args: Vec<ExprId>,
+    },
 
     // Vector constructors (GLSL-style: can take mixed vec/scalar args)
     Vec2Constructor(Vec<ExprId>),

@@ -27,6 +27,7 @@ pub struct LpsProgram {
 impl LpsProgram {
     /// Create a new empty program
     pub fn new(name: String) -> Self {
+        #[allow(deprecated)]
         LpsProgram {
             name,
             functions: Vec::new(),
@@ -66,13 +67,19 @@ impl LpsProgram {
     // Legacy API (deprecated)
     #[deprecated(note = "Use with_functions instead")]
     pub fn with_opcodes(mut self, opcodes: Vec<LpsOpCode>) -> Self {
-        self.opcodes = opcodes;
+        #[allow(deprecated)]
+        {
+            self.opcodes = opcodes;
+        }
         self
     }
 
     #[deprecated(note = "Use with_functions instead")]
     pub fn with_locals(mut self, locals: Vec<LocalDef>) -> Self {
-        self.locals = locals;
+        #[allow(deprecated)]
+        {
+            self.locals = locals;
+        }
         self
     }
 }

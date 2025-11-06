@@ -12,9 +12,9 @@ use crate::lpscript::compiler::optimize::OptimizeOptions;
 use crate::lpscript::compiler::test_ast::AstBuilder;
 use crate::lpscript::compiler::{lexer, optimize, parser, typechecker};
 use crate::lpscript::shared::Type;
-use crate::lpscript::vm::{LpsOpCode, LpsProgram};
 use crate::lpscript::vm::lps_vm::LpsVm;
 use crate::lpscript::vm::vm_limits::VmLimits;
+use crate::lpscript::vm::{LpsOpCode, LpsProgram};
 use crate::math::{Fixed, ToFixed, Vec2, Vec3, Vec4};
 
 /// Builder for testing expressions through the compilation pipeline
@@ -22,6 +22,7 @@ use crate::math::{Fixed, ToFixed, Vec2, Vec3, Vec4};
 /// Note: In expression mode, variables like `x`, `y`, `time` are built-in variables
 /// that derive their values from the VM's run() parameters. Use `.with_vm_params()`
 /// to set these. For script mode tests, you would use `.local_*()` methods instead.
+#[cfg(test)]
 pub struct ExprTest {
     input: String,
     declared_locals: Vec<(String, Type)>, // For symbol table
@@ -36,6 +37,7 @@ pub struct ExprTest {
     time: Fixed,
 }
 
+#[cfg(test)]
 enum TestResult {
     Fixed(Fixed),
     Vec2(Vec2),
@@ -43,6 +45,7 @@ enum TestResult {
     Vec4(Vec4),
 }
 
+#[cfg(test)]
 impl ExprTest {
     /// Create a new test case with the given input expression
     pub fn new(input: &str) -> Self {
@@ -267,7 +270,7 @@ impl ExprTest {
             .declared_locals
             .iter()
             .enumerate()
-            .map(|(idx, (name, ty))| {
+            .map(|(_idx, (name, ty))| {
                 let mut def = crate::lpscript::LocalVarDef::new(name.clone(), ty.clone());
                 // Set initial value if provided
                 if let Some((_, init_val)) =
@@ -446,6 +449,7 @@ impl ExprTest {
 }
 
 /// Compare AST expressions by ID in their respective pools, ignoring spans but checking types
+#[cfg(test)]
 pub(crate) fn ast_eq_ignore_spans_with_pool(
     actual_pool: &AstPool,
     actual_id: ExprId,

@@ -1,7 +1,7 @@
 /// Block statement tests
 #[cfg(test)]
 mod tests {
-    use crate::lpscript::compiler::stmt::stmt_test_ast::*;
+    
     use crate::lpscript::compiler::stmt::stmt_test_util::ScriptTest;
     use crate::lpscript::shared::Type;
     use crate::lpscript::vm::opcodes::LpsOpCode;
@@ -119,7 +119,7 @@ mod tests {
 mod scoping_integration_tests {
     use crate::lpscript::vm::vm_limits::VmLimits;
     use crate::lpscript::*;
-    use crate::math::{Fixed, ToFixed};
+    use crate::math::Fixed;
 
     #[test]
     fn test_block_scoping() {

@@ -43,7 +43,7 @@ pub fn optimize_expr_id(
 
 /// Optimize a program using pool-based API
 pub fn optimize_program_id(
-    mut program: Program,
+    program: Program,
     mut pool: AstPool,
     options: &OptimizeOptions,
 ) -> (Program, AstPool) {

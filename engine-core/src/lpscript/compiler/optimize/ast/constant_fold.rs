@@ -12,7 +12,7 @@ use crate::math::{ceil, cos, floor, saturate, sin, sqrt, tan, Fixed};
 use libm::powf;
 
 /// Fold constants in an expression tree
-pub fn fold_constants(expr_id: ExprId, mut pool: AstPool) -> (ExprId, AstPool) {
+pub fn fold_constants(expr_id: ExprId, pool: AstPool) -> (ExprId, AstPool) {
     let expr = pool.expr(expr_id);
     let span = expr.span;
     let ty = expr.ty.clone();
@@ -21,7 +21,7 @@ pub fn fold_constants(expr_id: ExprId, mut pool: AstPool) -> (ExprId, AstPool) {
     match kind {
         // Binary arithmetic - fold if both operands are constants
         ExprKind::Add(left_id, right_id) => {
-            let (new_left, mut pool2) = fold_constants(left_id, pool);
+            let (new_left, pool2) = fold_constants(left_id, pool);
             let (new_right, mut pool3) = fold_constants(right_id, pool2);
 
             match (&pool3.expr(new_left).kind, &pool3.expr(new_right).kind) {
@@ -50,7 +50,7 @@ pub fn fold_constants(expr_id: ExprId, mut pool: AstPool) -> (ExprId, AstPool) {
         }
 
         ExprKind::Sub(left_id, right_id) => {
-            let (new_left, mut pool2) = fold_constants(left_id, pool);
+            let (new_left, pool2) = fold_constants(left_id, pool);
             let (new_right, mut pool3) = fold_constants(right_id, pool2);
 
             match (&pool3.expr(new_left).kind, &pool3.expr(new_right).kind) {
@@ -70,7 +70,7 @@ pub fn fold_constants(expr_id: ExprId, mut pool: AstPool) -> (ExprId, AstPool) {
         }
 
         ExprKind::Mul(left_id, right_id) => {
-            let (new_left, mut pool2) = fold_constants(left_id, pool);
+            let (new_left, pool2) = fold_constants(left_id, pool);
             let (new_right, mut pool3) = fold_constants(right_id, pool2);
 
             match (&pool3.expr(new_left).kind, &pool3.expr(new_right).kind) {
@@ -98,7 +98,7 @@ pub fn fold_constants(expr_id: ExprId, mut pool: AstPool) -> (ExprId, AstPool) {
         }
 
         ExprKind::Div(left_id, right_id) => {
-            let (new_left, mut pool2) = fold_constants(left_id, pool);
+            let (new_left, pool2) = fold_constants(left_id, pool);
             let (new_right, mut pool3) = fold_constants(right_id, pool2);
 
             match (&pool3.expr(new_left).kind, &pool3.expr(new_right).kind) {
@@ -137,7 +137,7 @@ pub fn fold_constants(expr_id: ExprId, mut pool: AstPool) -> (ExprId, AstPool) {
 
         // Comparisons
         ExprKind::Greater(left_id, right_id) => {
-            let (new_left, mut pool2) = fold_constants(left_id, pool);
+            let (new_left, pool2) = fold_constants(left_id, pool);
             let (new_right, mut pool3) = fold_constants(right_id, pool2);
 
             match (&pool3.expr(new_left).kind, &pool3.expr(new_right).kind) {
@@ -158,7 +158,7 @@ pub fn fold_constants(expr_id: ExprId, mut pool: AstPool) -> (ExprId, AstPool) {
         }
 
         ExprKind::Less(left_id, right_id) => {
-            let (new_left, mut pool2) = fold_constants(left_id, pool);
+            let (new_left, pool2) = fold_constants(left_id, pool);
             let (new_right, mut pool3) = fold_constants(right_id, pool2);
 
             match (&pool3.expr(new_left).kind, &pool3.expr(new_right).kind) {
@@ -184,8 +184,8 @@ pub fn fold_constants(expr_id: ExprId, mut pool: AstPool) -> (ExprId, AstPool) {
             true_expr,
             false_expr,
         } => {
-            let (new_cond, mut pool2) = fold_constants(condition, pool);
-            let (new_true, mut pool3) = fold_constants(true_expr, pool2);
+            let (new_cond, pool2) = fold_constants(condition, pool);
+            let (new_true, pool3) = fold_constants(true_expr, pool2);
             let (new_false, mut pool4) = fold_constants(false_expr, pool3);
 
             // If condition is constant, return the appropriate branch
@@ -205,7 +205,7 @@ pub fn fold_constants(expr_id: ExprId, mut pool: AstPool) -> (ExprId, AstPool) {
 
         // Logical And: a && b
         ExprKind::And(left_id, right_id) => {
-            let (new_left, mut pool2) = fold_constants(left_id, pool);
+            let (new_left, pool2) = fold_constants(left_id, pool);
             let (new_right, mut pool3) = fold_constants(right_id, pool2);
 
             match (&pool3.expr(new_left).kind, &pool3.expr(new_right).kind) {
@@ -235,7 +235,7 @@ pub fn fold_constants(expr_id: ExprId, mut pool: AstPool) -> (ExprId, AstPool) {
 
         // Logical Or: a || b
         ExprKind::Or(left_id, right_id) => {
-            let (new_left, mut pool2) = fold_constants(left_id, pool);
+            let (new_left, pool2) = fold_constants(left_id, pool);
             let (new_right, mut pool3) = fold_constants(right_id, pool2);
 
             match (&pool3.expr(new_left).kind, &pool3.expr(new_right).kind) {
@@ -286,7 +286,7 @@ pub fn fold_constants(expr_id: ExprId, mut pool: AstPool) -> (ExprId, AstPool) {
         ExprKind::Call { ref name, ref args } if args.len() == 2 => {
             let arg1_id = args[0];
             let arg2_id = args[1];
-            let (new_arg1, mut pool2) = fold_constants(arg1_id, pool);
+            let (new_arg1, pool2) = fold_constants(arg1_id, pool);
             let (new_arg2, mut pool3) = fold_constants(arg2_id, pool2);
 
             match (&pool3.expr(new_arg1).kind, &pool3.expr(new_arg2).kind) {
@@ -337,8 +337,8 @@ pub fn fold_constants(expr_id: ExprId, mut pool: AstPool) -> (ExprId, AstPool) {
             let arg1_id = args[0];
             let arg2_id = args[1];
             let arg3_id = args[2];
-            let (new_arg1, mut pool2) = fold_constants(arg1_id, pool);
-            let (new_arg2, mut pool3) = fold_constants(arg2_id, pool2);
+            let (new_arg1, pool2) = fold_constants(arg1_id, pool);
+            let (new_arg2, pool3) = fold_constants(arg2_id, pool2);
             let (new_arg3, mut pool4) = fold_constants(arg3_id, pool3);
 
             match (

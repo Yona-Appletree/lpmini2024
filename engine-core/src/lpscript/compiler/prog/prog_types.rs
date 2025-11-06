@@ -87,7 +87,7 @@ impl TypeChecker {
         expr_id: ExprId,
         expected: &Type,
         pool: &AstPool,
-        func_table: &FunctionTable,
+        _func_table: &FunctionTable,
     ) -> Result<(), TypeError> {
         let expr = pool.expr(expr_id);
 

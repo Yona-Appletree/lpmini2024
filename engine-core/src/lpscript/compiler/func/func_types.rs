@@ -5,9 +5,6 @@ use alloc::format;
 use alloc::string::String;
 use alloc::vec::Vec;
 
-use crate::lpscript::compiler::ast::{FunctionDef, Stmt, StmtKind};
-use crate::lpscript::compiler::error::{TypeError, TypeErrorKind};
-use crate::lpscript::compiler::typechecker::{SymbolTable, TypeChecker};
 use crate::lpscript::shared::Type;
 
 /// Local variable information
@@ -15,7 +12,6 @@ use crate::lpscript::shared::Type;
 pub(crate) struct LocalVarInfo {
     pub(crate) name: String,
     pub(crate) ty: Type,
-    pub(crate) index: u32,
 }
 
 /// Function metadata including signature and local variables
@@ -24,14 +20,6 @@ pub(crate) struct FunctionMetadata {
     pub(crate) params: Vec<Type>,
     pub(crate) return_type: Type,
     pub(crate) locals: Vec<LocalVarInfo>,
-    pub(crate) local_count: u32,
-}
-
-/// Function signature for user-defined functions (legacy compatibility)
-#[derive(Debug, Clone)]
-pub(crate) struct FunctionSignature {
-    pub(crate) params: Vec<Type>,
-    pub(crate) return_type: Type,
 }
 
 /// Function table for tracking user-defined functions
@@ -60,35 +48,9 @@ impl FunctionTable {
         Ok(())
     }
 
-    /// Legacy method: declare a function with just signature (creates empty locals)
-    pub(crate) fn declare(
-        &mut self,
-        name: String,
-        params: Vec<Type>,
-        return_type: Type,
-    ) -> Result<(), String> {
-        self.declare_with_metadata(
-            name,
-            FunctionMetadata {
-                params,
-                return_type,
-                locals: Vec::new(),
-                local_count: 0,
-            },
-        )
-    }
-
     /// Get function metadata
     pub(crate) fn lookup(&self, name: &str) -> Option<&FunctionMetadata> {
         self.functions.get(name)
-    }
-
-    /// Get function signature (for backward compatibility)
-    pub(crate) fn lookup_signature(&self, name: &str) -> Option<FunctionSignature> {
-        self.functions.get(name).map(|meta| FunctionSignature {
-            params: meta.params.clone(),
-            return_type: meta.return_type.clone(),
-        })
     }
 }
 
