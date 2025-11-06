@@ -72,15 +72,15 @@ Treats non-zero as true, returns 0.0 or 1.0:
 - `yNorm` or `y` - Normalized Y coordinate (0..1)
 - `time` or `t` - Time in seconds (fixed-point)
 - `timeNorm` - Normalized time (0..1, wraps)
-- `centerAngle` or `angle` - Angle from center (0..1)
+- `centerAngle` or `angle` - Angle from center in radians (-π to π, 0 = east/right)
 - `centerDist` or `dist` - Distance from center (0..1+)
 
 ## Math Functions
 
 ### Basic Math
 
-- `sin(x)` - Sine
-- `cos(x)` - Cosine
+- `sin(x)` - Sine (input in radians)
+- `cos(x)` - Cosine (input in radians)
 - `abs(x)` - Absolute value
 - `floor(x)` - Round down
 - `ceil(x)` - Round up
@@ -104,8 +104,8 @@ Treats non-zero as true, returns 0.0 or 1.0:
 
 ### Noise
 
-- `perlin3(x, y, z, octaves)` - 3D Perlin noise with octaves (1-8)
-- `perlin3(x, y, z)` - 3D Perlin noise (defaults to 3 octaves)
+- `perlin3(x, y, z, octaves)` - 3D Perlin noise with octaves (1-8), returns 0..1
+- `perlin3(x, y, z)` - 3D Perlin noise (defaults to 3 octaves), returns 0..1
 
 ## Examples
 
@@ -118,13 +118,15 @@ xNorm
 ### Animated Wave
 
 ```
-sin(time + xNorm * 6.28)
+sin(time + xNorm * 6.283185)
 ```
 
-### Plasma Effect (Current Demo)
+Note: `6.283185` is approximately 2π (TAU), converting the 0..1 range to radians.
+
+### Perlin Noise Effect (Current Demo)
 
 ```
-cos(perlin3(xNorm*0.3, yNorm*0.3, time, 3))
+perlin3(vec3(uv * 3.0, time * 0.5), 3)
 ```
 
 ### Radial Gradient with Step
@@ -148,13 +150,13 @@ centerDist < 0.5 ? 1.0 : 0.0
 ### Clamped Brightness
 
 ```
-clamp(sin(time + centerAngle * 6.28), 0.2, 1.0)
+clamp(sin(time + centerAngle), 0.2, 1.0)
 ```
 
 ### Mix Two Patterns
 
 ```
-lerp(sin(xNorm * 6.28), cos(yNorm * 6.28), saturate(time * 0.1))
+lerp(sin(xNorm * 6.283185), cos(yNorm * 6.283185), saturate(time * 0.1))
 ```
 
 ## Notes

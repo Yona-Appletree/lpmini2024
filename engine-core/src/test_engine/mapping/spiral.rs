@@ -38,11 +38,14 @@ impl LedMapping {
             // angle = (arm / arms) + (t * 4) in 0..1 range (represents rotations)
             let arm_angle = (arm as i32 * FIXED_ONE) / arms as i32;
             let spiral_angle = t_fixed << 2; // t * 4 (4 full rotations along spiral)
-            let angle_fixed = arm_angle + spiral_angle;
+            let angle_normalized = arm_angle + spiral_angle;
 
-            // Use fixed-point sin/cos (they return -1..1 in Fixed)
-            let cos_val = cos(Fixed(angle_fixed)).0;
-            let sin_val = sin(Fixed(angle_fixed)).0;
+            // Convert normalized angle (0..1) to radians (0..2π)
+            let angle_radians = Fixed((angle_normalized as i64 * Fixed::TAU.0 as i64 >> FIXED_SHIFT) as i32);
+
+            // Use fixed-point sin/cos (they expect radians, return -1..1 in Fixed)
+            let cos_val = cos(angle_radians).0;
+            let sin_val = sin(angle_radians).0;
 
             // sin/cos already return -1..1, use directly
             // x = center_x + radius * cos, y = center_y + radius * sin

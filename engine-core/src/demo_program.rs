@@ -5,14 +5,14 @@ use crate::lpscript::parse_expr;
 use crate::math::Fixed;
 use crate::scene::SceneConfig;
 use crate::test_engine::{
-    BufferFormat, BufferRef, FxPipelineConfig, MappingConfig, Palette,
-    PipelineStep,
+    BufferFormat, BufferRef, FxPipelineConfig, MappingConfig, Palette, PipelineStep,
 };
 
 /// Create a test pattern with a rotating white line from the center
 pub fn create_test_line_scene(width: usize, height: usize) -> SceneConfig {
     // Simple test: just output the angle as a gradient to verify CenterAngle works
-    let program = parse_expr("fract(centerAngle + timeNorm)");
+    // centerAngle is now in radians (-π to π), normalize to 0..1 for display
+    let program = parse_expr("fract((centerAngle + 3.14159) / 6.28318 + timeNorm)");
 
     // Grayscale palette (white = white, black = black)
     let palette = Palette::grayscale();
@@ -40,9 +40,8 @@ pub fn create_test_line_scene(width: usize, height: usize) -> SceneConfig {
 
 /// Create the standard demo scene configuration
 pub fn create_demo_scene(width: usize, height: usize) -> SceneConfig {
-    // Demo program: perlin noise with 3 octaves, zoom, and cosine smoothing
-    // Using GLSL-style syntax with vec3 constructor and uv variable!
-    let program = parse_expr("cos(perlin3(vec3(uv * 0.3, time), 3))");
+    // Demo program: perlin noise (returns 0..1)
+    let program = parse_expr("perlin3(vec3(uv * 1.0, time * 0.5), 3)");
 
     // Create palette
     let palette = Palette::rainbow();
@@ -64,7 +63,7 @@ pub fn create_demo_scene(width: usize, height: usize) -> SceneConfig {
             PipelineStep::BlurStep {
                 input: BufferRef::new(1, BufferFormat::ImageRgb),
                 output: BufferRef::new(0, BufferFormat::ImageRgb), // Reuse buffer 0
-                radius: Fixed::from_f32(0.2),                      // 0.2 pixel blur radius
+                radius: Fixed::from_f32(0.1),                      // 0.2 pixel blur radius
             },
         ],
     );

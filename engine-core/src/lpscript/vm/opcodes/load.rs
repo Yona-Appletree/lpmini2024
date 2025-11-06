@@ -56,17 +56,18 @@ pub fn exec_load(
             }
         }
         LoadSource::CenterAngle => {
-            // Angle from center (0-1 for 0-2π, 0 = east/right)
+            // Angle from center in radians (-π to π, 0 = east/right)
+            // Compatible with sin/cos which expect radians
             let center_x = Fixed::from_i32(width as i32 / 2).0;
             let center_y = Fixed::from_i32(height as i32 / 2).0;
             let dx = x_int.0 - center_x;
             let dy = y_int.0 - center_y;
 
-            // atan2(dy, dx) normalized to 0..1
+            // atan2(dy, dx) in radians
             if dx == 0 && dy == 0 {
                 Fixed::ZERO // Center has no angle
             } else {
-                // Approximate atan2 using octants
+                // Approximate atan2 using octants (result in 0..1 range)
                 let abs_dx = if dx < 0 { -dx } else { dx };
                 let abs_dy = if dy < 0 { -dy } else { dy };
 
@@ -82,8 +83,8 @@ pub fn exec_load(
                     0
                 };
 
-                // Adjust based on quadrant
-                Fixed(if dx >= 0 && dy >= 0 {
+                // Adjust based on quadrant to get normalized angle (0..1)
+                let normalized = if dx >= 0 && dy >= 0 {
                     // Q1: 0 to 0.25
                     angle
                 } else if dx < 0 && dy >= 0 {
@@ -95,7 +96,13 @@ pub fn exec_load(
                 } else {
                     // Q4: 0.75 to 1.0
                     FIXED_ONE - angle
-                })
+                };
+
+                // Convert normalized (0..1) to radians (0..2π)
+                // Then shift to -π..π range to match atan2 convention
+                let radians =
+                    Fixed((normalized as i64 * Fixed::TAU.0 as i64 >> FIXED_SHIFT) as i32);
+                radians - Fixed::PI // Convert 0..2π to -π..π
             }
         }
     };

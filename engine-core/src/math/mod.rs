@@ -31,9 +31,9 @@ pub mod conversions;
 /// - `advanced::sqrt(a)` - Square root
 ///
 /// # Trigonometry
-/// - `trig::sin(x)` - Sine (0..1 = full circle)
-/// - `trig::cos(x)` - Cosine
-/// - `trig::tan(x)` - Tangent
+/// - `trig::sin(x)` - Sine (input in radians, 2π = full circle)
+/// - `trig::cos(x)` - Cosine (input in radians)
+/// - `trig::tan(x)` - Tangent (input in radians)
 ///
 /// # Noise
 /// - `noise::perlin3(x, y, z, octaves)` - 3D Perlin noise

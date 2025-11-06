@@ -48,7 +48,7 @@ fn grad(hash: u8, x: Fixed, y: Fixed, z: Fixed) -> Fixed {
     };
     let u_val = if (h & 1) == 0 { u } else { -u };
     let v_val = if (h & 2) == 0 { v } else { -v };
-    Fixed((u_val.0 + v_val.0) >> 1)
+    u_val + v_val // Standard Perlin: sum of two gradient components
 }
 
 /// 3D Perlin noise with multiple octaves
@@ -58,7 +58,7 @@ fn grad(hash: u8, x: Fixed, y: Fixed, z: Fixed) -> Fixed {
 /// * `octaves` - Number of octaves (1-8) for fractal noise
 ///
 /// # Returns
-/// Fixed-point value in range approximately -1..1
+/// Fixed-point value in range 0..1 (normalized for ease of use)
 pub fn perlin3(x: Fixed, y: Fixed, z: Fixed, octaves: u8) -> Fixed {
     let octaves = octaves.min(8).max(1);
     let mut total = 0i64;
@@ -77,7 +77,21 @@ pub fn perlin3(x: Fixed, y: Fixed, z: Fixed, octaves: u8) -> Fixed {
         frequency = Fixed(frequency.0 << 1);
     }
 
-    Fixed((total >> Fixed::SHIFT) as i32)
+    let raw = Fixed((total >> Fixed::SHIFT) as i32);
+
+    // Normalize from natural range (approx -0.866..0.866) to 0..1
+    // Scale by ~1.15 (to get -1..1 range) then map to 0..1
+    // Using fixed point: multiply by 1.2 and add 0.6 to center and scale
+    let scaled = raw * Fixed::from_f32(1.2) + Fixed::from_f32(0.6);
+
+    // Clamp to 0..1 range
+    if scaled.0 < 0 {
+        Fixed::ZERO
+    } else if scaled.0 > Fixed::ONE.0 {
+        Fixed::ONE
+    } else {
+        scaled
+    }
 }
 
 /// Single octave of 3D Perlin noise
@@ -243,5 +257,74 @@ mod tests {
         // Grad can be zero for some hashes, but test a few
         let g2 = grad(5, 1i32.to_fixed(), 0i32.to_fixed(), 0i32.to_fixed());
         println!("grad(5, 1, 0, 0) = {}", g2.to_f32());
+    }
+
+    #[test]
+    fn test_perlin3_returns_zero_to_one() {
+        // Test that perlin3 always returns values in 0..1 range
+        // Test a variety of inputs
+        let test_cases = [
+            (0.0, 0.0, 0.0),
+            (0.5, 0.5, 0.5),
+            (1.0, 1.0, 1.0),
+            (10.5, 5.2, 3.1),
+            (-5.0, 3.0, 2.0),
+            (100.0, 50.0, 25.0),
+        ];
+
+        for &(x, y, z) in &test_cases {
+            for octaves in 1..=8 {
+                let result = perlin3(x.to_fixed(), y.to_fixed(), z.to_fixed(), octaves);
+                let val = result.to_f32();
+
+                assert!(
+                    val >= 0.0 && val <= 1.0,
+                    "perlin3({}, {}, {}, {}) = {} is outside 0..1 range",
+                    x,
+                    y,
+                    z,
+                    octaves,
+                    val
+                );
+            }
+        }
+    }
+
+    #[test]
+    fn test_perlin3_has_good_coverage() {
+        // Test that perlin3 can produce values across most of the 0..1 range
+        // Sample a grid of values and check we get good coverage
+        let mut min_seen = 1.0f32;
+        let mut max_seen = 0.0f32;
+
+        for x in 0..16 {
+            for y in 0..16 {
+                for z in 0..4 {
+                    let val = perlin3(
+                        (x as f32 * 0.5).to_fixed(),
+                        (y as f32 * 0.5).to_fixed(),
+                        (z as f32 * 0.5).to_fixed(),
+                        3,
+                    )
+                    .to_f32();
+
+                    min_seen = min_seen.min(val);
+                    max_seen = max_seen.max(val);
+                }
+            }
+        }
+
+        let range = max_seen - min_seen;
+        assert!(
+            range > 0.95,
+            "Perlin3 should cover the full 0..1 range, but only covered {}",
+            range
+        );
+
+        assert!(
+            range < 1.05,
+            "Perlin3 should cover only 0..1 range, but covered {}",
+            range
+        );
     }
 }
