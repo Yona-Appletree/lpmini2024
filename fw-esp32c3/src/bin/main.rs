@@ -12,8 +12,8 @@ use embassy_executor::Spawner;
 use embassy_time::Instant;
 // Engine imports
 use engine_core::demo_program::create_demo_scene;
-use engine_core::scene::SceneRuntime;
 use engine_core::math::Fixed;
+use engine_core::scene::SceneRuntime;
 use esp_hal::clock::CpuClock;
 use esp_hal::delay::Delay;
 use esp_hal::rmt::Rmt;
@@ -109,7 +109,7 @@ async fn main(_spawner: Spawner) {
             let elapsed_ms = frame_start.duration_since(last_fps_time).as_millis();
             let _fps = (frames_rendered * 1000) / elapsed_ms as u32;
 
-            // info!("FPS: {}, Frame: {}", _fps, frame_count);
+            info!("FPS: {}, Frame: {}", _fps, frame_count);
 
             last_fps_time = frame_start;
             last_fps_frame = frame_count;
