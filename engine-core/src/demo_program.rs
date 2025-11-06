@@ -2,7 +2,6 @@ extern crate alloc;
 use alloc::vec;
 
 use crate::lpscript::{parse_expr, parse_script};
-use crate::math::Fixed;
 use crate::scene::SceneConfig;
 use crate::test_engine::{
     BufferFormat, BufferRef, FxPipelineConfig, MappingConfig, Palette, PipelineStep,
@@ -40,36 +39,37 @@ pub fn create_test_line_scene(width: usize, height: usize) -> SceneConfig {
 
 /// Create the standard demo scene configuration
 pub fn create_demo_scene(width: usize, height: usize) -> SceneConfig {
-    // Demo program: Custom wave function with perlin noise texture
-    // Defines a reusable wave pattern function, then combines multiple waves
+    // Demo program: RGB color waves with custom function
+    // Returns vec3 (RGB) directly instead of using palette
     let program = parse_script(
-        "float wave(float dist, float angle, float freq, float phase) { \
-           return smoothstep(0.0, 0.4, fract(dist * freq + angle * 0.3 + phase)); \
-         } \
-         \
-         float w1 = wave(centerDist, centerAngle, 4.0, -time * 0.5); \
-         float w2 = wave(centerDist, -centerAngle, 2.5, time * 0.3); \
-         float noise = perlin3(vec3(uv * 2.0, time * 0.2), 2); \
-         \
-         return (w1 * 0.6 + w2 * 0.4) * (0.4 + 0.6 * noise);",
-    );
+        "\
+        float wave(float dist, float angle, float freq, float phase) {
+          return smoothstep(0.0, 0.4, fract(dist * freq + angle * 0.3 + phase));
+        }
 
-    // Create palette
-    let palette = Palette::rainbow();
+        float w1 = wave(centerDist, centerAngle, 4.0, -time * 0.5);
+        float w2 = wave(centerDist, -centerAngle, 2.5, time * 0.3);
+        float noise = perlin3(vec3(uv * 2.0, time * 0.2), 2);
+
+        float brightness = (w1 * 0.6 + w2 * 0.4) * (0.4 + 0.6 * noise);
+
+        float hue = fract(centerAngle * 0.15915 + time * 0.1);
+        float r = saturate(abs(hue * 6.0 - 3.0) - 1.0);
+        float g = saturate(2.0 - abs(hue * 6.0 - 2.0));
+        float b = saturate(2.0 - abs(hue * 6.0 - 4.0));
+
+        return vec3(r, g, b) * brightness;
+    ",
+    );
 
     // Build pipeline configuration
     let pipeline_config = FxPipelineConfig::new(
-        2, // Two buffers: 0=greyscale/temp, 1=RGB
+        2, // One buffer: RGB output
         vec![
             PipelineStep::ExprStep {
                 program,
-                output: BufferRef::new(0, BufferFormat::ImageGrey),
-                params: vec![],
-            },
-            PipelineStep::PaletteStep {
-                input: BufferRef::new(0, BufferFormat::ImageGrey),
                 output: BufferRef::new(1, BufferFormat::ImageRgb),
-                palette,
+                params: vec![],
             },
             // PipelineStep::BlurStep {
             //     input: BufferRef::new(1, BufferFormat::ImageRgb),

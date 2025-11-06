@@ -122,6 +122,12 @@ pub fn compile_expr_with_options(
     // Type check the AST
     let (typed_ast_id, pool) = typechecker::TypeChecker::check(ast_id, pool)?;
 
+    // Get the expression's return type (typechecker guarantees this is Some)
+    let expr_type = pool.exprs[typed_ast_id.0 as usize]
+        .ty
+        .clone()
+        .expect("Type checker should have set expression type");
+
     // Optimize AST
     let (optimized_ast_id, pool) = optimize::optimize_ast_expr(typed_ast_id, pool, options);
 
@@ -131,9 +137,9 @@ pub fn compile_expr_with_options(
     // Optimize opcodes
     let optimized_opcodes = optimize::optimize_opcodes(opcodes, options);
 
-    // Create main function with no locals (expression mode doesn't use locals)
+    // Create main function with the expression's actual return type
     let main_function =
-        vm::FunctionDef::new("main".into(), shared::Type::Void).with_opcodes(optimized_opcodes);
+        vm::FunctionDef::new("main".into(), expr_type).with_opcodes(optimized_opcodes);
 
     Ok(LpsProgram::new("expr".into())
         .with_functions(vec![main_function])

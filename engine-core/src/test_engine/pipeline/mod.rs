@@ -10,10 +10,12 @@ use crate::lpscript::LpsProgram;
 pub mod rgb_utils;
 pub mod config;
 pub mod runtime;
+pub mod expr_step;
 
 pub use rgb_utils::{pack_rgb, unpack_rgb, grey_to_i32, i32_to_grey};
 pub use config::FxPipelineConfig;
 pub use runtime::FxPipeline;
+pub use expr_step::{execute_expr_step, validate_expr_program_type};
 
 /// Buffer format identifier
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -80,11 +82,18 @@ pub enum PipelineStep {
 }
 
 /// Pipeline validation and execution errors
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub enum PipelineError {
     InvalidBufferRef { buffer_idx: usize, num_buffers: usize },
     FormatMismatch { expected: BufferFormat, actual: BufferFormat },
     InvalidStep { step_idx: usize },
+    TypeMismatch {
+        expected: crate::lpscript::shared::Type,
+        actual: crate::lpscript::shared::Type,
+        context: alloc::string::String,
+    },
+    InvalidProgram(alloc::string::String),
+    Unimplemented(alloc::string::String),
 }
 
 /// Runtime options for pipeline execution

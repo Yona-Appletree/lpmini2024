@@ -6,11 +6,29 @@ use alloc::vec;
 use alloc::vec::Vec;
 
 use super::local_allocator::LocalAllocator;
-use crate::lpscript::compiler::ast::{AstPool, Program, StmtId};
+use crate::lpscript::compiler::ast::{AstPool, Program, StmtId, StmtKind};
 use crate::lpscript::compiler::func::FunctionTable;
 use crate::lpscript::shared::Type;
 use crate::lpscript::vm::opcodes::LpsOpCode;
 use crate::lpscript::vm::{FunctionDef as VmFunctionDef, LocalVarDef};
+
+/// Infer return type from typed statements (after type checking)
+fn infer_main_return_type(stmts: &[StmtId], pool: &AstPool) -> Type {
+    // Look for the last return statement to determine type
+    for stmt_id in stmts.iter().rev() {
+        let stmt = pool.stmt(*stmt_id);
+        if let StmtKind::Return(expr_id) = stmt.kind {
+            let expr = pool.expr(expr_id);
+            // After type checking, expr.ty should be Some
+            if let Some(ty) = &expr.ty {
+                return ty.clone();
+            }
+        }
+    }
+
+    // No explicit return found - default to Void
+    Type::Void
+}
 
 /// Generate a complete program with functions (new API with FunctionTable)
 /// Returns a vector of FunctionDef with main at index 0
@@ -76,7 +94,16 @@ pub fn gen_program_with_functions(
         })
         .collect();
 
-    let main_func = VmFunctionDef::new(String::from("main"), Type::Void)
+    // Get return type - first try function table, then infer from typed statements
+    let main_return_type = func_table
+        .lookup("main")
+        .map(|meta| meta.return_type.clone())
+        .unwrap_or_else(|| {
+            let inferred = infer_main_return_type(&program.stmts, pool);
+            inferred
+        });
+
+    let main_func = VmFunctionDef::new(String::from("main"), main_return_type)
         .with_locals(main_local_defs)
         .with_opcodes(main_code);
 
@@ -128,4 +155,31 @@ pub fn gen_program(
 
     // Return opcodes, local count, and types
     (code, local_count, local_types)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::lpscript::compile_script;
+
+    #[test]
+    fn test_infer_main_return_type_from_script() {
+        // Test that we correctly infer Vec3 return type from a script
+        let program = compile_script(
+            "float r = xNorm; \
+             float g = yNorm; \
+             float b = 0.5; \
+             return vec3(r, g, b);",
+        )
+        .unwrap();
+
+        let main_func = program.main_function().expect("Should have main");
+        println!("Main function return type: {:?}", main_func.return_type);
+
+        assert_eq!(
+            main_func.return_type,
+            Type::Vec3,
+            "Should infer Vec3 return type from script"
+        );
+    }
 }

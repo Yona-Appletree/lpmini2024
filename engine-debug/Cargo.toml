@@ -11,6 +11,10 @@ path = "src/bench.rs"
 name = "visualizer"
 path = "src/visualizer.rs"
 
+[[bin]]
+name = "lps-compile"
+path = "src/lps_compile.rs"
+
 [dependencies]
 engine-core = { path = "../engine-core" }
 minifb = "0.27"

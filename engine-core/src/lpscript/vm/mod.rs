@@ -78,3 +78,52 @@ pub fn execute_program_lps(
         }
     }
 }
+
+/// Execute a program that returns Vec3 (RGB) for each pixel
+/// Output buffer should be sized width * height * 3 (r, g, b values)
+pub fn execute_program_lps_vec3(
+    program: &LpsProgram,
+    output: &mut [Fixed],
+    width: usize,
+    height: usize,
+    time: Fixed,
+) {
+    // Create VM once and reuse it for all pixels
+    let mut vm = LpsVm::new(program, VmLimits::default()).expect("Failed to create VM");
+
+    for y in 0..height {
+        for x in 0..width {
+            // Calculate normalized coordinates
+            let x_plus_half = Fixed::from_i32(x as i32) + Fixed::HALF;
+            let x_norm = x_plus_half / Fixed::from_i32(width as i32);
+            let y_plus_half = Fixed::from_i32(y as i32) + Fixed::HALF;
+            let y_norm = y_plus_half / Fixed::from_i32(height as i32);
+
+            // Run program - it should return 3 values on stack for Vec3
+            vm.run_with_coords(
+                    x_norm,
+                    y_norm,
+                    x_plus_half,
+                    y_plus_half,
+                    time,
+                    width,
+                    height,
+                )
+                .unwrap_or_else(|e| {
+                    panic!("Runtime error at pixel ({}, {}): {}", x, y, e);
+                });
+
+            // Pop 3 values from stack (b, g, r in reverse order)
+            let b = vm.stack.pop_fixed().expect("Vec3 should have blue component");
+            let g = vm.stack.pop_fixed().expect("Vec3 should have green component");
+            let r = vm.stack.pop_fixed().expect("Vec3 should have red component");
+
+            let idx = (y * width + x) * 3;
+            if idx + 2 < output.len() {
+                output[idx] = r;
+                output[idx + 1] = g;
+                output[idx + 2] = b;
+            }
+        }
+    }
+}
