@@ -123,7 +123,23 @@ sin(time + xNorm * 6.283185)
 
 Note: `6.283185` is approximately 2π (TAU), converting the 0..1 range to radians.
 
-### Perlin Noise Effect (Current Demo)
+### Dual Wave Pattern with Function (Current Demo)
+
+```glsl
+float wave(float dist, float angle, float freq, float phase) {
+  return smoothstep(0.0, 0.1, fract(dist * freq + angle * 0.3 + phase));
+}
+
+float w1 = wave(centerDist, centerAngle, 5.0, -time * 0.5);
+float w2 = wave(centerDist, -centerAngle, 3.0, time * 0.3);
+float noise = perlin3(vec3(uv * 2.0, time * 0.2), 2);
+
+return (w1 * 0.6 + w2 * 0.4) * (0.4 + 0.6 * noise);
+```
+
+Demonstrates custom functions, local variables, and combining multiple effects. Creates two counter-rotating wave patterns modulated by perlin noise.
+
+### Simple Perlin Noise
 
 ```
 perlin3(vec3(uv * 3.0, time * 0.5), 3)

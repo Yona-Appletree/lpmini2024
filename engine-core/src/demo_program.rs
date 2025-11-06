@@ -1,7 +1,7 @@
 extern crate alloc;
 use alloc::vec;
 
-use crate::lpscript::parse_expr;
+use crate::lpscript::{parse_expr, parse_script};
 use crate::math::Fixed;
 use crate::scene::SceneConfig;
 use crate::test_engine::{
@@ -40,8 +40,19 @@ pub fn create_test_line_scene(width: usize, height: usize) -> SceneConfig {
 
 /// Create the standard demo scene configuration
 pub fn create_demo_scene(width: usize, height: usize) -> SceneConfig {
-    // Demo program: perlin noise (returns 0..1)
-    let program = parse_expr("perlin3(vec3(uv * 1.0, time * 0.5), 3)");
+    // Demo program: Custom wave function with perlin noise texture
+    // Defines a reusable wave pattern function, then combines multiple waves
+    let program = parse_script(
+        "float wave(float dist, float angle, float freq, float phase) { \
+           return smoothstep(0.0, 0.4, fract(dist * freq + angle * 0.3 + phase)); \
+         } \
+         \
+         float w1 = wave(centerDist, centerAngle, 4.0, -time * 0.5); \
+         float w2 = wave(centerDist, -centerAngle, 2.5, time * 0.3); \
+         float noise = perlin3(vec3(uv * 2.0, time * 0.2), 2); \
+         \
+         return (w1 * 0.6 + w2 * 0.4) * (0.4 + 0.6 * noise);",
+    );
 
     // Create palette
     let palette = Palette::rainbow();
@@ -60,11 +71,11 @@ pub fn create_demo_scene(width: usize, height: usize) -> SceneConfig {
                 output: BufferRef::new(1, BufferFormat::ImageRgb),
                 palette,
             },
-            PipelineStep::BlurStep {
-                input: BufferRef::new(1, BufferFormat::ImageRgb),
-                output: BufferRef::new(0, BufferFormat::ImageRgb), // Reuse buffer 0
-                radius: Fixed::from_f32(0.1),                      // 0.2 pixel blur radius
-            },
+            // PipelineStep::BlurStep {
+            //     input: BufferRef::new(1, BufferFormat::ImageRgb),
+            //     output: BufferRef::new(0, BufferFormat::ImageRgb), // Reuse buffer 0
+            //     radius: Fixed::from_f32(0.1),                      // 0.2 pixel blur radius
+            // },
         ],
     );
 

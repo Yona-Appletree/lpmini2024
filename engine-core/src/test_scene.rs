@@ -4,8 +4,8 @@ use crate::scene::SceneRuntime;
 /// This defines the standard test program and scene configuration
 use crate::test_engine::{Fixed, RuntimeOptions};
 
-pub const WIDTH: usize = 16;
-pub const HEIGHT: usize = 16;
+pub const WIDTH: usize = 32;
+pub const HEIGHT: usize = 32;
 
 /// Scene data containing runtime state (backward compatibility wrapper)
 pub struct SceneData {
