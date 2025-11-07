@@ -1,27 +1,27 @@
 use crate::error::AllocError;
-use super::vec::PoolVec;
+use super::vec::LpVec;
 
 /// Pool-backed String
-pub struct PoolString {
-    vec: PoolVec<u8>,
+pub struct LpString {
+    vec: LpVec<u8>,
 }
 
-impl PoolString {
+impl LpString {
     pub fn new() -> Self {
-        PoolString {
-            vec: PoolVec::new(),
+        LpString {
+            vec: LpVec::new(),
         }
     }
     
-    /// Create a new PoolString with a scope identifier for metadata tracking
+    /// Create a new LpString with a scope identifier for metadata tracking
     #[cfg(feature = "alloc-meta")]
     pub fn new_with_scope(scope: Option<&'static str>) -> Self {
-        PoolString {
-            vec: PoolVec::new_with_scope(scope),
+        LpString {
+            vec: LpVec::new_with_scope(scope),
         }
     }
     
-    /// Create a new PoolString with a scope identifier for metadata tracking
+    /// Create a new LpString with a scope identifier for metadata tracking
     #[cfg(not(feature = "alloc-meta"))]
     pub fn new_with_scope(_scope: Option<&'static str>) -> Self {
         Self::new()
@@ -45,7 +45,7 @@ impl PoolString {
     }
 }
 
-impl Default for PoolString {
+impl Default for LpString {
     fn default() -> Self {
         Self::new()
     }
@@ -69,7 +69,7 @@ mod tests {
     fn test_string_new() {
         let pool = setup_pool();
         pool.run(|| {
-            let s = PoolString::new();
+            let s = LpString::new();
             assert_eq!(s.len(), 0);
             assert_eq!(s.as_str(), "");
             Ok(())
@@ -80,7 +80,7 @@ mod tests {
     fn test_string_push_str() {
         let pool = setup_pool();
         pool.run(|| {
-            let mut s = PoolString::new();
+            let mut s = LpString::new();
             s.try_push_str("hello")?;
             assert_eq!(s.len(), 5);
             assert_eq!(s.as_str(), "hello");
@@ -92,7 +92,7 @@ mod tests {
     fn test_string_multiple_push() {
         let pool = setup_pool();
         pool.run(|| {
-            let mut s = PoolString::new();
+            let mut s = LpString::new();
             s.try_push_str("hello")?;
             s.try_push_str(" ")?;
             s.try_push_str("world")?;
@@ -106,7 +106,7 @@ mod tests {
     fn test_string_empty() {
         let pool = setup_pool();
         pool.run(|| {
-            let mut s = PoolString::new();
+            let mut s = LpString::new();
             s.try_push_str("")?;
             assert_eq!(s.len(), 0);
             assert_eq!(s.as_str(), "");
@@ -119,7 +119,7 @@ mod tests {
     fn test_string_with_scope() {
         let pool = setup_pool();
         pool.run(|| {
-            let mut s = PoolString::new_with_scope(Some("test_scope"));
+            let mut s = LpString::new_with_scope(Some("test_scope"));
             s.try_push_str("hello")?;
             assert_eq!(s.as_str(), "hello");
             Ok::<(), AllocError>(())

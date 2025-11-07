@@ -4,7 +4,7 @@ use crate::memory_pool::with_active_pool;
 use core::alloc::Layout;
 
 #[cfg(feature = "alloc-meta")]
-use super::super::meta::{AllocationMeta, record_allocation_meta, remove_allocation_meta};
+use super::super::alloc_meta::{AllocationMeta, record_allocation_meta, remove_allocation_meta};
 
 /// A node in the B-tree
 pub struct Node<K, V> {

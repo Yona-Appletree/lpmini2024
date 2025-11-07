@@ -3,7 +3,7 @@ use crate::error::AllocError;
 use super::node::Node;
 
 #[cfg(feature = "alloc-meta")]
-use super::super::meta::AllocationMeta;
+use super::super::alloc_meta::AllocationMeta;
 
 /// Pool-backed BTreeMap implementation
 /// 
@@ -14,7 +14,7 @@ use super::super::meta::AllocationMeta;
 /// maintains ordering but may degrade to O(n) performance with unbalanced data.
 /// 
 /// All nodes are allocated from the active memory pool via `with_active_pool()`.
-pub struct PoolBTreeMap<K, V>
+pub struct LpBTreeMap<K, V>
 where
     K: Ord,
 {
@@ -24,12 +24,12 @@ where
     scope: Option<&'static str>,
 }
 
-impl<K, V> PoolBTreeMap<K, V>
+impl<K, V> LpBTreeMap<K, V>
 where
     K: Ord,
 {
     pub fn new() -> Self {
-        PoolBTreeMap {
+        LpBTreeMap {
             root: None,
             len: 0,
             #[cfg(feature = "alloc-meta")]
@@ -37,17 +37,17 @@ where
         }
     }
     
-    /// Create a new PoolBTreeMap with a scope identifier for metadata tracking
+    /// Create a new LpBTreeMap with a scope identifier for metadata tracking
     #[cfg(feature = "alloc-meta")]
     pub fn new_with_scope(scope: Option<&'static str>) -> Self {
-        PoolBTreeMap {
+        LpBTreeMap {
             root: None,
             len: 0,
             scope,
         }
     }
     
-    /// Create a new PoolBTreeMap with a scope identifier for metadata tracking
+    /// Create a new LpBTreeMap with a scope identifier for metadata tracking
     #[cfg(not(feature = "alloc-meta"))]
     pub fn new_with_scope(_scope: Option<&'static str>) -> Self {
         Self::new()
@@ -167,7 +167,7 @@ mod tests {
     fn test_btree_map_new() {
         let pool = setup_pool();
         pool.run(|| {
-            let map = PoolBTreeMap::<i32, i32>::new();
+            let map = LpBTreeMap::<i32, i32>::new();
             assert_eq!(map.len(), 0);
             Ok(())
         }).unwrap();
@@ -177,7 +177,7 @@ mod tests {
     fn test_btree_map_insert() {
         let pool = setup_pool();
         pool.run(|| {
-            let mut map = PoolBTreeMap::new();
+            let mut map = LpBTreeMap::new();
             assert_eq!(map.try_insert(1, 10)?, None);
             assert_eq!(map.try_insert(2, 20)?, None);
             assert_eq!(map.len(), 2);
@@ -189,7 +189,7 @@ mod tests {
     fn test_btree_map_insert_replace() {
         let pool = setup_pool();
         pool.run(|| {
-            let mut map = PoolBTreeMap::new();
+            let mut map = LpBTreeMap::new();
             map.try_insert(1, 10)?;
             assert_eq!(map.try_insert(1, 100)?, Some(10));
             assert_eq!(map.len(), 1);
@@ -202,7 +202,7 @@ mod tests {
     fn test_btree_map_get() {
         let pool = setup_pool();
         pool.run(|| {
-            let mut map = PoolBTreeMap::new();
+            let mut map = LpBTreeMap::new();
             map.try_insert(1, 10)?;
             map.try_insert(2, 20)?;
             
@@ -217,7 +217,7 @@ mod tests {
     fn test_btree_map_string_keys() {
         let pool = setup_pool();
         pool.run(|| {
-            let mut map = PoolBTreeMap::new();
+            let mut map = LpBTreeMap::new();
             map.try_insert(String::from("a"), 1)?;
             map.try_insert(String::from("b"), 2)?;
             
@@ -232,7 +232,7 @@ mod tests {
     fn test_btree_map_with_scope() {
         let pool = setup_pool();
         pool.run(|| {
-            let mut map = PoolBTreeMap::new_with_scope(Some("test_scope"));
+            let mut map = LpBTreeMap::new_with_scope(Some("test_scope"));
             map.try_insert(1, 10)?;
             assert_eq!(map.get(&1), Some(&10));
             Ok::<(), AllocError>(())
@@ -240,7 +240,7 @@ mod tests {
     }
 }
 
-impl<K, V> Default for PoolBTreeMap<K, V>
+impl<K, V> Default for LpBTreeMap<K, V>
 where
     K: Ord,
 {
@@ -249,7 +249,7 @@ where
     }
 }
 
-impl<K, V> Drop for PoolBTreeMap<K, V>
+impl<K, V> Drop for LpBTreeMap<K, V>
 where
     K: Ord,
 {
@@ -262,7 +262,7 @@ where
     }
 }
 
-impl<K, V> PoolBTreeMap<K, V>
+impl<K, V> LpBTreeMap<K, V>
 where
     K: Ord,
 {

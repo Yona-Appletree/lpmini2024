@@ -4,10 +4,10 @@ use crate::error::AllocError;
 use crate::memory_pool::with_active_pool;
 
 #[cfg(feature = "alloc-meta")]
-use super::meta::{AllocationMeta, record_allocation_meta, remove_allocation_meta};
+use super::alloc_meta::{AllocationMeta, record_allocation_meta, remove_allocation_meta};
 
 /// Pool-backed Vec
-pub struct PoolVec<T> {
+pub struct LpVec<T> {
     data: NonNull<u8>,
     len: usize,
     capacity: usize,
@@ -16,9 +16,9 @@ pub struct PoolVec<T> {
     scope: Option<&'static str>,
 }
 
-impl<T> PoolVec<T> {
+impl<T> LpVec<T> {
     pub fn new() -> Self {
-        PoolVec {
+        LpVec {
             data: NonNull::dangling(),
             len: 0,
             capacity: 0,
@@ -28,10 +28,10 @@ impl<T> PoolVec<T> {
         }
     }
     
-    /// Create a new PoolVec with a scope identifier for metadata tracking
+    /// Create a new LpVec with a scope identifier for metadata tracking
     #[cfg(feature = "alloc-meta")]
     pub fn new_with_scope(scope: Option<&'static str>) -> Self {
-        PoolVec {
+        LpVec {
             data: NonNull::dangling(),
             len: 0,
             capacity: 0,
@@ -40,7 +40,7 @@ impl<T> PoolVec<T> {
         }
     }
     
-    /// Create a new PoolVec with a scope identifier for metadata tracking
+    /// Create a new LpVec with a scope identifier for metadata tracking
     #[cfg(not(feature = "alloc-meta"))]
     pub fn new_with_scope(_scope: Option<&'static str>) -> Self {
         Self::new()
@@ -153,7 +153,7 @@ impl<T> PoolVec<T> {
     }
 }
 
-impl<T> Drop for PoolVec<T> {
+impl<T> Drop for LpVec<T> {
     fn drop(&mut self) {
         if self.capacity > 0 {
             let layout = Layout::array::<T>(self.capacity).unwrap();
@@ -177,7 +177,7 @@ impl<T> Drop for PoolVec<T> {
     }
 }
 
-impl<T> Default for PoolVec<T> {
+impl<T> Default for LpVec<T> {
     fn default() -> Self {
         Self::new()
     }
@@ -201,7 +201,7 @@ mod tests {
     fn test_vec_new() {
         let pool = setup_pool();
         pool.run(|| {
-            let vec = PoolVec::<i32>::new();
+            let vec = LpVec::<i32>::new();
             assert_eq!(vec.len(), 0);
             assert_eq!(vec.capacity(), 0);
             Ok(())
@@ -212,7 +212,7 @@ mod tests {
     fn test_vec_push() {
         let pool = setup_pool();
         pool.run(|| {
-            let mut vec = PoolVec::new();
+            let mut vec = LpVec::new();
             vec.try_push(1)?;
             vec.try_push(2)?;
             vec.try_push(3)?;
@@ -226,7 +226,7 @@ mod tests {
     fn test_vec_get() {
         let pool = setup_pool();
         pool.run(|| {
-            let mut vec = PoolVec::new();
+            let mut vec = LpVec::new();
             vec.try_push(10)?;
             vec.try_push(20)?;
             vec.try_push(30)?;
@@ -244,7 +244,7 @@ mod tests {
     fn test_vec_get_mut() {
         let pool = setup_pool();
         pool.run(|| {
-            let mut vec = PoolVec::new();
+            let mut vec = LpVec::new();
             vec.try_push(10)?;
             vec.try_push(20)?;
             
@@ -263,7 +263,7 @@ mod tests {
     fn test_vec_growth() {
         let pool = setup_pool();
         pool.run(|| {
-            let mut vec = PoolVec::new();
+            let mut vec = LpVec::new();
             
             // Push more than initial capacity (4)
             for i in 0..10 {
@@ -286,7 +286,7 @@ mod tests {
     fn test_vec_reserve() {
         let pool = setup_pool();
         pool.run(|| {
-            let mut vec = PoolVec::new();
+            let mut vec = LpVec::new();
             vec.try_reserve(20)?;
             assert!(vec.capacity() >= 20);
             
@@ -304,7 +304,7 @@ mod tests {
     fn test_vec_with_scope() {
         let pool = setup_pool();
         pool.run(|| {
-            let mut vec = PoolVec::<i32>::new_with_scope(Some("test_scope"));
+            let mut vec = LpVec::<i32>::new_with_scope(Some("test_scope"));
             vec.try_push(1)?;
             vec.try_push(2)?;
             assert_eq!(vec.len(), 2);

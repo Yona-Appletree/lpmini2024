@@ -140,9 +140,9 @@ mod tests {
             assert_eq!(pool.available_bytes().unwrap(), 1024);
             
             // Allocate something and keep it alive
-            use crate::collections::PoolBox;
+            use crate::collections::LpBox;
             let _boxed = pool.run(|| {
-                PoolBox::try_new_with_scope(42i32, Some("test_scope"))
+                LpBox::try_new_with_scope(42i32, Some("test_scope"))
             }).unwrap();
             
             // Should have used some memory (boxed is still alive)

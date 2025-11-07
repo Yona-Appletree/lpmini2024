@@ -11,7 +11,7 @@ use crate::memory_pool::with_active_pool;
 /// # Example
 /// 
 /// ```rust,no_run
-/// use lp_pool::{LpMemoryPool, PoolAllocatorWrapper};
+/// use lp_pool::{LpMemoryPool, LpAllocatorWrapper};
 /// use core::ptr::NonNull;
 /// use allocator_api2::alloc::Allocator;
 /// 
@@ -20,7 +20,7 @@ use crate::memory_pool::with_active_pool;
 /// let pool = unsafe { LpMemoryPool::new(memory_ptr, 4096, 64).unwrap() };
 /// 
 /// pool.run(|| {
-///     let allocator = PoolAllocatorWrapper;
+///     let allocator = LpAllocatorWrapper;
 ///     let layout = core::alloc::Layout::from_size_align(32, 8).unwrap();
 ///     let ptr = allocator.allocate(layout)?;
 ///     // Use ptr...
@@ -30,9 +30,9 @@ use crate::memory_pool::with_active_pool;
 ///     Ok::<(), lp_pool::AllocError>(())
 /// }).unwrap();
 /// ```
-pub struct PoolAllocatorWrapper;
+pub struct LpAllocatorWrapper;
 
-unsafe impl Allocator for PoolAllocatorWrapper {
+unsafe impl Allocator for LpAllocatorWrapper {
     fn allocate(&self, layout: Layout) -> Result<core::ptr::NonNull<[u8]>, ApiAllocError> {
         with_active_pool(|pool| {
             let result = pool.allocate(layout);
@@ -96,7 +96,7 @@ mod tests {
     #[test]
     fn test_allocator_allocate() {
         let pool = setup_pool();
-        let allocator = PoolAllocatorWrapper;
+        let allocator = LpAllocatorWrapper;
         
         pool.run(|| {
             let layout = Layout::from_size_align(64, 8).unwrap();
@@ -109,7 +109,7 @@ mod tests {
     #[test]
     fn test_allocator_deallocate() {
         let pool = setup_pool();
-        let allocator = PoolAllocatorWrapper;
+        let allocator = LpAllocatorWrapper;
         
         pool.run(|| {
             let layout = Layout::from_size_align(64, 8).unwrap();
@@ -125,7 +125,7 @@ mod tests {
     #[test]
     fn test_allocator_grow() {
         let pool = setup_pool();
-        let allocator = PoolAllocatorWrapper;
+        let allocator = LpAllocatorWrapper;
         
         pool.run(|| {
             let old_layout = Layout::from_size_align(32, 8).unwrap();
@@ -143,7 +143,7 @@ mod tests {
     #[test]
     fn test_allocator_shrink() {
         let pool = setup_pool();
-        let allocator = PoolAllocatorWrapper;
+        let allocator = LpAllocatorWrapper;
         
         pool.run(|| {
             let old_layout = Layout::from_size_align(64, 8).unwrap();

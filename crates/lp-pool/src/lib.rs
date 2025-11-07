@@ -9,13 +9,13 @@
 //! - **Thread-local access**: Ergonomic thread-local pool access via `LpMemoryPool::run()`
 //! - **Grow/shrink support**: Dynamic resizing of allocations
 //! - **allocator-api2 compatible**: Implements `Allocator` trait for use with standard collections
-//! - **Pool-backed collections**: Custom `PoolVec`, `PoolString`, `PoolBTreeMap`, and `PoolBox`
+//! - **Pool-backed collections**: Custom `LpVec`, `LpString`, `LpBTreeMap`, and `LpBox`
 //! - **Allocation metadata tracking**: Optional tracking of allocation types and scopes (via `alloc-meta` feature)
 //! 
 //! ## Example
 //! 
 //! ```rust,no_run
-//! use lp_pool::{LpMemoryPool, PoolVec};
+//! use lp_pool::{LpMemoryPool, LpVec};
 //! use core::ptr::NonNull;
 //! 
 //! // Allocate a memory region
@@ -27,7 +27,7 @@
 //! 
 //! // Use collections within the pool
 //! pool.run(|| {
-//!     let mut vec = PoolVec::new();
+//!     let mut vec = LpVec::new();
 //!     vec.try_push(1)?;
 //!     vec.try_push(2)?;
 //!     assert_eq!(vec.len(), 2);
@@ -51,8 +51,8 @@ pub mod collections;
 
 pub use error::AllocError;
 pub use memory_pool::{LpMemoryPool, PoolStats};
-pub use allocator::PoolAllocatorWrapper;
-pub use collections::{PoolVec, PoolString, PoolBTreeMap, PoolBox, print_memory_stats, print_memory_stats_with};
+pub use allocator::LpAllocatorWrapper;
+pub use collections::{LpVec, LpString, LpBTreeMap, LpBox, print_memory_stats, print_memory_stats_with};
 
 #[cfg(test)]
 mod integration_tests {
@@ -66,28 +66,28 @@ mod integration_tests {
         let pool = unsafe { LpMemoryPool::new(memory_ptr, 16384, 128).unwrap() };
         
         pool.run(|| {
-            // Test PoolVec
-            let mut vec = PoolVec::new();
+            // Test LpVec
+            let mut vec = LpVec::new();
             vec.try_push(1)?;
             vec.try_push(2)?;
             vec.try_push(3)?;
             assert_eq!(vec.len(), 3);
             
-            // Test PoolString
-            let mut s = PoolString::new();
+            // Test LpString
+            let mut s = LpString::new();
             s.try_push_str("hello")?;
             s.try_push_str(" world")?;
             assert_eq!(s.as_str(), "hello world");
             
-            // Test PoolBTreeMap
-            let mut map = PoolBTreeMap::new();
+            // Test LpBTreeMap
+            let mut map = LpBTreeMap::new();
             map.try_insert("key1", 100)?;
             map.try_insert("key2", 200)?;
             assert_eq!(map.get(&"key1"), Some(&100));
             assert_eq!(map.get(&"key2"), Some(&200));
             
-            // Test PoolBox
-            let boxed = PoolBox::try_new(42i32)?;
+            // Test LpBox
+            let boxed = LpBox::try_new(42i32)?;
             assert_eq!(*boxed, 42);
             
             Ok::<(), AllocError>(())
@@ -103,7 +103,7 @@ mod integration_tests {
         let pool = unsafe { LpMemoryPool::new(memory_ptr, 16384, 128).unwrap() };
         
         pool.run(|| {
-            let allocator = PoolAllocatorWrapper;
+            let allocator = LpAllocatorWrapper;
             let layout = core::alloc::Layout::from_size_align(64, 8).unwrap();
             
             // Allocate using allocator-api2
@@ -131,8 +131,8 @@ mod integration_tests {
         pool.run(|| {
             let before_inner = pool.used_bytes().unwrap();
             
-            let _vec = PoolVec::<i32>::new();
-            let _boxed = PoolBox::try_new(42i32)?;
+            let _vec = LpVec::<i32>::new();
+            let _boxed = LpBox::try_new(42i32)?;
             
             let during = pool.used_bytes().unwrap();
             assert!(during > before_inner);

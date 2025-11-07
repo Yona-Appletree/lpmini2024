@@ -4,22 +4,22 @@ use crate::error::AllocError;
 use crate::memory_pool::with_active_pool;
 
 #[cfg(feature = "alloc-meta")]
-use super::meta::{AllocationMeta, record_allocation_meta, remove_allocation_meta};
+use super::alloc_meta::{AllocationMeta, record_allocation_meta, remove_allocation_meta};
 
 /// Pool-backed Box
-pub struct PoolBox<T> {
+pub struct LpBox<T> {
     ptr: NonNull<T>,
     #[cfg(feature = "alloc-meta")]
     meta: AllocationMeta,
 }
 
-impl<T> PoolBox<T> {
-    /// Create a new PoolBox with optional scope for metadata tracking
+impl<T> LpBox<T> {
+    /// Create a new LpBox with optional scope for metadata tracking
     pub fn try_new(value: T) -> Result<Self, AllocError> {
         Self::try_new_with_scope(value, None)
     }
     
-    /// Create a new PoolBox with a scope identifier for metadata tracking
+    /// Create a new LpBox with a scope identifier for metadata tracking
     pub fn try_new_with_scope(value: T, scope: Option<&'static str>) -> Result<Self, AllocError> {
         let layout = Layout::new::<T>();
         
@@ -46,7 +46,7 @@ impl<T> PoolBox<T> {
             Ok(ptr)
         })?;
         
-        Ok(PoolBox {
+        Ok(LpBox {
             ptr,
             #[cfg(feature = "alloc-meta")]
             meta,
@@ -62,7 +62,7 @@ impl<T> PoolBox<T> {
     }
 }
 
-impl<T> core::ops::Deref for PoolBox<T> {
+impl<T> core::ops::Deref for LpBox<T> {
     type Target = T;
     
     fn deref(&self) -> &Self::Target {
@@ -70,13 +70,13 @@ impl<T> core::ops::Deref for PoolBox<T> {
     }
 }
 
-impl<T> core::ops::DerefMut for PoolBox<T> {
+impl<T> core::ops::DerefMut for LpBox<T> {
     fn deref_mut(&mut self) -> &mut Self::Target {
         self.as_mut()
     }
 }
 
-impl<T> Drop for PoolBox<T> {
+impl<T> Drop for LpBox<T> {
     fn drop(&mut self) {
         let layout = Layout::new::<T>();
         
@@ -119,7 +119,7 @@ mod tests {
     fn test_pool_box_new() {
         let pool = setup_pool();
         let boxed = pool.run(|| {
-            PoolBox::try_new(42i32)
+            LpBox::try_new(42i32)
         }).unwrap();
         assert_eq!(*boxed, 42);
     }
@@ -128,7 +128,7 @@ mod tests {
     fn test_pool_box_deref() {
         let pool = setup_pool();
         let boxed = pool.run(|| {
-            PoolBox::try_new(100i32)
+            LpBox::try_new(100i32)
         }).unwrap();
         assert_eq!(*boxed, 100);
     }
@@ -137,7 +137,7 @@ mod tests {
     fn test_pool_box_deref_mut() {
         let pool = setup_pool();
         let mut boxed = pool.run(|| {
-            PoolBox::try_new(50i32)
+            LpBox::try_new(50i32)
         }).unwrap();
         *boxed = 200;
         assert_eq!(*boxed, 200);
@@ -147,7 +147,7 @@ mod tests {
     fn test_pool_box_as_ref() {
         let pool = setup_pool();
         let boxed = pool.run(|| {
-            PoolBox::try_new(99i32)
+            LpBox::try_new(99i32)
         }).unwrap();
         let val = boxed.as_ref();
         assert_eq!(*val, 99);
@@ -157,7 +157,7 @@ mod tests {
     fn test_pool_box_as_mut() {
         let pool = setup_pool();
         let mut boxed = pool.run(|| {
-            PoolBox::try_new(1i32)
+            LpBox::try_new(1i32)
         }).unwrap();
         *boxed.as_mut() = 999;
         assert_eq!(*boxed, 999);
@@ -167,7 +167,7 @@ mod tests {
     fn test_pool_box_with_scope() {
         let pool = setup_pool();
         let boxed = pool.run(|| {
-            PoolBox::try_new_with_scope(42i32, Some("test_scope"))
+            LpBox::try_new_with_scope(42i32, Some("test_scope"))
         }).unwrap();
         assert_eq!(*boxed, 42);
     }
@@ -179,7 +179,7 @@ mod tests {
         
         {
             let _boxed = pool.run(|| {
-                PoolBox::try_new(42i32)
+                LpBox::try_new(42i32)
             }).unwrap();
             let during = pool.used_bytes().unwrap();
             assert!(during > before);
@@ -195,7 +195,7 @@ mod tests {
         use alloc::string::String;
         let pool = setup_pool();
         let boxed = pool.run(|| {
-            PoolBox::try_new(String::from("hello"))
+            LpBox::try_new(String::from("hello"))
         }).unwrap();
         assert_eq!(*boxed, "hello");
     }
