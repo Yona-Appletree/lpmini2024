@@ -3,6 +3,86 @@ use core::ptr::NonNull;
 use crate::error::AllocError;
 use crate::memory_pool::with_active_pool;
 
+/// Iterator over LpVec
+pub struct LpVecIter<'a, T> {
+    vec: &'a LpVec<T>,
+    start: usize,
+    end: usize,
+}
+
+impl<'a, T> Iterator for LpVecIter<'a, T> {
+    type Item = &'a T;
+    
+    fn next(&mut self) -> Option<Self::Item> {
+        if self.start < self.end {
+            let item = self.vec.get(self.start);
+            self.start += 1;
+            item
+        } else {
+            None
+        }
+    }
+    
+    fn size_hint(&self) -> (usize, Option<usize>) {
+        let remaining = self.end.saturating_sub(self.start);
+        (remaining, Some(remaining))
+    }
+}
+
+impl<'a, T> ExactSizeIterator for LpVecIter<'a, T> {
+    fn len(&self) -> usize {
+        self.end.saturating_sub(self.start)
+    }
+}
+
+impl<'a, T> DoubleEndedIterator for LpVecIter<'a, T> {
+    fn next_back(&mut self) -> Option<Self::Item> {
+        if self.start < self.end {
+            self.end -= 1;
+            self.vec.get(self.end)
+        } else {
+            None
+        }
+    }
+}
+
+/// Mutable iterator over LpVec
+pub struct LpVecIterMut<'a, T> {
+    vec: *mut LpVec<T>,
+    index: usize,
+    len: usize,
+    _marker: core::marker::PhantomData<&'a mut T>,
+}
+
+impl<'a, T> Iterator for LpVecIterMut<'a, T> {
+    type Item = &'a mut T;
+    
+    fn next(&mut self) -> Option<Self::Item> {
+        if self.index < self.len {
+            unsafe {
+                let vec = &mut *self.vec;
+                let item = vec.get_mut(self.index);
+                self.index += 1;
+                // Safety: We have exclusive access to vec, and we're returning non-overlapping refs
+                item.map(|r| &mut *(r as *mut T))
+            }
+        } else {
+            None
+        }
+    }
+    
+    fn size_hint(&self) -> (usize, Option<usize>) {
+        let remaining = self.len.saturating_sub(self.index);
+        (remaining, Some(remaining))
+    }
+}
+
+impl<'a, T> ExactSizeIterator for LpVecIterMut<'a, T> {
+    fn len(&self) -> usize {
+        self.len.saturating_sub(self.index)
+    }
+}
+
 #[cfg(feature = "alloc-meta")]
 use super::alloc_meta::{AllocationMeta, record_allocation_meta, remove_allocation_meta};
 
@@ -126,6 +206,40 @@ impl<T> LpVec<T> {
         self.len == 0
     }
     
+    pub fn last(&self) -> Option<&T> {
+        if self.len > 0 {
+            self.get(self.len - 1)
+        } else {
+            None
+        }
+    }
+    
+    pub fn last_mut(&mut self) -> Option<&mut T> {
+        if self.len > 0 {
+            let last_idx = self.len - 1;
+            self.get_mut(last_idx)
+        } else {
+            None
+        }
+    }
+    
+    pub fn iter(&self) -> LpVecIter<'_, T> {
+        LpVecIter {
+            vec: self,
+            start: 0,
+            end: self.len,
+        }
+    }
+    
+    pub fn iter_mut(&mut self) -> LpVecIterMut<'_, T> {
+        LpVecIterMut {
+            vec: self as *mut Self,
+            index: 0,
+            len: self.len,
+            _marker: core::marker::PhantomData,
+        }
+    }
+    
     pub fn get(&self, index: usize) -> Option<&T> {
         if index >= self.len {
             return None;
@@ -190,6 +304,20 @@ impl<T> Drop for LpVec<T> {
 impl<T> Default for LpVec<T> {
     fn default() -> Self {
         Self::new()
+    }
+}
+
+impl<T> core::ops::Index<usize> for LpVec<T> {
+    type Output = T;
+    
+    fn index(&self, index: usize) -> &Self::Output {
+        self.get(index).expect("index out of bounds")
+    }
+}
+
+impl<T> core::ops::IndexMut<usize> for LpVec<T> {
+    fn index_mut(&mut self, index: usize) -> &mut Self::Output {
+        self.get_mut(index).expect("index out of bounds")
     }
 }
 
@@ -373,6 +501,128 @@ mod tests {
             let mut vec2 = LpVec::new();
             vec2.try_push(1)?;
             assert!(!vec2.is_empty());
+            Ok::<(), AllocError>(())
+        }).unwrap();
+    }
+    
+    // Test for indexing
+    #[test]
+    fn test_vec_index() {
+        let pool = setup_pool();
+        pool.run(|| {
+            let mut vec = LpVec::new();
+            vec.try_push(10)?;
+            vec.try_push(20)?;
+            vec.try_push(30)?;
+            
+            assert_eq!(vec[0], 10);
+            assert_eq!(vec[1], 20);
+            assert_eq!(vec[2], 30);
+            Ok::<(), AllocError>(())
+        }).unwrap();
+    }
+    
+    #[test]
+    fn test_vec_index_mut() {
+        let pool = setup_pool();
+        pool.run(|| {
+            let mut vec = LpVec::new();
+            vec.try_push(10)?;
+            vec.try_push(20)?;
+            
+            vec[0] = 100;
+            vec[1] = 200;
+            
+            assert_eq!(vec[0], 100);
+            assert_eq!(vec[1], 200);
+            Ok::<(), AllocError>(())
+        }).unwrap();
+    }
+    
+    // Test for iteration
+    #[test]
+    fn test_vec_iter() {
+        let pool = setup_pool();
+        pool.run(|| {
+            let mut vec = LpVec::new();
+            vec.try_push(1)?;
+            vec.try_push(2)?;
+            vec.try_push(3)?;
+            
+            let sum: i32 = vec.iter().sum();
+            assert_eq!(sum, 6);
+            
+            let collected: alloc::vec::Vec<_> = vec.iter().collect();
+            assert_eq!(collected, alloc::vec![&1, &2, &3]);
+            Ok::<(), AllocError>(())
+        }).unwrap();
+    }
+    
+    #[test]
+    fn test_vec_iter_mut() {
+        let pool = setup_pool();
+        pool.run(|| {
+            let mut vec = LpVec::new();
+            vec.try_push(1)?;
+            vec.try_push(2)?;
+            vec.try_push(3)?;
+            
+            for val in vec.iter_mut() {
+                *val *= 10;
+            }
+            
+            assert_eq!(vec[0], 10);
+            assert_eq!(vec[1], 20);
+            assert_eq!(vec[2], 30);
+            Ok::<(), AllocError>(())
+        }).unwrap();
+    }
+    
+    #[test]
+    fn test_vec_iter_rev() {
+        let pool = setup_pool();
+        pool.run(|| {
+            let mut vec = LpVec::new();
+            vec.try_push(1)?;
+            vec.try_push(2)?;
+            vec.try_push(3)?;
+            
+            let collected: alloc::vec::Vec<_> = vec.iter().rev().copied().collect();
+            assert_eq!(collected, alloc::vec![3, 2, 1]);
+            Ok::<(), AllocError>(())
+        }).unwrap();
+    }
+    
+    // Test for last() and last_mut()
+    #[test]
+    fn test_vec_last() {
+        let pool = setup_pool();
+        pool.run(|| {
+            let vec = LpVec::<i32>::new();
+            assert_eq!(vec.last(), None);
+            
+            let mut vec2 = LpVec::new();
+            vec2.try_push(1)?;
+            vec2.try_push(2)?;
+            vec2.try_push(3)?;
+            assert_eq!(vec2.last(), Some(&3));
+            Ok::<(), AllocError>(())
+        }).unwrap();
+    }
+    
+    #[test]
+    fn test_vec_last_mut() {
+        let pool = setup_pool();
+        pool.run(|| {
+            let mut vec = LpVec::new();
+            vec.try_push(1)?;
+            vec.try_push(2)?;
+            
+            if let Some(last) = vec.last_mut() {
+                *last = 99;
+            }
+            
+            assert_eq!(vec[1], 99);
             Ok::<(), AllocError>(())
         }).unwrap();
     }

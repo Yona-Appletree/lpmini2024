@@ -117,6 +117,18 @@ where
         }
     }
     
+    pub fn get_mut(&mut self, key: &K) -> Option<&mut V> {
+        if let Some(root) = self.root {
+            unsafe {
+                // Safety: The node is allocated from the pool and lives as long as self
+                let node = &mut *root.as_ptr();
+                Self::get_node_mut(node, key)
+            }
+        } else {
+            None
+        }
+    }
+    
     fn get_node<'a>(node: &'a Node<K, V>, key: &K) -> Option<&'a V> {
         match key.cmp(node.key()) {
             core::cmp::Ordering::Equal => Some(node.value()),
@@ -135,6 +147,30 @@ where
                         // Safety: The node is allocated from the pool and lives as long as the parent
                         let right_node = &*right.as_ptr();
                         Self::get_node(right_node, key)
+                    }
+                })
+            }
+        }
+    }
+    
+    fn get_node_mut<'a>(node: &'a mut Node<K, V>, key: &K) -> Option<&'a mut V> {
+        match key.cmp(node.key()) {
+            core::cmp::Ordering::Equal => Some(node.value_mut()),
+            core::cmp::Ordering::Less => {
+                node.left().and_then(|left| {
+                    unsafe {
+                        // Safety: The node is allocated from the pool and lives as long as the parent
+                        let left_node = &mut *left.as_ptr();
+                        Self::get_node_mut(left_node, key)
+                    }
+                })
+            }
+            core::cmp::Ordering::Greater => {
+                node.right().and_then(|right| {
+                    unsafe {
+                        // Safety: The node is allocated from the pool and lives as long as the parent
+                        let right_node = &mut *right.as_ptr();
+                        Self::get_node_mut(right_node, key)
                     }
                 })
             }
@@ -331,6 +367,24 @@ mod tests {
             assert_eq!(map.get(&1), Some(&10));
             assert_eq!(map.get(&2), Some(&20));
             assert_eq!(map.get(&3), None);
+            Ok::<(), AllocError>(())
+        }).unwrap();
+    }
+    
+    #[test]
+    fn test_btree_map_get_mut() {
+        let pool = setup_pool();
+        pool.run(|| {
+            let mut map = LpBTreeMap::new();
+            map.try_insert(1, 10)?;
+            map.try_insert(2, 20)?;
+            
+            if let Some(val) = map.get_mut(&1) {
+                *val = 100;
+            }
+            
+            assert_eq!(map.get(&1), Some(&100));
+            assert_eq!(map.get(&2), Some(&20));
             Ok::<(), AllocError>(())
         }).unwrap();
     }
