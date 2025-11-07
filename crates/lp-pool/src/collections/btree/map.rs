@@ -8,6 +8,12 @@ use super::super::meta::AllocationMeta;
 /// Pool-backed BTreeMap implementation
 /// 
 /// Uses a binary search tree structure (simplified B-tree) with nodes allocated from the pool.
+/// 
+/// **Note**: This is a simplified implementation using a binary search tree, not a true B-tree.
+/// For balanced performance, consider using a proper B-tree implementation. This implementation
+/// maintains ordering but may degrade to O(n) performance with unbalanced data.
+/// 
+/// All nodes are allocated from the active memory pool via `with_active_pool()`.
 pub struct PoolBTreeMap<K, V>
 where
     K: Ord,

@@ -4,6 +4,32 @@ use crate::error::AllocError;
 use crate::memory_pool::with_active_pool;
 
 /// Wrapper that implements `Allocator` trait for the thread-local pool
+/// 
+/// This wrapper allows the pool allocator to be used with collections that support
+/// the `allocator-api2` trait, such as `alloc::vec::Vec` with custom allocators.
+/// 
+/// # Example
+/// 
+/// ```rust,no_run
+/// use lp_pool::{LpMemoryPool, PoolAllocatorWrapper};
+/// use core::ptr::NonNull;
+/// use allocator_api2::alloc::Allocator;
+/// 
+/// let mut memory = [0u8; 4096];
+/// let memory_ptr = NonNull::new(memory.as_mut_ptr()).unwrap();
+/// let pool = unsafe { LpMemoryPool::new(memory_ptr, 4096, 64).unwrap() };
+/// 
+/// pool.run(|| {
+///     let allocator = PoolAllocatorWrapper;
+///     let layout = core::alloc::Layout::from_size_align(32, 8).unwrap();
+///     let ptr = allocator.allocate(layout)?;
+///     // Use ptr...
+///     unsafe {
+///         allocator.deallocate(NonNull::new(ptr.as_ptr() as *mut u8).unwrap(), layout);
+///     }
+///     Ok::<(), lp_pool::AllocError>(())
+/// }).unwrap();
+/// ```
 pub struct PoolAllocatorWrapper;
 
 unsafe impl Allocator for PoolAllocatorWrapper {
@@ -132,4 +158,3 @@ mod tests {
         }).unwrap();
     }
 }
-
