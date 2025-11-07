@@ -55,16 +55,14 @@ where
     
     pub fn try_insert(&mut self, key: K, value: V) -> Result<Option<V>, AllocError> {
         if let Some(root) = self.root {
-            unsafe {
-                match Self::insert_node(root, key, value)? {
-                    (None, increment) => {
-                        if increment {
-                            self.len += 1;
-                        }
-                        Ok(None)
+            match Self::insert_node(root, key, value)? {
+                (None, increment) => {
+                    if increment {
+                        self.len += 1;
                     }
-                    (Some(old_value), _) => Ok(Some(old_value)),
+                    Ok(None)
                 }
+                (Some(old_value), _) => Ok(Some(old_value)),
             }
         } else {
             let node = Node::allocate(key, value)?;
@@ -74,16 +72,16 @@ where
         }
     }
     
-    unsafe fn insert_node(
+    fn insert_node(
         node_ptr: NonNull<Node<K, V>>,
         key: K,
         value: V,
     ) -> Result<(Option<V>, bool), AllocError> {
-        let node = &mut *node_ptr.as_ptr();
+        let node = unsafe { &mut *node_ptr.as_ptr() };
         match key.cmp(node.key()) {
             core::cmp::Ordering::Equal => {
                 // Replace existing value
-                let old_value = core::ptr::replace(node.value_mut(), value);
+                let old_value = unsafe { core::ptr::replace(node.value_mut(), value) };
                 Ok((Some(old_value), false))
             }
             core::cmp::Ordering::Less => {
