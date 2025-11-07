@@ -2,8 +2,13 @@ use alloc::collections::BTreeMap;
 use crate::error::AllocError;
 
 /// Pool-backed BTreeMap
+/// 
+/// Note: Currently wraps `alloc::collections::BTreeMap` which uses the global allocator.
+/// Metadata tracking will not be accurate until a custom pool-backed implementation is added.
 pub struct PoolBTreeMap<K, V> {
     map: BTreeMap<K, V>,
+    #[cfg(feature = "alloc-meta")]
+    scope: Option<&'static str>,
 }
 
 impl<K, V> PoolBTreeMap<K, V>
@@ -13,7 +18,27 @@ where
     pub fn new() -> Self {
         PoolBTreeMap {
             map: BTreeMap::new(),
+            #[cfg(feature = "alloc-meta")]
+            scope: None,
         }
+    }
+    
+    /// Create a new PoolBTreeMap with a scope identifier for metadata tracking
+    /// 
+    /// Note: Metadata tracking is not currently accurate as this wraps the global allocator.
+    /// Accurate tracking will be available when a custom pool-backed implementation is added.
+    #[cfg(feature = "alloc-meta")]
+    pub fn new_with_scope(scope: Option<&'static str>) -> Self {
+        PoolBTreeMap {
+            map: BTreeMap::new(),
+            scope,
+        }
+    }
+    
+    /// Create a new PoolBTreeMap with a scope identifier for metadata tracking
+    #[cfg(not(feature = "alloc-meta"))]
+    pub fn new_with_scope(_scope: Option<&'static str>) -> Self {
+        Self::new()
     }
     
     pub fn try_insert(&mut self, key: K, value: V) -> Result<Option<V>, AllocError> {
@@ -88,6 +113,14 @@ mod tests {
         
         assert_eq!(map.get(&String::from("a")), Some(&1));
         assert_eq!(map.get(&String::from("b")), Some(&2));
+    }
+    
+    #[cfg(feature = "alloc-meta")]
+    #[test]
+    fn test_btree_map_with_scope() {
+        let mut map = PoolBTreeMap::new_with_scope(Some("test_scope"));
+        map.try_insert(1, 10).unwrap();
+        assert_eq!(map.get(&1), Some(&10));
     }
 }
 

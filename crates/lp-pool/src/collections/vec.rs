@@ -3,12 +3,17 @@ use core::ptr::NonNull;
 use crate::error::AllocError;
 use crate::memory_pool::with_active_pool;
 
+#[cfg(feature = "alloc-meta")]
+use super::meta::{AllocationMeta, record_allocation_meta, remove_allocation_meta};
+
 /// Pool-backed Vec
 pub struct PoolVec<T> {
     data: NonNull<u8>,
     len: usize,
     capacity: usize,
     _marker: core::marker::PhantomData<T>,
+    #[cfg(feature = "alloc-meta")]
+    scope: Option<&'static str>,
 }
 
 impl<T> PoolVec<T> {
@@ -18,7 +23,27 @@ impl<T> PoolVec<T> {
             len: 0,
             capacity: 0,
             _marker: core::marker::PhantomData,
+            #[cfg(feature = "alloc-meta")]
+            scope: None,
         }
+    }
+    
+    /// Create a new PoolVec with a scope identifier for metadata tracking
+    #[cfg(feature = "alloc-meta")]
+    pub fn new_with_scope(scope: Option<&'static str>) -> Self {
+        PoolVec {
+            data: NonNull::dangling(),
+            len: 0,
+            capacity: 0,
+            _marker: core::marker::PhantomData,
+            scope,
+        }
+    }
+    
+    /// Create a new PoolVec with a scope identifier for metadata tracking
+    #[cfg(not(feature = "alloc-meta"))]
+    pub fn new_with_scope(_scope: Option<&'static str>) -> Self {
+        Self::new()
     }
     
     pub fn try_push(&mut self, item: T) -> Result<(), AllocError> {
@@ -44,6 +69,12 @@ impl<T> PoolVec<T> {
         let layout = Layout::array::<T>(new_cap)
             .map_err(|_| AllocError::InvalidLayout)?;
         
+        #[cfg(feature = "alloc-meta")]
+        let meta = AllocationMeta {
+            type_name: core::any::type_name::<T>(),
+            scope: self.scope,
+        };
+        
         with_active_pool(|pool| {
             let new_data = pool.allocate(layout)?;
             let new_ptr = NonNull::new(new_data.as_ptr() as *mut u8).unwrap();
@@ -60,9 +91,20 @@ impl<T> PoolVec<T> {
             // Deallocate old data if any
             if self.capacity > 0 {
                 let old_layout = Layout::array::<T>(self.capacity).unwrap();
+                
+                #[cfg(feature = "alloc-meta")]
+                {
+                    remove_allocation_meta(meta, old_layout.size());
+                }
+                
                 unsafe {
                     pool.deallocate(self.data, old_layout);
                 }
+            }
+            
+            #[cfg(feature = "alloc-meta")]
+            {
+                record_allocation_meta(meta, layout.size());
             }
             
             self.data = new_ptr;
@@ -106,6 +148,30 @@ impl<T> PoolVec<T> {
                 self.data.as_ptr() as *const T,
                 self.len,
             )
+        }
+    }
+}
+
+impl<T> Drop for PoolVec<T> {
+    fn drop(&mut self) {
+        if self.capacity > 0 {
+            let layout = Layout::array::<T>(self.capacity).unwrap();
+            
+            #[cfg(feature = "alloc-meta")]
+            {
+                let meta = AllocationMeta {
+                    type_name: core::any::type_name::<T>(),
+                    scope: self.scope,
+                };
+                remove_allocation_meta(meta, layout.size());
+            }
+            
+            let _ = with_active_pool(|pool| {
+                unsafe {
+                    pool.deallocate(self.data, layout);
+                }
+                Ok::<(), AllocError>(())
+            });
         }
     }
 }
@@ -228,6 +294,19 @@ mod tests {
             vec.try_push(1)?;
             assert_eq!(vec.capacity(), old_cap);
             
+            Ok::<(), AllocError>(())
+        }).unwrap();
+    }
+    
+    #[cfg(feature = "alloc-meta")]
+    #[test]
+    fn test_vec_with_scope() {
+        let pool = setup_pool();
+        pool.run(|| {
+            let mut vec = PoolVec::<i32>::new_with_scope(Some("test_scope"));
+            vec.try_push(1)?;
+            vec.try_push(2)?;
+            assert_eq!(vec.len(), 2);
             Ok::<(), AllocError>(())
         }).unwrap();
     }

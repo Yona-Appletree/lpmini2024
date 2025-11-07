@@ -13,6 +13,20 @@ impl PoolString {
         }
     }
     
+    /// Create a new PoolString with a scope identifier for metadata tracking
+    #[cfg(feature = "alloc-meta")]
+    pub fn new_with_scope(scope: Option<&'static str>) -> Self {
+        PoolString {
+            vec: PoolVec::new_with_scope(scope),
+        }
+    }
+    
+    /// Create a new PoolString with a scope identifier for metadata tracking
+    #[cfg(not(feature = "alloc-meta"))]
+    pub fn new_with_scope(_scope: Option<&'static str>) -> Self {
+        Self::new()
+    }
+    
     pub fn try_push_str(&mut self, s: &str) -> Result<(), AllocError> {
         for byte in s.bytes() {
             self.vec.try_push(byte)?;
@@ -96,6 +110,18 @@ mod tests {
             s.try_push_str("")?;
             assert_eq!(s.len(), 0);
             assert_eq!(s.as_str(), "");
+            Ok::<(), AllocError>(())
+        }).unwrap();
+    }
+    
+    #[cfg(feature = "alloc-meta")]
+    #[test]
+    fn test_string_with_scope() {
+        let pool = setup_pool();
+        pool.run(|| {
+            let mut s = PoolString::new_with_scope(Some("test_scope"));
+            s.try_push_str("hello")?;
+            assert_eq!(s.as_str(), "hello");
             Ok::<(), AllocError>(())
         }).unwrap();
     }
