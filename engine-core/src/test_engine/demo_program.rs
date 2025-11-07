@@ -87,7 +87,7 @@ pub fn create_demo_scene(width: usize, height: usize) -> SceneConfig {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use lp_script::math::Fixed;
+    use lp_script::fixed::Fixed;
 
     #[test]
     fn test_simple_white() {

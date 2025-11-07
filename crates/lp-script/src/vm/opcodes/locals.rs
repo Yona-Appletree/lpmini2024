@@ -2,7 +2,7 @@
 use crate::vm::error::LpsVmError;
 use crate::vm::local_stack::LocalStack;
 use crate::vm::value_stack::ValueStack;
-use crate::math::Fixed;
+use crate::fixed::Fixed;
 
 /// Execute LoadLocalFixed: pop nothing; push local[idx]
 #[inline(always)]
@@ -129,7 +129,7 @@ mod tests {
     use super::*;
     use crate::shared::Type;
     use crate::vm::lps_program::LocalVarDef;
-    use crate::math::ToFixed;
+    use crate::fixed::ToFixed;
 
     #[test]
     fn test_load_store_fixed() {

@@ -1,9 +1,9 @@
-/// Advanced fixed-point math opcodes
+/// Advanced fixed-point fixed opcodes
 use crate::vm::error::LpsVmError;
 use crate::vm::value_stack::ValueStack;
-use crate::math::noise::perlin3;
-use crate::math::Fixed;
-use crate::math::{atan, atan2, fract, lerp, modulo, pow, saturate, sign, smoothstep, step, tan};
+use crate::fixed::noise::perlin3;
+use crate::fixed::Fixed;
+use crate::fixed::{atan, atan2, fract, lerp, modulo, pow, saturate, sign, smoothstep, step, tan};
 
 #[inline(always)]
 pub fn exec_tan_fixed(stack: &mut ValueStack) -> Result<(), LpsVmError> {

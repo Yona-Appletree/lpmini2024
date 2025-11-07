@@ -5,7 +5,7 @@ mod tests {
     use crate::compiler::stmt::stmt_test_util::ScriptTest;
     use crate::shared::Type;
     use crate::vm::opcodes::LpsOpCode;
-    use crate::math::ToFixed;
+    use crate::fixed::ToFixed;
 
     #[test]
     fn test_expr_stmt_with_side_effect() -> Result<(), String> {

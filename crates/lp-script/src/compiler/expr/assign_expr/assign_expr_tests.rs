@@ -5,7 +5,7 @@ mod tests {
     use crate::compiler::expr::expr_test_util::ExprTest;
     
     use crate::shared::Type;
-    use crate::math::{ToFixed, Vec2, Vec3, Vec4};
+    use crate::fixed::{ToFixed, Vec2, Vec3, Vec4};
 
     #[test]
     fn test_simple_assignment() {

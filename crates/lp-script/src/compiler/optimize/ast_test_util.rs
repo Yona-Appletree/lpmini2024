@@ -12,7 +12,7 @@ use crate::compiler::expr::expr_test_util::ast_eq_ignore_spans_with_pool;
 use crate::compiler::{codegen, lexer, parser, typechecker};
 use crate::shared::Type;
 use crate::vm::{FunctionDef, LpsProgram, LpsVm, VmLimits};
-use crate::math::{Fixed, ToFixed};
+use crate::fixed::{Fixed, ToFixed};
 
 /// Type alias for optimization pass functions (pool-based)
 /// Takes ownership of pool and returns both new ExprId and pool

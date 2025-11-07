@@ -1,7 +1,7 @@
 /// Int32 comparison opcodes
 use crate::vm::error::LpsVmError;
 use crate::vm::value_stack::ValueStack;
-use crate::math::FIXED_ONE;
+use crate::fixed::FIXED_ONE;
 
 /// Execute GreaterEqInt32: pop b, a; push (a >= b ? 1.0 : 0.0)
 #[inline(always)]

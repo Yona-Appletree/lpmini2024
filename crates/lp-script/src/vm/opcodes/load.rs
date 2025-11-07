@@ -1,7 +1,7 @@
 /// Load coordinate/builtin variable operations
 use crate::vm::error::LpsVmError;
 use crate::vm::value_stack::ValueStack;
-use crate::math::{Fixed, FIXED_ONE, FIXED_SHIFT};
+use crate::fixed::{Fixed, FIXED_ONE, FIXED_SHIFT};
 
 /// Load source specifier for built-in variables
 #[derive(Debug, Clone, Copy, PartialEq)]
@@ -115,7 +115,7 @@ pub fn exec_load(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::math::ToFixed;
+    use crate::fixed::ToFixed;
 
     #[test]
     fn test_load_x_norm() {

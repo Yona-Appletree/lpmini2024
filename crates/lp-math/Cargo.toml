@@ -1,0 +1,6 @@
+[package]
+name = "lp-math"
+version.workspace = true
+edition.workspace = true
+
+[dependencies]

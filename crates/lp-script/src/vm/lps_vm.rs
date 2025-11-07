@@ -2,7 +2,7 @@ use alloc::vec::Vec;
 use crate::{LocalStack, LpsProgram, LpsVmError, RuntimeErrorWithContext};
 use crate::vm::{CallStack, ValueStack};
 use crate::vm::vm_limits::VmLimits;
-use crate::math::{Fixed, Vec2, Vec3, Vec4};
+use crate::fixed::{Fixed, Vec2, Vec3, Vec4};
 
 /// LightPlayer Script Virtual Machine
 ///

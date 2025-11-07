@@ -6,7 +6,7 @@ mod tests {
     use crate::vm::lps_vm::LpsVm;
     use crate::vm::opcodes::LpsOpCode;
     use crate::vm::vm_limits::VmLimits;
-    use crate::math::ToFixed;
+    use crate::fixed::ToFixed;
 
     #[test]
     fn test_var_decl_with_init() -> Result<(), String> {
@@ -302,7 +302,7 @@ mod tests {
 mod variable_integration_tests {
     use crate::vm::vm_limits::VmLimits;
     use crate::*;
-    use crate::math::Fixed;
+    use crate::fixed::Fixed;
 
     #[test]
     fn test_variable_mutation() {

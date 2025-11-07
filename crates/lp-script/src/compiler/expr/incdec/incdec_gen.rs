@@ -4,7 +4,7 @@ extern crate alloc;
 use crate::compiler::codegen::CodeGenerator;
 use crate::shared::Type;
 use crate::vm::opcodes::LpsOpCode;
-use crate::math::ToFixed;
+use crate::fixed::ToFixed;
 use alloc::string::String;
 
 impl<'a> CodeGenerator<'a> {
@@ -16,7 +16,7 @@ impl<'a> CodeGenerator<'a> {
 
         // Push 1 (Fixed or Int32)
         match var_ty {
-            Type::Fixed => self.code.push(LpsOpCode::Push(1.0.to_fixed())),
+            Type::Fixed => self.code.push(LpsOpCode::Push(1.0f32.to_fixed())),
             Type::Int32 => self.code.push(LpsOpCode::PushInt32(1)),
             _ => {} // Shouldn't happen, type checker prevents this
         }
@@ -42,7 +42,7 @@ impl<'a> CodeGenerator<'a> {
 
         // Push 1 (Fixed or Int32)
         match var_ty {
-            Type::Fixed => self.code.push(LpsOpCode::Push(1.0.to_fixed())),
+            Type::Fixed => self.code.push(LpsOpCode::Push(1.0f32.to_fixed())),
             Type::Int32 => self.code.push(LpsOpCode::PushInt32(1)),
             _ => {}
         }
@@ -71,7 +71,7 @@ impl<'a> CodeGenerator<'a> {
 
         // Push 1 (Fixed or Int32)
         match var_ty {
-            Type::Fixed => self.code.push(LpsOpCode::Push(1.0.to_fixed())),
+            Type::Fixed => self.code.push(LpsOpCode::Push(1.0f32.to_fixed())),
             Type::Int32 => self.code.push(LpsOpCode::PushInt32(1)),
             _ => {}
         }
@@ -97,7 +97,7 @@ impl<'a> CodeGenerator<'a> {
 
         // Push 1 (Fixed or Int32)
         match var_ty {
-            Type::Fixed => self.code.push(LpsOpCode::Push(1.0.to_fixed())),
+            Type::Fixed => self.code.push(LpsOpCode::Push(1.0f32.to_fixed())),
             Type::Int32 => self.code.push(LpsOpCode::PushInt32(1)),
             _ => {}
         }

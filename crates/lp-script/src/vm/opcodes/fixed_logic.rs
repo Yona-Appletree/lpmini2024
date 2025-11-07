@@ -1,7 +1,7 @@
 /// Fixed-point logical operations (boolean logic on Fixed values)
 use crate::vm::error::LpsVmError;
 use crate::vm::value_stack::ValueStack;
-use crate::math::Fixed;
+use crate::fixed::Fixed;
 
 /// Execute AndFixed: pop b, a; push (a && b) as Fixed
 #[inline(always)]
@@ -33,7 +33,7 @@ pub fn exec_not_fixed(stack: &mut ValueStack) -> Result<(), LpsVmError> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::math::ToFixed;
+    use crate::fixed::ToFixed;
 
     #[test]
     fn test_and_true() {

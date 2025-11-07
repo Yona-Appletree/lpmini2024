@@ -9,7 +9,7 @@ pub mod value_stack;
 pub mod vm_dispatch;
 pub mod vm_limits;
 
-use crate::math::Fixed;
+use crate::fixed::Fixed;
 pub use call_stack::{CallFrame, CallStack};
 pub use error::{LpsVmError, RuntimeErrorWithContext};
 pub use local_stack::LocalStack;
@@ -50,7 +50,7 @@ pub fn execute_program_lps(
         for x in 0..width {
             // Calculate normalized coordinates (0..1 range)
             // Add 0.5 to center pixels (x + 0.5, y + 0.5)
-            // Use fixed-point arithmetic throughout to avoid float math
+            // Use fixed-point arithmetic throughout to avoid float fixed
             let x_plus_half = Fixed::from_i32(x as i32) + Fixed::HALF;
             let x_norm = x_plus_half / Fixed::from_i32(width as i32);
             let y_plus_half = Fixed::from_i32(y as i32) + Fixed::HALF;

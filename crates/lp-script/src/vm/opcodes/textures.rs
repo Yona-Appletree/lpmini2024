@@ -1,7 +1,7 @@
 /// Texture sampling opcodes (stub implementations)
 use crate::vm::error::LpsVmError;
 use crate::vm::value_stack::ValueStack;
-use crate::math::Fixed;
+use crate::fixed::Fixed;
 
 /// Execute TextureSampleR: pop 2 Fixed (UV), push 1 Fixed (R)
 /// Stub implementation - returns 0.5
@@ -42,7 +42,7 @@ pub fn exec_texture_sample_rgba(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::math::ToFixed;
+    use crate::fixed::ToFixed;
 
     #[test]
     fn test_texture_sample_r_stub() {

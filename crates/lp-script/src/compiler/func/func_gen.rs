@@ -58,7 +58,7 @@ pub fn gen_user_function(
         if ast_func.return_type == Type::Void {
             func_code.push(LpsOpCode::Return);
         } else {
-            func_code.push(LpsOpCode::Push(crate::math::Fixed::ZERO));
+            func_code.push(LpsOpCode::Push(crate::fixed::Fixed::ZERO));
             func_code.push(LpsOpCode::Return);
         }
     }

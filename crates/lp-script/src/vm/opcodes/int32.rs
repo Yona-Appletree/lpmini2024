@@ -1,7 +1,7 @@
 /// Int32 arithmetic and bitwise operations
 use crate::vm::error::LpsVmError;
 use crate::vm::value_stack::ValueStack;
-use crate::math::FIXED_ONE;
+use crate::fixed::FIXED_ONE;
 
 // === Arithmetic Operations ===
 
@@ -167,7 +167,7 @@ pub fn exec_right_shift_int32(stack: &mut ValueStack) -> Result<(), LpsVmError> 
 pub fn exec_int32_to_fixed(stack: &mut ValueStack) -> Result<(), LpsVmError> {
     let a = stack.pop_int32()?;
     // Convert from raw int32 to Fixed format by shifting left
-    stack.push_fixed(crate::math::Fixed::from_i32(a))?;
+    stack.push_fixed(crate::fixed::Fixed::from_i32(a))?;
     Ok(())
 }
 

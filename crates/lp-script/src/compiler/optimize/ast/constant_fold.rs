@@ -5,8 +5,8 @@ extern crate alloc;
 
 use crate::compiler::ast::{AstPool, ExprId, ExprKind};
 
-// Import fixed-point math for compile-time constant evaluation
-use crate::math::{ceil, cos, floor, saturate, sin, sqrt, tan, Fixed};
+// Import fixed-point fixed for compile-time constant evaluation
+use crate::fixed::{ceil, cos, floor, saturate, sin, sqrt, tan, Fixed};
 
 // Import libm for pow (not yet implemented in fixed-point)
 use libm::powf;
@@ -282,7 +282,7 @@ pub fn fold_constants(expr_id: ExprId, pool: AstPool) -> (ExprId, AstPool) {
             }
         }
 
-        // Binary math functions (min, max, pow, mod)
+        // Binary fixed functions (min, max, pow, mod)
         ExprKind::Call { ref name, ref args } if args.len() == 2 => {
             let arg1_id = args[0];
             let arg2_id = args[1];
@@ -332,7 +332,7 @@ pub fn fold_constants(expr_id: ExprId, pool: AstPool) -> (ExprId, AstPool) {
             }
         }
 
-        // Ternary math functions (clamp, lerp, smoothstep)
+        // Ternary fixed functions (clamp, lerp, smoothstep)
         ExprKind::Call { ref name, ref args } if args.len() == 3 => {
             let arg1_id = args[0];
             let arg2_id = args[1];
@@ -383,13 +383,13 @@ pub fn fold_constants(expr_id: ExprId, pool: AstPool) -> (ExprId, AstPool) {
             }
         }
 
-        // Unary math functions (sin, cos, etc.)
+        // Unary fixed functions (sin, cos, etc.)
         ExprKind::Call { ref name, ref args } if args.len() == 1 => {
             let arg_id = args[0];
             let (new_arg, mut pool2) = fold_constants(arg_id, pool);
 
             if let ExprKind::Number(n) = &pool2.expr(new_arg).kind {
-                // Convert to fixed-point for math operations
+                // Convert to fixed-point for fixed operations
                 let fixed_arg = Fixed::from_f32(*n);
                 let result_fixed = match name.as_str() {
                     "sin" => sin(fixed_arg),

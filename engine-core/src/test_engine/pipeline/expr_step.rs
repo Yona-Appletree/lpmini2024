@@ -5,7 +5,7 @@ use super::{BufferFormat, BufferRef, PipelineError};
 use lp_script::shared::Type;
 use lp_script::vm::{execute_program_lps, execute_program_lps_vec3};
 use lp_script::LpsProgram;
-use lp_script::math::Fixed;
+use lp_script::fixed::Fixed;
 use alloc::vec;
 
 /// Validate that the program's return type matches the expected buffer format

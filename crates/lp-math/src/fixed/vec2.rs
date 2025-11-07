@@ -66,7 +66,7 @@ impl Vec2 {
     /// Length (magnitude)
     #[inline(always)]
     pub fn length(self) -> Fixed {
-        use super::advanced::sqrt;
+        use crate::fixed::advanced::sqrt;
         sqrt(self.length_squared())
     }
 

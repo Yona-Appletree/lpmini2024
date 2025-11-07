@@ -15,7 +15,7 @@ use crate::shared::Type;
 use crate::vm::lps_vm::LpsVm;
 use crate::vm::vm_limits::VmLimits;
 use crate::vm::{LpsOpCode, LpsProgram};
-use crate::math::{Fixed, ToFixed, Vec2, Vec3, Vec4};
+use crate::fixed::{Fixed, ToFixed, Vec2, Vec3, Vec4};
 
 /// Builder for testing expressions through the compilation pipeline
 ///

@@ -5,7 +5,7 @@ mod tests {
     
     use crate::shared::Type;
     use crate::vm::opcodes::LpsOpCode;
-    use crate::math::{ToFixed, Vec2};
+    use crate::fixed::{ToFixed, Vec2};
 
     #[test]
     fn test_swizzle_single_component_x() -> Result<(), String> {

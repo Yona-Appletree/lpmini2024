@@ -5,7 +5,7 @@ mod tests {
     
     
     use crate::vm::opcodes::LpsOpCode;
-    use crate::math::{ToFixed, Vec2, Vec3, Vec4};
+    use crate::fixed::{ToFixed, Vec2, Vec3, Vec4};
 
     #[test]
     fn test_vec2_constructor() -> Result<(), String> {

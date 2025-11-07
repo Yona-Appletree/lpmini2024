@@ -1,9 +1,9 @@
 pub mod advanced;
 pub mod clamping;
 pub mod conversions;
-/// Fixed-point math library
+/// Fixed-point fixed library
 ///
-/// Provides clean APIs for fixed-point arithmetic and math functions.
+/// Provides clean APIs for fixed-point arithmetic and fixed functions.
 ///
 /// # Core Types
 /// - `Fixed` - 16.16 fixed-point integer
@@ -16,7 +16,7 @@ pub mod conversions;
 /// # Conversions
 /// Use the `ToFixed` trait for ergonomic conversions:
 /// ```
-/// use engine_core::math::ToFixed;
+/// use engine_core::fixed::ToFixed;
 /// let a = 5i32.to_fixed();
 /// let b = 1.5f32.to_fixed();
 /// ```
@@ -45,6 +45,7 @@ pub mod trig;
 pub mod vec2;
 pub mod vec3;
 pub mod vec4;
+pub mod sin_table;
 
 // Re-export commonly used items at module level
 pub use conversions::ToFixed;
@@ -53,8 +54,8 @@ pub use vec2::Vec2;
 pub use vec3::Vec3;
 pub use vec4::Vec4;
 
-// Re-export math utilities
-pub use advanced::{atan, atan2, fract, modulo, pow, sqrt};
+// Re-export fixed utilities
+pub use crate::fixed::advanced::{atan, atan2, fract, modulo, pow, sqrt};
 pub use clamping::{saturate, sign};
 pub use interpolation::{lerp, smoothstep, step};
 pub use rounding::{ceil, floor, frac};

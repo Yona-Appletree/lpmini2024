@@ -5,7 +5,7 @@ mod tests {
     
     use crate::shared::Type;
     use crate::vm::opcodes::LpsOpCode;
-    use crate::math::ToFixed;
+    use crate::fixed::ToFixed;
 
     #[test]
     fn test_ternary_basic() -> Result<(), String> {
@@ -86,7 +86,7 @@ mod tests {
 
     // #[test]
     // fn test_ternary_vec2_result_true() -> Result<(), String> {
-    //     use crate::math::Vec2;
+    //     use crate::fixed::Vec2;
     //     ExprTest::new("x > 0.5 ? vec2(1.0, 0.0) : vec2(0.0, 1.0)")
     //         .with_x(0.7)
     //         .expect_result_vec2(Vec2::new(1.0.to_fixed(), 0.0.to_fixed()))

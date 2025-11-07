@@ -1,4 +1,4 @@
-/// 4D vector for fixed-point math (useful for RGBA colors and homogeneous coordinates)
+/// 4D vector for fixed-point fixed (useful for RGBA colors and homogeneous coordinates)
 use super::conversions::ToFixed;
 use super::fixed::Fixed;
 use super::vec2::Vec2;
@@ -64,7 +64,7 @@ impl Vec4 {
     /// Length
     #[inline(always)]
     pub fn length(self) -> Fixed {
-        use super::advanced::sqrt;
+        use crate::fixed::advanced::sqrt;
         sqrt(self.length_squared())
     }
 

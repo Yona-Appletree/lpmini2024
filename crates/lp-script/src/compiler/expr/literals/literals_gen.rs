@@ -3,7 +3,7 @@ extern crate alloc;
 
 use crate::compiler::codegen::CodeGenerator;
 use crate::vm::opcodes::LpsOpCode;
-use crate::math::ToFixed;
+use crate::fixed::ToFixed;
 
 impl<'a> CodeGenerator<'a> {
     pub(crate) fn gen_number(&mut self, n: f32) {

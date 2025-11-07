@@ -1,6 +1,6 @@
 /// Trigonometric functions using lookup tables
 use super::fixed::Fixed;
-use crate::sin_table::SIN_TABLE_I32 as SIN_TABLE;
+use crate::fixed::sin_table::SIN_TABLE_I32 as SIN_TABLE;
 
 /// Sine function using lookup table
 /// Input: Radians (GLSL-compatible: 2π = full circle)

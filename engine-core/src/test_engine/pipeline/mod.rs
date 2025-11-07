@@ -2,7 +2,7 @@
 extern crate alloc;
 use alloc::vec::Vec;
 
-use lp_script::math::Fixed;
+use lp_script::fixed::Fixed;
 use super::palette::Palette;
 use super::power_limit::PowerLimitConfig;
 use lp_script::LpsProgram;

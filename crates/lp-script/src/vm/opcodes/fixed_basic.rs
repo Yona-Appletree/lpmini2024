@@ -1,9 +1,9 @@
 /// Basic fixed-point arithmetic opcodes with error handling
 use crate::vm::error::LpsVmError;
 use crate::vm::value_stack::ValueStack;
-use crate::math::Fixed;
-use crate::math::{ceil, floor, sqrt};
-use crate::math::trig::{cos, sin};
+use crate::fixed::Fixed;
+use crate::fixed::{ceil, floor, sqrt};
+use crate::fixed::trig::{cos, sin};
 
 /// Execute AddFixed: pop b, a; push a + b
 #[inline(always)]
@@ -123,7 +123,7 @@ pub fn exec_ceil_fixed(stack: &mut ValueStack) -> Result<(), LpsVmError> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::math::ToFixed;
+    use crate::fixed::ToFixed;
 
     #[test]
     fn test_add() {

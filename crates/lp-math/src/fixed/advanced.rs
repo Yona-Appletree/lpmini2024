@@ -1,5 +1,5 @@
-/// Advanced math functions for fixed-point numbers
-use super::fixed::Fixed;
+/// Advanced fixed functions for fixed-point numbers
+use crate::fixed::fixed::Fixed;
 
 /// Modulo operation (GLSL-compatible: sign follows dividend)
 #[inline]

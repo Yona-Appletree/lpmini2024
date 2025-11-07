@@ -5,7 +5,7 @@ mod tests {
     use crate::compiler::stmt::stmt_test_util::ScriptTest;
     use crate::shared::Type;
     use crate::vm::opcodes::LpsOpCode;
-    use crate::math::ToFixed;
+    use crate::fixed::ToFixed;
 
     #[test]
     fn test_simple_block() -> Result<(), String> {
@@ -119,7 +119,7 @@ mod tests {
 mod scoping_integration_tests {
     use crate::vm::vm_limits::VmLimits;
     use crate::*;
-    use crate::math::Fixed;
+    use crate::fixed::Fixed;
 
     #[test]
     fn test_block_scoping() {

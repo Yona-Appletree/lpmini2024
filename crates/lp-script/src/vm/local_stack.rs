@@ -6,7 +6,7 @@ use alloc::vec::Vec;
 use super::error::LpsVmError;
 use super::lps_program::LocalVarDef;
 use crate::shared::Type;
-use crate::math::Fixed;
+use crate::fixed::Fixed;
 
 impl LocalStack {
     /// Create new locals storage with the given capacity (in i32 units)
@@ -460,7 +460,7 @@ pub struct LocalStack {
 mod tests {
     use super::*;
     use crate::vm::lps_program::LocalVarDef;
-    use crate::math::ToFixed;
+    use crate::fixed::ToFixed;
 
     #[test]
     fn test_locals_storage_creation() {

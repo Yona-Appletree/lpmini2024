@@ -1,4 +1,4 @@
-/// 3D vector for fixed-point math
+/// 3D vector for fixed-point fixed
 use super::conversions::ToFixed;
 use super::fixed::Fixed;
 use super::vec2::Vec2;
@@ -70,7 +70,7 @@ impl Vec3 {
     /// Length
     #[inline(always)]
     pub fn length(self) -> Fixed {
-        use super::advanced::sqrt;
+        use crate::fixed::advanced::sqrt;
         sqrt(self.length_squared())
     }
 

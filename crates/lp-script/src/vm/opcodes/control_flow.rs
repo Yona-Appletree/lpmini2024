@@ -7,7 +7,7 @@ use crate::vm::error::LpsVmError;
 use crate::vm::local_stack::LocalStack;
 use crate::vm::lps_program::LpsProgram;
 use crate::vm::value_stack::ValueStack;
-use crate::math::Fixed;
+use crate::fixed::Fixed;
 
 /// Action to take after executing Return opcode
 #[derive(Debug)]
@@ -142,7 +142,7 @@ pub fn exec_call(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::math::{Fixed, ToFixed};
+    use crate::fixed::{Fixed, ToFixed};
 
     #[test]
     fn test_select_true() {

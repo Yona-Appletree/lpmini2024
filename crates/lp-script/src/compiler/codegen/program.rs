@@ -78,7 +78,7 @@ pub fn gen_program_with_functions(
 
         // Add return if missing
         if !matches!(main_code.last(), Some(LpsOpCode::Return)) {
-            main_code.push(LpsOpCode::Push(crate::math::Fixed::ZERO));
+            main_code.push(LpsOpCode::Push(crate::fixed::Fixed::ZERO));
             main_code.push(LpsOpCode::Return);
         }
     }
@@ -146,7 +146,7 @@ pub fn gen_program(
 
         // If no explicit return, add one
         if !matches!(gen.code.last(), Some(LpsOpCode::Return)) {
-            gen.code.push(LpsOpCode::Push(crate::math::Fixed::ZERO));
+            gen.code.push(LpsOpCode::Push(crate::fixed::Fixed::ZERO));
             gen.code.push(LpsOpCode::Return);
         }
 

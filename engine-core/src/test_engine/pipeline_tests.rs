@@ -6,7 +6,7 @@ mod pipeline_tests {
         Palette, RuntimeOptions, FxPipeline,
     };
     use lp_script::parse_expr;
-    use lp_script::math::Fixed;
+    use lp_script::fixed::Fixed;
     
     #[test]
     fn test_simple_pipeline() {

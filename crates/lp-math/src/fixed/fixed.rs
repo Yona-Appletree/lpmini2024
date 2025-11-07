@@ -1,6 +1,6 @@
 /// Fixed-point arithmetic (16.16 format)
 ///
-/// Core type and conversion utilities for fixed-point math.
+/// Core type and conversion utilities for fixed-point fixed.
 use core::ops::{Add, Div, Mul, Neg, Sub};
 
 /// Fixed-point constants

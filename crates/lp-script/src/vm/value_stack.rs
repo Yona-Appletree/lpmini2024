@@ -4,7 +4,7 @@ use alloc::vec;
 use alloc::vec::Vec;
 
 use super::error::LpsVmError;
-use crate::math::{Fixed, Vec2, Vec3, Vec4};
+use crate::fixed::{Fixed, Vec2, Vec3, Vec4};
 
 /// VM Stack for LPS execution
 ///
@@ -565,7 +565,7 @@ impl ValueStack {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::math::ToFixed;
+    use crate::fixed::ToFixed;
 
     #[test]
     fn test_stack_creation() {

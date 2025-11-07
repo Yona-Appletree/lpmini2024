@@ -169,7 +169,7 @@ mod integration_tests {
     use crate::compile_script;
     use crate::vm::lps_vm::LpsVm;
     use crate::vm::vm_limits::VmLimits;
-    use crate::math::ToFixed;
+    use crate::fixed::ToFixed;
 
     #[test]
     fn test_bitwise_and_integration() {

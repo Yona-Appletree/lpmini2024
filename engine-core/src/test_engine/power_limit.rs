@@ -14,7 +14,7 @@ const fn generate_gamma_table() -> [u8; 256] {
     let mut i = 1;
     while i < 256 {
         // Approximation of gamma 2.2: (i/255)^2.2 * 255
-        // Using integer math with better precision
+        // Using integer fixed with better precision
         // Use (i * i * 256) / (255 * 255) to get more range
         let normalized = (i * i * 256) / (255 * 255);
         // Ensure non-zero inputs never become zero (preserve dim pixels)
@@ -49,7 +49,7 @@ impl Default for PowerLimitConfig {
     }
 }
 
-/// Apply brightness scaling to a single channel using fixed-point math
+/// Apply brightness scaling to a single channel using fixed-point fixed
 #[inline]
 fn apply_brightness(value: u8, brightness_256: u32) -> u8 {
     let scaled = (value as u32 * brightness_256) / 256;
@@ -104,7 +104,7 @@ pub fn apply_power_limit(leds: &mut [RGB8], config: &PowerLimitConfig) {
         .map(|led| calculate_led_power(*led, config.led_white_power_ma, config.led_idle_power_ma))
         .sum();
     
-    // Step 4: If over budget, scale down using integer math
+    // Step 4: If over budget, scale down using integer fixed
     if total_power_ma > config.power_budget_ma {
         // Use 16-bit fixed point: scale_factor_65536 = (budget * 65536) / total
         // This gives us more precision than 8-bit
@@ -150,7 +150,7 @@ pub fn apply_power_limit_to_bytes(bytes: &mut [u8], config: &PowerLimitConfig) {
         total_power_ma += calculate_led_power(led, config.led_white_power_ma, config.led_idle_power_ma);
     }
     
-    // Step 4: If over budget, scale down using integer math
+    // Step 4: If over budget, scale down using integer fixed
     if total_power_ma > config.power_budget_ma {
         let scale_factor_65536 = ((config.power_budget_ma as u64) << 16) / (total_power_ma as u64);
         

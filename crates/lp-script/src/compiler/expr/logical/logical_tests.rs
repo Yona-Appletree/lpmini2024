@@ -5,7 +5,7 @@ mod tests {
     
     
     use crate::vm::opcodes::LpsOpCode;
-    use crate::math::ToFixed;
+    use crate::fixed::ToFixed;
 
     #[test]
     fn test_logical_and() -> Result<(), String> {

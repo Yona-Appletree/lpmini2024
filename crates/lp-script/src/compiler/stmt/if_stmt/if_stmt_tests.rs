@@ -3,7 +3,7 @@
 mod tests {
     use crate::vm::vm_limits::VmLimits;
     use crate::*;
-    use crate::math::{Fixed, ToFixed};
+    use crate::fixed::{Fixed, ToFixed};
 
     #[test]
     fn test_if_without_else() {

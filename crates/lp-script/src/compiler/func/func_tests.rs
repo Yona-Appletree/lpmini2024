@@ -297,7 +297,7 @@ mod vector_function_tests {
     use crate::vm::vm_limits::VmLimits;
     use crate::{compile_script_with_options, OptimizeOptions};
     use crate::vm::lps_vm::LpsVm;
-    use crate::math::ToFixed;
+    use crate::fixed::ToFixed;
 
     // ========================================================================
     // Function Integration Tests - Vector Parameters
@@ -532,7 +532,7 @@ mod vector_function_tests {
 mod integration_tests {
     use crate::vm::vm_limits::VmLimits;
     use crate::*;
-    use crate::math::Fixed;
+    use crate::fixed::Fixed;
 
     #[test]
     fn test_function_no_params() {

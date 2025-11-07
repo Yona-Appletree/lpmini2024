@@ -3,7 +3,7 @@
 /// These return FIXED_ONE (1.0) for true, 0 for false to match GLSL semantics
 use crate::vm::error::LpsVmError;
 use crate::vm::value_stack::ValueStack;
-use crate::math::{Fixed, FIXED_ONE};
+use crate::fixed::{Fixed, FIXED_ONE};
 
 /// Execute GreaterFixed: pop b, a; push (a > b ? 1.0 : 0.0)
 #[inline(always)]
@@ -62,7 +62,7 @@ pub fn exec_not_eq_fixed(stack: &mut ValueStack) -> Result<(), LpsVmError> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::math::ToFixed;
+    use crate::fixed::ToFixed;
 
     #[test]
     fn test_greater() {

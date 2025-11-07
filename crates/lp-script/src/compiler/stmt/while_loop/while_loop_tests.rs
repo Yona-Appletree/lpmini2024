@@ -3,7 +3,7 @@
 mod tests {
     use crate::vm::vm_limits::VmLimits;
     use crate::*;
-    use crate::math::Fixed;
+    use crate::fixed::Fixed;
 
     #[test]
     fn test_while_loop_counter() {

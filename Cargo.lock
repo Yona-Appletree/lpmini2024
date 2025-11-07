@@ -1441,12 +1441,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "lp-math"
+version = "0.1.0"
+
+[[package]]
 name = "lp-script"
 version = "0.1.0"
 dependencies = [
- "fixed",
  "libm",
- "smart-leds",
+ "lp-math",
 ]
 
 [[package]]

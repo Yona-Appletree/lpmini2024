@@ -5,7 +5,7 @@ mod tests {
     
     use crate::shared::Type;
     use crate::vm::opcodes::LpsOpCode;
-    use crate::math::ToFixed;
+    use crate::fixed::ToFixed;
 
     #[test]
     fn test_float_literal() -> Result<(), String> {

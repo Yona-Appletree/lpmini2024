@@ -4,7 +4,7 @@ mod tests {
     use crate::compiler::expr::expr_test_util::ExprTest;
     
     use crate::vm::opcodes::LpsOpCode;
-    use crate::math::ToFixed;
+    use crate::fixed::ToFixed;
 
     // ========================================================================
     // Comprehensive tests - one per comparison operator

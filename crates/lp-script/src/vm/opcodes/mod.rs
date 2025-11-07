@@ -2,7 +2,7 @@
 ///
 /// Design: Hybrid approach - small constants (indices, offsets) embedded in opcodes,
 /// data values flow through stack.
-use crate::math::Fixed;
+use crate::fixed::Fixed;
 
 // Re-export LoadSource from load module
 pub use load::LoadSource;

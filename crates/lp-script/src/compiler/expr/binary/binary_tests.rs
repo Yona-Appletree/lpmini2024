@@ -5,7 +5,7 @@ mod tests {
     
     use crate::shared::Type;
     use crate::vm::opcodes::LpsOpCode;
-    use crate::math::ToFixed;
+    use crate::fixed::ToFixed;
 
     #[test]
     fn test_addition() -> Result<(), String> {
@@ -125,7 +125,7 @@ mod tests {
     // Vec2 + Vec2 (component-wise addition)
     #[test]
     fn test_vec2_addition() -> Result<(), String> {
-        use crate::math::Vec2;
+        use crate::fixed::Vec2;
         ExprTest::new("vec2(1.0, 2.0) + vec2(3.0, 4.0)")
             .expect_result_vec2(Vec2::new(4.0.to_fixed(), 6.0.to_fixed()))
             .run()
@@ -133,7 +133,7 @@ mod tests {
 
     #[test]
     fn test_vec3_addition() -> Result<(), String> {
-        use crate::math::Vec3;
+        use crate::fixed::Vec3;
         ExprTest::new("vec3(1.0, 2.0, 3.0) + vec3(4.0, 5.0, 6.0)")
             .expect_result_vec3(Vec3::new(5.0.to_fixed(), 7.0.to_fixed(), 9.0.to_fixed()))
             .run()
@@ -141,7 +141,7 @@ mod tests {
 
     #[test]
     fn test_vec4_addition() -> Result<(), String> {
-        use crate::math::Vec4;
+        use crate::fixed::Vec4;
         ExprTest::new("vec4(1.0, 2.0, 3.0, 4.0) + vec4(1.0, 1.0, 1.0, 1.0)")
             .expect_result_vec4(Vec4::new(
                 2.0.to_fixed(),
@@ -155,7 +155,7 @@ mod tests {
     // Vec - Vec (component-wise subtraction)
     #[test]
     fn test_vec2_subtraction() -> Result<(), String> {
-        use crate::math::Vec2;
+        use crate::fixed::Vec2;
         ExprTest::new("vec2(5.0, 8.0) - vec2(2.0, 3.0)")
             .expect_result_vec2(Vec2::new(3.0.to_fixed(), 5.0.to_fixed()))
             .run()
@@ -163,7 +163,7 @@ mod tests {
 
     #[test]
     fn test_vec3_subtraction() -> Result<(), String> {
-        use crate::math::Vec3;
+        use crate::fixed::Vec3;
         ExprTest::new("vec3(10.0, 20.0, 30.0) - vec3(1.0, 2.0, 3.0)")
             .expect_result_vec3(Vec3::new(9.0.to_fixed(), 18.0.to_fixed(), 27.0.to_fixed()))
             .run()
@@ -171,7 +171,7 @@ mod tests {
 
     #[test]
     fn test_vec4_subtraction() -> Result<(), String> {
-        use crate::math::Vec4;
+        use crate::fixed::Vec4;
         ExprTest::new("vec4(10.0, 9.0, 8.0, 7.0) - vec4(1.0, 2.0, 3.0, 4.0)")
             .expect_result_vec4(Vec4::new(
                 9.0.to_fixed(),
@@ -185,7 +185,7 @@ mod tests {
     // Vec * Vec (component-wise multiplication)
     #[test]
     fn test_vec2_multiplication() -> Result<(), String> {
-        use crate::math::Vec2;
+        use crate::fixed::Vec2;
         ExprTest::new("vec2(2.0, 3.0) * vec2(4.0, 5.0)")
             .expect_result_vec2(Vec2::new(8.0.to_fixed(), 15.0.to_fixed()))
             .run()
@@ -193,7 +193,7 @@ mod tests {
 
     #[test]
     fn test_vec3_multiplication() -> Result<(), String> {
-        use crate::math::Vec3;
+        use crate::fixed::Vec3;
         ExprTest::new("vec3(2.0, 3.0, 4.0) * vec3(5.0, 6.0, 7.0)")
             .expect_result_vec3(Vec3::new(10.0.to_fixed(), 18.0.to_fixed(), 28.0.to_fixed()))
             .run()
@@ -201,7 +201,7 @@ mod tests {
 
     #[test]
     fn test_vec4_multiplication() -> Result<(), String> {
-        use crate::math::Vec4;
+        use crate::fixed::Vec4;
         ExprTest::new("vec4(1.0, 2.0, 3.0, 4.0) * vec4(2.0, 3.0, 4.0, 5.0)")
             .expect_result_vec4(Vec4::new(
                 2.0.to_fixed(),
@@ -215,7 +215,7 @@ mod tests {
     // Vec / Vec (component-wise division)
     #[test]
     fn test_vec2_division() -> Result<(), String> {
-        use crate::math::Vec2;
+        use crate::fixed::Vec2;
         ExprTest::new("vec2(10.0, 20.0) / vec2(2.0, 4.0)")
             .expect_result_vec2(Vec2::new(5.0.to_fixed(), 5.0.to_fixed()))
             .run()
@@ -223,7 +223,7 @@ mod tests {
 
     #[test]
     fn test_vec3_division() -> Result<(), String> {
-        use crate::math::Vec3;
+        use crate::fixed::Vec3;
         ExprTest::new("vec3(12.0, 18.0, 24.0) / vec3(3.0, 6.0, 8.0)")
             .expect_result_vec3(Vec3::new(4.0.to_fixed(), 3.0.to_fixed(), 3.0.to_fixed()))
             .run()
@@ -231,7 +231,7 @@ mod tests {
 
     #[test]
     fn test_vec4_division() -> Result<(), String> {
-        use crate::math::Vec4;
+        use crate::fixed::Vec4;
         ExprTest::new("vec4(20.0, 30.0, 40.0, 50.0) / vec4(2.0, 3.0, 4.0, 5.0)")
             .expect_result_vec4(Vec4::new(
                 10.0.to_fixed(),
@@ -245,7 +245,7 @@ mod tests {
     // Vec * Scalar (broadcast scalar to all components)
     #[test]
     fn test_vec2_scalar_multiplication() -> Result<(), String> {
-        use crate::math::Vec2;
+        use crate::fixed::Vec2;
         ExprTest::new("vec2(1.0, 2.0) * 3.0")
             .expect_result_vec2(Vec2::new(3.0.to_fixed(), 6.0.to_fixed()))
             .run()
@@ -253,7 +253,7 @@ mod tests {
 
     #[test]
     fn test_vec3_scalar_multiplication() -> Result<(), String> {
-        use crate::math::Vec3;
+        use crate::fixed::Vec3;
         ExprTest::new("vec3(2.0, 3.0, 4.0) * 2.0")
             .expect_result_vec3(Vec3::new(4.0.to_fixed(), 6.0.to_fixed(), 8.0.to_fixed()))
             .run()
@@ -261,7 +261,7 @@ mod tests {
 
     #[test]
     fn test_vec4_scalar_multiplication() -> Result<(), String> {
-        use crate::math::Vec4;
+        use crate::fixed::Vec4;
         ExprTest::new("vec4(1.0, 2.0, 3.0, 4.0) * 5.0")
             .expect_result_vec4(Vec4::new(
                 5.0.to_fixed(),
@@ -275,7 +275,7 @@ mod tests {
     // Scalar * Vec (commutative - broadcast scalar to all components)
     #[test]
     fn test_scalar_vec2_multiplication() -> Result<(), String> {
-        use crate::math::Vec2;
+        use crate::fixed::Vec2;
         ExprTest::new("2.0 * vec2(3.0, 4.0)")
             .expect_result_vec2(Vec2::new(6.0.to_fixed(), 8.0.to_fixed()))
             .run()
@@ -283,7 +283,7 @@ mod tests {
 
     #[test]
     fn test_scalar_vec3_multiplication() -> Result<(), String> {
-        use crate::math::Vec3;
+        use crate::fixed::Vec3;
         ExprTest::new("3.0 * vec3(1.0, 2.0, 3.0)")
             .expect_result_vec3(Vec3::new(3.0.to_fixed(), 6.0.to_fixed(), 9.0.to_fixed()))
             .run()
@@ -291,7 +291,7 @@ mod tests {
 
     #[test]
     fn test_scalar_vec4_multiplication() -> Result<(), String> {
-        use crate::math::Vec4;
+        use crate::fixed::Vec4;
         ExprTest::new("2.0 * vec4(1.0, 2.0, 3.0, 4.0)")
             .expect_result_vec4(Vec4::new(
                 2.0.to_fixed(),
@@ -305,7 +305,7 @@ mod tests {
     // Vec / Scalar (broadcast scalar to all components)
     #[test]
     fn test_vec2_scalar_division() -> Result<(), String> {
-        use crate::math::Vec2;
+        use crate::fixed::Vec2;
         ExprTest::new("vec2(10.0, 20.0) / 2.0")
             .expect_result_vec2(Vec2::new(5.0.to_fixed(), 10.0.to_fixed()))
             .run()
@@ -313,7 +313,7 @@ mod tests {
 
     #[test]
     fn test_vec3_scalar_division() -> Result<(), String> {
-        use crate::math::Vec3;
+        use crate::fixed::Vec3;
         ExprTest::new("vec3(6.0, 9.0, 12.0) / 3.0")
             .expect_result_vec3(Vec3::new(2.0.to_fixed(), 3.0.to_fixed(), 4.0.to_fixed()))
             .run()
@@ -321,7 +321,7 @@ mod tests {
 
     #[test]
     fn test_vec4_scalar_division() -> Result<(), String> {
-        use crate::math::Vec4;
+        use crate::fixed::Vec4;
         ExprTest::new("vec4(10.0, 20.0, 30.0, 40.0) / 10.0")
             .expect_result_vec4(Vec4::new(
                 1.0.to_fixed(),
