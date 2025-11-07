@@ -121,6 +121,101 @@ impl PoolAllocator {
         self.used_blocks -= 1;
     }
     
+    /// Grow an allocation to a new size
+    ///
+    /// Allocates a new block, copies data from the old block, and deallocates the old block.
+    /// The new size must fit within a single block.
+    ///
+    /// # Safety
+    /// - `ptr` must have been allocated by this allocator
+    /// - `ptr` must point to the start of a block
+    /// - `old_layout` must match the layout used to allocate `ptr`
+    /// - `new_size` must be greater than `old_layout.size()`
+    /// - `new_size` must fit within `self.block_size`
+    pub unsafe fn grow(
+        &mut self,
+        ptr: NonNull<u8>,
+        old_layout: Layout,
+        new_size: usize,
+    ) -> Result<NonNull<[u8]>, AllocError> {
+        if new_size <= old_layout.size() {
+            return Err(AllocError::InvalidLayout);
+        }
+        
+        if new_size > self.block_size {
+            return Err(AllocError::OutOfMemory {
+                requested: new_size,
+                available: self.block_size,
+            });
+        }
+        
+        // Allocate new block
+        let new_layout = Layout::from_size_align(new_size, old_layout.align())
+            .map_err(|_| AllocError::InvalidLayout)?;
+        let new_block = self.allocate(new_layout)?;
+        let new_ptr = NonNull::new(new_block.as_ptr() as *mut u8).unwrap();
+        
+        // Copy data from old block to new block
+        let copy_size = old_layout.size().min(new_size);
+        core::ptr::copy_nonoverlapping(
+            ptr.as_ptr(),
+            new_ptr.as_ptr(),
+            copy_size,
+        );
+        
+        // Deallocate old block
+        self.deallocate(ptr, old_layout);
+        
+        Ok(new_block)
+    }
+    
+    /// Shrink an allocation to a new size
+    ///
+    /// Allocates a new block, copies data from the old block, and deallocates the old block.
+    /// The new size must fit within a single block.
+    ///
+    /// # Safety
+    /// - `ptr` must have been allocated by this allocator
+    /// - `ptr` must point to the start of a block
+    /// - `old_layout` must match the layout used to allocate `ptr`
+    /// - `new_size` must be less than `old_layout.size()`
+    /// - `new_size` must fit within `self.block_size`
+    pub unsafe fn shrink(
+        &mut self,
+        ptr: NonNull<u8>,
+        old_layout: Layout,
+        new_size: usize,
+    ) -> Result<NonNull<[u8]>, AllocError> {
+        if new_size >= old_layout.size() {
+            return Err(AllocError::InvalidLayout);
+        }
+        
+        if new_size > self.block_size {
+            return Err(AllocError::OutOfMemory {
+                requested: new_size,
+                available: self.block_size,
+            });
+        }
+        
+        // Allocate new block
+        let new_layout = Layout::from_size_align(new_size, old_layout.align())
+            .map_err(|_| AllocError::InvalidLayout)?;
+        let new_block = self.allocate(new_layout)?;
+        let new_ptr = NonNull::new(new_block.as_ptr() as *mut u8).unwrap();
+        
+        // Copy data from old block to new block (only new_size bytes)
+        core::ptr::copy_nonoverlapping(
+            ptr.as_ptr(),
+            new_ptr.as_ptr(),
+            new_size,
+        );
+        
+        // Deallocate old block
+        self.deallocate(ptr, old_layout);
+        
+        Ok(new_block)
+    }
+    
     /// Get used bytes
     pub fn used_bytes(&self) -> usize {
         self.used_blocks * self.block_size
@@ -249,6 +344,257 @@ mod tests {
             // Should be able to allocate again
             let _ptr3 = pool.allocate(layout).unwrap();
             assert_eq!(pool.used_blocks(), 1);
+        }
+    }
+    
+    #[test]
+    fn test_grow() {
+        let mut memory = [0u8; 1024];
+        let memory_ptr = NonNull::new(memory.as_mut_ptr()).unwrap();
+        
+        unsafe {
+            let mut pool = PoolAllocator::new(memory_ptr, 1024, 64).unwrap();
+            let old_layout = Layout::from_size_align(32, 8).unwrap();
+            
+            // Allocate initial block
+            let old_block = pool.allocate(old_layout).unwrap();
+            let old_ptr = NonNull::new(old_block.as_ptr() as *mut u8).unwrap();
+            
+            // Write some data
+            let data: [u8; 32] = [0x42; 32];
+            core::ptr::copy_nonoverlapping(data.as_ptr(), old_ptr.as_ptr(), 32);
+            
+            // Grow to larger size
+            let new_size = 48;
+            let new_block = pool.grow(old_ptr, old_layout, new_size).unwrap();
+            let new_ptr = NonNull::new(new_block.as_ptr() as *mut u8).unwrap();
+            
+            // Verify data was copied
+            for i in 0..32 {
+                assert_eq!(unsafe { *new_ptr.as_ptr().add(i) }, 0x42);
+            }
+            
+            // Old block should be deallocated
+            assert_eq!(pool.used_blocks(), 1);
+        }
+    }
+    
+    #[test]
+    fn test_grow_same_block_size() {
+        let mut memory = [0u8; 1024];
+        let memory_ptr = NonNull::new(memory.as_mut_ptr()).unwrap();
+        
+        unsafe {
+            let mut pool = PoolAllocator::new(memory_ptr, 1024, 64).unwrap();
+            let old_layout = Layout::from_size_align(32, 8).unwrap();
+            
+            let old_block = pool.allocate(old_layout).unwrap();
+            let old_ptr = NonNull::new(old_block.as_ptr() as *mut u8).unwrap();
+            
+            // Grow to block_size (64)
+            let new_block = pool.grow(old_ptr, old_layout, 64).unwrap();
+            assert_eq!(pool.used_blocks(), 1);
+            assert_eq!(new_block.len(), 64);
+        }
+    }
+    
+    #[test]
+    fn test_grow_multiple_times() {
+        let mut memory = [0u8; 1024];
+        let memory_ptr = NonNull::new(memory.as_mut_ptr()).unwrap();
+        
+        unsafe {
+            let mut pool = PoolAllocator::new(memory_ptr, 1024, 64).unwrap();
+            let mut layout = Layout::from_size_align(16, 8).unwrap();
+            
+            let mut block = pool.allocate(layout).unwrap();
+            let mut ptr = NonNull::new(block.as_ptr() as *mut u8).unwrap();
+            
+            // Grow multiple times
+            block = pool.grow(ptr, layout, 32).unwrap();
+            ptr = NonNull::new(block.as_ptr() as *mut u8).unwrap();
+            layout = Layout::from_size_align(32, 8).unwrap();
+            
+            block = pool.grow(ptr, layout, 48).unwrap();
+            ptr = NonNull::new(block.as_ptr() as *mut u8).unwrap();
+            layout = Layout::from_size_align(48, 8).unwrap();
+            
+            block = pool.grow(ptr, layout, 64).unwrap();
+            assert_eq!(block.len(), 64);
+            assert_eq!(pool.used_blocks(), 1);
+        }
+    }
+    
+    #[test]
+    fn test_grow_error_cases() {
+        let mut memory = [0u8; 1024];
+        let memory_ptr = NonNull::new(memory.as_mut_ptr()).unwrap();
+        
+        unsafe {
+            let mut pool = PoolAllocator::new(memory_ptr, 1024, 64).unwrap();
+            let layout = Layout::from_size_align(32, 8).unwrap();
+            
+            let block = pool.allocate(layout).unwrap();
+            let ptr = NonNull::new(block.as_ptr() as *mut u8).unwrap();
+            
+            // Grow to same size should fail
+            assert!(matches!(
+                pool.grow(ptr, layout, 32),
+                Err(AllocError::InvalidLayout)
+            ));
+            
+            // Grow to smaller size should fail
+            assert!(matches!(
+                pool.grow(ptr, layout, 16),
+                Err(AllocError::InvalidLayout)
+            ));
+            
+            // Grow beyond block size should fail
+            assert!(matches!(
+                pool.grow(ptr, layout, 128),
+                Err(AllocError::OutOfMemory { .. })
+            ));
+        }
+    }
+    
+    #[test]
+    fn test_shrink() {
+        let mut memory = [0u8; 1024];
+        let memory_ptr = NonNull::new(memory.as_mut_ptr()).unwrap();
+        
+        unsafe {
+            let mut pool = PoolAllocator::new(memory_ptr, 1024, 64).unwrap();
+            let old_layout = Layout::from_size_align(48, 8).unwrap();
+            
+            // Allocate initial block
+            let old_block = pool.allocate(old_layout).unwrap();
+            let old_ptr = NonNull::new(old_block.as_ptr() as *mut u8).unwrap();
+            
+            // Write some data
+            let data: [u8; 48] = [0x42; 48];
+            core::ptr::copy_nonoverlapping(data.as_ptr(), old_ptr.as_ptr(), 48);
+            
+            // Shrink to smaller size
+            let new_size = 32;
+            let new_block = pool.shrink(old_ptr, old_layout, new_size).unwrap();
+            let new_ptr = NonNull::new(new_block.as_ptr() as *mut u8).unwrap();
+            
+            // Verify data was copied (only first 32 bytes)
+            for i in 0..32 {
+                assert_eq!(unsafe { *new_ptr.as_ptr().add(i) }, 0x42);
+            }
+            
+            // Old block should be deallocated
+            assert_eq!(pool.used_blocks(), 1);
+        }
+    }
+    
+    #[test]
+    fn test_shrink_multiple_times() {
+        let mut memory = [0u8; 1024];
+        let memory_ptr = NonNull::new(memory.as_mut_ptr()).unwrap();
+        
+        unsafe {
+            let mut pool = PoolAllocator::new(memory_ptr, 1024, 64).unwrap();
+            let mut layout = Layout::from_size_align(64, 8).unwrap();
+            
+            let mut block = pool.allocate(layout).unwrap();
+            let mut ptr = NonNull::new(block.as_ptr() as *mut u8).unwrap();
+            
+            // Shrink multiple times
+            block = pool.shrink(ptr, layout, 48).unwrap();
+            ptr = NonNull::new(block.as_ptr() as *mut u8).unwrap();
+            layout = Layout::from_size_align(48, 8).unwrap();
+            
+            block = pool.shrink(ptr, layout, 32).unwrap();
+            ptr = NonNull::new(block.as_ptr() as *mut u8).unwrap();
+            layout = Layout::from_size_align(32, 8).unwrap();
+            
+            block = pool.shrink(ptr, layout, 16).unwrap();
+            // Block always has block_size length, but we shrunk to 16 bytes
+            assert_eq!(block.len(), 64); // block_size
+            assert_eq!(pool.used_blocks(), 1);
+        }
+    }
+    
+    #[test]
+    fn test_shrink_error_cases() {
+        let mut memory = [0u8; 1024];
+        let memory_ptr = NonNull::new(memory.as_mut_ptr()).unwrap();
+        
+        unsafe {
+            let mut pool = PoolAllocator::new(memory_ptr, 1024, 64).unwrap();
+            let layout = Layout::from_size_align(32, 8).unwrap();
+            
+            let block = pool.allocate(layout).unwrap();
+            let ptr = NonNull::new(block.as_ptr() as *mut u8).unwrap();
+            
+            // Shrink to same size should fail
+            assert!(matches!(
+                pool.shrink(ptr, layout, 32),
+                Err(AllocError::InvalidLayout)
+            ));
+            
+            // Shrink to larger size should fail
+            assert!(matches!(
+                pool.shrink(ptr, layout, 48),
+                Err(AllocError::InvalidLayout)
+            ));
+        }
+    }
+    
+    #[test]
+    fn test_grow_then_shrink() {
+        let mut memory = [0u8; 1024];
+        let memory_ptr = NonNull::new(memory.as_mut_ptr()).unwrap();
+        
+        unsafe {
+            let mut pool = PoolAllocator::new(memory_ptr, 1024, 64).unwrap();
+            let mut layout = Layout::from_size_align(16, 8).unwrap();
+            
+            let mut block = pool.allocate(layout).unwrap();
+            let mut ptr = NonNull::new(block.as_ptr() as *mut u8).unwrap();
+            
+            // Grow
+            block = pool.grow(ptr, layout, 48).unwrap();
+            ptr = NonNull::new(block.as_ptr() as *mut u8).unwrap();
+            layout = Layout::from_size_align(48, 8).unwrap();
+            
+            // Shrink back
+            block = pool.shrink(ptr, layout, 32).unwrap();
+            ptr = NonNull::new(block.as_ptr() as *mut u8).unwrap();
+            layout = Layout::from_size_align(32, 8).unwrap();
+            
+            // Grow again
+            block = pool.grow(ptr, layout, 64).unwrap();
+            assert_eq!(block.len(), 64);
+            assert_eq!(pool.used_blocks(), 1);
+        }
+    }
+    
+    #[test]
+    fn test_grow_pool_exhausted() {
+        let mut memory = [0u8; 256];
+        let memory_ptr = NonNull::new(memory.as_mut_ptr()).unwrap();
+        
+        unsafe {
+            let mut pool = PoolAllocator::new(memory_ptr, 256, 64).unwrap();
+            let layout = Layout::from_size_align(32, 8).unwrap();
+            
+            // Allocate all blocks except one
+            let _block1 = pool.allocate(layout).unwrap();
+            let _block2 = pool.allocate(layout).unwrap();
+            let _block3 = pool.allocate(layout).unwrap();
+            
+            // Last block
+            let block4 = pool.allocate(layout).unwrap();
+            let ptr4 = NonNull::new(block4.as_ptr() as *mut u8).unwrap();
+            
+            // Grow should fail (no free blocks)
+            assert!(matches!(
+                pool.grow(ptr4, layout, 48),
+                Err(AllocError::PoolExhausted)
+            ));
         }
     }
 }
