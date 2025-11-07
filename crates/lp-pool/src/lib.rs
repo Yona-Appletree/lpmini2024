@@ -96,6 +96,8 @@ mod integration_tests {
     
     #[test]
     fn test_allocator_wrapper_with_collections() {
+        use allocator_api2::alloc::Allocator;
+        
         let mut memory = [0u8; 16384];
         let memory_ptr = NonNull::new(memory.as_mut_ptr()).unwrap();
         let pool = unsafe { LpMemoryPool::new(memory_ptr, 16384, 128).unwrap() };
@@ -105,12 +107,12 @@ mod integration_tests {
             let layout = core::alloc::Layout::from_size_align(64, 8).unwrap();
             
             // Allocate using allocator-api2
-            let ptr = allocator.allocate(layout).unwrap();
+            let ptr = Allocator::allocate(&allocator, layout).unwrap();
             assert_eq!(ptr.len(), 128); // block_size
             
             // Deallocate
             unsafe {
-                allocator.deallocate(NonNull::new(ptr.as_ptr() as *mut u8).unwrap(), layout);
+                Allocator::deallocate(&allocator, NonNull::new(ptr.as_ptr() as *mut u8).unwrap(), layout);
             }
             
             Ok::<(), AllocError>(())
@@ -127,15 +129,20 @@ mod integration_tests {
         assert_eq!(before, 0);
         
         pool.run(|| {
+            let before_inner = pool.used_bytes().unwrap();
+            
             let _vec = PoolVec::<i32>::new();
             let _boxed = PoolBox::try_new(42i32)?;
+            
+            let during = pool.used_bytes().unwrap();
+            assert!(during > before_inner);
+            
+            // Collections are dropped here when closure returns
             Ok::<(), AllocError>(())
         }).unwrap();
         
-        let after = pool.used_bytes().unwrap();
-        assert!(after > before);
-        
         // After dropping, memory should be freed
-        // (Note: This test assumes collections are dropped, which happens when the closure returns)
+        let after = pool.used_bytes().unwrap();
+        assert_eq!(after, before);
     }
 }
