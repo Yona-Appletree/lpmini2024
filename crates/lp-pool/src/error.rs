@@ -30,4 +30,16 @@ impl fmt::Display for AllocError {
     }
 }
 
+impl From<allocator_api2::alloc::AllocError> for AllocError {
+    fn from(_: allocator_api2::alloc::AllocError) -> Self {
+        AllocError::PoolExhausted
+    }
+}
+
+impl From<AllocError> for allocator_api2::alloc::AllocError {
+    fn from(_: AllocError) -> Self {
+        allocator_api2::alloc::AllocError
+    }
+}
+
 
