@@ -1,13 +1,17 @@
+use crate::fixed::Fixed;
 /// Fixed-point logical operations (boolean logic on Fixed values)
 use crate::vm::error::LpsVmError;
 use crate::vm::value_stack::ValueStack;
-use crate::fixed::Fixed;
 
 /// Execute AndFixed: pop b, a; push (a && b) as Fixed
 #[inline(always)]
 pub fn exec_and_fixed(stack: &mut ValueStack) -> Result<(), LpsVmError> {
     let (a, b) = stack.pop2()?;
-    let result = if a != 0 && b != 0 { Fixed::ONE } else { Fixed::ZERO };
+    let result = if a != 0 && b != 0 {
+        Fixed::ONE
+    } else {
+        Fixed::ZERO
+    };
     stack.push_fixed(result)?;
     Ok(())
 }
@@ -16,7 +20,11 @@ pub fn exec_and_fixed(stack: &mut ValueStack) -> Result<(), LpsVmError> {
 #[inline(always)]
 pub fn exec_or_fixed(stack: &mut ValueStack) -> Result<(), LpsVmError> {
     let (a, b) = stack.pop2()?;
-    let result = if a != 0 || b != 0 { Fixed::ONE } else { Fixed::ZERO };
+    let result = if a != 0 || b != 0 {
+        Fixed::ONE
+    } else {
+        Fixed::ZERO
+    };
     stack.push_fixed(result)?;
     Ok(())
 }
@@ -87,4 +95,3 @@ mod tests {
         assert_eq!(stack.pop_fixed().unwrap(), Fixed::ZERO);
     }
 }
-

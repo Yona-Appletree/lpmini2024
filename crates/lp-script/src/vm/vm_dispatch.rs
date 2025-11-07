@@ -5,13 +5,13 @@
 extern crate alloc;
 use alloc::vec::Vec;
 
-use crate::vm::lps_vm::LpsVm;
+use crate::fixed::Fixed;
 use crate::vm::error::{LpsVmError, RuntimeErrorWithContext};
+use crate::vm::lps_vm::LpsVm;
 use crate::vm::opcodes::{
     arrays, comparisons, control_flow, fixed_advanced, fixed_basic, fixed_logic, int32,
     int32_compare, load, locals, textures, vec2, vec3, vec4, LpsOpCode, ReturnAction,
 };
-use crate::fixed::Fixed;
 
 impl<'a> LpsVm<'a> {
     /// Dispatch a single opcode

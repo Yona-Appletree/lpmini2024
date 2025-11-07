@@ -10,11 +10,11 @@ use crate::compiler::codegen;
 use crate::compiler::func::FunctionMetadata;
 use crate::compiler::stmt::stmt_test_ast::StmtBuilder;
 use crate::compiler::{lexer, parser, typechecker};
+use crate::fixed::{Fixed, ToFixed, Vec2, Vec3, Vec4};
 use crate::shared::Type;
 use crate::vm::lps_vm::LpsVm;
 use crate::vm::vm_limits::VmLimits;
 use crate::vm::{LpsOpCode, LpsProgram};
-use crate::fixed::{Fixed, ToFixed, Vec2, Vec3, Vec4};
 
 /// Function metadata assertion helper
 pub struct FunctionMetadataAssertion {
@@ -315,10 +315,8 @@ impl ScriptTest {
 
         // Analyze to build function table
         let func_table =
-            match crate::compiler::analyzer::FunctionAnalyzer::analyze_program(
-                &ast_program,
-                &pool,
-            ) {
+            match crate::compiler::analyzer::FunctionAnalyzer::analyze_program(&ast_program, &pool)
+            {
                 Ok(table) => table,
                 Err(e) => {
                     errors.push(format!("Analysis error: {}", e));

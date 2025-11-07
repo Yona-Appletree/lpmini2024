@@ -11,11 +11,11 @@ use crate::compiler::codegen;
 use crate::compiler::optimize::OptimizeOptions;
 use crate::compiler::test_ast::AstBuilder;
 use crate::compiler::{lexer, optimize, parser, typechecker};
+use crate::fixed::{Fixed, ToFixed, Vec2, Vec3, Vec4};
 use crate::shared::Type;
 use crate::vm::lps_vm::LpsVm;
 use crate::vm::vm_limits::VmLimits;
 use crate::vm::{LpsOpCode, LpsProgram};
-use crate::fixed::{Fixed, ToFixed, Vec2, Vec3, Vec4};
 
 /// Builder for testing expressions through the compilation pipeline
 ///

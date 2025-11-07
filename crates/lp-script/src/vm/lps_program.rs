@@ -7,7 +7,7 @@ use super::opcodes::LpsOpCode;
 use crate::shared::{Span, Type};
 
 /// A compiled LightPlayer Script program
-/// 
+///
 /// New structure: All code is organized into functions.
 /// functions[0] is always "main" (the entry point).
 #[derive(Debug, Clone)]
@@ -16,7 +16,7 @@ pub struct LpsProgram {
     pub functions: Vec<FunctionDef>,
     pub source_map: Option<Vec<Span>>,
     pub source: Option<String>,
-    
+
     // Legacy fields (deprecated, kept for backward compatibility during migration)
     #[deprecated(note = "Use functions instead")]
     pub opcodes: Vec<LpsOpCode>,

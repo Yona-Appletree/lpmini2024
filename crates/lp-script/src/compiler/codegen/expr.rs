@@ -7,7 +7,7 @@ use crate::vm::opcodes::LpsOpCode;
 
 impl<'a> CodeGenerator<'a> {
     // Expression code generation by ID - main dispatcher
-    pub(in crate) fn gen_expr_id(&mut self, pool: &AstPool, expr_id: ExprId) {
+    pub(crate) fn gen_expr_id(&mut self, pool: &AstPool, expr_id: ExprId) {
         use crate::compiler::ast::ExprKind;
 
         let expr = pool.expr(expr_id);
@@ -116,7 +116,7 @@ impl<'a> CodeGenerator<'a> {
     // Old gen_expr method kept for compatibility with individual *_gen.rs files
     // TODO: Once all *_gen.rs files are updated to pool-based API, this can be removed
     #[allow(dead_code)]
-    pub(in crate) fn gen_expr(&mut self, _expr: &Expr) {
+    pub(crate) fn gen_expr(&mut self, _expr: &Expr) {
         // Stub - not used in pool-based code path
         // Individual *_gen.rs files still reference this but it's not called
     }

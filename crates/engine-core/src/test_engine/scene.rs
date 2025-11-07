@@ -2,11 +2,11 @@
 extern crate alloc;
 use alloc::vec::Vec;
 
+use crate::test_engine::power_limit::{apply_power_limit_to_bytes, PowerLimitConfig};
 use crate::test_engine::{
-    FxPipelineConfig, MappingConfig, LedMapping, Fixed,
-    RuntimeOptions, FxPipeline, PipelineError, apply_2d_mapping,
+    apply_2d_mapping, Fixed, FxPipeline, FxPipelineConfig, LedMapping, MappingConfig,
+    PipelineError, RuntimeOptions,
 };
-use crate::test_engine::power_limit::{PowerLimitConfig, apply_power_limit_to_bytes};
 
 /// Scene configuration (serializable, no runtime state)
 #[derive(Clone)]
@@ -16,16 +16,13 @@ pub struct SceneConfig {
 }
 
 impl SceneConfig {
-    pub fn new(
-        pipeline_config: FxPipelineConfig,
-        mapping_config: MappingConfig,
-    ) -> Self {
+    pub fn new(pipeline_config: FxPipelineConfig, mapping_config: MappingConfig) -> Self {
         SceneConfig {
             pipeline_config,
             mapping_config,
         }
     }
-    
+
     /// Get the LED count from the mapping config
     pub fn led_count(&self) -> usize {
         self.mapping_config.led_count()
@@ -62,27 +59,33 @@ impl SceneRuntime {
             power_config: options.power_config,
         })
     }
-    
+
     /// Get the LED count
     pub fn led_count(&self) -> usize {
         self.led_output.len() / 3
     }
-    
+
     /// Render a single frame
     pub fn render(&mut self, time: Fixed, output_buffer_idx: usize) -> Result<(), PipelineError> {
         // Render the pipeline
         self.pipeline.render(time)?;
-        
+
         // Extract RGB buffer into our reusable bytes buffer (no allocation)
-        self.pipeline.extract_rgb_bytes(output_buffer_idx, &mut self.rgb_bytes_buffer);
-        
+        self.pipeline
+            .extract_rgb_bytes(output_buffer_idx, &mut self.rgb_bytes_buffer);
+
         // Apply 2D to 1D mapping
-        apply_2d_mapping(&self.rgb_bytes_buffer, &mut self.led_output, &self.mapping, self.width, self.height);
-        
+        apply_2d_mapping(
+            &self.rgb_bytes_buffer,
+            &mut self.led_output,
+            &self.mapping,
+            self.width,
+            self.height,
+        );
+
         // Apply power limiting and brightness directly to LED output buffer
         apply_power_limit_to_bytes(&mut self.led_output, &self.power_config);
-        
+
         Ok(())
     }
 }
-

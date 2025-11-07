@@ -11,7 +11,7 @@ impl<'a> CodeGenerator<'a> {
     pub(crate) fn gen_swizzle_id(&mut self, pool: &AstPool, expr: ExprId, components: &str) {
         // Generate the base expression (leaves vector components on stack)
         self.gen_expr_id(pool, expr);
-        
+
         // Generate swizzle opcodes based on component string
         let expr_obj = pool.expr(expr);
         let source_type = expr_obj.ty.as_ref().unwrap();
@@ -21,7 +21,7 @@ impl<'a> CodeGenerator<'a> {
             Type::Vec4 => 4,
             _ => 1,
         };
-        
+
         // Call the helper function
         gen_swizzle_opcodes(components, source_size, &mut self.code);
     }
@@ -31,7 +31,7 @@ impl<'a> CodeGenerator<'a> {
 /// Stack layout: components are pushed in order, so for vec2(x,y), stack is [x, y] with y on top
 fn gen_swizzle_opcodes(components: &str, source_size: usize, code: &mut Vec<LpsOpCode>) {
     use alloc::vec::Vec as AllocVec;
-    
+
     // Map component characters to indices
     let indices: AllocVec<usize> = components
         .chars()

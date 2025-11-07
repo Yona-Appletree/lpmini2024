@@ -5,10 +5,9 @@ use crate::compiler::lexer::TokenKind;
 use crate::compiler::parser::Parser;
 use crate::shared::Span;
 
-
 impl Parser {
     // Postfix: swizzle (.xyzw, .rgba, .stpq), postfix increment/decrement (++, --)
-    pub(in crate) fn postfix(&mut self) -> Result<ExprId, ParseError> {
+    pub(crate) fn postfix(&mut self) -> Result<ExprId, ParseError> {
         self.enter_recursion()?;
         let mut expr_id = self.primary()?;
 

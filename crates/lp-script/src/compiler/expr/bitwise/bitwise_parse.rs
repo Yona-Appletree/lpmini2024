@@ -5,10 +5,9 @@ use crate::compiler::lexer::TokenKind;
 use crate::compiler::parser::Parser;
 use crate::shared::Span;
 
-
 impl Parser {
     // Bitwise OR: |
-    pub(in crate) fn bitwise_or(&mut self) -> Result<ExprId, ParseError> {
+    pub(crate) fn bitwise_or(&mut self) -> Result<ExprId, ParseError> {
         self.enter_recursion()?;
         let mut expr_id = self.bitwise_xor()?;
 
@@ -19,7 +18,10 @@ impl Parser {
             let end = self.pool.expr(right_id).span.end;
             expr_id = self
                 .pool
-                .alloc_expr(ExprKind::BitwiseOr(expr_id, right_id), Span::new(start, end))
+                .alloc_expr(
+                    ExprKind::BitwiseOr(expr_id, right_id),
+                    Span::new(start, end),
+                )
                 .map_err(|e| self.pool_error_to_parse_error(e))?;
         }
 
@@ -28,7 +30,7 @@ impl Parser {
     }
 
     // Bitwise XOR: ^
-    pub(in crate) fn bitwise_xor(&mut self) -> Result<ExprId, ParseError> {
+    pub(crate) fn bitwise_xor(&mut self) -> Result<ExprId, ParseError> {
         self.enter_recursion()?;
         let mut expr_id = self.bitwise_and()?;
 
@@ -51,7 +53,7 @@ impl Parser {
     }
 
     // Bitwise AND: &
-    pub(in crate) fn bitwise_and(&mut self) -> Result<ExprId, ParseError> {
+    pub(crate) fn bitwise_and(&mut self) -> Result<ExprId, ParseError> {
         self.enter_recursion()?;
         let mut expr_id = self.equality()?;
 
@@ -74,7 +76,7 @@ impl Parser {
     }
 
     // Shift: << >>
-    pub(in crate) fn shift(&mut self) -> Result<ExprId, ParseError> {
+    pub(crate) fn shift(&mut self) -> Result<ExprId, ParseError> {
         self.enter_recursion()?;
         let mut expr_id = self.additive()?;
 

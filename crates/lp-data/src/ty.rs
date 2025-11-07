@@ -123,4 +123,3 @@ impl LpEnumVariant {
         Self { name }
     }
 }
-

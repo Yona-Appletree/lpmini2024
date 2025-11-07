@@ -170,4 +170,3 @@ impl Annotations {
         serde_json::Value::Object(map)
     }
 }
-

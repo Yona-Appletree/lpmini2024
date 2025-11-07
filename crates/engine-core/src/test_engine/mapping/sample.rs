@@ -1,6 +1,6 @@
+use core::cmp::{max, min};
 /// Image sampling with bilinear interpolation
 use lp_script::fixed::{Fixed, FIXED_SHIFT};
-use core::cmp::{max, min};
 
 /// Bilinear interpolation of a single channel
 ///

@@ -1,9 +1,9 @@
 /// While loop tests
 #[cfg(test)]
 mod tests {
+    use crate::fixed::Fixed;
     use crate::vm::vm_limits::VmLimits;
     use crate::*;
-    use crate::fixed::Fixed;
 
     #[test]
     fn test_while_loop_counter() {

@@ -2,7 +2,7 @@
 ///
 /// These tests verify the multi-pass compilation architecture:
 /// 1. Parse: AST + AstPool construction
-/// 2. Analyze: Build function metadata table (signatures + locals) 
+/// 2. Analyze: Build function metadata table (signatures + locals)
 /// 3. Type Check: Validate types using metadata (includes return type validation)
 /// 4. Codegen: Generate bytecode using pre-analyzed locals
 ///
@@ -39,8 +39,8 @@ mod tests {
         let (program, pool) = parser.parse_program().expect("parse should succeed");
 
         // Analyze
-        let func_table = FunctionAnalyzer::analyze_program(&program, &pool)
-            .expect("analysis should succeed");
+        let func_table =
+            FunctionAnalyzer::analyze_program(&program, &pool).expect("analysis should succeed");
 
         // Verify function metadata
         let get_pi_meta = func_table.lookup("getPi").expect("getPi should exist");
@@ -53,11 +53,8 @@ mod tests {
             .expect("type check should succeed");
 
         // Codegen
-        let functions = CodeGenerator::generate_program_with_functions(
-            &pool,
-            &typed_program,
-            &func_table,
-        );
+        let functions =
+            CodeGenerator::generate_program_with_functions(&pool, &typed_program, &func_table);
 
         // Verify we have main + getPi
         assert_eq!(functions.len(), 2);
@@ -79,8 +76,8 @@ mod tests {
         let parser = Parser::new(tokens);
         let (program, pool) = parser.parse_program().expect("parse should succeed");
 
-        let func_table = FunctionAnalyzer::analyze_program(&program, &pool)
-            .expect("analysis should succeed");
+        let func_table =
+            FunctionAnalyzer::analyze_program(&program, &pool).expect("analysis should succeed");
 
         let add_meta = func_table.lookup("add").expect("add should exist");
         assert_eq!(add_meta.params.len(), 2);
@@ -110,10 +107,12 @@ mod tests {
         let parser = Parser::new(tokens);
         let (program, pool) = parser.parse_program().expect("parse should succeed");
 
-        let func_table = FunctionAnalyzer::analyze_program(&program, &pool)
-            .expect("analysis should succeed");
+        let func_table =
+            FunctionAnalyzer::analyze_program(&program, &pool).expect("analysis should succeed");
 
-        let calc_meta = func_table.lookup("calculate").expect("calculate should exist");
+        let calc_meta = func_table
+            .lookup("calculate")
+            .expect("calculate should exist");
         // 1 param + 2 locals = 3 total
         assert_eq!(calc_meta.local_count, 3);
         assert_eq!(calc_meta.locals.len(), 3);
@@ -151,8 +150,8 @@ mod tests {
         let parser = Parser::new(tokens);
         let (program, pool) = parser.parse_program().expect("parse should succeed");
 
-        let func_table = FunctionAnalyzer::analyze_program(&program, &pool)
-            .expect("analysis should succeed");
+        let func_table =
+            FunctionAnalyzer::analyze_program(&program, &pool).expect("analysis should succeed");
 
         let sum_meta = func_table.lookup("sumVec2").expect("sumVec2 should exist");
         assert_eq!(sum_meta.params.len(), 1);
@@ -217,8 +216,8 @@ mod tests {
         let parser = Parser::new(tokens);
         let (program, pool) = parser.parse_program().expect("parse should succeed");
 
-        let func_table = FunctionAnalyzer::analyze_program(&program, &pool)
-            .expect("analysis should succeed");
+        let func_table =
+            FunctionAnalyzer::analyze_program(&program, &pool).expect("analysis should succeed");
 
         let test_meta = func_table.lookup("test").expect("test should exist");
         // Outer x + inner x = 2 locals
@@ -252,8 +251,8 @@ mod tests {
         let parser = Parser::new(tokens);
         let (program, pool) = parser.parse_program().expect("parse should succeed");
 
-        let func_table = FunctionAnalyzer::analyze_program(&program, &pool)
-            .expect("analysis should succeed");
+        let func_table =
+            FunctionAnalyzer::analyze_program(&program, &pool).expect("analysis should succeed");
 
         assert!(func_table.lookup("double").is_some());
         assert!(func_table.lookup("triple").is_some());
@@ -309,18 +308,14 @@ mod tests {
         let parser = Parser::new(tokens);
         let (program, pool) = parser.parse_program().expect("parse should succeed");
 
-        let func_table = FunctionAnalyzer::analyze_program(&program, &pool)
-            .expect("analysis should succeed");
+        let func_table =
+            FunctionAnalyzer::analyze_program(&program, &pool).expect("analysis should succeed");
 
         let test_meta = func_table.lookup("test").expect("test should exist");
         // a, b, c = 3 locals
         assert_eq!(test_meta.local_count, 3);
 
         let result = compile_script_with_options(program_text, &OptimizeOptions::none());
-        assert!(
-            result.is_ok(),
-            "Nested blocks should compile successfully"
-        );
+        assert!(result.is_ok(), "Nested blocks should compile successfully");
     }
 }
-

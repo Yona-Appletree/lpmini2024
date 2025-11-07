@@ -1,9 +1,9 @@
 /// If statement tests
 #[cfg(test)]
 mod tests {
+    use crate::fixed::{Fixed, ToFixed};
     use crate::vm::vm_limits::VmLimits;
     use crate::*;
-    use crate::fixed::{Fixed, ToFixed};
 
     #[test]
     fn test_if_without_else() {

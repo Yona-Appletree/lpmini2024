@@ -1,11 +1,11 @@
 /// Expression statement tests
 #[cfg(test)]
 mod tests {
-    
+
     use crate::compiler::stmt::stmt_test_util::ScriptTest;
+    use crate::fixed::ToFixed;
     use crate::shared::Type;
     use crate::vm::opcodes::LpsOpCode;
-    use crate::fixed::ToFixed;
 
     #[test]
     fn test_expr_stmt_with_side_effect() -> Result<(), String> {

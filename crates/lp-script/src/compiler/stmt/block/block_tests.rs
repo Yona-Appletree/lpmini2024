@@ -1,11 +1,11 @@
 /// Block statement tests
 #[cfg(test)]
 mod tests {
-    
+
     use crate::compiler::stmt::stmt_test_util::ScriptTest;
+    use crate::fixed::ToFixed;
     use crate::shared::Type;
     use crate::vm::opcodes::LpsOpCode;
-    use crate::fixed::ToFixed;
 
     #[test]
     fn test_simple_block() -> Result<(), String> {
@@ -34,7 +34,7 @@ mod tests {
             .expect_ast(|b| {
                 let x_init = b.num(1.0);
                 let x_decl = b.var_decl(Type::Fixed, "x", Some(x_init));
-                
+
                 let y_init = b.num(2.0);
                 let y_decl = b.var_decl(Type::Fixed, "y", Some(y_init));
                 let x_var = b.typed_var("x", Type::Fixed);
@@ -43,7 +43,7 @@ mod tests {
                 let assign_expr = b.assign("x", add_expr, Type::Fixed);
                 let assign_stmt = b.expr_stmt(assign_expr);
                 let inner_block = b.block(vec![y_decl, assign_stmt]);
-                
+
                 let ret_var = b.typed_var("x", Type::Fixed);
                 let ret_stmt = b.return_stmt(ret_var);
                 let outer_block = b.block(vec![x_decl, inner_block, ret_stmt]);
@@ -117,9 +117,9 @@ mod tests {
 
 #[cfg(test)]
 mod scoping_integration_tests {
+    use crate::fixed::Fixed;
     use crate::vm::vm_limits::VmLimits;
     use crate::*;
-    use crate::fixed::Fixed;
 
     #[test]
     fn test_block_scoping() {

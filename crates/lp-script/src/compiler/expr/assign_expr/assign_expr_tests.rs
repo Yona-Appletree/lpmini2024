@@ -3,9 +3,9 @@
 #[cfg(test)]
 mod tests {
     use crate::compiler::expr::expr_test_util::ExprTest;
-    
-    use crate::shared::Type;
+
     use crate::fixed::{ToFixed, Vec2, Vec3, Vec4};
+    use crate::shared::Type;
 
     #[test]
     fn test_simple_assignment() {

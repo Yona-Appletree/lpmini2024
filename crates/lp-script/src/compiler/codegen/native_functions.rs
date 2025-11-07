@@ -12,17 +12,17 @@ pub enum NativeFunction {
     Sign = 7,
     Saturate = 8,
     Step = 9,
-    
+
     // Utility
     Clamp = 10,
     Lerp = 11,
     Smoothstep = 12,
-    
+
     // Trig (new GLSL functions)
     Tan = 13,
     Atan = 14,
     Mod = 15,
-    
+
     // Comparisons
     Less = 20,
     Greater = 21,
@@ -30,19 +30,18 @@ pub enum NativeFunction {
     GreaterEq = 23,
     Eq = 24,
     NotEq = 25,
-    
+
     // Logical
     And = 30,
     Or = 31,
-    
+
     // Ternary select
     Select = 40,
-    
+
     // Vector functions (polymorphic - work on vec2/vec3/vec4)
     Length = 50,
     Normalize = 51,
     Dot = 52,
     Distance = 53,
-    Cross = 54,  // vec3 only
+    Cross = 54, // vec3 only
 }
-

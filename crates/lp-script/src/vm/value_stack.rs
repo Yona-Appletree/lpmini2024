@@ -56,10 +56,7 @@ impl ValueStack {
     /// This allocates a new Vec - use sparingly.
     #[inline(always)]
     pub fn to_vec_fixed(&self) -> Vec<Fixed> {
-        self.data[0..self.sp]
-            .iter()
-            .map(|&i| Fixed(i))
-            .collect()
+        self.data[0..self.sp].iter().map(|&i| Fixed(i)).collect()
     }
 
     // === Basic push/pop for single values ===
@@ -1070,4 +1067,3 @@ mod tests {
         ));
     }
 }
-

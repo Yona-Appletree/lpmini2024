@@ -5,10 +5,9 @@ use crate::compiler::lexer::TokenKind;
 use crate::compiler::parser::Parser;
 use crate::shared::Span;
 
-
 impl Parser {
     // Ternary: condition ? true_expr : false_expr
-    pub(in crate) fn ternary(&mut self) -> Result<ExprId, ParseError> {
+    pub(crate) fn ternary(&mut self) -> Result<ExprId, ParseError> {
         self.enter_recursion()?;
         let mut expr_id = self.logical_or()?;
 

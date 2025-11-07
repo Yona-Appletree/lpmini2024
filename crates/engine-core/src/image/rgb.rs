@@ -1,5 +1,4 @@
 /// RGB image buffer
-
 extern crate alloc;
 use alloc::vec::Vec;
 
@@ -48,4 +47,3 @@ impl ImageRgb {
         &mut self.data
     }
 }
-

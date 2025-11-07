@@ -1,7 +1,7 @@
+use crate::fixed::Fixed;
 /// Texture sampling opcodes (stub implementations)
 use crate::vm::error::LpsVmError;
 use crate::vm::value_stack::ValueStack;
-use crate::fixed::Fixed;
 
 /// Execute TextureSampleR: pop 2 Fixed (UV), push 1 Fixed (R)
 /// Stub implementation - returns 0.5
@@ -90,4 +90,3 @@ mod tests {
         ));
     }
 }
-

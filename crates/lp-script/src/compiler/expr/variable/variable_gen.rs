@@ -3,8 +3,8 @@ extern crate alloc;
 
 use crate::compiler::codegen::CodeGenerator;
 use crate::shared::Type;
-use crate::vm::opcodes::LpsOpCode;
 use crate::vm::opcodes::load::LoadSource;
+use crate::vm::opcodes::LpsOpCode;
 
 impl<'a> CodeGenerator<'a> {
     pub(crate) fn gen_variable(&mut self, name: &str, var_type: &Type) {

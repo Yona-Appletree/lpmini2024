@@ -14,7 +14,6 @@ use engine_core::test_engine::{LedMapping, RuntimeOptions};
 use lp_script::fixed::{Fixed, ToFixed};
 use minifb::{Key, Window, WindowOptions};
 
-
 const SCALE: usize = 16;
 const STATS_BAR_HEIGHT: usize = 40;
 const NUM_BUFFERS: usize = 2; // Greyscale + RGB

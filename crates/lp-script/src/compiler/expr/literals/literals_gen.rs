@@ -2,8 +2,8 @@
 extern crate alloc;
 
 use crate::compiler::codegen::CodeGenerator;
-use crate::vm::opcodes::LpsOpCode;
 use crate::fixed::ToFixed;
+use crate::vm::opcodes::LpsOpCode;
 
 impl<'a> CodeGenerator<'a> {
     pub(crate) fn gen_number(&mut self, n: f32) {

@@ -1,5 +1,5 @@
 /// Component-wise function expansion
-/// 
+///
 /// Transforms function calls on vectors into component-wise scalar calls.
 /// For example: `sin(vec2(a, b))` becomes `vec2(sin(vec2(a, b).x), sin(vec2(a, b).y))`
 extern crate alloc;
@@ -25,7 +25,7 @@ pub(crate) fn is_componentwise_function(name: &str) -> bool {
 }
 
 /// Expand a component-wise function call
-/// 
+///
 /// Returns Some(expanded_expr_id) if expansion was performed, None otherwise
 pub(crate) fn expand_componentwise_call(
     pool: &mut AstPool,
@@ -35,7 +35,10 @@ pub(crate) fn expand_componentwise_call(
 ) -> Option<ExprId> {
     // Check if any argument is a vector type
     let has_vector_arg = args.iter().any(|&arg_id| {
-        matches!(pool.expr(arg_id).ty.as_ref(), Some(Type::Vec2 | Type::Vec3 | Type::Vec4))
+        matches!(
+            pool.expr(arg_id).ty.as_ref(),
+            Some(Type::Vec2 | Type::Vec3 | Type::Vec4)
+        )
     });
 
     if !has_vector_arg {
@@ -67,26 +70,30 @@ pub(crate) fn expand_componentwise_call(
 
     for i in 0..result_vec_type {
         let component = components[i];
-        
+
         // Build args for this component
         let mut component_call_args = Vec::new();
         for &arg_id in args {
             let arg_ty = pool.expr(arg_id).ty.as_ref();
-            
+
             let component_arg = match arg_ty {
                 Some(Type::Vec2 | Type::Vec3 | Type::Vec4) => {
                     // Extract component using swizzle
-                    pool.alloc_expr(ExprKind::Swizzle {
-                        expr: arg_id,
-                        components: String::from(component),
-                    }, span).ok()?
+                    pool.alloc_expr(
+                        ExprKind::Swizzle {
+                            expr: arg_id,
+                            components: String::from(component),
+                        },
+                        span,
+                    )
+                    .ok()?
                 }
                 _ => {
                     // Scalar - use as-is
                     arg_id
                 }
             };
-            
+
             component_call_args.push(component_arg);
         }
 
@@ -98,7 +105,7 @@ pub(crate) fn expand_componentwise_call(
             },
             span,
         );
-        
+
         if let Ok(id) = component_call {
             expanded_args.push(id);
         } else {

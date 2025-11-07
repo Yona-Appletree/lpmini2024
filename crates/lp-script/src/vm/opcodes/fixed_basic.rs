@@ -1,9 +1,9 @@
+use crate::fixed::trig::{cos, sin};
+use crate::fixed::Fixed;
+use crate::fixed::{ceil, floor, sqrt};
 /// Basic fixed-point arithmetic opcodes with error handling
 use crate::vm::error::LpsVmError;
 use crate::vm::value_stack::ValueStack;
-use crate::fixed::Fixed;
-use crate::fixed::{ceil, floor, sqrt};
-use crate::fixed::trig::{cos, sin};
 
 /// Execute AddFixed: pop b, a; push a + b
 #[inline(always)]
@@ -36,11 +36,11 @@ pub fn exec_mul_fixed(stack: &mut ValueStack) -> Result<(), LpsVmError> {
 #[inline(always)]
 pub fn exec_div_fixed(stack: &mut ValueStack) -> Result<(), LpsVmError> {
     let (a, b) = stack.pop2()?;
-    
+
     if b == 0 {
         return Err(LpsVmError::DivisionByZero);
     }
-    
+
     let result = Fixed(a) / Fixed(b);
     stack.push_fixed(result)?;
     Ok(())
@@ -128,7 +128,7 @@ mod tests {
     #[test]
     fn test_add() {
         let mut stack = ValueStack::new(64);
-        
+
         stack.push_fixed(2.0.to_fixed()).unwrap();
         stack.push_fixed(3.0.to_fixed()).unwrap();
 
@@ -141,7 +141,7 @@ mod tests {
     #[test]
     fn test_sub() {
         let mut stack = ValueStack::new(64);
-        
+
         stack.push_fixed(5.0.to_fixed()).unwrap();
         stack.push_fixed(3.0.to_fixed()).unwrap();
 
@@ -154,7 +154,7 @@ mod tests {
     #[test]
     fn test_mul() {
         let mut stack = ValueStack::new(64);
-        
+
         stack.push_fixed(4.0.to_fixed()).unwrap();
         stack.push_fixed(3.0.to_fixed()).unwrap();
 
@@ -167,7 +167,7 @@ mod tests {
     #[test]
     fn test_div() {
         let mut stack = ValueStack::new(64);
-        
+
         stack.push_fixed(12.0.to_fixed()).unwrap();
         stack.push_fixed(4.0.to_fixed()).unwrap();
 
@@ -180,7 +180,7 @@ mod tests {
     #[test]
     fn test_div_by_zero() {
         let mut stack = ValueStack::new(64);
-        
+
         stack.push_fixed(5.0.to_fixed()).unwrap();
         stack.push_fixed(0.0.to_fixed()).unwrap();
 
@@ -191,7 +191,7 @@ mod tests {
     #[test]
     fn test_neg() {
         let mut stack = ValueStack::new(64);
-        
+
         stack.push_fixed(5.0.to_fixed()).unwrap();
 
         exec_neg_fixed(&mut stack).unwrap();
@@ -203,7 +203,7 @@ mod tests {
     #[test]
     fn test_abs() {
         let mut stack = ValueStack::new(64);
-        
+
         stack.push_fixed((-5.0).to_fixed()).unwrap();
 
         exec_abs_fixed(&mut stack).unwrap();
@@ -215,7 +215,7 @@ mod tests {
     #[test]
     fn test_min() {
         let mut stack = ValueStack::new(64);
-        
+
         stack.push_fixed(5.0.to_fixed()).unwrap();
         stack.push_fixed(3.0.to_fixed()).unwrap();
 
@@ -228,7 +228,7 @@ mod tests {
     #[test]
     fn test_max() {
         let mut stack = ValueStack::new(64);
-        
+
         stack.push_fixed(5.0.to_fixed()).unwrap();
         stack.push_fixed(3.0.to_fixed()).unwrap();
 
@@ -238,4 +238,3 @@ mod tests {
         assert_eq!(stack.pop_fixed().unwrap().to_f32(), 5.0);
     }
 }
-

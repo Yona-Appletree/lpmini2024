@@ -39,22 +39,26 @@ impl MappingConfig {
             }
         }
     }
-    
+
     /// Build the actual LedMapping from this config
     pub fn build(&self) -> LedMapping {
         match self {
             MappingConfig::Grid16x8 => LedMapping::grid_16x8(),
             MappingConfig::Serpentine16x8 => LedMapping::serpentine_16x8(),
-            MappingConfig::Spiral { arms, width, height } => {
-                LedMapping::spiral(*arms, *width, *height)
-            }
-            MappingConfig::CircularPanel { ring_counts, center_x, center_y, max_radius } => {
-                LedMapping::circular_panel(ring_counts, *center_x, *center_y, *max_radius)
-            }
+            MappingConfig::Spiral {
+                arms,
+                width,
+                height,
+            } => LedMapping::spiral(*arms, *width, *height),
+            MappingConfig::CircularPanel {
+                ring_counts,
+                center_x,
+                center_y,
+                max_radius,
+            } => LedMapping::circular_panel(ring_counts, *center_x, *center_y, *max_radius),
             MappingConfig::CircularPanel7Ring { width, height } => {
                 LedMapping::circular_panel_7ring(*width, *height)
             }
         }
     }
 }
-

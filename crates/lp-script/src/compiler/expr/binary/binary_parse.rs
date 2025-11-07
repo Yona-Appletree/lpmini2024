@@ -5,10 +5,9 @@ use crate::compiler::lexer::TokenKind;
 use crate::compiler::parser::Parser;
 use crate::shared::Span;
 
-
 impl Parser {
     // Additive: + -
-    pub(in crate) fn additive(&mut self) -> Result<ExprId, ParseError> {
+    pub(crate) fn additive(&mut self) -> Result<ExprId, ParseError> {
         self.enter_recursion()?;
         let mut expr_id = self.multiplicative()?;
 
@@ -42,7 +41,7 @@ impl Parser {
     }
 
     // Multiplicative: * / %
-    pub(in crate) fn multiplicative(&mut self) -> Result<ExprId, ParseError> {
+    pub(crate) fn multiplicative(&mut self) -> Result<ExprId, ParseError> {
         self.enter_recursion()?;
         let mut expr_id = self.exponential()?;
 
@@ -86,7 +85,7 @@ impl Parser {
 
     // Exponential: ^ removed (use pow() function instead)
     // This now just delegates to unary, will be re-added as bitwise XOR in Phase 2
-    pub(in crate) fn exponential(&mut self) -> Result<ExprId, ParseError> {
+    pub(crate) fn exponential(&mut self) -> Result<ExprId, ParseError> {
         self.unary()
     }
 }

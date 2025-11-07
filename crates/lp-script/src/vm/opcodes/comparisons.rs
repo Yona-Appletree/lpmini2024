@@ -1,9 +1,9 @@
+use crate::fixed::{Fixed, FIXED_ONE};
 /// Comparison opcodes for Fixed-point values
 ///
 /// These return FIXED_ONE (1.0) for true, 0 for false to match GLSL semantics
 use crate::vm::error::LpsVmError;
 use crate::vm::value_stack::ValueStack;
-use crate::fixed::{Fixed, FIXED_ONE};
 
 /// Execute GreaterFixed: pop b, a; push (a > b ? 1.0 : 0.0)
 #[inline(always)]
@@ -100,4 +100,3 @@ mod tests {
         assert_eq!(stack.pop_int32().unwrap(), FIXED_ONE);
     }
 }
-

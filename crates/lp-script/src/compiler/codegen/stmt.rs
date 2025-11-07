@@ -6,7 +6,7 @@ use crate::compiler::ast::{AstPool, Stmt, StmtId};
 
 impl<'a> CodeGenerator<'a> {
     // Statement code generation by ID - main dispatcher
-    pub(in crate) fn gen_stmt_id(&mut self, pool: &AstPool, stmt_id: StmtId) {
+    pub(crate) fn gen_stmt_id(&mut self, pool: &AstPool, stmt_id: StmtId) {
         use crate::compiler::ast::StmtKind;
 
         let stmt = pool.stmt(stmt_id);
@@ -48,7 +48,7 @@ impl<'a> CodeGenerator<'a> {
     // Old gen_stmt method kept for compatibility with individual *_gen.rs files
     // TODO: Once all *_gen.rs files are updated to pool-based API, this can be removed
     #[allow(dead_code)]
-    pub(in crate) fn gen_stmt(&mut self, _stmt: &Stmt) {
+    pub(crate) fn gen_stmt(&mut self, _stmt: &Stmt) {
         // Stub - not used in pool-based code path
         // Individual *_gen.rs files still reference this but it's not called
     }

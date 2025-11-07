@@ -3,7 +3,6 @@
 mod constant_folding_tests {
     use crate::compiler::optimize::ast::constant_fold;
     use crate::compiler::optimize::ast_test_util::AstOptTest;
-    
 
     // ============================================================================
     // Arithmetic operations

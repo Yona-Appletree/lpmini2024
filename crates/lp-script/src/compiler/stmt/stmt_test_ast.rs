@@ -9,7 +9,6 @@ use alloc::vec::Vec;
 use crate::compiler::ast::{AstPool, ExprId, ExprKind, Program, StmtId, StmtKind};
 use crate::shared::{Span, Type};
 
-
 /// Builder for creating test statement ASTs with a pool
 pub struct StmtBuilder {
     pool: AstPool,
@@ -174,7 +173,12 @@ impl StmtBuilder {
     }
 
     /// Create an if statement
-    pub fn if_stmt(&mut self, condition: ExprId, then_stmt: StmtId, else_stmt: Option<StmtId>) -> StmtId {
+    pub fn if_stmt(
+        &mut self,
+        condition: ExprId,
+        then_stmt: StmtId,
+        else_stmt: Option<StmtId>,
+    ) -> StmtId {
         self.pool
             .alloc_stmt(
                 StmtKind::If {

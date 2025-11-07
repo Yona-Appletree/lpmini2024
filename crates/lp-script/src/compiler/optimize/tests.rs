@@ -1,9 +1,7 @@
 /// Integration tests for optimization pipeline
 #[cfg(test)]
 mod optimization_tests {
-    use crate::{
-        compile_expr_with_options, compile_script_with_options, OptimizeOptions,
-    };
+    use crate::{compile_expr_with_options, compile_script_with_options, OptimizeOptions};
 
     #[test]
     fn test_constant_folding_arithmetic() {
@@ -13,7 +11,7 @@ mod optimization_tests {
 
         let opt_opcodes = &optimized.main_function().unwrap().opcodes;
         let unopt_opcodes = &unoptimized.main_function().unwrap().opcodes;
-        
+
         println!("Optimized opcodes: {:?}", opt_opcodes);
         println!("Unoptimized opcodes: {:?}", unopt_opcodes);
 
@@ -47,14 +45,20 @@ mod optimization_tests {
             compile_expr_with_options("time * 1.0", &OptimizeOptions::none()).unwrap();
 
         // Optimized should have fewer opcodes (no multiplication)
-        assert!(optimized.main_function().unwrap().opcodes.len() < unoptimized.main_function().unwrap().opcodes.len());
+        assert!(
+            optimized.main_function().unwrap().opcodes.len()
+                < unoptimized.main_function().unwrap().opcodes.len()
+        );
 
         // x + 0.0 should simplify to x
         let optimized = compile_expr_with_options("time + 0.0", &OptimizeOptions::all()).unwrap();
         let unoptimized =
             compile_expr_with_options("time + 0.0", &OptimizeOptions::none()).unwrap();
 
-        assert!(optimized.main_function().unwrap().opcodes.len() < unoptimized.main_function().unwrap().opcodes.len());
+        assert!(
+            optimized.main_function().unwrap().opcodes.len()
+                < unoptimized.main_function().unwrap().opcodes.len()
+        );
 
         // x * 0.0 should fold to 0.0
         let program = compile_expr_with_options("time * 0.0", &OptimizeOptions::all()).unwrap();
@@ -70,7 +74,10 @@ mod optimization_tests {
             compile_expr_with_options("1.0 ? time : 0.0", &OptimizeOptions::none()).unwrap();
 
         // Optimized should not include the false branch or select
-        assert!(program.main_function().unwrap().opcodes.len() < unoptimized.main_function().unwrap().opcodes.len());
+        assert!(
+            program.main_function().unwrap().opcodes.len()
+                < unoptimized.main_function().unwrap().opcodes.len()
+        );
     }
 
     #[test]
@@ -85,7 +92,10 @@ mod optimization_tests {
         let unoptimized = compile_script_with_options(script, &OptimizeOptions::none()).unwrap();
 
         // Optimized should have fewer opcodes (dead code removed)
-        assert!(optimized.main_function().unwrap().opcodes.len() < unoptimized.main_function().unwrap().opcodes.len());
+        assert!(
+            optimized.main_function().unwrap().opcodes.len()
+                < unoptimized.main_function().unwrap().opcodes.len()
+        );
     }
 
     #[test]
@@ -102,7 +112,10 @@ mod optimization_tests {
         let unoptimized = compile_script_with_options(script, &OptimizeOptions::none()).unwrap();
 
         // Optimized should have fewer opcodes (no jump, no else branch)
-        assert!(optimized.main_function().unwrap().opcodes.len() < unoptimized.main_function().unwrap().opcodes.len());
+        assert!(
+            optimized.main_function().unwrap().opcodes.len()
+                < unoptimized.main_function().unwrap().opcodes.len()
+        );
     }
 
     #[test]
@@ -135,7 +148,10 @@ mod optimization_tests {
             assert!(!unoptimized.main_function().unwrap().opcodes.is_empty());
 
             // Optimized should be smaller or equal
-            assert!(optimized.main_function().unwrap().opcodes.len() <= unoptimized.main_function().unwrap().opcodes.len());
+            assert!(
+                optimized.main_function().unwrap().opcodes.len()
+                    <= unoptimized.main_function().unwrap().opcodes.len()
+            );
         }
     }
 

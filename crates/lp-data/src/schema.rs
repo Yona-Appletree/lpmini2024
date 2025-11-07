@@ -105,14 +105,10 @@ fn apply_field_annotations(target: &mut Value, annotations: &Annotations) {
         .get("description")
         .and_then(AnnotationValue::as_text)
     {
-        object.insert(
-            "description".into(),
-            Value::String(description.to_string()),
-        );
+        object.insert("description".into(), Value::String(description.to_string()));
     }
 
     object.insert("x-annotations".into(), annotations.to_json());
 
     *target = Value::Object(object);
 }
-

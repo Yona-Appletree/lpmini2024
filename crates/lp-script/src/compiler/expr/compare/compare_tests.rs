@@ -2,9 +2,9 @@
 #[cfg(test)]
 mod tests {
     use crate::compiler::expr::expr_test_util::ExprTest;
-    
-    use crate::vm::opcodes::LpsOpCode;
+
     use crate::fixed::ToFixed;
+    use crate::vm::opcodes::LpsOpCode;
 
     // ========================================================================
     // Comprehensive tests - one per comparison operator

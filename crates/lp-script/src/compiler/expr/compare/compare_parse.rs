@@ -7,7 +7,7 @@ use crate::shared::Span;
 
 impl Parser {
     // Equality: == !=
-    pub(in crate) fn equality(&mut self) -> Result<ExprId, ParseError> {
+    pub(crate) fn equality(&mut self) -> Result<ExprId, ParseError> {
         self.enter_recursion()?;
         let mut expr_id = self.relational()?;
 
@@ -41,7 +41,7 @@ impl Parser {
     }
 
     // Relational: < > <= >=
-    pub(in crate) fn relational(&mut self) -> Result<ExprId, ParseError> {
+    pub(crate) fn relational(&mut self) -> Result<ExprId, ParseError> {
         self.enter_recursion()?;
         let mut expr_id = self.shift()?;
 

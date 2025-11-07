@@ -18,7 +18,7 @@ impl<'a> CodeGenerator<'a> {
         // Allocate a local for this variable
         // This will allocate in the same order as the analyzer did
         let local_idx = self.locals.allocate_typed(name.to_string(), ty.clone());
-        
+
         if let Some(init_id) = init {
             self.gen_expr_id(pool, *init_id);
             // Use type-specific StoreLocal opcode

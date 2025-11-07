@@ -2,12 +2,12 @@
 extern crate alloc;
 use alloc::vec::Vec;
 
+use crate::fixed::Fixed;
 use crate::vm::call_stack::CallStack;
 use crate::vm::error::LpsVmError;
 use crate::vm::local_stack::LocalStack;
 use crate::vm::lps_program::LpsProgram;
 use crate::vm::value_stack::ValueStack;
-use crate::fixed::Fixed;
 
 /// Action to take after executing Return opcode
 #[derive(Debug)]

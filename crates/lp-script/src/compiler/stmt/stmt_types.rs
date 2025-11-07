@@ -15,7 +15,7 @@ impl TypeChecker {
     ) -> Result<(), TypeError> {
         // Clone the statement kind to avoid borrow issues
         let stmt_kind = pool.stmt(stmt_id).kind.clone();
-        
+
         match stmt_kind {
             StmtKind::VarDecl { ty, name, init } => {
                 if let Some(init_id) = init {

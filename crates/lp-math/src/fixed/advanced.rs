@@ -12,7 +12,7 @@ pub fn modulo(x: Fixed, y: Fixed) -> Fixed {
             return Fixed::from_i32(x_int % y_int);
         }
     }
-    
+
     // General case: use the formula x - floor(x/y) * y for better precision
     // This matches GLSL's mod() behavior
     let quotient = x / y;

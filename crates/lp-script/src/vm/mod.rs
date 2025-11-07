@@ -101,22 +101,31 @@ pub fn execute_program_lps_vec3(
 
             // Run program - it should return 3 values on stack for Vec3
             vm.run_with_coords(
-                    x_norm,
-                    y_norm,
-                    x_plus_half,
-                    y_plus_half,
-                    time,
-                    width,
-                    height,
-                )
-                .unwrap_or_else(|e| {
-                    panic!("Runtime error at pixel ({}, {}): {}", x, y, e);
-                });
+                x_norm,
+                y_norm,
+                x_plus_half,
+                y_plus_half,
+                time,
+                width,
+                height,
+            )
+            .unwrap_or_else(|e| {
+                panic!("Runtime error at pixel ({}, {}): {}", x, y, e);
+            });
 
             // Pop 3 values from stack (b, g, r in reverse order)
-            let b = vm.stack.pop_fixed().expect("Vec3 should have blue component");
-            let g = vm.stack.pop_fixed().expect("Vec3 should have green component");
-            let r = vm.stack.pop_fixed().expect("Vec3 should have red component");
+            let b = vm
+                .stack
+                .pop_fixed()
+                .expect("Vec3 should have blue component");
+            let g = vm
+                .stack
+                .pop_fixed()
+                .expect("Vec3 should have green component");
+            let r = vm
+                .stack
+                .pop_fixed()
+                .expect("Vec3 should have red component");
 
             let idx = (y * width + x) * 3;
             if idx + 2 < output.len() {

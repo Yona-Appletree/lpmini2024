@@ -1,7 +1,7 @@
+use crate::fixed::{modulo, Vec2};
 /// Vec2 operations
 use crate::vm::error::LpsVmError;
 use crate::vm::value_stack::ValueStack;
-use crate::fixed::{modulo, Vec2};
 
 #[inline(always)]
 pub fn exec_add_vec2(stack: &mut ValueStack) -> Result<(), LpsVmError> {

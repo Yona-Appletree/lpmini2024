@@ -2,11 +2,11 @@
 extern crate alloc;
 use super::rgb_utils::grey_to_i32;
 use super::{BufferFormat, BufferRef, PipelineError};
+use alloc::vec;
+use lp_script::fixed::Fixed;
 use lp_script::shared::Type;
 use lp_script::vm::{execute_program_lps, execute_program_lps_vec3};
 use lp_script::LpsProgram;
-use lp_script::fixed::Fixed;
-use alloc::vec;
 
 /// Validate that the program's return type matches the expected buffer format
 pub fn validate_expr_program_type(

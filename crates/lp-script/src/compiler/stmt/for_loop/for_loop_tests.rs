@@ -10,7 +10,7 @@ mod tests {
              for (float i = 0.0; i < 3.0; i = i + 1.0) { 
                  sum = sum + i; 
              } 
-             return sum;"
+             return sum;",
         )
         .expect_result_fixed(3.0) // 0 + 1 + 2
         .run()
@@ -21,7 +21,7 @@ mod tests {
         ScriptTest::new(
             "float i = 0.0; 
              for (; i < 3.0; i = i + 1.0) { } 
-             return i;"
+             return i;",
         )
         .expect_result_fixed(3.0)
         .run()
@@ -36,7 +36,7 @@ mod tests {
                      sum = sum + 1.0;
                  }
              }
-             return sum;"
+             return sum;",
         )
         .expect_result_fixed(4.0) // 2 * 2 iterations
         .run()
@@ -49,7 +49,7 @@ mod tests {
              for (float i = 0.0; i < time; i = i + 1.0) { 
                  result = result + 1.0; 
              } 
-             return result;"
+             return result;",
         )
         .with_time(5.0)
         .expect_result_fixed(5.0)
@@ -66,7 +66,7 @@ mod tests {
                  float temp = i * 2.0;
                  sum = sum + temp;
              }
-             return sum;"
+             return sum;",
         )
         .expect_result_fixed(6.0) // (0*2) + (1*2) + (2*2) = 0 + 2 + 4 = 6
         .run()
@@ -81,7 +81,7 @@ mod tests {
                  float temp2 = i * 3.0;
                  sum = sum + temp1 + temp2;
              }
-             return sum;"
+             return sum;",
         )
         .expect_result_fixed(15.0) // i=0: 0, i=1: 5, i=2: 10 => total 15
         .run()
@@ -95,7 +95,7 @@ mod tests {
              for (float i = 5.0; i < 8.0; i = i + 1.0) {
                  result = result + i;
              }
-             return result;"
+             return result;",
         )
         .expect_result_fixed(18.0) // 5 + 6 + 7 = 18
         .run()
@@ -112,7 +112,7 @@ mod tests {
                      sum = sum + outer_temp + inner_temp;
                  }
              }
-             return sum;"
+             return sum;",
         )
         .expect_result_fixed(30.0) // i=0,j=0: 0, i=0,j=1: 5, i=1,j=0: 10, i=1,j=1: 15 => 30
         .run()
@@ -127,7 +127,7 @@ mod tests {
                  float x = i * 2.0;  // Shadows outer x
                  sum = sum + x;
              }
-             return sum + x;"  // Uses outer x
+             return sum + x;", // Uses outer x
         )
         .expect_result_fixed(102.0) // inner: (0*2) + (1*2) = 2, outer: 100 => 102
         .run()
@@ -141,7 +141,7 @@ mod tests {
                  float multiplier = i;
                  product = product * multiplier;
              }
-             return product;"
+             return product;",
         )
         .expect_result_fixed(24.0) // 1 * 2 * 3 * 4 = 24
         .run()
@@ -159,7 +159,7 @@ mod tests {
                      }
                  }
              }
-             return count;"
+             return count;",
         )
         .expect_result_fixed(8.0) // 2 * 2 * 2 = 8 iterations
         .run()
@@ -173,7 +173,7 @@ mod tests {
                  float square = i * i;
                  sum = sum + square;
              }
-             return sum;"
+             return sum;",
         )
         .expect_result_fixed(14.0) // 1² + 2² + 3² = 1 + 4 + 9 = 14
         .run()
@@ -190,7 +190,7 @@ mod tests {
                  }
                  result = result + value;
              }
-             return result;"
+             return result;",
         )
         .expect_result_fixed(11.0) // 0 + 1 + 2 + (3*2) + (4*2) = 0+1+2+6+8 = 17... wait let me recalc
         // i=0: value=0, result=0
@@ -213,7 +213,7 @@ mod tests {
                  temp = temp + i;
                  sum = sum + temp;
              }
-             return sum;"
+             return sum;",
         )
         .expect_result_fixed(33.0) // (10+0) + (10+1) + (10+2) = 10 + 11 + 12 = 33
         .run()
@@ -227,7 +227,7 @@ mod tests {
              for (float i = 1.0; i <= 4.0; i = i + 1.0) {
                  sum = sum + i;
              }
-             return sum;"
+             return sum;",
         )
         .expect_result_fixed(10.0) // 1 + 2 + 3 + 4 = 10
         .run()
@@ -244,7 +244,7 @@ mod tests {
                  }
                  result = i;
              }
-             return result;"
+             return result;",
         )
         .expect_result_fixed(3.0)
         .run()

@@ -9,10 +9,10 @@ use crate::vm::opcodes::LpsOpCode;
 impl<'a> CodeGenerator<'a> {
     pub(crate) fn gen_assign_expr_id(&mut self, pool: &AstPool, target: &str, value: ExprId) {
         self.gen_expr_id(pool, value);
-        
+
         if let Some(local_idx) = self.locals.get(target) {
             let var_type = self.locals.get_type(local_idx).unwrap_or(&Type::Fixed);
-            
+
             // Duplicate value based on type (assignment returns the assigned value)
             match var_type {
                 Type::Vec2 => self.code.push(LpsOpCode::Dup2),
@@ -20,7 +20,7 @@ impl<'a> CodeGenerator<'a> {
                 Type::Vec4 => self.code.push(LpsOpCode::Dup4),
                 _ => self.code.push(LpsOpCode::Dup1),
             }
-            
+
             // Store using type-specific opcode
             self.code.push(match var_type {
                 Type::Fixed | Type::Bool => LpsOpCode::StoreLocalFixed(local_idx),

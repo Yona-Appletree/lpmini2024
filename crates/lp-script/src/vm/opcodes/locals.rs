@@ -1,8 +1,8 @@
+use crate::fixed::Fixed;
 /// Local variable operations (updated for optimized storage)
 use crate::vm::error::LpsVmError;
 use crate::vm::local_stack::LocalStack;
 use crate::vm::value_stack::ValueStack;
-use crate::fixed::Fixed;
 
 /// Execute LoadLocalFixed: pop nothing; push local[idx]
 #[inline(always)]
@@ -127,15 +127,15 @@ pub fn exec_store_local_vec4(
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::fixed::ToFixed;
     use crate::shared::Type;
     use crate::vm::lps_program::LocalVarDef;
-    use crate::fixed::ToFixed;
 
     #[test]
     fn test_load_store_fixed() {
         let mut stack = ValueStack::new(64);
         let mut locals = LocalStack::new(64);
-        
+
         // Allocate a Fixed local
         let defs = vec![LocalVarDef::new("x".into(), Type::Fixed)];
         locals.allocate_locals(&defs).unwrap();

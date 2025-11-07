@@ -60,8 +60,8 @@ mod parse_tests {
 
 #[cfg(test)]
 mod return_path_tests {
-    use crate::compiler::ast::Program;
     use crate::compiler::analyzer::FunctionAnalyzer;
+    use crate::compiler::ast::Program;
     use crate::compiler::error::{TypeError, TypeErrorKind};
     use crate::compiler::lexer::Lexer;
     use crate::compiler::parser::Parser;
@@ -75,10 +75,10 @@ mod return_path_tests {
             kind: TypeErrorKind::UndefinedVariable(format!("Parse error: {}", e)),
             span: crate::shared::Span::EMPTY,
         })?;
-        
+
         // Analyze to build function table
         let func_table = FunctionAnalyzer::analyze_program(&program, &pool)?;
-        
+
         // Type check with function table
         let (typed_program, _pool) = TypeChecker::check_program(program, pool, &func_table)?;
         Ok(typed_program)
@@ -294,10 +294,10 @@ mod return_path_tests {
 
 #[cfg(test)]
 mod vector_function_tests {
+    use crate::fixed::ToFixed;
+    use crate::vm::lps_vm::LpsVm;
     use crate::vm::vm_limits::VmLimits;
     use crate::{compile_script_with_options, OptimizeOptions};
-    use crate::vm::lps_vm::LpsVm;
-    use crate::fixed::ToFixed;
 
     // ========================================================================
     // Function Integration Tests - Vector Parameters
@@ -530,9 +530,9 @@ mod vector_function_tests {
 
 #[cfg(test)]
 mod integration_tests {
+    use crate::fixed::Fixed;
     use crate::vm::vm_limits::VmLimits;
     use crate::*;
-    use crate::fixed::Fixed;
 
     #[test]
     fn test_function_no_params() {

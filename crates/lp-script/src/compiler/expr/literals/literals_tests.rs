@@ -2,10 +2,10 @@
 #[cfg(test)]
 mod tests {
     use crate::compiler::expr::expr_test_util::ExprTest;
-    
+
+    use crate::fixed::ToFixed;
     use crate::shared::Type;
     use crate::vm::opcodes::LpsOpCode;
-    use crate::fixed::ToFixed;
 
     #[test]
     fn test_float_literal() -> Result<(), String> {

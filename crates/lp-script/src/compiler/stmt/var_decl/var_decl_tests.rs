@@ -2,11 +2,11 @@
 #[cfg(test)]
 mod tests {
     use crate::compiler::stmt::stmt_test_util::ScriptTest;
+    use crate::fixed::ToFixed;
     use crate::shared::Type;
     use crate::vm::lps_vm::LpsVm;
     use crate::vm::opcodes::LpsOpCode;
     use crate::vm::vm_limits::VmLimits;
-    use crate::fixed::ToFixed;
 
     #[test]
     fn test_var_decl_with_init() -> Result<(), String> {
@@ -106,7 +106,6 @@ mod tests {
 
     #[test]
     fn test_var_decl_vec2() -> Result<(), String> {
-        
         use crate::{compile_script_with_options, OptimizeOptions};
 
         let program = compile_script_with_options(
@@ -134,7 +133,6 @@ mod tests {
 
     #[test]
     fn test_var_decl_vec3() -> Result<(), String> {
-        
         use crate::{compile_script_with_options, OptimizeOptions};
 
         let program = compile_script_with_options(
@@ -162,7 +160,6 @@ mod tests {
 
     #[test]
     fn test_var_decl_vec4() -> Result<(), String> {
-        
         use crate::{compile_script_with_options, OptimizeOptions};
 
         let program = compile_script_with_options(
@@ -190,7 +187,6 @@ mod tests {
 
     #[test]
     fn test_vec2_in_expression() -> Result<(), String> {
-        
         use crate::{compile_script_with_options, OptimizeOptions};
 
         let program = compile_script_with_options(
@@ -218,7 +214,6 @@ mod tests {
 
     #[test]
     fn test_vec3_in_expression() -> Result<(), String> {
-        
         use crate::{compile_script_with_options, OptimizeOptions};
 
         let program = compile_script_with_options(
@@ -246,7 +241,6 @@ mod tests {
 
     #[test]
     fn test_vec4_uninitialized() -> Result<(), String> {
-        
         use crate::{compile_script_with_options, OptimizeOptions};
 
         let program = compile_script_with_options(
@@ -300,9 +294,9 @@ mod tests {
 
 #[cfg(test)]
 mod variable_integration_tests {
+    use crate::fixed::Fixed;
     use crate::vm::vm_limits::VmLimits;
     use crate::*;
-    use crate::fixed::Fixed;
 
     #[test]
     fn test_variable_mutation() {

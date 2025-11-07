@@ -5,10 +5,9 @@ use crate::compiler::lexer::TokenKind;
 use crate::compiler::parser::Parser;
 use crate::shared::Span;
 
-
 impl Parser {
     // Parse vector constructor
-    pub(in crate) fn parse_vec_constructor(&mut self) -> Result<ExprId, ParseError> {
+    pub(crate) fn parse_vec_constructor(&mut self) -> Result<ExprId, ParseError> {
         let token = self.current().clone();
         let vec_kind = token.kind.clone();
         let start = token.span.start;

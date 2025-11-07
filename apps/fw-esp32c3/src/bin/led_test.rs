@@ -57,8 +57,11 @@ async fn main(_spawner: Spawner) {
     // Hard-coded LED indices that should form a horizontal line (from visualizer)
     let horizontal_leds = [0, 1, 5, 9, 15, 21, 29, 47, 57, 69, 81, 97];
 
-    info!("Turning on {} LEDs for horizontal line", horizontal_leds.len());
-    
+    info!(
+        "Turning on {} LEDs for horizontal line",
+        horizontal_leds.len()
+    );
+
     // Set these specific LEDs to white
     for &led_idx in horizontal_leds.iter() {
         if led_idx < NUM_LEDS {

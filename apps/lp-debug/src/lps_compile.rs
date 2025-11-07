@@ -1,5 +1,5 @@
-use lp_script::compile_script;
 use lp_debug::lpa_format::program_to_lpa;
+use lp_script::compile_script;
 /// LPS to LPA compiler CLI
 use std::fs;
 use std::io::{self, Read};
@@ -64,4 +64,3 @@ fn main() {
         print!("{}", lpa);
     }
 }
-

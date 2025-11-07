@@ -4,10 +4,9 @@ use crate::compiler::error::ParseError;
 use crate::compiler::lexer::TokenKind;
 use crate::compiler::parser::Parser;
 
-
 impl Parser {
     // Parse identifier (variable or function call)
-    pub(in crate) fn parse_ident(&mut self) -> Result<ExprId, ParseError> {
+    pub(crate) fn parse_ident(&mut self) -> Result<ExprId, ParseError> {
         let token = self.current().clone();
 
         if let TokenKind::Ident(name) = &token.kind {

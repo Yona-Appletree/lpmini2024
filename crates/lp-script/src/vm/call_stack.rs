@@ -10,10 +10,10 @@ use super::error::LpsVmError;
 /// Tracks where to return and how to restore the locals allocation state.
 #[derive(Debug, Clone, Copy)]
 pub struct CallFrame {
-    pub return_pc: usize,           // PC to return to
-    pub return_fn_idx: usize,       // Function index to return to
-    pub frame_base: usize,          // Base local index for this frame
-    pub locals_restore_sp: usize,   // Local count to restore on return
+    pub return_pc: usize,         // PC to return to
+    pub return_fn_idx: usize,     // Function index to return to
+    pub frame_base: usize,        // Base local index for this frame
+    pub locals_restore_sp: usize, // Local count to restore on return
 }
 
 /// Call stack for managing function call frames
@@ -25,8 +25,8 @@ pub struct CallStack {
     frames: Vec<CallFrame>,
     depth: usize,
     max_depth: usize,
-    frame_base: usize,      // Current frame's base local index
-    current_fn_idx: usize,  // Current function index
+    frame_base: usize,     // Current frame's base local index
+    current_fn_idx: usize, // Current function index
 }
 
 impl CallStack {
@@ -101,9 +101,7 @@ impl CallStack {
     ) -> Result<(), LpsVmError> {
         // Check call stack depth
         if self.depth >= self.max_depth {
-            return Err(LpsVmError::CallStackOverflow {
-                depth: self.depth,
-            });
+            return Err(LpsVmError::CallStackOverflow { depth: self.depth });
         }
 
         // Save current frame state
@@ -131,12 +129,16 @@ impl CallStack {
             // Restore frame from call stack
             self.depth -= 1;
             let frame = self.frames[self.depth];
-            
+
             // Restore previous frame state
             self.frame_base = frame.frame_base;
             self.current_fn_idx = frame.return_fn_idx;
-            
-            Some((frame.return_pc, frame.return_fn_idx, frame.locals_restore_sp))
+
+            Some((
+                frame.return_pc,
+                frame.return_fn_idx,
+                frame.locals_restore_sp,
+            ))
         } else {
             // At depth 0 - exiting main
             None
@@ -245,25 +247,25 @@ mod tests {
         // Call func1: 3 locals (2-4), sp=5
         stack.push_frame(100, 0, 2, 2, 1).unwrap();
         assert_eq!(stack.frame_base(), 2);
-        
+
         // Call func2: 7 locals (5-11), sp=12
         stack.push_frame(200, 1, 5, 5, 2).unwrap();
         assert_eq!(stack.frame_base(), 5);
-        
+
         // Call func3: 1 local (12), sp=13
         stack.push_frame(300, 2, 12, 12, 3).unwrap();
         assert_eq!(stack.frame_base(), 12);
-        
+
         // Pop func3, restore to sp=12
         let (_, _, restore_sp) = stack.pop_frame().unwrap();
         assert_eq!(restore_sp, 12);
         assert_eq!(stack.frame_base(), 5);
-        
+
         // Pop func2, restore to sp=5
         let (_, _, restore_sp) = stack.pop_frame().unwrap();
         assert_eq!(restore_sp, 5);
         assert_eq!(stack.frame_base(), 2);
-        
+
         // Pop func1, restore to sp=2
         let (_, _, restore_sp) = stack.pop_frame().unwrap();
         assert_eq!(restore_sp, 2);
@@ -277,11 +279,13 @@ mod tests {
         // Simulate multiple function calls with varying local counts
         let mut current_sp = 0;
         let mut frame_bases = vec![];
-        
+
         for i in 0..10 {
             let locals_count = (i + 1) * 2; // Varying sizes: 2, 4, 6, 8, ...
             frame_bases.push(current_sp);
-            stack.push_frame(i * 100, i, current_sp, current_sp, i + 1).unwrap();
+            stack
+                .push_frame(i * 100, i, current_sp, current_sp, i + 1)
+                .unwrap();
             current_sp += locals_count;
         }
         assert_eq!(stack.depth(), 10);

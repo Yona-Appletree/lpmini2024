@@ -1,5 +1,5 @@
-use std::collections::BTreeMap;
 use schemars::{JsonSchema, Schema};
+use std::collections::BTreeMap;
 
 /// Registry for all registered LP data types using schemars
 pub struct SchemaRegistry {
@@ -47,4 +47,3 @@ impl Default for SchemaRegistry {
         Self::new()
     }
 }
-

@@ -5,10 +5,9 @@ use crate::compiler::lexer::TokenKind;
 use crate::compiler::parser::Parser;
 use crate::shared::Span;
 
-
 impl Parser {
     // Unary: - ! ~ ++ -- (between exponential and postfix in precedence)
-    pub(in crate) fn unary(&mut self) -> Result<ExprId, ParseError> {
+    pub(crate) fn unary(&mut self) -> Result<ExprId, ParseError> {
         self.enter_recursion()?;
         let token = self.current().clone();
 
@@ -21,7 +20,10 @@ impl Parser {
                     let end = self.current().span.end;
                     self.advance();
                     self.pool
-                        .alloc_expr(ExprKind::PreIncrement(name), Span::new(token.span.start, end))
+                        .alloc_expr(
+                            ExprKind::PreIncrement(name),
+                            Span::new(token.span.start, end),
+                        )
                         .map_err(|e| self.pool_error_to_parse_error(e))
                 } else {
                     // Error: prefix increment requires an l-value
@@ -42,7 +44,10 @@ impl Parser {
                     let end = self.current().span.end;
                     self.advance();
                     self.pool
-                        .alloc_expr(ExprKind::PreDecrement(name), Span::new(token.span.start, end))
+                        .alloc_expr(
+                            ExprKind::PreDecrement(name),
+                            Span::new(token.span.start, end),
+                        )
                         .map_err(|e| self.pool_error_to_parse_error(e))
                 } else {
                     // Error: prefix decrement requires an l-value
@@ -104,7 +109,7 @@ impl Parser {
     }
 
     // Primary: number, variable, function call, constructor, or parenthesized expression
-    pub(in crate) fn primary(&mut self) -> Result<ExprId, ParseError> {
+    pub(crate) fn primary(&mut self) -> Result<ExprId, ParseError> {
         self.enter_recursion()?;
         let token = self.current().clone();
 

@@ -1,7 +1,7 @@
+use crate::fixed::FIXED_ONE;
 /// Int32 arithmetic and bitwise operations
 use crate::vm::error::LpsVmError;
 use crate::vm::value_stack::ValueStack;
-use crate::fixed::FIXED_ONE;
 
 // === Arithmetic Operations ===
 

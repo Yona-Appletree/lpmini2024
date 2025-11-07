@@ -1,8 +1,8 @@
+use crate::error::AllocError;
+use crate::pool::LpAllocator;
 use core::cell::RefCell;
 use core::ptr::NonNull;
 use thread_local::ThreadLocal;
-use crate::error::AllocError;
-use crate::pool::LpAllocator;
 
 static ROOT_POOL: ThreadLocal<RefCell<Option<LpAllocator>>> = ThreadLocal::new();
 
@@ -15,12 +15,19 @@ impl LpMemoryPool {
     /// # Safety
     /// - `memory` must point to a valid memory region of at least `size` bytes
     /// - Memory must remain valid for the lifetime of the pool
-    pub unsafe fn new(memory: NonNull<u8>, size: usize, block_size: usize) -> Result<Self, AllocError> {
+    pub unsafe fn new(
+        memory: NonNull<u8>,
+        size: usize,
+        block_size: usize,
+    ) -> Result<Self, AllocError> {
         let root_pool = LpAllocator::new(memory, size, block_size)?;
-        ROOT_POOL.get_or(|| RefCell::new(None)).borrow_mut().replace(root_pool);
+        ROOT_POOL
+            .get_or(|| RefCell::new(None))
+            .borrow_mut()
+            .replace(root_pool);
         Ok(LpMemoryPool)
     }
-    
+
     /// Execute a closure with the pool active
     pub fn run<F, R>(&self, f: F) -> Result<R, AllocError>
     where
@@ -36,7 +43,7 @@ impl LpMemoryPool {
         // Execute closure - it will access pool via with_active_pool()
         f()
     }
-    
+
     /// Get current memory usage statistics
     pub fn stats(&self) -> Result<PoolStats, AllocError> {
         let pool_ref = ROOT_POOL.get_or(|| RefCell::new(None)).borrow();
@@ -48,23 +55,23 @@ impl LpMemoryPool {
             free_blocks: pool.free_blocks(),
         })
     }
-    
+
     /// Get current used bytes
     pub fn used_bytes(&self) -> Result<usize, AllocError> {
         Ok(self.stats()?.used_bytes)
     }
-    
+
     /// Get total capacity in bytes
     pub fn capacity(&self) -> Result<usize, AllocError> {
         Ok(self.stats()?.capacity)
     }
-    
+
     /// Get available bytes (capacity - used)
     pub fn available_bytes(&self) -> Result<usize, AllocError> {
         let stats = self.stats()?;
         Ok(stats.capacity - stats.used_bytes)
     }
-    
+
     /// Get usage percentage (0.0 to 1.0)
     pub fn usage_ratio(&self) -> Result<f32, AllocError> {
         let stats = self.stats()?;
@@ -97,12 +104,12 @@ where
 #[cfg(test)]
 mod tests {
     use super::*;
-    
+
     #[test]
     fn test_memory_pool_creation() {
         let mut memory = [0u8; 1024];
         let memory_ptr = NonNull::new(memory.as_mut_ptr()).unwrap();
-        
+
         unsafe {
             let pool = LpMemoryPool::new(memory_ptr, 1024, 64).unwrap();
             let stats = pool.stats().unwrap();
@@ -112,47 +119,45 @@ mod tests {
             assert_eq!(pool.usage_ratio().unwrap(), 0.0);
         }
     }
-    
+
     #[test]
     fn test_run() {
         let mut memory = [0u8; 1024];
         let memory_ptr = NonNull::new(memory.as_mut_ptr()).unwrap();
-        
+
         unsafe {
             let pool = LpMemoryPool::new(memory_ptr, 1024, 64).unwrap();
-            let result = pool.run(|| {
-                Ok(42)
-            }).unwrap();
+            let result = pool.run(|| Ok(42)).unwrap();
             assert_eq!(result, 42);
         }
     }
-    
+
     #[test]
     fn test_usage_meta() {
         let mut memory = [0u8; 1024];
         let memory_ptr = NonNull::new(memory.as_mut_ptr()).unwrap();
-        
+
         unsafe {
             let pool = LpMemoryPool::new(memory_ptr, 1024, 64).unwrap();
-            
+
             // Initially empty
             assert_eq!(pool.used_bytes().unwrap(), 0);
             assert_eq!(pool.available_bytes().unwrap(), 1024);
-            
+
             // Allocate something and keep it alive
             use crate::collections::LpBox;
-            let _boxed = pool.run(|| {
-                LpBox::try_new_with_scope(42i32, Some("test_scope"))
-            }).unwrap();
-            
+            let _boxed = pool
+                .run(|| LpBox::try_new_with_scope(42i32, Some("test_scope")))
+                .unwrap();
+
             // Should have used some memory (boxed is still alive)
             let used = pool.used_bytes().unwrap();
             assert!(used > 0);
             assert_eq!(pool.available_bytes().unwrap(), 1024 - used);
-            
+
             // Drop it
             drop(_boxed);
-            
+
             // Memory should be freed
             assert_eq!(pool.used_bytes().unwrap(), 0);
         }

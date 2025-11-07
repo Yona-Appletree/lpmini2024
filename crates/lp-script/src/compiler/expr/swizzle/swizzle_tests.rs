@@ -2,10 +2,10 @@
 #[cfg(test)]
 mod tests {
     use crate::compiler::expr::expr_test_util::ExprTest;
-    
+
+    use crate::fixed::{ToFixed, Vec2};
     use crate::shared::Type;
     use crate::vm::opcodes::LpsOpCode;
-    use crate::fixed::{ToFixed, Vec2};
 
     #[test]
     fn test_swizzle_single_component_x() -> Result<(), String> {

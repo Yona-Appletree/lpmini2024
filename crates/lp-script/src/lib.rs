@@ -264,4 +264,3 @@ pub fn parse_script(input: &str) -> LpsProgram {
         panic!("Failed to compile LPS script: {}", e);
     })
 }
-

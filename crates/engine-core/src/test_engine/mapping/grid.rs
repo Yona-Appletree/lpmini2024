@@ -26,4 +26,3 @@ impl LedMapping {
         LedMapping { maps }
     }
 }
-

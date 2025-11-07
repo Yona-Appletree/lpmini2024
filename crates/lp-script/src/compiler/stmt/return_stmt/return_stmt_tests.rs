@@ -1,12 +1,12 @@
 /// Return statement tests
 #[cfg(test)]
 mod tests {
-    
+
     use crate::compiler::stmt::stmt_test_util::ScriptTest;
-    use crate::shared::Type;
-    use crate::vm::opcodes::LpsOpCode;
     use crate::fixed::ToFixed;
+    use crate::shared::Type;
     use crate::vm::opcodes::load::LoadSource;
+    use crate::vm::opcodes::LpsOpCode;
 
     #[test]
     fn test_return_literal() -> Result<(), String> {
@@ -16,10 +16,7 @@ mod tests {
                 let stmt = b.return_stmt(expr);
                 b.program(vec![stmt])
             })
-            .expect_opcodes(vec![
-                LpsOpCode::Push(42.0.to_fixed()),
-                LpsOpCode::Return,
-            ])
+            .expect_opcodes(vec![LpsOpCode::Push(42.0.to_fixed()), LpsOpCode::Return])
             .expect_result_fixed(42.0)
             .run()
     }

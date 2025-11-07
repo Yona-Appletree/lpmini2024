@@ -2,7 +2,7 @@
 use super::fixed::Fixed;
 
 /// Trait for converting types to Fixed
-/// 
+///
 /// # Examples
 /// ```
 /// use engine_core::math::{Fixed, ToFixed};
@@ -56,7 +56,7 @@ mod tests {
     fn test_i32_to_fixed() {
         let a = 5i32.to_fixed();
         assert_eq!(a.to_f32(), 5.0);
-        
+
         let b = (-3i32).to_fixed();
         assert_eq!(b.to_f32(), -3.0);
     }
@@ -65,7 +65,7 @@ mod tests {
     fn test_f32_to_fixed() {
         let a = 1.5f32.to_fixed();
         assert!((a.to_f32() - 1.5).abs() < 0.001);
-        
+
         let b = (-2.75f32).to_fixed();
         assert!((b.to_f32() - (-2.75)).abs() < 0.001);
     }
@@ -88,4 +88,3 @@ mod tests {
         assert_eq!(a.to_f32(), 42.0);
     }
 }
-

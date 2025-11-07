@@ -63,7 +63,7 @@ mod peephole_optimization_tests {
         for expr in test_expressions {
             // Both unoptimized and optimized should compile successfully
             ExprTest::new(expr).run().unwrap();
-            
+
             ExprTest::new(expr)
                 .with_peephole_optimization()
                 .run()
@@ -82,7 +82,7 @@ mod peephole_optimization_tests {
     fn test_full_optimization_pipeline() {
         // Test with all optimizations enabled
         let options = OptimizeOptions::all();
-        
+
         ExprTest::new("(2.0 + 3.0) * 1.0")
             .with_optimization(options)
             .expect_result_fixed(5.0)
@@ -95,9 +95,9 @@ mod peephole_optimization_tests {
         // Test that AST optimization + opcode optimization work together
         // (2.0 + 3.0) should be folded to 5.0 at AST level
         // Then any redundant opcodes should be eliminated at opcode level
-        
+
         let options = OptimizeOptions::all();
-        
+
         ExprTest::new("(2.0 + 3.0) * time")
             .with_optimization(options)
             .with_time(2.0)
@@ -242,7 +242,7 @@ mod peephole_optimization_tests {
     #[test]
     fn test_optimization_levels() {
         // Test different optimization configurations
-        
+
         // No optimization
         ExprTest::new("2.0 + 3.0")
             .expect_result_fixed(5.0)
@@ -284,10 +284,10 @@ mod peephole_optimization_tests {
     fn test_push_drop_elimination_pattern() {
         // While we can't directly test Push/Drop patterns without looking at opcodes,
         // we can test expressions that might generate them
-        
+
         // Expression statements that don't use their result might generate Push/Drop
         // But in expression mode, everything returns a value, so this is harder to test
-        
+
         ExprTest::new("5.0")
             .with_peephole_optimization()
             .expect_result_fixed(5.0)
@@ -331,4 +331,3 @@ mod peephole_optimization_tests {
             .unwrap();
     }
 }
-

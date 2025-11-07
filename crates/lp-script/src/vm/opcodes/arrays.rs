@@ -1,7 +1,7 @@
+use crate::fixed::Fixed;
 /// Array access opcodes (stub implementations)
 use crate::vm::error::LpsVmError;
 use crate::vm::value_stack::ValueStack;
-use crate::fixed::Fixed;
 
 /// Execute GetElemInt32ArrayFixed: pop array_ref, index; push Fixed
 /// Stub implementation - returns 0.0
@@ -81,4 +81,3 @@ mod tests {
         ));
     }
 }
-

@@ -44,7 +44,7 @@ pub fn tan(x: Fixed) -> Fixed {
 
 #[cfg(test)]
 mod tests {
-    
+
     use super::*;
 
     #[test]

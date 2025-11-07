@@ -18,7 +18,7 @@ impl TypeChecker {
         // Clone the expression kind to avoid borrow issues
         let expr_kind = pool.expr(expr_id).kind.clone();
         let expr_span = pool.expr(expr_id).span;
-        
+
         match &expr_kind {
             // Literals
             ExprKind::Number(_) => {
@@ -30,7 +30,8 @@ impl TypeChecker {
             }
 
             ExprKind::Variable(name) => {
-                let var_type = crate::compiler::expr::variable::check_variable(name, symbols, expr_span)?;
+                let var_type =
+                    crate::compiler::expr::variable::check_variable(name, symbols, expr_span)?;
                 pool.expr_mut(expr_id).ty = Some(var_type);
             }
 
@@ -77,7 +78,8 @@ impl TypeChecker {
 
             // Logical operations
             ExprKind::And(left_id, right_id) | ExprKind::Or(left_id, right_id) => {
-                let result_ty = Self::check_logical_id(pool, *left_id, *right_id, symbols, func_table)?;
+                let result_ty =
+                    Self::check_logical_id(pool, *left_id, *right_id, symbols, func_table)?;
                 pool.expr_mut(expr_id).ty = Some(result_ty);
             }
 
@@ -109,7 +111,12 @@ impl TypeChecker {
                 false_expr,
             } => {
                 let ty = Self::check_ternary_id(
-                    pool, *condition, *true_expr, *false_expr, symbols, func_table,
+                    pool,
+                    *condition,
+                    *true_expr,
+                    *false_expr,
+                    symbols,
+                    func_table,
                 )?;
                 pool.expr_mut(expr_id).ty = Some(ty);
             }
@@ -122,8 +129,10 @@ impl TypeChecker {
 
             // Function call
             ExprKind::Call { name, args } => {
-                let (ty, expanded_id) = crate::compiler::expr::call::check_call_id(pool, name, args, symbols, func_table, expr_span)?;
-                
+                let (ty, expanded_id) = crate::compiler::expr::call::check_call_id(
+                    pool, name, args, symbols, func_table, expr_span,
+                )?;
+
                 if let Some(expanded) = expanded_id {
                     // Replace this call with the expanded component-wise version
                     // Copy the expanded expression to this location
@@ -138,21 +147,28 @@ impl TypeChecker {
 
             // Vector constructors
             ExprKind::Vec2Constructor(args) => {
-                let ty = Self::check_vec_constructor_id(pool, args, 2, symbols, func_table, expr_span)?;
+                let ty =
+                    Self::check_vec_constructor_id(pool, args, 2, symbols, func_table, expr_span)?;
                 pool.expr_mut(expr_id).ty = Some(ty);
             }
             ExprKind::Vec3Constructor(args) => {
-                let ty = Self::check_vec_constructor_id(pool, args, 3, symbols, func_table, expr_span)?;
+                let ty =
+                    Self::check_vec_constructor_id(pool, args, 3, symbols, func_table, expr_span)?;
                 pool.expr_mut(expr_id).ty = Some(ty);
             }
             ExprKind::Vec4Constructor(args) => {
-                let ty = Self::check_vec_constructor_id(pool, args, 4, symbols, func_table, expr_span)?;
+                let ty =
+                    Self::check_vec_constructor_id(pool, args, 4, symbols, func_table, expr_span)?;
                 pool.expr_mut(expr_id).ty = Some(ty);
             }
 
             // Swizzle
-            ExprKind::Swizzle { expr: swizzle_expr, components } => {
-                let ty = Self::check_swizzle_id(pool, *swizzle_expr, components, symbols, func_table)?;
+            ExprKind::Swizzle {
+                expr: swizzle_expr,
+                components,
+            } => {
+                let ty =
+                    Self::check_swizzle_id(pool, *swizzle_expr, components, symbols, func_table)?;
                 pool.expr_mut(expr_id).ty = Some(ty);
             }
         }
@@ -168,7 +184,6 @@ impl TypeChecker {
     fn check_int_number() -> Type {
         Type::Int32
     }
-
 
     // Helper methods delegated to specific modules:
     // check_variable - delegated to variable/variable_types.rs
@@ -235,7 +250,7 @@ impl TypeChecker {
         Self::infer_type_id(pool, condition_id, symbols, func_table)?;
         Self::infer_type_id(pool, true_id, symbols, func_table)?;
         Self::infer_type_id(pool, false_id, symbols, func_table)?;
-        
+
         let true_ty = pool.expr(true_id).ty.clone().unwrap_or(Type::Fixed);
         Ok(true_ty)
     }
@@ -250,7 +265,7 @@ impl TypeChecker {
         use alloc::string::ToString;
         Self::infer_type_id(pool, value_id, symbols, func_table)?;
         let value_ty = pool.expr(value_id).ty.clone().unwrap_or(Type::Fixed);
-        
+
         // Update symbol table
         symbols.set(target.to_string(), value_ty.clone());
         Ok(value_ty)
@@ -269,7 +284,7 @@ impl TypeChecker {
         for &arg_id in args {
             Self::infer_type_id(pool, arg_id, symbols, func_table)?;
         }
-        
+
         // Return appropriate vector type based on dimension
         Ok(match _dim {
             2 => Type::Vec2,
@@ -287,7 +302,7 @@ impl TypeChecker {
         func_table: &FunctionTable,
     ) -> Result<Type, TypeError> {
         Self::infer_type_id(pool, expr_id, symbols, func_table)?;
-        
+
         let base_expr = pool.expr(expr_id);
         let base_ty = base_expr.ty.as_ref().unwrap();
         let span = base_expr.span;
@@ -300,7 +315,9 @@ impl TypeChecker {
             _ => {
                 return Err(TypeError {
                     kind: TypeErrorKind::InvalidOperation {
-                        op: alloc::string::String::from("Swizzle can only be applied to vector types"),
+                        op: alloc::string::String::from(
+                            "Swizzle can only be applied to vector types",
+                        ),
                         types: vec![base_ty.clone()],
                     },
                     span,

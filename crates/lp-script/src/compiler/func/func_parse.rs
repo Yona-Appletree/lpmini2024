@@ -10,7 +10,7 @@ use alloc::vec::Vec;
 impl Parser {
     /// Check if the current position is a function definition
     /// Function def: type name(params) { body }
-    pub(in crate) fn is_function_definition(&mut self) -> bool {
+    pub(crate) fn is_function_definition(&mut self) -> bool {
         // Look ahead: type + identifier + (
         matches!(
             self.current().kind,
@@ -38,7 +38,7 @@ impl Parser {
     }
 
     /// Parse a function definition
-    pub(in crate) fn parse_function_def(&mut self) -> Result<FunctionDef, ParseError> {
+    pub(crate) fn parse_function_def(&mut self) -> Result<FunctionDef, ParseError> {
         self.enter_recursion()?;
         let start = self.current().span.start;
 

@@ -4,9 +4,8 @@ use crate::compiler::error::ParseError;
 use crate::compiler::parser::Parser;
 use crate::shared::Span;
 
-
 impl Parser {
-    pub(in crate) fn parse_return_stmt(&mut self) -> Result<StmtId, ParseError> {
+    pub(crate) fn parse_return_stmt(&mut self) -> Result<StmtId, ParseError> {
         self.enter_recursion()?;
         let start = self.current().span.start;
         self.advance(); // consume 'return'

@@ -20,7 +20,7 @@ pub(in crate::compiler) fn check_binary_arithmetic_id(
 ) -> Result<Type, TypeError> {
     TypeChecker::infer_type_id(pool, left_id, symbols, func_table)?;
     TypeChecker::infer_type_id(pool, right_id, symbols, func_table)?;
-    
+
     let left_ty = pool.expr(left_id).ty.clone().unwrap();
     let right_ty = pool.expr(right_id).ty.clone().unwrap();
 

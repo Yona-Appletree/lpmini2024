@@ -6,10 +6,9 @@ use crate::compiler::parser::Parser;
 use crate::shared::Span;
 use alloc::vec::Vec;
 
-
 impl Parser {
     // Parse function call
-    pub(in crate) fn parse_function_call(&mut self) -> Result<ExprId, ParseError> {
+    pub(crate) fn parse_function_call(&mut self) -> Result<ExprId, ParseError> {
         let token = self.current().clone();
 
         if let TokenKind::Ident(name) = &token.kind {
@@ -48,7 +47,7 @@ impl Parser {
         }
     }
 
-    pub(in crate) fn parse_args(&mut self) -> Result<Vec<ExprId>, ParseError> {
+    pub(crate) fn parse_args(&mut self) -> Result<Vec<ExprId>, ParseError> {
         let mut args = Vec::new();
 
         if matches!(self.current().kind, TokenKind::RParen) {

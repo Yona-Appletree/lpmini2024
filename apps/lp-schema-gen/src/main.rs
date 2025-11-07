@@ -15,7 +15,7 @@ fn main() {
 
     // Generate Zod schemas
     let zod_schemas = zod_gen::generate_zod_schemas(&registry);
-    
+
     // Print to stdout (can be redirected to a file)
     print!("{}", zod_schemas);
 }

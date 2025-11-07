@@ -1,14 +1,23 @@
 use alloc::vec;
 use alloc::vec::Vec;
 
-use crate::annotation::{Annotations, AnnotationValue};
+use crate::annotation::{AnnotationValue, Annotations};
 use crate::ty::{LpEnumVariant, LpField, LpStructType, LpType};
 
 #[test]
 fn primitive_types_cover_core_variants() {
-    assert!(matches!(LpType::int32(), LpType::Primitive(crate::ty::LpPrimitive::Int32)));
-    assert!(matches!(LpType::fixed32(), LpType::Primitive(crate::ty::LpPrimitive::Fixed32)));
-    assert!(matches!(LpType::boolean(), LpType::Primitive(crate::ty::LpPrimitive::Bool)));
+    assert!(matches!(
+        LpType::int32(),
+        LpType::Primitive(crate::ty::LpPrimitive::Int32)
+    ));
+    assert!(matches!(
+        LpType::fixed32(),
+        LpType::Primitive(crate::ty::LpPrimitive::Fixed32)
+    ));
+    assert!(matches!(
+        LpType::boolean(),
+        LpType::Primitive(crate::ty::LpPrimitive::Bool)
+    ));
 }
 
 #[test]
@@ -16,7 +25,10 @@ fn array_type_captures_element_type() {
     let array_ty = LpType::array(LpType::int32());
     match array_ty {
         LpType::Array(array) => {
-            assert!(matches!(*array.element, LpType::Primitive(crate::ty::LpPrimitive::Int32)));
+            assert!(matches!(
+                *array.element,
+                LpType::Primitive(crate::ty::LpPrimitive::Int32)
+            ));
         }
         _ => panic!("expected array type"),
     }
@@ -26,10 +38,9 @@ fn array_type_captures_element_type() {
 fn struct_type_retains_field_metadata() {
     let mut struct_ty = LpStructType::new("CircleMappingConfig");
     struct_ty.add_field(
-        LpField::new("ring_counts", LpType::array(LpType::int32()))
-            .with_annotations(
-                Annotations::new().with("description", AnnotationValue::text("Counts")),
-            ),
+        LpField::new("ring_counts", LpType::array(LpType::int32())).with_annotations(
+            Annotations::new().with("description", AnnotationValue::text("Counts")),
+        ),
     );
     struct_ty.add_field(LpField::new("radius", LpType::fixed32()));
 
@@ -90,9 +101,18 @@ fn annotations_support_nested_objects() {
     );
 
     let slider = annotations.get("ui.slider").expect("missing slider");
-    assert_eq!(slider.get("min").and_then(AnnotationValue::as_number), Some(0.01));
-    assert_eq!(slider.get("max").and_then(AnnotationValue::as_number), Some(0.5));
-    assert_eq!(slider.get("step").and_then(AnnotationValue::as_number), Some(0.001));
+    assert_eq!(
+        slider.get("min").and_then(AnnotationValue::as_number),
+        Some(0.01)
+    );
+    assert_eq!(
+        slider.get("max").and_then(AnnotationValue::as_number),
+        Some(0.5)
+    );
+    assert_eq!(
+        slider.get("step").and_then(AnnotationValue::as_number),
+        Some(0.001)
+    );
 }
 
 #[cfg(feature = "serde_json")]
@@ -108,7 +128,9 @@ mod json_tests {
             LpField::new("ring_counts", LpType::array(LpType::int32())).with_annotations(
                 Annotations::new().with(
                     "description",
-                    AnnotationValue::text("The counts of leds on the rings of the display, inner-most first"),
+                    AnnotationValue::text(
+                        "The counts of leds on the rings of the display, inner-most first",
+                    ),
                 ),
             ),
         );
@@ -145,13 +167,22 @@ mod json_tests {
     #[test]
     fn lp_value_round_trip_serialization() {
         let value = LpValue::structure([
-            ("ring_counts", LpValue::array(vec![
-                LpValue::int32(1),
-                LpValue::int32(2),
-                LpValue::int32(3),
-            ])),
-            ("ring_direction", LpValue::enumeration("RingDirection", "Forward")),
-            ("led_direction", LpValue::enumeration("LedDirection", "Clockwise")),
+            (
+                "ring_counts",
+                LpValue::array(vec![
+                    LpValue::int32(1),
+                    LpValue::int32(2),
+                    LpValue::int32(3),
+                ]),
+            ),
+            (
+                "ring_direction",
+                LpValue::enumeration("RingDirection", "Forward"),
+            ),
+            (
+                "led_direction",
+                LpValue::enumeration("LedDirection", "Clockwise"),
+            ),
             ("radius", LpValue::fixed32(0.125)),
         ]);
 
@@ -160,4 +191,3 @@ mod json_tests {
         assert_eq!(back, value);
     }
 }
-

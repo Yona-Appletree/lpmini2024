@@ -1,7 +1,7 @@
+use crate::fixed::{Fixed, FIXED_ONE, FIXED_SHIFT};
 /// Load coordinate/builtin variable operations
 use crate::vm::error::LpsVmError;
 use crate::vm::value_stack::ValueStack;
-use crate::fixed::{Fixed, FIXED_ONE, FIXED_SHIFT};
 
 /// Load source specifier for built-in variables
 #[derive(Debug, Clone, Copy, PartialEq)]

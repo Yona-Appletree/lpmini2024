@@ -131,7 +131,11 @@ impl fmt::Display for TypeError {
                 write!(f, "invalid swizzle: {}", msg)
             }
             TypeErrorKind::MissingReturn(name) => {
-                write!(f, "function '{}' is missing a return statement on all code paths", name)
+                write!(
+                    f,
+                    "function '{}' is missing a return statement on all code paths",
+                    name
+                )
             }
         }
     }
@@ -191,4 +195,3 @@ impl From<CodegenError> for CompileError {
         CompileError::Codegen(e)
     }
 }
-

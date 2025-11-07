@@ -128,11 +128,7 @@ pub fn gen_program(
     program: &Program,
     _gen_stmt: impl Fn(&AstPool, StmtId, &mut Vec<LpsOpCode>, &mut LocalAllocator, &BTreeMap<String, u32>)
         + Copy,
-) -> (
-    Vec<LpsOpCode>,
-    u32,
-    BTreeMap<u32, crate::shared::Type>,
-) {
+) -> (Vec<LpsOpCode>, u32, BTreeMap<u32, crate::shared::Type>) {
     let mut code = Vec::new();
     let function_offsets = BTreeMap::new();
 

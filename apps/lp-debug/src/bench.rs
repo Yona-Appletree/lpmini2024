@@ -5,7 +5,6 @@ use engine_core::test_engine::RuntimeOptions;
 use lp_script::fixed::ToFixed;
 use std::time::Instant;
 
-
 const FRAME_COUNT: u32 = 1000;
 
 fn benchmark_size(width: usize, height: usize) {

@@ -35,4 +35,3 @@ pub use registry::{LpDataType, TypeRegistry};
 
 #[cfg(test)]
 mod tests;
-

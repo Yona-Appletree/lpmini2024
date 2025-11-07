@@ -6,15 +6,14 @@ use crate::compiler::parser::Parser;
 use crate::shared::Span;
 use alloc::string::String;
 
-
 impl Parser {
-    pub(in crate) fn parse_var_decl(&mut self) -> Result<StmtId, ParseError> {
+    pub(crate) fn parse_var_decl(&mut self) -> Result<StmtId, ParseError> {
         let stmt_id = self.parse_var_decl_no_semicolon()?;
         self.consume_semicolon();
         Ok(stmt_id)
     }
 
-    pub(in crate) fn parse_var_decl_no_semicolon(&mut self) -> Result<StmtId, ParseError> {
+    pub(crate) fn parse_var_decl_no_semicolon(&mut self) -> Result<StmtId, ParseError> {
         self.enter_recursion()?;
         let start = self.current().span.start;
 

@@ -77,7 +77,7 @@ fn remove_unreachable_after_jumps(opcodes: Vec<LpsOpCode>) -> Vec<LpsOpCode> {
 
     // Track mapping from old index to new index
     let mut index_mapping = alloc::vec![None; opcodes.len()];
-    
+
     let mut i = 0;
     while i < opcodes.len() {
         index_mapping[i] = Some(result.len());
@@ -115,10 +115,10 @@ fn patch_jump_offsets(
                     .iter()
                     .position(|&mapped| mapped == Some(i))
                     .expect("Should find original index");
-                
+
                 // Calculate the original target
                 let original_target = (original_i as i32 + 1 + *offset) as usize;
-                
+
                 // Find the new target index
                 if let Some(Some(new_target)) = index_mapping.get(original_target) {
                     // Calculate new offset

@@ -1,8 +1,8 @@
-use alloc::vec::Vec;
-use crate::{LocalStack, LpsProgram, LpsVmError, RuntimeErrorWithContext};
-use crate::vm::{CallStack, ValueStack};
-use crate::vm::vm_limits::VmLimits;
 use crate::fixed::{Fixed, Vec2, Vec3, Vec4};
+use crate::vm::vm_limits::VmLimits;
+use crate::vm::{CallStack, ValueStack};
+use crate::{LocalStack, LpsProgram, LpsVmError, RuntimeErrorWithContext};
+use alloc::vec::Vec;
 
 /// LightPlayer Script Virtual Machine
 ///
@@ -15,7 +15,7 @@ pub struct LpsVm<'a> {
     pub(in crate::vm) locals: LocalStack,
     pub(in crate::vm) call_stack: CallStack,
     pub(in crate::vm) limits: VmLimits,
-    pub(in crate::vm) current_fn_idx: usize,  // Track which function we're executing
+    pub(in crate::vm) current_fn_idx: usize, // Track which function we're executing
 }
 
 impl<'a> LpsVm<'a> {
@@ -38,7 +38,7 @@ impl<'a> LpsVm<'a> {
             locals,
             call_stack: CallStack::new(limits.max_call_stack_depth),
             limits,
-            current_fn_idx: 0,  // Start in main
+            current_fn_idx: 0, // Start in main
         })
     }
 
@@ -72,7 +72,7 @@ impl<'a> LpsVm<'a> {
     ) -> Result<Vec<Fixed>, RuntimeErrorWithContext> {
         self.run_impl(x_norm, y_norm, x_int, y_int, time, width, height)
     }
-    
+
     /// Execute the program for a single pixel (normalized coords only)
     ///
     /// Returns all values on the stack after execution. For scalar results, use `run_scalar()`.
@@ -98,7 +98,7 @@ impl<'a> LpsVm<'a> {
         // Call run_with_coords with zero pixel coordinates
         self.run_with_coords(x, y, Fixed::ZERO, Fixed::ZERO, time, 0, 0)
     }
-    
+
     fn run_impl(
         &mut self,
         x_norm: Fixed,
@@ -112,12 +112,13 @@ impl<'a> LpsVm<'a> {
         self.stack.reset();
         self.pc = 0;
         self.call_stack.reset(0);
-        self.current_fn_idx = 0;  // Reset to main
-        
+        self.current_fn_idx = 0; // Reset to main
+
         // Reset locals to main function's state
         if let Some(main_fn) = self.program.main_function() {
             let main_local_count = main_fn.locals.len();
-            self.locals.reset_locals(main_local_count, &main_fn.locals)
+            self.locals
+                .reset_locals(main_local_count, &main_fn.locals)
                 .map_err(|e| self.runtime_error(e))?;
         }
 
@@ -215,7 +216,7 @@ impl<'a> LpsVm<'a> {
         }
         Ok(stack[0])
     }
-    
+
     /// Execute the program and expect a scalar result (normalized coords only)
     pub fn run_scalar(
         &mut self,

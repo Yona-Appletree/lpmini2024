@@ -6,9 +6,8 @@ use crate::compiler::parser::Parser;
 use crate::shared::Span;
 use alloc::vec::Vec;
 
-
 impl Parser {
-    pub(in crate) fn parse_block(&mut self) -> Result<StmtId, ParseError> {
+    pub(crate) fn parse_block(&mut self) -> Result<StmtId, ParseError> {
         self.enter_recursion()?;
         let start = self.current().span.start;
         self.advance(); // consume '{'

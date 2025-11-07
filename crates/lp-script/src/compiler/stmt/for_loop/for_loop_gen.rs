@@ -15,14 +15,14 @@ impl<'a> CodeGenerator<'a> {
         body: StmtId,
     ) {
         self.locals.push_scope();
-        
+
         // Init
         if let Some(init_id) = init {
             self.gen_stmt_id(pool, *init_id);
         }
-        
+
         let loop_start = self.code.len();
-        
+
         // Condition (defaults to true if omitted)
         let jump_to_end = if let Some(cond_id) = condition {
             self.gen_expr_id(pool, *cond_id);
@@ -32,22 +32,22 @@ impl<'a> CodeGenerator<'a> {
         } else {
             None
         };
-        
+
         // Body
         self.gen_stmt_id(pool, body);
-        
+
         // Increment
         if let Some(inc_id) = increment {
             self.gen_expr_id(pool, *inc_id);
             self.code.push(LpsOpCode::Drop1); // Discard result
         }
-        
+
         // Jump back to loop start
         let jump_back_idx = self.code.len();
         self.code.push(LpsOpCode::Jump(
             (loop_start as i32) - (jump_back_idx as i32) - 1,
         ));
-        
+
         // Patch jump to end
         if let Some(jump_idx) = jump_to_end {
             let end = self.code.len();
@@ -55,7 +55,7 @@ impl<'a> CodeGenerator<'a> {
                 *offset = (end as i32) - (jump_idx as i32) - 1;
             }
         }
-        
+
         self.locals.pop_scope();
     }
 }

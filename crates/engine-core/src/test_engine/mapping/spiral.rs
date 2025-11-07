@@ -1,8 +1,8 @@
 /// Spiral LED mappings
 use super::{LedMap, LedMapping};
-use lp_script::fixed::{Fixed, FIXED_ONE, FIXED_SHIFT, ToFixed};
-use lp_script::fixed::trig::{sin, cos};
 use core::cmp::{max, min};
+use lp_script::fixed::trig::{cos, sin};
+use lp_script::fixed::{Fixed, ToFixed, FIXED_ONE, FIXED_SHIFT};
 
 impl LedMapping {
     /// Create a spiral mapping with configurable number of arms
@@ -41,7 +41,8 @@ impl LedMapping {
             let angle_normalized = arm_angle + spiral_angle;
 
             // Convert normalized angle (0..1) to radians (0..2π)
-            let angle_radians = Fixed((angle_normalized as i64 * Fixed::TAU.0 as i64 >> FIXED_SHIFT) as i32);
+            let angle_radians =
+                Fixed((angle_normalized as i64 * Fixed::TAU.0 as i64 >> FIXED_SHIFT) as i32);
 
             // Use fixed-point sin/cos (they expect radians, return -1..1 in Fixed)
             let cos_val = cos(angle_radians).0;

@@ -5,8 +5,8 @@ use alloc::vec::Vec;
 
 use super::error::LpsVmError;
 use super::lps_program::LocalVarDef;
-use crate::shared::Type;
 use crate::fixed::Fixed;
+use crate::shared::Type;
 
 impl LocalStack {
     /// Create new locals storage with the given capacity (in i32 units)
@@ -101,10 +101,14 @@ impl LocalStack {
     /// Reset locals to a given count and re-initialize their values
     ///
     /// Used when resetting the VM for a new execution run.
-    pub fn reset_locals(&mut self, target_local_count: usize, defs: &[LocalVarDef]) -> Result<(), LpsVmError> {
+    pub fn reset_locals(
+        &mut self,
+        target_local_count: usize,
+        defs: &[LocalVarDef],
+    ) -> Result<(), LpsVmError> {
         // First deallocate any extra locals
         self.deallocate_to(target_local_count);
-        
+
         // Then re-initialize the values for all remaining locals
         let count = target_local_count.min(defs.len()).min(self.local_count);
         for idx in 0..count {
@@ -112,7 +116,7 @@ impl LocalStack {
             let meta = self.get_metadata(idx)?;
             let offset = meta.offset;
             let size = meta.size;
-            
+
             if let Some(ref init_value) = def.initial_value {
                 // Use provided initial value
                 for (i, &val) in init_value.iter().enumerate() {
@@ -131,7 +135,7 @@ impl LocalStack {
                 }
             }
         }
-        
+
         Ok(())
     }
 
@@ -239,13 +243,7 @@ impl LocalStack {
 
     /// Set a Vec3 value to a local (absolute index)
     #[inline(always)]
-    pub fn set_vec3(
-        &mut self,
-        idx: usize,
-        x: Fixed,
-        y: Fixed,
-        z: Fixed,
-    ) -> Result<(), LpsVmError> {
+    pub fn set_vec3(&mut self, idx: usize, x: Fixed, y: Fixed, z: Fixed) -> Result<(), LpsVmError> {
         let (offset, ty) = {
             let meta = self.get_metadata(idx)?;
             (meta.offset, meta.ty.clone())
@@ -306,12 +304,10 @@ impl LocalStack {
     /// Get metadata for a local (private helper)
     #[inline(always)]
     fn get_metadata(&self, idx: usize) -> Result<&LocalMetadata, LpsVmError> {
-        self.metadata
-            .get(idx)
-            .ok_or(LpsVmError::LocalOutOfBounds {
-                local_idx: idx,
-                max: self.local_count,
-            })
+        self.metadata.get(idx).ok_or(LpsVmError::LocalOutOfBounds {
+            local_idx: idx,
+            max: self.local_count,
+        })
     }
 
     /// Get current local count
@@ -423,7 +419,6 @@ impl LocalStack {
     }
 }
 
-
 /// Metadata for a single local variable
 ///
 /// Maps a logical local index to its physical location and type in the i32 array.
@@ -455,12 +450,11 @@ pub struct LocalStack {
     local_count: usize,           // Number of logical locals allocated
 }
 
-
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::vm::lps_program::LocalVarDef;
     use crate::fixed::ToFixed;
+    use crate::vm::lps_program::LocalVarDef;
 
     #[test]
     fn test_locals_storage_creation() {

@@ -2,9 +2,9 @@
 extern crate alloc;
 
 use crate::compiler::codegen::CodeGenerator;
+use crate::fixed::ToFixed;
 use crate::shared::Type;
 use crate::vm::opcodes::LpsOpCode;
-use crate::fixed::ToFixed;
 use alloc::string::String;
 
 impl<'a> CodeGenerator<'a> {

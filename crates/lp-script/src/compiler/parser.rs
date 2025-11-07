@@ -13,9 +13,9 @@ use crate::shared::{Span, Type};
 mod func_parse;
 
 pub struct Parser {
-    pub(in crate) tokens: Vec<Token>,
-    pub(in crate) pos: usize,
-    pub(in crate) pool: AstPool,
+    pub(crate) tokens: Vec<Token>,
+    pub(crate) pos: usize,
+    pub(crate) pool: AstPool,
     recursion_depth: usize,
     max_recursion: usize,
 }
@@ -41,7 +41,7 @@ impl Parser {
     }
 
     /// Track entering a recursive parse function
-    pub(in crate) fn enter_recursion(&mut self) -> Result<(), ParseError> {
+    pub(crate) fn enter_recursion(&mut self) -> Result<(), ParseError> {
         self.recursion_depth += 1;
         if self.recursion_depth > self.max_recursion {
             return Err(ParseError {
@@ -55,14 +55,14 @@ impl Parser {
     }
 
     /// Track exiting a recursive parse function
-    pub(in crate) fn exit_recursion(&mut self) {
+    pub(crate) fn exit_recursion(&mut self) {
         if self.recursion_depth > 0 {
             self.recursion_depth -= 1;
         }
     }
 
     /// Helper to convert AstPoolError to ParseError
-    pub(in crate) fn pool_error_to_parse_error(
+    pub(crate) fn pool_error_to_parse_error(
         &self,
         err: crate::compiler::ast::AstPoolError,
     ) -> ParseError {
@@ -77,11 +77,11 @@ impl Parser {
         }
     }
 
-    pub(in crate) fn current(&self) -> &Token {
+    pub(crate) fn current(&self) -> &Token {
         &self.tokens[self.pos]
     }
 
-    pub(in crate) fn advance(&mut self) {
+    pub(crate) fn advance(&mut self) {
         if self.pos < self.tokens.len() - 1 {
             self.pos += 1;
         }
@@ -124,7 +124,7 @@ impl Parser {
         Ok((program, self.pool))
     }
 
-    pub(in crate) fn expect(&mut self, expected: TokenKind) -> bool {
+    pub(crate) fn expect(&mut self, expected: TokenKind) -> bool {
         if core::mem::discriminant(&self.current().kind) == core::mem::discriminant(&expected) {
             self.advance();
             true
@@ -133,7 +133,7 @@ impl Parser {
         }
     }
 
-    pub(in crate) fn consume_semicolon(&mut self) -> bool {
+    pub(crate) fn consume_semicolon(&mut self) -> bool {
         if matches!(self.current().kind, TokenKind::Semicolon) {
             self.advance();
             true
@@ -142,7 +142,7 @@ impl Parser {
         }
     }
 
-    pub(in crate) fn parse_type(&mut self) -> Type {
+    pub(crate) fn parse_type(&mut self) -> Type {
         let ty = match &self.current().kind {
             TokenKind::Float => Type::Fixed,
             TokenKind::Int => Type::Int32,
@@ -156,7 +156,7 @@ impl Parser {
         ty
     }
 
-    pub(in crate) fn parse_stmt(&mut self) -> Result<StmtId, ParseError> {
+    pub(crate) fn parse_stmt(&mut self) -> Result<StmtId, ParseError> {
         match &self.current().kind {
             TokenKind::Float
             | TokenKind::Int
@@ -172,7 +172,7 @@ impl Parser {
         }
     }
 
-    pub(in crate) fn parse(&mut self) -> Result<ExprId, ParseError> {
+    pub(crate) fn parse(&mut self) -> Result<ExprId, ParseError> {
         self.parse_assignment_expr()
     }
 }

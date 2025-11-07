@@ -31,7 +31,13 @@ pub fn i32_to_grey(val: i32) -> Fixed {
 /// Convert greyscale fixed-point to RGB (grey, grey, grey) packed as i32
 #[inline(always)]
 pub fn grey_to_rgb_i32(grey: Fixed) -> i32 {
-    let clamped = if grey.0 < 0 { 0 } else if grey.0 > FIXED_ONE { FIXED_ONE } else { grey.0 };
+    let clamped = if grey.0 < 0 {
+        0
+    } else if grey.0 > FIXED_ONE {
+        FIXED_ONE
+    } else {
+        grey.0
+    };
     // Convert to 0-255 range: (clamped * 255) / FIXED_ONE
     // Use i64 to avoid overflow
     let byte_val = ((clamped as i64 * 255) / FIXED_ONE as i64) as u8;
@@ -47,7 +53,7 @@ mod tests {
     fn test_pack_unpack_rgb() {
         let packed = pack_rgb(255, 128, 64);
         assert_eq!(packed, 0x00FF8040);
-        
+
         let (r, g, b) = unpack_rgb(packed);
         assert_eq!(r, 255);
         assert_eq!(g, 128);
@@ -68,16 +74,15 @@ mod tests {
         let black = grey_to_rgb_i32(Fixed::ZERO);
         let (r, g, b) = unpack_rgb(black);
         assert_eq!((r, g, b), (0, 0, 0));
-        
+
         // 1.0 should be white
         let white = grey_to_rgb_i32(Fixed::ONE);
         let (r, g, b) = unpack_rgb(white);
         assert_eq!((r, g, b), (255, 255, 255));
-        
+
         // 0.5 should be mid-grey
         let grey = grey_to_rgb_i32(Fixed::HALF);
         let (r, g, b) = unpack_rgb(grey);
         assert_eq!((r, g, b), (127, 127, 127));
     }
 }
-

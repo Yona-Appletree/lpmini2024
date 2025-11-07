@@ -2,8 +2,8 @@
 #[cfg(test)]
 mod tests {
     use crate::compiler::expr::expr_test_util::ExprTest;
-    use crate::vm::opcodes::LpsOpCode;
     use crate::vm::opcodes::load::LoadSource;
+    use crate::vm::opcodes::LpsOpCode;
 
     #[test]
     fn test_builtin_variable_x() -> Result<(), String> {

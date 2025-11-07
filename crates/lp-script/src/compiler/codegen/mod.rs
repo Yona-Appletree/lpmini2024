@@ -17,9 +17,9 @@ pub(crate) use local_allocator::LocalAllocator;
 pub use native_functions::NativeFunction;
 
 pub struct CodeGenerator<'a> {
-    pub(in crate) code: &'a mut Vec<LpsOpCode>,
-    pub(in crate) locals: &'a mut LocalAllocator,
-    pub(in crate) func_offsets: &'a BTreeMap<String, u32>,
+    pub(crate) code: &'a mut Vec<LpsOpCode>,
+    pub(crate) locals: &'a mut LocalAllocator,
+    pub(crate) func_offsets: &'a BTreeMap<String, u32>,
 }
 
 impl<'a> CodeGenerator<'a> {

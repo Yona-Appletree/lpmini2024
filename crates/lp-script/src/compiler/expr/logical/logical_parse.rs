@@ -5,10 +5,9 @@ use crate::compiler::lexer::TokenKind;
 use crate::compiler::parser::Parser;
 use crate::shared::Span;
 
-
 impl Parser {
     // Logical OR: ||
-    pub(in crate) fn logical_or(&mut self) -> Result<ExprId, ParseError> {
+    pub(crate) fn logical_or(&mut self) -> Result<ExprId, ParseError> {
         self.enter_recursion()?;
         let mut expr_id = self.logical_and()?;
 
@@ -28,7 +27,7 @@ impl Parser {
     }
 
     // Logical AND: &&
-    pub(in crate) fn logical_and(&mut self) -> Result<ExprId, ParseError> {
+    pub(crate) fn logical_and(&mut self) -> Result<ExprId, ParseError> {
         self.enter_recursion()?;
         let mut expr_id = self.bitwise_or()?;
 
