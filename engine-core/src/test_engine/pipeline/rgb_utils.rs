@@ -1,5 +1,5 @@
 /// RGB packing/unpacking utilities for 32-bit buffers
-use lpscript::math::{Fixed, FIXED_ONE};
+use lp_script::math::{Fixed, FIXED_ONE};
 
 /// Pack RGB into 0x00RRGGBB format
 #[inline(always)]
@@ -41,7 +41,7 @@ pub fn grey_to_rgb_i32(grey: Fixed) -> i32 {
 #[cfg(all(test, not(feature = "use-libm")))]
 mod tests {
     use super::*;
-    use lpscript::math::ToFixed;
+    use lp_script::math::ToFixed;
 
     #[test]
     fn test_pack_unpack_rgb() {

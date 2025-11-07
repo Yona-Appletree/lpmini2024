@@ -86,7 +86,7 @@ smart-leds-trait = "0.3.1"
 
 # Engine core with test scene
 engine-core = { path = "../engine-core" }
-lpscript = { path = "../lpscript" }
+lp-script = { path = "../crates/lp-script" }
 
 [dev-dependencies]
 embedded-test = { version = "0.6.0", features = [

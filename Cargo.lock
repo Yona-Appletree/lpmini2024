@@ -663,7 +663,7 @@ version = "0.1.0"
 dependencies = [
  "fixed",
  "libm",
- "lpscript",
+ "lp-script",
  "smart-leds",
 ]
 
@@ -674,7 +674,7 @@ dependencies = [
  "embedded-graphics",
  "engine-core",
  "lp-data",
- "lpscript",
+ "lp-script",
  "minifb",
  "serde",
  "serde_json",
@@ -1186,7 +1186,7 @@ dependencies = [
  "esp-hal",
  "esp-hal-embassy",
  "esp-wifi",
- "lpscript",
+ "lp-script",
  "panic-rtt-target",
  "rtt-target",
  "smart-leds",
@@ -1441,6 +1441,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "lp-script"
+version = "0.1.0"
+dependencies = [
+ "fixed",
+ "libm",
+ "smart-leds",
+]
+
+[[package]]
 name = "lpcli"
 version = "0.0.0"
 dependencies = [
@@ -1456,15 +1465,6 @@ dependencies = [
  "schemars",
  "serde",
  "serde_json",
-]
-
-[[package]]
-name = "lpscript"
-version = "0.1.0"
-dependencies = [
- "fixed",
- "libm",
- "smart-leds",
 ]
 
 [[package]]

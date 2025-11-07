@@ -6,7 +6,7 @@ members = [
     "engine-core",
     "engine-debug",
     "crates/lp-data",
-    "lpscript",
+    "crates/lp-script",
 ]
 # Exclude fw-esp32c3 from default builds since it requires ESP32 target
 # (it has its own .cargo/config.toml with target = "riscv32imc-unknown-none-elf")
@@ -15,7 +15,7 @@ default-members = [
     "lpcli",
     "engine-core",
     "engine-debug",
-    "lpscript",
+    "crates/lp-script",
     "crates/lp-data",
 ]
 resolver = "2"

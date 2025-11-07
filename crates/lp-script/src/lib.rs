@@ -31,7 +31,7 @@ mod sin_table;
 ///
 /// # Examples
 /// ```
-/// use lpscript::parse_expr;
+/// use lp_script::parse_expr;
 ///
 /// // Simple math (constant expressions are folded at compile time)
 /// let code = parse_expr("2.0 + 3.0"); // Compiles to Push(5.0)
@@ -61,7 +61,7 @@ mod sin_table;
 ///
 /// Control optimization with `OptimizeOptions`:
 /// ```
-/// use lpscript::{compile_expr_with_options, OptimizeOptions};
+/// use lp_script::{compile_expr_with_options, OptimizeOptions};
 ///
 /// // Disable all optimizations (for debugging)
 /// let program = compile_expr_with_options("2.0 + 3.0", &OptimizeOptions::none()).unwrap();
@@ -100,7 +100,7 @@ pub use vm::{
 ///
 /// # Example
 /// ```
-/// use lpscript::compile_expr;
+/// use lp_script::compile_expr;
 /// let program = compile_expr("cos(perlin3(vec3(uv * 0.3, time), 3))").unwrap();
 /// ```
 pub fn compile_expr(input: &str) -> Result<LpsProgram, CompileError> {
@@ -111,7 +111,7 @@ pub fn compile_expr(input: &str) -> Result<LpsProgram, CompileError> {
 ///
 /// # Example
 /// ```
-/// use lpscript::{compile_expr_with_options, OptimizeOptions};
+/// use lp_script::{compile_expr_with_options, OptimizeOptions};
 /// let program = compile_expr_with_options("2.0 + 3.0", &OptimizeOptions::all()).unwrap();
 /// ```
 pub fn compile_expr_with_options(
@@ -158,7 +158,7 @@ pub fn compile_expr_with_options(
 ///
 /// # Example
 /// ```
-/// use lpscript::compile_script;
+/// use lp_script::compile_script;
 /// let script = "
 ///     float radius = length(uv - vec2(0.5));
 ///     if (radius < 0.3) {
@@ -177,7 +177,7 @@ pub fn compile_script(input: &str) -> Result<LpsProgram, CompileError> {
 ///
 /// # Example
 /// ```
-/// use lpscript::{compile_script_with_options, OptimizeOptions};
+/// use lp_script::{compile_script_with_options, OptimizeOptions};
 /// let script = "float x = 2.0 + 3.0; return x;";
 /// let program = compile_script_with_options(script, &OptimizeOptions::all()).unwrap();
 /// ```
@@ -231,7 +231,7 @@ pub fn compile_script_with_options(
 ///
 /// # Example
 /// ```
-/// use lpscript::parse_expr;
+/// use lp_script::parse_expr;
 /// let program = parse_expr("cos(perlin3(vec3(uv * 0.3, time), 3))");
 /// ```
 pub fn parse_expr(input: &str) -> LpsProgram {
@@ -246,7 +246,7 @@ pub fn parse_expr(input: &str) -> LpsProgram {
 ///
 /// # Example
 /// ```
-/// use lpscript::parse_script;
+/// use lp_script::parse_script;
 /// let script = "
 ///     float x = uv.x;
 ///     if (x > 0.5) {

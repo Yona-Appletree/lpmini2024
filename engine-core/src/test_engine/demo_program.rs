@@ -5,7 +5,7 @@ use crate::test_engine::scene::SceneConfig;
 use crate::test_engine::{
     BufferFormat, BufferRef, FxPipelineConfig, MappingConfig, Palette, PipelineStep,
 };
-use lpscript::{parse_expr, parse_script};
+use lp_script::{parse_expr, parse_script};
 
 /// Create a test pattern with a rotating white line from the center
 pub fn create_test_line_scene(width: usize, height: usize) -> SceneConfig {
@@ -87,12 +87,12 @@ pub fn create_demo_scene(width: usize, height: usize) -> SceneConfig {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use lpscript::math::Fixed;
+    use lp_script::math::Fixed;
 
     #[test]
     fn test_simple_white() {
         // First test: just output white for everything
-        use lpscript::vm::execute_program_lps;
+        use lp_script::vm::execute_program_lps;
         let mut output = vec![Fixed::ZERO; 16 * 16];
 
         let program = parse_expr("1.0");
@@ -111,7 +111,7 @@ mod tests {
     #[test]
     fn test_yint_load() {
         // Test that YInt loads correctly
-        use lpscript::vm::execute_program_lps;
+        use lp_script::vm::execute_program_lps;
         let mut output = vec![Fixed::ZERO; 16 * 16];
 
         let program = parse_expr("coord.y");
@@ -138,7 +138,7 @@ mod tests {
     #[test]
     fn test_normalized_center_line() {
         // Test the normalized Y coordinate approach
-        use lpscript::vm::execute_program_lps;
+        use lp_script::vm::execute_program_lps;
 
         // Test with 16x16 - center should be between row 7 and 8
         let mut output = vec![Fixed::ZERO; 16 * 16];

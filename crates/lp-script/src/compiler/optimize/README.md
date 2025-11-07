@@ -64,7 +64,7 @@ Pattern-matches and optimizes local instruction sequences.
 ### Default (All Optimizations Enabled)
 
 ```rust
-use engine_core::lpscript::compile_expr;
+use engine_core::lp_script::compile_expr;
 
 let program = compile_expr("2.0 + 3.0 * 1.0").unwrap();
 // Result: Push(5.0), Return
@@ -73,7 +73,7 @@ let program = compile_expr("2.0 + 3.0 * 1.0").unwrap();
 ### Custom Options
 
 ```rust
-use engine_core::lpscript::{compile_expr_with_options, OptimizeOptions};
+use engine_core::lp_script::{compile_expr_with_options, OptimizeOptions};
 
 // Disable all optimizations
 let program = compile_expr_with_options(

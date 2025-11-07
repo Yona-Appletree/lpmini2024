@@ -1,4 +1,4 @@
-use engine_core::lpscript::compile_script;
+use lp_script::compile_script;
 use engine_debug::lpa_format::program_to_lpa;
 /// LPS to LPA compiler CLI
 use std::fs;

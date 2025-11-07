@@ -21,7 +21,7 @@ path = "src/lp_data_demo_cli.rs"
 
 [dependencies]
 engine-core = { path = "../engine-core" }
-lpscript = { path = "../lpscript" }
+lp-script = { path = "../crates/lp-script" }
 lp-data = { path = "../crates/lp-data", features = ["serde_json"] }
 minifb = "0.27"
 embedded-graphics = "0.8"

@@ -11,7 +11,7 @@ use engine_core::test_engine::demo_program::create_demo_scene;
 use engine_core::test_engine::scene::SceneRuntime;
 use engine_core::test_engine::test_scene::{render_test_scene, SceneData, HEIGHT, WIDTH};
 use engine_core::test_engine::{LedMapping, RuntimeOptions};
-use lpscript::math::{Fixed, ToFixed};
+use lp_script::math::{Fixed, ToFixed};
 use minifb::{Key, Window, WindowOptions};
 
 

@@ -23,11 +23,11 @@ pub mod test_scene;
 pub mod power_limit;
 
 // Re-export commonly used items
-// LoadSource is now defined in lpscript::vm::opcodes::load
-pub use lpscript::vm::opcodes::LoadSource;
+// LoadSource is now defined in lp-script::vm::opcodes::load
+pub use lp_script::vm::opcodes::LoadSource;
 
 #[allow(deprecated)]
-pub use lpscript::math::{
+pub use lp_script::math::{
     fixed_from_f32, fixed_from_int, fixed_to_f32, Fixed, FIXED_ONE, FIXED_SHIFT,
 };
 pub use mapping::{apply_2d_mapping, LedMapping, MappingConfig};

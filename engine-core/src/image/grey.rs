@@ -2,7 +2,7 @@
 
 extern crate alloc;
 use alloc::vec::Vec;
-use lpscript::math::Fixed;
+use lp_script::math::Fixed;
 
 pub struct ImageGrey {
     pub width: usize,

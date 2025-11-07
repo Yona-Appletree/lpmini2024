@@ -1,4 +1,4 @@
-use lpscript::math::vec2::Vec2;
+use lp_script::math::vec2::Vec2;
 use lp_data::annotation::{Annotations, AnnotationValue};
 use lp_data::schema;
 use lp_data::ty::{LpEnumVariant, LpField, LpStructType, LpType};

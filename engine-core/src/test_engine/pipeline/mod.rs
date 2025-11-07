@@ -2,10 +2,10 @@
 extern crate alloc;
 use alloc::vec::Vec;
 
-use lpscript::math::Fixed;
+use lp_script::math::Fixed;
 use super::palette::Palette;
 use super::power_limit::PowerLimitConfig;
-use lpscript::LpsProgram;
+use lp_script::LpsProgram;
 
 pub mod rgb_utils;
 pub mod config;
@@ -88,8 +88,8 @@ pub enum PipelineError {
     FormatMismatch { expected: BufferFormat, actual: BufferFormat },
     InvalidStep { step_idx: usize },
     TypeMismatch {
-        expected: crate::lpscript::shared::Type,
-        actual: crate::lpscript::shared::Type,
+        expected: crate::lp_script::shared::Type,
+        actual: crate::lp_script::shared::Type,
         context: alloc::string::String,
     },
     InvalidProgram(alloc::string::String),

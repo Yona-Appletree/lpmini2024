@@ -26,9 +26,9 @@ pub type OptPassFn = fn(ExprId, AstPool) -> (ExprId, AstPool);
 ///
 /// # Example
 /// ```
-/// use lpscript::compiler::optimize::ast::algebraic;
-/// use lpscript::compiler::optimize::ast_test_util::AstOptTest;
-/// use lpscript::compiler::test_ast::*;
+/// use lp_script::compiler::optimize::ast::algebraic;
+/// use lp_script::compiler::optimize::ast_test_util::AstOptTest;
+/// use lp_script::compiler::test_ast::*;
 ///
 /// // Test structural transformation
 /// AstOptTest::new("x + 0.0")

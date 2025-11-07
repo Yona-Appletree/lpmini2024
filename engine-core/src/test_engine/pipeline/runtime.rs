@@ -6,8 +6,8 @@ use super::super::palette::Palette;
 use super::config::FxPipelineConfig;
 use super::rgb_utils::{grey_to_i32, i32_to_grey, pack_rgb};
 use super::{Buffer, BufferFormat, BufferRef, PipelineError, PipelineStep, RuntimeOptions};
-use lpscript::execute_program_lps;
-use lpscript::math::Fixed;
+use lp_script::execute_program_lps;
+use lp_script::math::Fixed;
 
 /// Runtime pipeline state
 pub struct FxPipeline {
@@ -77,7 +77,7 @@ impl FxPipeline {
     /// Execute an expression step with type validation
     fn execute_expr_step(
         &mut self,
-        program: &crate::lpscript::LpsProgram,
+        program: &crate::lp_script::LpsProgram,
         output: &BufferRef,
         _params: &[BufferRef], // TODO: implement param buffer support
         time: Fixed,

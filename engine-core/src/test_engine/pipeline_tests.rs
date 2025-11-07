@@ -5,8 +5,8 @@ mod pipeline_tests {
         FxPipelineConfig, PipelineStep, BufferRef, BufferFormat, 
         Palette, RuntimeOptions, FxPipeline,
     };
-    use lpscript::parse_expr;
-    use lpscript::math::Fixed;
+    use lp_script::parse_expr;
+    use lp_script::math::Fixed;
     
     #[test]
     fn test_simple_pipeline() {

@@ -1,4 +1,4 @@
-/// Test utilities for lpscript statements/scripts - builder pattern for clean testing
+/// Test utilities for lp-script statements/scripts - builder pattern for clean testing
 extern crate alloc;
 use alloc::boxed::Box;
 use alloc::format;
@@ -37,8 +37,8 @@ pub struct FunctionMetadataAssertion {
 ///
 /// # Example: Testing function metadata
 /// ```
-/// use lpscript::compiler::stmt::stmt_test_util::ScriptTest;
-/// use lpscript::shared::Type;
+/// use lp_script::compiler::stmt::stmt_test_util::ScriptTest;
+/// use lp_script::shared::Type;
 ///
 /// ScriptTest::new("
 ///     float add(float a, float b) {

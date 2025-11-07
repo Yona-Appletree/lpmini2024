@@ -2,7 +2,7 @@
 use engine_core::test_engine::demo_program::create_demo_scene;
 use engine_core::test_engine::scene::SceneRuntime;
 use engine_core::test_engine::RuntimeOptions;
-use lpscript::math::ToFixed;
+use lp_script::math::ToFixed;
 use std::time::Instant;
 
 
