@@ -13,12 +13,15 @@ use engine_core::math::{Fixed, ToFixed};
 use engine_core::demo_program::create_demo_scene;
 use engine_core::scene::SceneRuntime;
 use minifb::{Key, Window, WindowOptions};
+use std::collections::VecDeque;
 
 const SCALE: usize = 16;
-const STATS_BAR_HEIGHT: usize = 40;
+const STATS_BAR_HEIGHT: usize = 80;
 const NUM_BUFFERS: usize = 2; // Greyscale + RGB
 const WINDOW_WIDTH: usize = (WIDTH * SCALE * NUM_BUFFERS) + (WIDTH * SCALE); // Buffers + LED output
 const WINDOW_HEIGHT: usize = (HEIGHT * SCALE) + STATS_BAR_HEIGHT;
+const FRAMETIME_WINDOW_SECONDS: f64 = 10.0;
+const HISTOGRAM_BUCKETS: usize = 24;
 
 fn main() {
     let mut window = Window::new(
@@ -74,6 +77,117 @@ fn main() {
     
     let (esp32_us_per_pixel, esp32_base_us) = compute_esp32_model();
 
+    // Frametime tracking for last 10 seconds
+    struct FrametimeTracker {
+        samples: VecDeque<(std::time::Instant, f64)>, // (timestamp, frametime_ms)
+    }
+    
+    impl FrametimeTracker {
+        fn new() -> Self {
+            FrametimeTracker {
+                samples: VecDeque::new(),
+            }
+        }
+        
+        fn add_sample(&mut self, timestamp: std::time::Instant, frametime_ms: f64) {
+            self.samples.push_back((timestamp, frametime_ms));
+            // Remove samples older than 10 seconds
+            let cutoff = timestamp - std::time::Duration::from_secs_f64(FRAMETIME_WINDOW_SECONDS);
+            while let Some(&(ts, _)) = self.samples.front() {
+                if ts < cutoff {
+                    self.samples.pop_front();
+                } else {
+                    break;
+                }
+            }
+        }
+        
+        fn calculate_stats(&self) -> (f64, f64, f64, f64, f64, f64, f64) {
+            // (avg, std_dev, p0, p10, p50, p99, p100)
+            if self.samples.is_empty() {
+                return (0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0);
+            }
+            
+            let mut frametimes: Vec<f64> = self.samples.iter().map(|(_, ft)| *ft).collect();
+            frametimes.sort_by(|a, b| a.partial_cmp(b).unwrap());
+            
+            let count = frametimes.len() as f64;
+            let avg = frametimes.iter().sum::<f64>() / count;
+            
+            let variance = frametimes.iter()
+                .map(|ft| (ft - avg).powi(2))
+                .sum::<f64>() / count;
+            let std_dev = variance.sqrt();
+            
+            let p0_idx = 0;
+            let p10_idx = (count * 0.10) as usize;
+            let p50_idx = (count * 0.50) as usize;
+            let p99_idx = (count * 0.99) as usize;
+            let p100_idx = frametimes.len() - 1;
+            
+            let p0 = frametimes[p0_idx];
+            let p10 = frametimes[p10_idx.min(frametimes.len() - 1)];
+            let p50 = frametimes[p50_idx.min(frametimes.len() - 1)];
+            let p99 = frametimes[p99_idx.min(frametimes.len() - 1)];
+            let p100 = frametimes[p100_idx];
+            
+            (avg, std_dev, p0, p10, p50, p99, p100)
+        }
+        
+        fn calculate_histogram(&self) -> (Vec<usize>, f64, f64) {
+            // Returns (buckets, min_us, max_us)
+            if self.samples.is_empty() {
+                return (vec![0; HISTOGRAM_BUCKETS], 1.0f64, 4000.0f64);
+            }
+            
+            // Find min and max from actual data
+            let mut min_us = f64::INFINITY;
+            let mut max_us = 0.0f64;
+            
+            for (_, frametime_ms) in &self.samples {
+                let frametime_us = frametime_ms * 1000.0;
+                if frametime_us < min_us {
+                    min_us = frametime_us;
+                }
+                if frametime_us > max_us {
+                    max_us = frametime_us;
+                }
+            }
+            
+            // Ensure we have a valid range
+            if min_us >= max_us || min_us <= 0.0 {
+                return (vec![0; HISTOGRAM_BUCKETS], 1.0f64, 4000.0f64);
+            }
+            
+            // Add 10% padding on each side for better visualization
+            let range = max_us - min_us;
+            let padding = range * 0.1;
+            let min_us_padded = (min_us - padding).max(0.1f64); // Ensure positive
+            let max_us_padded = max_us + padding;
+            
+            // Use logarithmic scaling
+            let log_min = min_us_padded.ln();
+            let log_max = max_us_padded.ln();
+            let log_range = log_max - log_min;
+            
+            let mut buckets = vec![0; HISTOGRAM_BUCKETS];
+            
+            for (_, frametime_ms) in &self.samples {
+                let frametime_us = frametime_ms * 1000.0;
+                
+                // Map to logarithmic bucket
+                let log_val = frametime_us.ln();
+                let normalized = (log_val - log_min) / log_range;
+                let bucket_idx = (normalized * HISTOGRAM_BUCKETS as f64) as usize;
+                let bucket_idx = bucket_idx.min(HISTOGRAM_BUCKETS - 1);
+                buckets[bucket_idx] += 1;
+            }
+            
+            (buckets, min_us_padded, max_us_padded)
+        }
+    }
+    
+    let mut frametime_tracker = FrametimeTracker::new();
     let mut last_frame_time = std::time::Instant::now();
 
     while window.is_open() && !window.is_key_down(Key::Escape) {
@@ -133,13 +247,19 @@ fn main() {
         // Predict ESP32 performance for current canvas size
         let pixels = WIDTH * HEIGHT;
         let esp32_predicted_us = esp32_us_per_pixel * pixels as f32 + esp32_base_us;
-        draw_stats_bar(&mut buffer, engine_us_avg, ui_us_avg, esp32_predicted_us, led_count);
+        let (avg_ms, std_dev_ms, p0_ms, p10_ms, p50_ms, p99_ms, p100_ms) = frametime_tracker.calculate_stats();
+        let (histogram, hist_min_us, hist_max_us) = frametime_tracker.calculate_histogram();
+        draw_stats_bar(&mut buffer, engine_us_avg, ui_us_avg, esp32_predicted_us, led_count, avg_ms, std_dev_ms, p0_ms, p10_ms, p50_ms, p99_ms, p100_ms, &histogram, hist_min_us, hist_max_us);
 
         window.update_with_buffer(&buffer, WINDOW_WIDTH, WINDOW_HEIGHT).unwrap();
 
         _frame_count += 1;
         let full_frame_us = frame_start.elapsed().as_micros() as u64;
         total_ui_us += full_frame_us;
+        
+        // Track engine frametime for statistics
+        let engine_frametime_ms = engine_us as f64 / 1000.0;
+        frametime_tracker.add_sample(frame_start, engine_frametime_ms);
     }
 }
 
@@ -334,7 +454,23 @@ fn draw_led_debug_overlay(
     }
 }
 
-fn draw_stats_bar(buffer: &mut [u32], engine_us: f32, ui_us: f32, esp32_predicted_us: f32, led_count: usize) {
+fn draw_stats_bar(
+    buffer: &mut [u32],
+    engine_us: f32,
+    ui_us: f32,
+    esp32_predicted_us: f32,
+    led_count: usize,
+    avg_ms: f64,
+    std_dev_ms: f64,
+    p0_ms: f64,
+    p10_ms: f64,
+    p50_ms: f64,
+    p99_ms: f64,
+    p100_ms: f64,
+    histogram: &[usize],
+    hist_min_us: f64,
+    hist_max_us: f64,
+) {
     // Fill black bar at bottom
     let bar_y_start = HEIGHT * SCALE;
     for y in bar_y_start..(HEIGHT * SCALE + STATS_BAR_HEIGHT) {
@@ -367,6 +503,92 @@ fn draw_stats_bar(buffer: &mut [u32], engine_us: f32, ui_us: f32, esp32_predicte
     
     Text::new(&perf_text, Point::new(10, (HEIGHT * SCALE + 22) as i32), text_style_bright)
         .draw(&mut fb)
+        .ok();
+    
+    // Line 3: Engine frametime statistics (10s window)
+    let frametime_text = format!(
+        "Engine (10s): avg={:.2}ms std_dev={:.2}ms  p0={:.2}ms  p10={:.2}ms  p50={:.2}ms  p99={:.2}ms  p100={:.2}ms",
+        avg_ms, std_dev_ms, p0_ms, p10_ms, p50_ms, p99_ms, p100_ms
+    );
+    
+    Text::new(&frametime_text, Point::new(10, (HEIGHT * SCALE + 34) as i32), text_style)
+        .draw(&mut fb)
+        .ok();
+    
+    // Line 4: Histogram
+    draw_histogram(&mut fb, histogram, HEIGHT * SCALE + 46, text_style, hist_min_us, hist_max_us);
+}
+
+fn draw_histogram(
+    fb: &mut Framebuffer,
+    buckets: &[usize],
+    y_pos: usize,
+    text_style: MonoTextStyle<'_, Rgb888>,
+    min_us: f64,
+    max_us: f64,
+) {
+    if buckets.is_empty() {
+        return;
+    }
+    
+    // Find max count for scaling
+    let max_count = buckets.iter().max().copied().unwrap_or(1);
+    if max_count == 0 {
+        return;
+    }
+    
+    // Build histogram string with ASCII characters
+    let mut hist_chars = Vec::new();
+    let max_bar_height = 20; // Maximum height in characters
+    
+    for &count in buckets.iter() {
+        let bar_height = if max_count > 0 {
+            (count as f32 / max_count as f32 * max_bar_height as f32) as usize
+        } else {
+            0
+        };
+        
+        // Use ASCII characters for different heights
+        let ch = if bar_height == 0 {
+            ' '
+        } else if bar_height < max_bar_height / 4 {
+            '.'
+        } else if bar_height < max_bar_height / 2 {
+            ':'
+        } else if bar_height < max_bar_height * 3 / 4 {
+            '|'
+        } else {
+            '#'
+        };
+        
+        hist_chars.push(ch);
+    }
+    
+    // Create histogram string
+    let hist_string: String = hist_chars.iter().collect();
+    
+    // Calculate bucket boundaries for labels (logarithmic scale)
+    let log_min = min_us.ln();
+    let log_max = max_us.ln();
+    let log_range = log_max - log_min;
+    
+    let bucket_to_us = |idx: usize| -> f64 {
+        let normalized = (idx as f64 + 0.5) / HISTOGRAM_BUCKETS as f64;
+        let log_val = log_min + normalized * log_range;
+        log_val.exp()
+    };
+    
+    let start_us = bucket_to_us(0);
+    let mid_us = bucket_to_us(HISTOGRAM_BUCKETS / 2);
+    let end_us = bucket_to_us(HISTOGRAM_BUCKETS - 1);
+    
+    let hist_label = format!(
+        "Hist: {}  {:.0}us-{:.0}us-{:.0}us",
+        hist_string, start_us, mid_us, end_us
+    );
+    
+    Text::new(&hist_label, Point::new(10, y_pos as i32), text_style)
+        .draw(fb)
         .ok();
 }
 
