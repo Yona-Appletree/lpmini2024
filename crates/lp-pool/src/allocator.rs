@@ -39,7 +39,16 @@ unsafe impl Allocator for LpAllocatorWrapper {
             Ok(result)
         })
         .and_then(|inner| inner)
-        .map_err(|_| ApiAllocError)
+        .map_err(|e| {
+            // Preserve error information in debug builds or when logging is enabled
+            #[cfg(feature = "alloc-meta")]
+            {
+                // In debug mode, we could log the error here if we had a logging mechanism
+                // For now, just convert to ApiAllocError
+                let _ = e; // Use the error to avoid unused variable warning
+            }
+            ApiAllocError
+        })
     }
 
     unsafe fn deallocate(&self, ptr: core::ptr::NonNull<u8>, layout: Layout) {
@@ -47,6 +56,8 @@ unsafe impl Allocator for LpAllocatorWrapper {
             pool.deallocate(ptr, layout);
             Ok::<(), AllocError>(())
         });
+        // Note: Deallocate failures are silently ignored as per the Allocator trait contract
+        // The trait doesn't provide a way to report deallocation errors
     }
 
     unsafe fn grow(
@@ -60,7 +71,13 @@ unsafe impl Allocator for LpAllocatorWrapper {
             Ok(result)
         })
         .and_then(|inner| inner)
-        .map_err(|_| ApiAllocError)
+        .map_err(|e| {
+            #[cfg(feature = "alloc-meta")]
+            {
+                let _ = e;
+            }
+            ApiAllocError
+        })
     }
 
     unsafe fn shrink(
@@ -74,7 +91,13 @@ unsafe impl Allocator for LpAllocatorWrapper {
             Ok(result)
         })
         .and_then(|inner| inner)
-        .map_err(|_| ApiAllocError)
+        .map_err(|e| {
+            #[cfg(feature = "alloc-meta")]
+            {
+                let _ = e;
+            }
+            ApiAllocError
+        })
     }
 }
 

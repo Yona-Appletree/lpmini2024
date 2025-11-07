@@ -2,9 +2,9 @@ use core::cell::RefCell;
 use core::ptr::NonNull;
 use thread_local::ThreadLocal;
 use crate::error::AllocError;
-use crate::pool::PoolAllocator;
+use crate::pool::LpAllocator;
 
-static ROOT_POOL: ThreadLocal<RefCell<Option<PoolAllocator>>> = ThreadLocal::new();
+static ROOT_POOL: ThreadLocal<RefCell<Option<LpAllocator>>> = ThreadLocal::new();
 
 /// Main memory pool interface with thread-local allocator
 pub struct LpMemoryPool;
@@ -16,7 +16,7 @@ impl LpMemoryPool {
     /// - `memory` must point to a valid memory region of at least `size` bytes
     /// - Memory must remain valid for the lifetime of the pool
     pub unsafe fn new(memory: NonNull<u8>, size: usize, block_size: usize) -> Result<Self, AllocError> {
-        let root_pool = PoolAllocator::new(memory, size, block_size)?;
+        let root_pool = LpAllocator::new(memory, size, block_size)?;
         ROOT_POOL.get_or(|| RefCell::new(None)).borrow_mut().replace(root_pool);
         Ok(LpMemoryPool)
     }
@@ -87,7 +87,7 @@ pub struct PoolStats {
 /// Execute a closure with access to the active pool
 pub(crate) fn with_active_pool<F, R>(f: F) -> Result<R, AllocError>
 where
-    F: FnOnce(&mut PoolAllocator) -> Result<R, AllocError>,
+    F: FnOnce(&mut LpAllocator) -> Result<R, AllocError>,
 {
     let mut root_ref = ROOT_POOL.get_or(|| RefCell::new(None)).borrow_mut();
     let pool = root_ref.as_mut().ok_or(AllocError::PoolExhausted)?;

@@ -3,7 +3,7 @@ use core::ptr::{NonNull, null_mut};
 use crate::error::AllocError;
 
 /// Pool allocator with fixed-size blocks and free list management
-pub struct PoolAllocator {
+pub struct LpAllocator {
     memory: NonNull<u8>,
     block_size: usize,
     block_count: usize,
@@ -12,10 +12,10 @@ pub struct PoolAllocator {
     capacity: usize,
 }
 
-unsafe impl Send for PoolAllocator {}
-unsafe impl Sync for PoolAllocator {}
+unsafe impl Send for LpAllocator {}
+unsafe impl Sync for LpAllocator {}
 
-impl PoolAllocator {
+impl LpAllocator {
     /// Create a new pool allocator with the given memory region
     ///
     /// # Safety
@@ -59,7 +59,7 @@ impl PoolAllocator {
             free_list = block_ptr;
         }
         
-        Ok(PoolAllocator {
+        Ok(LpAllocator {
             memory,
             block_size,
             block_count,
@@ -69,7 +69,9 @@ impl PoolAllocator {
         })
     }
     
-    /// Create a pool allocator from a memory region (sub-region of parent)
+    /// Create a pool allocator from a memory region
+    ///
+    /// This is equivalent to `new()` and exists for API consistency.
     ///
     /// # Safety
     /// Same as `new()` - memory must be valid and large enough
@@ -145,7 +147,37 @@ impl PoolAllocator {
     /// - `ptr` must have been allocated by this allocator
     /// - `ptr` must not be deallocated twice
     /// - `ptr` must point to the start of a block
+    ///
+    /// # Panics
+    /// In debug builds, panics if `ptr` is not within the pool's memory region
     pub unsafe fn deallocate(&mut self, ptr: NonNull<u8>, _layout: Layout) {
+        // Validation: check that ptr is within our memory region
+        #[cfg(debug_assertions)]
+        {
+            let ptr_addr = ptr.as_ptr() as usize;
+            let base_addr = self.memory.as_ptr() as usize;
+            let end_addr = base_addr + self.capacity;
+            
+            if ptr_addr < base_addr || ptr_addr >= end_addr {
+                panic!(
+                    "Attempted to deallocate pointer {:p} not owned by this allocator (range {:p}..{:p})",
+                    ptr.as_ptr(),
+                    self.memory.as_ptr(),
+                    end_addr as *const u8
+                );
+            }
+            
+            // Check if ptr is at a block boundary
+            let offset = ptr_addr - base_addr;
+            if offset % self.block_size != 0 {
+                panic!(
+                    "Attempted to deallocate pointer {:p} not at block boundary (offset {}, block_size {})",
+                    ptr.as_ptr(),
+                    offset,
+                    self.block_size
+                );
+            }
+        }
         // Add back to free list
         let block_ptr = ptr.as_ptr();
         let next_ptr = block_ptr as *mut *mut u8;
@@ -311,7 +343,7 @@ mod tests {
         let memory_ptr = NonNull::new(memory.as_mut_ptr()).unwrap();
         
         unsafe {
-            let pool = PoolAllocator::new(memory_ptr, 1024, 64).unwrap();
+            let pool = LpAllocator::new(memory_ptr, 1024, 64).unwrap();
             assert_eq!(pool.capacity(), 1024);
             assert_eq!(pool.used_bytes(), 0);
         }
@@ -323,7 +355,7 @@ mod tests {
         let memory_ptr = NonNull::new(memory.as_mut_ptr()).unwrap();
         
         unsafe {
-            let mut pool = PoolAllocator::new(memory_ptr, 1024, 64).unwrap();
+            let mut pool = LpAllocator::new(memory_ptr, 1024, 64).unwrap();
             let layout = Layout::from_size_align(32, 8).unwrap();
             
             let ptr1 = pool.allocate(layout).unwrap();
@@ -346,7 +378,7 @@ mod tests {
         let memory_ptr = NonNull::new(memory.as_mut_ptr()).unwrap();
         
         unsafe {
-            let mut pool = PoolAllocator::new(memory_ptr, 128, 64).unwrap();
+            let mut pool = LpAllocator::new(memory_ptr, 128, 64).unwrap();
             let layout = Layout::from_size_align(32, 8).unwrap();
             
             // Should get 2 blocks (128 / 64 = 2)
@@ -364,7 +396,7 @@ mod tests {
         let memory_ptr = NonNull::new(memory.as_mut_ptr()).unwrap();
         
         unsafe {
-            let mut pool = PoolAllocator::new(memory_ptr, 1024, 64).unwrap();
+            let mut pool = LpAllocator::new(memory_ptr, 1024, 64).unwrap();
             let layout = Layout::from_size_align(32, 8).unwrap();
             
             let _ptr1 = pool.allocate(layout).unwrap();
@@ -386,7 +418,7 @@ mod tests {
         let memory_ptr = NonNull::new(memory.as_mut_ptr()).unwrap();
         
         unsafe {
-            let mut pool = PoolAllocator::new(memory_ptr, 1024, 64).unwrap();
+            let mut pool = LpAllocator::new(memory_ptr, 1024, 64).unwrap();
             let old_layout = Layout::from_size_align(32, 8).unwrap();
             
             // Allocate initial block
@@ -418,7 +450,7 @@ mod tests {
         let memory_ptr = NonNull::new(memory.as_mut_ptr()).unwrap();
         
         unsafe {
-            let mut pool = PoolAllocator::new(memory_ptr, 1024, 64).unwrap();
+            let mut pool = LpAllocator::new(memory_ptr, 1024, 64).unwrap();
             let old_layout = Layout::from_size_align(32, 8).unwrap();
             
             let old_block = pool.allocate(old_layout).unwrap();
@@ -437,7 +469,7 @@ mod tests {
         let memory_ptr = NonNull::new(memory.as_mut_ptr()).unwrap();
         
         unsafe {
-            let mut pool = PoolAllocator::new(memory_ptr, 1024, 64).unwrap();
+            let mut pool = LpAllocator::new(memory_ptr, 1024, 64).unwrap();
             let mut layout = Layout::from_size_align(16, 8).unwrap();
             
             let mut block = pool.allocate(layout).unwrap();
@@ -464,7 +496,7 @@ mod tests {
         let memory_ptr = NonNull::new(memory.as_mut_ptr()).unwrap();
         
         unsafe {
-            let mut pool = PoolAllocator::new(memory_ptr, 1024, 64).unwrap();
+            let mut pool = LpAllocator::new(memory_ptr, 1024, 64).unwrap();
             let layout = Layout::from_size_align(32, 8).unwrap();
             
             let block = pool.allocate(layout).unwrap();
@@ -496,7 +528,7 @@ mod tests {
         let memory_ptr = NonNull::new(memory.as_mut_ptr()).unwrap();
         
         unsafe {
-            let mut pool = PoolAllocator::new(memory_ptr, 1024, 64).unwrap();
+            let mut pool = LpAllocator::new(memory_ptr, 1024, 64).unwrap();
             let old_layout = Layout::from_size_align(48, 8).unwrap();
             
             // Allocate initial block
@@ -528,7 +560,7 @@ mod tests {
         let memory_ptr = NonNull::new(memory.as_mut_ptr()).unwrap();
         
         unsafe {
-            let mut pool = PoolAllocator::new(memory_ptr, 1024, 64).unwrap();
+            let mut pool = LpAllocator::new(memory_ptr, 1024, 64).unwrap();
             let mut layout = Layout::from_size_align(64, 8).unwrap();
             
             let mut block = pool.allocate(layout).unwrap();
@@ -556,7 +588,7 @@ mod tests {
         let memory_ptr = NonNull::new(memory.as_mut_ptr()).unwrap();
         
         unsafe {
-            let mut pool = PoolAllocator::new(memory_ptr, 1024, 64).unwrap();
+            let mut pool = LpAllocator::new(memory_ptr, 1024, 64).unwrap();
             let layout = Layout::from_size_align(32, 8).unwrap();
             
             let block = pool.allocate(layout).unwrap();
@@ -582,7 +614,7 @@ mod tests {
         let memory_ptr = NonNull::new(memory.as_mut_ptr()).unwrap();
         
         unsafe {
-            let mut pool = PoolAllocator::new(memory_ptr, 1024, 64).unwrap();
+            let mut pool = LpAllocator::new(memory_ptr, 1024, 64).unwrap();
             let mut layout = Layout::from_size_align(16, 8).unwrap();
             
             let mut block = pool.allocate(layout).unwrap();
@@ -611,7 +643,7 @@ mod tests {
         let memory_ptr = NonNull::new(memory.as_mut_ptr()).unwrap();
         
         unsafe {
-            let mut pool = PoolAllocator::new(memory_ptr, 256, 64).unwrap();
+            let mut pool = LpAllocator::new(memory_ptr, 256, 64).unwrap();
             let layout = Layout::from_size_align(32, 8).unwrap();
             
             // Allocate all blocks except one
@@ -638,7 +670,7 @@ mod tests {
         let memory_ptr = NonNull::new(memory.as_mut_ptr()).unwrap();
         
         unsafe {
-            let mut pool = PoolAllocator::new(memory_ptr, 1024, 64).unwrap();
+            let mut pool = LpAllocator::new(memory_ptr, 1024, 64).unwrap();
             
             // This should work: alignment 8, size 32, block_size 64
             // But current code rejects it if align() > block_size, which is wrong
@@ -662,7 +694,7 @@ mod tests {
         let memory_ptr = NonNull::new(unsafe { memory.as_mut_ptr().add(1) }).unwrap();
         
         unsafe {
-            let mut pool = PoolAllocator::new(memory_ptr, 1024, 64).unwrap();
+            let mut pool = LpAllocator::new(memory_ptr, 1024, 64).unwrap();
             
             // Request alignment of 16 - this should fail if blocks aren't properly aligned
             let layout = Layout::from_size_align(32, 16).unwrap();
@@ -691,7 +723,7 @@ mod tests {
         
         unsafe {
             // Create pool with block_size 64, but memory starts at offset 1
-            let mut pool = PoolAllocator::new(unaligned_ptr, 2047, 64).unwrap();
+            let mut pool = LpAllocator::new(unaligned_ptr, 2047, 64).unwrap();
             
             // Request alignment of 16
             let layout = Layout::from_size_align(32, 16).unwrap();
@@ -721,7 +753,7 @@ mod tests {
         };
         
         unsafe {
-            let mut pool = PoolAllocator::new(memory_ptr, 2048, 64).unwrap();
+            let mut pool = LpAllocator::new(memory_ptr, 2048, 64).unwrap();
             
             // Test various alignment requirements
             for align in [1, 2, 4, 8, 16, 32, 64] {
@@ -750,7 +782,7 @@ mod tests {
         let memory_ptr = NonNull::new(unsafe { memory.as_mut_ptr().add(8) }).unwrap();
         
         unsafe {
-            let mut pool = PoolAllocator::new(memory_ptr, 2040, 64).unwrap();
+            let mut pool = LpAllocator::new(memory_ptr, 2040, 64).unwrap();
             
             // Request alignment of 16
             let layout = Layout::from_size_align(32, 16).unwrap();
@@ -774,7 +806,7 @@ mod tests {
         let memory_ptr = NonNull::new(unsafe { memory.as_mut_ptr().add(1) }).unwrap();
         
         unsafe {
-            let mut pool = PoolAllocator::new(memory_ptr, 1024, 64).unwrap();
+            let mut pool = LpAllocator::new(memory_ptr, 1024, 64).unwrap();
             
             // Request alignment of 16, block_size is 64
             // align() = 16, block_size = 64, so 16 <= 64 passes the current check
