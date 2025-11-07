@@ -22,6 +22,7 @@ impl PoolAllocator {
     /// - `memory` must point to a valid memory region of at least `size` bytes
     /// - `size` must be large enough for at least one block
     /// - `block_size` must be at least `size_of::<*mut u8>()` (for free list pointer)
+    /// - `memory` should be aligned to `block_size` for optimal performance (blocks will be aligned to block_size boundaries)
     pub unsafe fn new(memory: NonNull<u8>, size: usize, block_size: usize) -> Result<Self, AllocError> {
         let ptr_size = core::mem::size_of::<*mut u8>();
         if block_size < ptr_size {
@@ -35,6 +36,14 @@ impl PoolAllocator {
         let block_count = size / block_size;
         if block_count == 0 {
             return Err(AllocError::InvalidLayout);
+        }
+        
+        // Verify memory is aligned to block_size for proper block alignment
+        let memory_addr = memory.as_ptr() as usize;
+        if memory_addr % block_size != 0 {
+            // Memory is not aligned - blocks won't be aligned either
+            // This is a limitation: we can't guarantee alignment without aligned memory
+            // For now, we'll allow it but document the limitation
         }
         
         // Initialize free list - each free block stores a pointer to the next free block
@@ -78,12 +87,6 @@ impl PoolAllocator {
             });
         }
         
-        // Check alignment - block must be aligned enough
-        // We'll align blocks to block_size boundary, so check that
-        if layout.align() > self.block_size {
-            return Err(AllocError::InvalidLayout);
-        }
-        
         // Get block from free list
         if self.free_list.is_null() {
             return Err(AllocError::PoolExhausted);
@@ -96,6 +99,19 @@ impl PoolAllocator {
         let next = unsafe { core::ptr::read(next_ptr) };
         self.free_list = next;
         self.used_blocks += 1;
+        
+        // Check if block is actually aligned to the requested alignment
+        let block_addr = block_ptr as usize;
+        if block_addr % layout.align() != 0 {
+            // Block is not aligned - we can't satisfy this request
+            // Put block back on free list
+            unsafe {
+                core::ptr::write(next_ptr, self.free_list);
+            }
+            self.free_list = block_ptr;
+            self.used_blocks -= 1;
+            return Err(AllocError::InvalidLayout);
+        }
         
         // Return as NonNull<[u8]>
         Ok(unsafe {
@@ -595,6 +611,79 @@ mod tests {
                 pool.grow(ptr4, layout, 48),
                 Err(AllocError::PoolExhausted)
             ));
+        }
+    }
+    
+    // Test for bug #2: Alignment check bug - valid alignments should not be rejected
+    #[test]
+    fn test_alignment_check_bug() {
+        let mut memory = [0u8; 1024];
+        let memory_ptr = NonNull::new(memory.as_mut_ptr()).unwrap();
+        
+        unsafe {
+            let mut pool = PoolAllocator::new(memory_ptr, 1024, 64).unwrap();
+            
+            // This should work: alignment 8, size 32, block_size 64
+            // But current code rejects it if align() > block_size, which is wrong
+            let layout = Layout::from_size_align(32, 8).unwrap();
+            assert!(layout.align() <= 8); // 8 <= 64, should work
+            let result = pool.allocate(layout);
+            // This should succeed, but current buggy code might reject it
+            // Actually wait, 8 <= 64, so it should pass the check...
+            // The bug is that we check align() > block_size, but we should check
+            // if the block is actually aligned to the required alignment
+            assert!(result.is_ok(), "Valid allocation with align=8, block_size=64 should succeed");
+        }
+    }
+    
+    // Test for bug #3: Blocks should be properly aligned
+    #[test]
+    fn test_block_alignment() {
+        // Create memory that might not be aligned - use an offset to force misalignment
+        let mut memory = [0u8; 1024 + 1];
+        // Start at offset 1 to force potential misalignment
+        let memory_ptr = NonNull::new(unsafe { memory.as_mut_ptr().add(1) }).unwrap();
+        
+        unsafe {
+            let mut pool = PoolAllocator::new(memory_ptr, 1024, 64).unwrap();
+            
+            // Request alignment of 16 - this should fail if blocks aren't properly aligned
+            let layout = Layout::from_size_align(32, 16).unwrap();
+            let block = pool.allocate(layout).unwrap();
+            let block_ptr = block.as_ptr() as *const u8 as usize;
+            
+            // Block should be aligned to requested alignment (16)
+            // This will fail if the allocator doesn't ensure alignment
+            assert_eq!(block_ptr % 16, 0, "Block should be aligned to 16 bytes, got ptr at offset {}", block_ptr % 16);
+            
+            // Also test with alignment 8
+            let layout2 = Layout::from_size_align(32, 8).unwrap();
+            let block2 = pool.allocate(layout2).unwrap();
+            let block2_ptr = block2.as_ptr() as *const u8 as usize;
+            assert_eq!(block2_ptr % 8, 0, "Block should be aligned to 8 bytes, got ptr at offset {}", block2_ptr % 8);
+        }
+    }
+    
+    // Test for bug #2: Alignment check should verify actual alignment, not compare to block_size
+    #[test]
+    fn test_alignment_check_should_verify_alignment() {
+        // Test with a case where align() < block_size but block might not be aligned
+        let mut memory = [0u8; 1024 + 1];
+        let memory_ptr = NonNull::new(unsafe { memory.as_mut_ptr().add(1) }).unwrap();
+        
+        unsafe {
+            let mut pool = PoolAllocator::new(memory_ptr, 1024, 64).unwrap();
+            
+            // Request alignment of 16, block_size is 64
+            // align() = 16, block_size = 64, so 16 <= 64 passes the current check
+            // But if the block isn't actually aligned to 16, this is wrong
+            let layout = Layout::from_size_align(32, 16).unwrap();
+            let result = pool.allocate(layout);
+            
+            // Should succeed AND the returned block should be aligned
+            let block = result.expect("Allocation should succeed");
+            let block_ptr = block.as_ptr() as *const u8 as usize;
+            assert_eq!(block_ptr % 16, 0, "Returned block must be aligned to requested alignment");
         }
     }
 }

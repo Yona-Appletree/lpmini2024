@@ -59,8 +59,16 @@ where
     }
     
     /// Deallocate a node
+    /// 
+    /// # Safety
+    /// - `ptr` must point to a valid Node that was allocated from the pool
+    /// - The node's children must have already been deallocated (if any)
     pub unsafe fn deallocate(ptr: NonNull<Self>) {
         let layout = Layout::new::<Self>();
+        
+        // CRITICAL: Drop the value BEFORE deallocating memory
+        // Otherwise we're dropping from memory that's already been freed
+        core::ptr::drop_in_place(ptr.as_ptr());
         
         #[cfg(feature = "alloc-meta")]
         {
@@ -71,12 +79,11 @@ where
             remove_allocation_meta(meta, layout.size());
         }
         
+        // Now safe to deallocate the memory
         let _ = with_active_pool(|pool| {
             pool.deallocate(ptr.cast(), layout);
             Ok::<(), AllocError>(())
         });
-        
-        core::ptr::drop_in_place(ptr.as_ptr());
     }
     
     pub fn key(&self) -> &K {
