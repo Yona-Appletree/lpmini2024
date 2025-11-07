@@ -5,7 +5,7 @@ edition = "2021"
 
 [features]
 default = []
-alloc-tracking = []  # Enable allocation tracking with type metadata
+alloc-meta = []  # Enable allocation metadata tracking with type and scope information
 
 [dependencies]
 thread_local = "1.1"

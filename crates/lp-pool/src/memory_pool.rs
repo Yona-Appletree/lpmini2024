@@ -128,7 +128,7 @@ mod tests {
     }
     
     #[test]
-    fn test_usage_tracking() {
+    fn test_usage_meta() {
         let mut memory = [0u8; 1024];
         let memory_ptr = NonNull::new(memory.as_mut_ptr()).unwrap();
         
@@ -142,7 +142,7 @@ mod tests {
             // Allocate something and keep it alive
             use crate::collections::PoolBox;
             let _boxed = pool.run(|| {
-                PoolBox::try_new(42i32)
+                PoolBox::try_new_with_scope(42i32, Some("test_scope"))
             }).unwrap();
             
             // Should have used some memory (boxed is still alive)
