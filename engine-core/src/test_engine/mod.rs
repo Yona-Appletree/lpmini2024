@@ -19,6 +19,9 @@ pub mod scene;
 /// Standard test scene shared between ESP32 and host
 pub mod test_scene;
 
+/// Power limiting and brightness control
+pub mod power_limit;
+
 // Re-export commonly used items
 // LoadSource is now defined in lpscript::vm::opcodes::load
 pub use lpscript::vm::opcodes::LoadSource;

@@ -6,7 +6,7 @@ use crate::test_engine::{
     FxPipelineConfig, MappingConfig, LedMapping, Fixed,
     RuntimeOptions, FxPipeline, PipelineError, apply_2d_mapping,
 };
-use crate::power_limit::{PowerLimitConfig, apply_power_limit_to_bytes};
+use crate::test_engine::power_limit::{PowerLimitConfig, apply_power_limit_to_bytes};
 
 /// Scene configuration (serializable, no runtime state)
 #[derive(Clone)]

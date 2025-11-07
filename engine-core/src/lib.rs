@@ -20,8 +20,5 @@ pub mod image;
 /// Test engine - modular rendering pipeline for LED effects
 pub mod test_engine;
 
-/// Power limiting and brightness control
-pub mod power_limit;
-
 // Re-export lpscript and math for convenience
 pub use lpscript;

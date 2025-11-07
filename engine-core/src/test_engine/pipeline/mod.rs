@@ -4,7 +4,7 @@ use alloc::vec::Vec;
 
 use lpscript::math::Fixed;
 use super::palette::Palette;
-use crate::power_limit::PowerLimitConfig;
+use super::power_limit::PowerLimitConfig;
 use lpscript::LpsProgram;
 
 pub mod rgb_utils;
