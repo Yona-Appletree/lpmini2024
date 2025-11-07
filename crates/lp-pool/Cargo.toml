@@ -9,6 +9,7 @@ alloc-meta = []  # Enable allocation metadata tracking with type and scope infor
 
 [dependencies]
 thread_local = "1.1"
+allocator-api2 = "0.2"
 
 [dev-dependencies]
 
