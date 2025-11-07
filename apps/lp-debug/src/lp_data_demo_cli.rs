@@ -1,4 +1,4 @@
-use engine_debug::lp_data_demo::CircleMappingConfig;
+use lp_debug::lp_data_demo::CircleMappingConfig;
 
 fn main() {
     let schema = CircleMappingConfig::schema_json();

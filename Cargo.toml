@@ -1,20 +1,20 @@
 [workspace]
 members = [
-    "lpcore",
-    "lpcli",
-    "fw-esp32c3",
-    "engine-core",
-    "engine-debug",
+    "crates/lpcore",
+    "apps/lpcli",
+    "apps/fw-esp32c3",
+    "crates/engine-core",
+    "apps/lp-debug",
     "crates/lp-data",
     "crates/lp-script", "crates/lp-math",
 ]
 # Exclude fw-esp32c3 from default builds since it requires ESP32 target
 # (it has its own .cargo/config.toml with target = "riscv32imc-unknown-none-elf")
 default-members = [
-    "lpcore",
-    "lpcli",
-    "engine-core",
-    "engine-debug",
+    "crates/lpcore",
+    "apps/lpcli",
+    "crates/engine-core",
+    "apps/lp-debug",
     "crates/lp-script",
     "crates/lp-data",
 ]

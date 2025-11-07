@@ -61,7 +61,7 @@ function float wave(float dist, float angle) {
 ## Building
 
 ```bash
-cargo build --package engine-debug --bin lps-compile --release
+cargo build --package lp-debug --bin lps-compile --release
 ```
 
 Binary location: `./target/release/lps-compile`

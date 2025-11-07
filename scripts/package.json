@@ -7,9 +7,9 @@
   },
   "private": true,
   "scripts": {
-    "flash-leds": "cd ../fw-esp32c3 && cargo run --bin fw-esp32c3 --release",
+    "flash-leds": "cd ../apps/fw-esp32c3 && cargo run --bin fw-esp32c3 --release",
     "test-esp32": "tsx test_on_esp32.ts",
-    "test-mapping": "cd ../fw-esp32c3 && cargo run --bin led_test --release"
+    "test-mapping": "cd ../apps/fw-esp32c3 && cargo run --bin led_test --release"
   },
   "type": "module"
 }

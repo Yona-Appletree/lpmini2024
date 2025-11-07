@@ -74,7 +74,7 @@ Example scene in example-scene.toml
 For now, I want to focus on figuring out the core data structures to allow something like the above.
 
 To help me:
-Look at lpscript, engine-core, engine-debug
+Look at lpscript, engine-core, lp-debug
 Ignore lpcore for now, it was an old idea.
 
 Just read the above, ant don't make a full plan yet, I want to work interactively about this idea.

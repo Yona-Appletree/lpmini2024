@@ -1,5 +1,5 @@
 [package]
-name = "engine-debug"
+name = "lp-debug"
 version = "0.1.0"
 edition = "2021"
 
@@ -20,9 +20,9 @@ name = "lp-data-demo"
 path = "src/lp_data_demo_cli.rs"
 
 [dependencies]
-engine-core = { path = "../engine-core" }
-lp-script = { path = "../crates/lp-script" }
-lp-data = { path = "../crates/lp-data", features = ["serde_json"] }
+engine-core = { path = "../../crates/engine-core" }
+lp-script = { path = "../../crates/lp-script" }
+lp-data = { path = "../../crates/lp-data", features = ["serde_json"] }
 minifb = "0.27"
 embedded-graphics = "0.8"
 serde = { version = "1", features = ["derive"] }
