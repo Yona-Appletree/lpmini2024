@@ -89,23 +89,24 @@ impl PoolAllocator {
         
         // Find a block that meets the alignment requirement
         // We need to search through the free list to find an aligned block
-        let mut current = &mut self.free_list;
-        let mut prev: Option<*mut *mut u8> = None;
+        let mut current_ptr = self.free_list;
+        let mut prev_ptr: Option<*mut *mut u8> = None;
+        let mut checked_any = false;
         
-        while !current.is_null() {
-            let block_ptr = *current;
-            let block_addr = block_ptr as usize;
+        while !current_ptr.is_null() {
+            checked_any = true;
+            let block_addr = current_ptr as usize;
             
             // Check if this block is aligned to the requested alignment
             if block_addr % layout.align() == 0 {
                 // Found an aligned block - remove it from free list
-                let next_ptr = block_ptr as *mut *mut u8;
+                let next_ptr = current_ptr as *mut *mut u8;
                 let next = unsafe { core::ptr::read(next_ptr) };
                 
                 // Update the previous node's next pointer (or free_list if this was first)
-                if let Some(prev_ptr) = prev {
+                if let Some(prev) = prev_ptr {
                     unsafe {
-                        core::ptr::write(prev_ptr, next);
+                        core::ptr::write(prev, next);
                     }
                 } else {
                     self.free_list = next;
@@ -116,20 +117,26 @@ impl PoolAllocator {
                 // Return as NonNull<[u8]>
                 return Ok(unsafe {
                     NonNull::slice_from_raw_parts(
-                        NonNull::new_unchecked(block_ptr),
+                        NonNull::new_unchecked(current_ptr),
                         self.block_size,
                     )
                 });
             }
             
             // This block doesn't meet alignment - move to next
-            prev = Some(current as *mut *mut u8);
-            let next_ptr = block_ptr as *mut *mut u8;
-            current = unsafe { &mut *next_ptr };
+            prev_ptr = Some(current_ptr as *mut *mut u8);
+            let next_ptr = current_ptr as *mut *mut u8;
+            current_ptr = unsafe { core::ptr::read(next_ptr) };
         }
         
         // No aligned block found
-        Err(AllocError::InvalidLayout)
+        // If we checked blocks but none met alignment, return InvalidLayout
+        // If free_list was empty (no blocks to check), return PoolExhausted
+        if checked_any {
+            Err(AllocError::InvalidLayout)
+        } else {
+            Err(AllocError::PoolExhausted)
+        }
     }
     
     /// Deallocate a block
