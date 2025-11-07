@@ -4,7 +4,7 @@ version = "0.1.0"
 edition = "2021"
 
 [features]
-default = []
+default = ["alloc-meta"]
 alloc-meta = []  # Enable allocation metadata tracking with type and scope information
 
 [dependencies]

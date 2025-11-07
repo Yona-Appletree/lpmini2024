@@ -1,7 +1,9 @@
+use core::alloc::Layout;
+
+use allocator_api2::alloc::{AllocError as ApiAllocError, Allocator};
+
 use crate::error::AllocError;
 use crate::memory_pool::with_active_pool;
-use allocator_api2::alloc::{AllocError as ApiAllocError, Allocator};
-use core::alloc::Layout;
 
 /// Wrapper that implements `Allocator` trait for the thread-local pool
 ///
@@ -39,16 +41,7 @@ unsafe impl Allocator for LpAllocatorWrapper {
             Ok(result)
         })
         .and_then(|inner| inner)
-        .map_err(|e| {
-            // Preserve error information in debug builds or when logging is enabled
-            #[cfg(feature = "alloc-meta")]
-            {
-                // In debug mode, we could log the error here if we had a logging mechanism
-                // For now, just convert to ApiAllocError
-                let _ = e; // Use the error to avoid unused variable warning
-            }
-            ApiAllocError
-        })
+        .map_err(|_e| ApiAllocError)
     }
 
     unsafe fn deallocate(&self, ptr: core::ptr::NonNull<u8>, layout: Layout) {
@@ -71,13 +64,7 @@ unsafe impl Allocator for LpAllocatorWrapper {
             Ok(result)
         })
         .and_then(|inner| inner)
-        .map_err(|e| {
-            #[cfg(feature = "alloc-meta")]
-            {
-                let _ = e;
-            }
-            ApiAllocError
-        })
+        .map_err(|_e| ApiAllocError)
     }
 
     unsafe fn shrink(
@@ -91,27 +78,22 @@ unsafe impl Allocator for LpAllocatorWrapper {
             Ok(result)
         })
         .and_then(|inner| inner)
-        .map_err(|e| {
-            #[cfg(feature = "alloc-meta")]
-            {
-                let _ = e;
-            }
-            ApiAllocError
-        })
+        .map_err(|_e| ApiAllocError)
     }
 }
 
 #[cfg(test)]
 mod tests {
-    use super::*;
-    use crate::memory_pool::LpMemoryPool;
     use core::alloc::Layout;
     use core::ptr::NonNull;
+
+    use super::*;
+    use crate::memory_pool::LpMemoryPool;
 
     fn setup_pool() -> LpMemoryPool {
         let mut memory = [0u8; 16384];
         let memory_ptr = NonNull::new(memory.as_mut_ptr()).unwrap();
-        unsafe { LpMemoryPool::new(memory_ptr, 16384, 128).unwrap() }
+        unsafe { LpMemoryPool::new(memory_ptr, 16384).unwrap() }
     }
 
     #[test]

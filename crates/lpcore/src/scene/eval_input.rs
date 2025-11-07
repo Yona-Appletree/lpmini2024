@@ -16,7 +16,21 @@ pub fn eval_input(
     context: &dyn ExprEvaluator,
     path: &JsonPath,
 ) -> Result<serde_json::Value, Box<dyn Error>> {
-    let requested_value = path.get_from(&initial_value)?;
+    // Try to get the requested value, or use an empty object if the path doesn't exist
+    // but there are bindings that would populate it
+    let requested_value = match path.get_from(&initial_value) {
+        Ok(value) => value,
+        Err(_) => {
+            // Only create a default value if there are bindings for this path
+            let has_relevant_bindings = bindings.keys().any(|bp| bp.without_prefix(path).is_some());
+            if has_relevant_bindings {
+                serde_json::json!({})
+            } else {
+                // No bindings, so the path is truly invalid
+                return Err("Path not found and no bindings to create it".into());
+            }
+        }
+    };
 
     let result = bindings.iter().try_fold(
         requested_value,
@@ -162,7 +176,7 @@ mod tests {
 
         let initial_value = serde_json::json!({});
 
-        let context = MockEvalContext::new();
+        let context = MockEvalContext::with_value("lfo1", "value", serde_json::json!(10.0));
 
         let result = eval_input(initial_value, &bindings, &context, &path)?;
         assert_eq!(result, serde_json::json!({ "x": 10.0 }));

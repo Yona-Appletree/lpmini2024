@@ -1,10 +1,10 @@
-use crate::error::AllocError;
-use crate::memory_pool::with_active_pool;
 use core::alloc::Layout;
 use core::ptr::NonNull;
 
 #[cfg(feature = "alloc-meta")]
 use super::alloc_meta::{record_allocation_meta, remove_allocation_meta, AllocationMeta};
+use crate::error::AllocError;
+use crate::memory_pool::with_active_pool;
 
 /// Pool-backed Box
 pub struct LpBox<T> {
@@ -28,6 +28,8 @@ impl<T> LpBox<T> {
             type_name: core::any::type_name::<T>(),
             scope,
         };
+        #[cfg(not(feature = "alloc-meta"))]
+        let _ = scope; // Suppress unused warning
 
         let ptr = with_active_pool(|pool| {
             let allocated = pool.allocate(layout)?;
@@ -104,14 +106,15 @@ impl<T> Drop for LpBox<T> {
 
 #[cfg(test)]
 mod tests {
+    use core::ptr::NonNull;
+
     use super::*;
     use crate::memory_pool::LpMemoryPool;
-    use core::ptr::NonNull;
 
     fn setup_pool() -> LpMemoryPool {
         let mut memory = [0u8; 16384];
         let memory_ptr = NonNull::new(memory.as_mut_ptr()).unwrap();
-        unsafe { LpMemoryPool::new(memory_ptr, 16384, 128).unwrap() }
+        unsafe { LpMemoryPool::new(memory_ptr, 16384).unwrap() }
     }
 
     #[test]

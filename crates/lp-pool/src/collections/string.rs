@@ -131,7 +131,7 @@ mod tests {
     fn setup_pool() -> LpMemoryPool {
         let mut memory = [0u8; 16384];
         let memory_ptr = NonNull::new(memory.as_mut_ptr()).unwrap();
-        unsafe { LpMemoryPool::new(memory_ptr, 16384, 128).unwrap() }
+        unsafe { LpMemoryPool::new(memory_ptr, 16384).unwrap() }
     }
 
     #[test]

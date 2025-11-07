@@ -360,7 +360,7 @@ mod tests {
     fn setup_pool() -> LpMemoryPool {
         let mut memory = [0u8; 16384];
         let memory_ptr = NonNull::new(memory.as_mut_ptr()).unwrap();
-        unsafe { LpMemoryPool::new(memory_ptr, 16384, 128).unwrap() }
+        unsafe { LpMemoryPool::new(memory_ptr, 16384).unwrap() }
     }
 
     #[test]
@@ -505,7 +505,6 @@ mod tests {
             LpMemoryPool::new(
                 memory_ptr,
                 16384 - (memory_ptr.as_ptr() as usize - memory.as_mut_ptr() as usize),
-                128,
             )
             .unwrap()
         };
@@ -706,9 +705,15 @@ mod tests {
         pool.run(|| {
             {
                 let mut vec = LpVec::new();
-                vec.try_push(DropChecker { sentinel: 0xDEADBEEF })?;
-                vec.try_push(DropChecker { sentinel: 0xDEADBEEF })?;
-                vec.try_push(DropChecker { sentinel: 0xDEADBEEF })?;
+                vec.try_push(DropChecker {
+                    sentinel: 0xDEADBEEF,
+                })?;
+                vec.try_push(DropChecker {
+                    sentinel: 0xDEADBEEF,
+                })?;
+                vec.try_push(DropChecker {
+                    sentinel: 0xDEADBEEF,
+                })?;
             }
             // Vec dropped here - all 3 elements should be dropped
 

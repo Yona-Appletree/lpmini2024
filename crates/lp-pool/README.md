@@ -1,18 +1,20 @@
 # lp-pool
 
-A memory pool allocator for embedded and `no_std` environments.
+A variable-size memory pool allocator for embedded and `no_std` environments.
 
 ## Overview
 
-`lp-pool` provides a fixed-size block allocator with thread-local access and custom collections optimized for constrained environments. It implements the `allocator-api2` trait, making it compatible with standard Rust patterns while maintaining `no_std` compatibility.
+`lp-pool` provides a variable-size block allocator with thread-local access and custom collections optimized for constrained environments. It implements the `allocator-api2` trait, making it compatible with standard Rust patterns while maintaining `no_std` compatibility.
 
 ## Features
 
-- **Fixed-size block allocator** with free list management
+- **Variable-size block allocator** with free list management and automatic coalescing
 - **Thread-local pool access** via `LpMemoryPool::run()`
 - **Pool-backed collections**: `LpVec`, `LpString`, `LpBTreeMap`, `LpBox`
 - **allocator-api2 compatible** for use with standard collection patterns
 - **Dynamic resizing** with grow/shrink support
+- **Efficient memory usage** - allocations are sized to fit the requested size
+- **Block coalescing** - adjacent free blocks are automatically merged
 - **Allocation tracking** (optional, via `alloc-meta` feature)
 
 ## Usage
@@ -25,8 +27,8 @@ use core::ptr::NonNull;
 let mut memory = [0u8; 4096];
 let memory_ptr = NonNull::new(memory.as_mut_ptr()).unwrap();
 
-// Create pool with 64-byte blocks
-let pool = unsafe { LpMemoryPool::new(memory_ptr, 4096, 64).unwrap() };
+// Create pool
+let pool = unsafe { LpMemoryPool::new(memory_ptr, 4096).unwrap() };
 
 // Use collections within the pool
 pool.run(|| {
@@ -38,11 +40,33 @@ pool.run(|| {
 }).unwrap();
 ```
 
+## Architecture
+
+The allocator uses a variable-size block approach with metadata headers:
+
+- **Block Headers**: Each allocated or free block has a header containing its size and allocation status
+- **Free List**: Free blocks are linked together via a free list for fast allocation
+- **First-Fit**: Allocations use a first-fit strategy, finding the first free block large enough
+- **Block Splitting**: Large free blocks are split when allocating smaller sizes
+- **Coalescing**: Adjacent free blocks are merged on deallocation to reduce fragmentation
+
+### Memory Overhead
+
+- **Header size**: ~16 bytes per allocation
+- **Minimum block size**: 24 bytes (header + free list pointer)
+
+## Performance Characteristics
+
+- **Allocation**: O(n) where n = number of free blocks (first-fit search)
+- **Deallocation**: O(n) where n = number of blocks (for coalescing with previous block)
+- **Memory efficiency**: Better than fixed-size for varied allocation sizes
+- **Fragmentation**: Reduced through automatic coalescing
+
 ## Limitations
 
-- All allocations must fit within the configured `block_size`
-- Blocks are aligned to `block_size` boundaries
-- `BTreeMap` uses a simplified binary search tree (not a true B-tree)
+- **Coalescing overhead**: Finding the previous block requires scanning from the start of memory
+- **BTreeMap**: Uses a simplified binary search tree (not a true B-tree), may degrade with unbalanced data
+- **Alignment**: Blocks must meet alignment requirements; misaligned blocks are not split for padding
 
 ## Allocation Tracking
 
@@ -92,3 +116,13 @@ TOTAL                                                                 2        2
 ## Feature Flags
 
 - `alloc-meta`: Enable allocation metadata tracking with type and scope information
+
+## Testing
+
+The crate includes comprehensive tests with per-test timeouts using cargo-nextest:
+
+```bash
+cargo nextest run --lib
+```
+
+This ensures tests complete within 5 seconds and prevents hanging tests from blocking CI/development.

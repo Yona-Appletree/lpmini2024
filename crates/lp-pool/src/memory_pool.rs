@@ -15,12 +15,8 @@ impl LpMemoryPool {
     /// # Safety
     /// - `memory` must point to a valid memory region of at least `size` bytes
     /// - Memory must remain valid for the lifetime of the pool
-    pub unsafe fn new(
-        memory: NonNull<u8>,
-        size: usize,
-        block_size: usize,
-    ) -> Result<Self, AllocError> {
-        let root_pool = LpAllocator::new(memory, size, block_size)?;
+    pub unsafe fn new(memory: NonNull<u8>, size: usize) -> Result<Self, AllocError> {
+        let root_pool = LpAllocator::new(memory, size)?;
         ROOT_POOL
             .get_or(|| RefCell::new(None))
             .borrow_mut()
@@ -111,7 +107,7 @@ mod tests {
         let memory_ptr = NonNull::new(memory.as_mut_ptr()).unwrap();
 
         unsafe {
-            let pool = LpMemoryPool::new(memory_ptr, 1024, 64).unwrap();
+            let pool = LpMemoryPool::new(memory_ptr, 1024).unwrap();
             let stats = pool.stats().unwrap();
             assert_eq!(stats.capacity, 1024);
             assert_eq!(stats.used_bytes, 0);
@@ -126,7 +122,7 @@ mod tests {
         let memory_ptr = NonNull::new(memory.as_mut_ptr()).unwrap();
 
         unsafe {
-            let pool = LpMemoryPool::new(memory_ptr, 1024, 64).unwrap();
+            let pool = LpMemoryPool::new(memory_ptr, 1024).unwrap();
             let result = pool.run(|| Ok(42)).unwrap();
             assert_eq!(result, 42);
         }
@@ -138,7 +134,7 @@ mod tests {
         let memory_ptr = NonNull::new(memory.as_mut_ptr()).unwrap();
 
         unsafe {
-            let pool = LpMemoryPool::new(memory_ptr, 1024, 64).unwrap();
+            let pool = LpMemoryPool::new(memory_ptr, 1024).unwrap();
 
             // Initially empty
             assert_eq!(pool.used_bytes().unwrap(), 0);

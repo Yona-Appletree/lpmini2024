@@ -56,6 +56,9 @@ jobs:
       - name: Run cargo test
         run: cargo test --workspace
 
+      - name: Test lp-pool without alloc-meta
+        run: cargo test -p lp-pool --lib --no-default-features
+
   typescript-validation:
     runs-on: ubuntu-latest
     defaults:
