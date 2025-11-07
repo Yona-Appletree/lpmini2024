@@ -15,8 +15,15 @@ path = "src/visualizer.rs"
 name = "lps-compile"
 path = "src/lps_compile.rs"
 
+[[bin]]
+name = "lp-data-demo"
+path = "src/lp_data_demo_cli.rs"
+
 [dependencies]
 engine-core = { path = "../engine-core" }
 lpscript = { path = "../lpscript" }
+lp-data = { path = "../crates/lp-data", features = ["serde_json"] }
 minifb = "0.27"
 embedded-graphics = "0.8"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"

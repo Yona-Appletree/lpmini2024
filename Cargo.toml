@@ -5,6 +5,7 @@ members = [
     "fw-esp32c3",
     "engine-core",
     "engine-debug",
+    "crates/lp-data",
     "lpscript",
 ]
 # Exclude fw-esp32c3 from default builds since it requires ESP32 target
@@ -15,6 +16,7 @@ default-members = [
     "engine-core",
     "engine-debug",
     "lpscript",
+    "crates/lp-data",
 ]
 resolver = "2"
 
