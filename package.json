@@ -10,6 +10,7 @@
     "eslint": "^9.33.0",
     "eslint-config-prettier": "^10.1.8",
     "eslint-config-turbo": "^2.5.5",
+    "husky": "^9.1.7",
     "lint-staged": "^16.1.2",
     "prettier": "^3.6.2",
     "prettier-plugin-svelte": "^3.4.0",
@@ -36,6 +37,7 @@
     "fix:prettier": "prettier --write .",
     "fix:syncpack-format": "syncpack format",
     "fix:syncpack-mismatches": "syncpack fix-mismatches",
-    "install-playwright": "pnpm --filter @lpmini/control exec playwright install --with-deps"
+    "install-playwright": "pnpm --filter @lpmini/control exec playwright install --with-deps",
+    "prepare": "husky"
   }
 }
