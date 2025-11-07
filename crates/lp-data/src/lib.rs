@@ -24,9 +24,12 @@
 extern crate alloc;
 
 pub mod annotation;
+pub mod registry;
 pub mod schema;
 pub mod ty;
 pub mod value;
+
+pub use registry::{LpDataType, TypeRegistry};
 
 #[cfg(test)]
 mod tests;

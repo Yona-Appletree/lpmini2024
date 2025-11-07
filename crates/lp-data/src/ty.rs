@@ -8,6 +8,9 @@ pub enum LpPrimitive {
     Int32,
     Fixed32,
     Bool,
+    Vec2,
+    Vec3,
+    Vec4,
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -29,6 +32,18 @@ impl LpType {
 
     pub fn boolean() -> Self {
         LpType::Primitive(LpPrimitive::Bool)
+    }
+
+    pub fn vec2() -> Self {
+        LpType::Primitive(LpPrimitive::Vec2)
+    }
+
+    pub fn vec3() -> Self {
+        LpType::Primitive(LpPrimitive::Vec3)
+    }
+
+    pub fn vec4() -> Self {
+        LpType::Primitive(LpPrimitive::Vec4)
     }
 
     pub fn array(element: LpType) -> Self {

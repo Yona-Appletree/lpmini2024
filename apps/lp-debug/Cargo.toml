@@ -15,10 +15,6 @@ path = "src/visualizer.rs"
 name = "lps-compile"
 path = "src/lps_compile.rs"
 
-[[bin]]
-name = "lp-data-demo"
-path = "src/lp_data_demo_cli.rs"
-
 [dependencies]
 engine-core = { path = "../../crates/engine-core" }
 lp-script = { path = "../../crates/lp-script" }

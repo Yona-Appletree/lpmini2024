@@ -14,6 +14,7 @@ serde_json = ["std", "dep:serde_json"]
 
 [dependencies]
 serde = { version = "1", features = ["derive"] }
+lp-math = { path = "../lp-math" }
 
 serde_json = { version = "1", optional = true }
 

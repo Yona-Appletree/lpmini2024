@@ -23,6 +23,33 @@ fn primitive_schema(prim: &LpPrimitive) -> Value {
         LpPrimitive::Int32 => json!({ "type": "integer", "format": "int32" }),
         LpPrimitive::Fixed32 => json!({ "type": "number", "format": "fixed32" }),
         LpPrimitive::Bool => json!({ "type": "boolean" }),
+        LpPrimitive::Vec2 => json!({
+            "type": "object",
+            "properties": {
+                "x": { "type": "number", "format": "fixed32" },
+                "y": { "type": "number", "format": "fixed32" }
+            },
+            "required": ["x", "y"]
+        }),
+        LpPrimitive::Vec3 => json!({
+            "type": "object",
+            "properties": {
+                "x": { "type": "number", "format": "fixed32" },
+                "y": { "type": "number", "format": "fixed32" },
+                "z": { "type": "number", "format": "fixed32" }
+            },
+            "required": ["x", "y", "z"]
+        }),
+        LpPrimitive::Vec4 => json!({
+            "type": "object",
+            "properties": {
+                "x": { "type": "number", "format": "fixed32" },
+                "y": { "type": "number", "format": "fixed32" },
+                "z": { "type": "number", "format": "fixed32" },
+                "w": { "type": "number", "format": "fixed32" }
+            },
+            "required": ["x", "y", "z", "w"]
+        }),
     }
 }
 

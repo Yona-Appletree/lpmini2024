@@ -1423,6 +1423,7 @@ checksum = "34080505efa8e45a4b816c349525ebe327ceaa8559756f0356cba97ef3bf7432"
 name = "lp-data"
 version = "0.1.0"
 dependencies = [
+ "lp-math",
  "serde",
  "serde_json",
 ]
@@ -1448,8 +1449,7 @@ version = "0.1.0"
 name = "lp-schema-gen"
 version = "0.0.0"
 dependencies = [
- "lpcore",
- "serde_json",
+ "lp-data",
 ]
 
 [[package]]
