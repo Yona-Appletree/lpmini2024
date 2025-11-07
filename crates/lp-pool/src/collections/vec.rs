@@ -66,7 +66,7 @@ impl<T> PoolVec<T> {
             return Ok(());
         }
         
-        let layout = Layout::array::<T>(new_cap)
+        let new_layout = Layout::array::<T>(new_cap)
             .map_err(|_| AllocError::InvalidLayout)?;
         
         #[cfg(feature = "alloc-meta")]
@@ -76,21 +76,10 @@ impl<T> PoolVec<T> {
         };
         
         with_active_pool(|pool| {
-            let new_data = pool.allocate(layout)?;
-            let new_ptr = NonNull::new(new_data.as_ptr() as *mut u8).unwrap();
-            
-            // Copy old data if any
-            if self.len > 0 {
-                let old_ptr = self.data.as_ptr() as *const T;
-                let new_data_ptr = new_ptr.as_ptr() as *mut T;
-                unsafe {
-                    core::ptr::copy_nonoverlapping(old_ptr, new_data_ptr, self.len);
-                }
-            }
-            
-            // Deallocate old data if any
-            if self.capacity > 0 {
+            let new_data = if self.capacity > 0 {
+                // Use grow to reallocate
                 let old_layout = Layout::array::<T>(self.capacity).unwrap();
+                let new_size = new_layout.size();
                 
                 #[cfg(feature = "alloc-meta")]
                 {
@@ -98,16 +87,28 @@ impl<T> PoolVec<T> {
                 }
                 
                 unsafe {
-                    pool.deallocate(self.data, old_layout);
+                    let grown = pool.grow(self.data, old_layout, new_size)?;
+                    
+                    #[cfg(feature = "alloc-meta")]
+                    {
+                        record_allocation_meta(meta, new_layout.size());
+                    }
+                    
+                    grown
                 }
-            }
+            } else {
+                // First allocation
+                let allocated = pool.allocate(new_layout)?;
+                
+                #[cfg(feature = "alloc-meta")]
+                {
+                    record_allocation_meta(meta, new_layout.size());
+                }
+                
+                allocated
+            };
             
-            #[cfg(feature = "alloc-meta")]
-            {
-                record_allocation_meta(meta, layout.size());
-            }
-            
-            self.data = new_ptr;
+            self.data = NonNull::new(new_data.as_ptr() as *mut u8).unwrap();
             self.capacity = new_cap;
             Ok(())
         })
