@@ -2,10 +2,10 @@
 extern crate alloc;
 use super::rgb_utils::grey_to_i32;
 use super::{BufferFormat, BufferRef, PipelineError};
-use crate::lpscript::shared::Type;
-use crate::lpscript::vm::{execute_program_lps, execute_program_lps_vec3};
-use crate::lpscript::LpsProgram;
-use crate::math::Fixed;
+use lpscript::shared::Type;
+use lpscript::vm::{execute_program_lps, execute_program_lps_vec3};
+use lpscript::LpsProgram;
+use lpscript::math::Fixed;
 use alloc::vec;
 
 /// Validate that the program's return type matches the expected buffer format
@@ -89,8 +89,8 @@ pub fn execute_expr_step(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::lpscript::parse_expr;
-    use crate::lpscript::parse_script;
+    use lpscript::parse_expr;
+    use lpscript::parse_script;
 
     #[test]
     fn test_validate_type_fixed_to_grey_succeeds() {
@@ -287,7 +287,7 @@ mod tests {
     #[test]
     fn test_script_with_vec3_return_preserves_type() {
         // This test catches the bug where parse_script loses return type!
-        use crate::lpscript::parse_script;
+        use lpscript::parse_script;
 
         let program = parse_script(
             "float r = xNorm; \
@@ -309,7 +309,7 @@ mod tests {
     #[test]
     fn test_execute_rgb_script_with_function() {
         // This test simulates the actual demo program structure
-        use crate::lpscript::parse_script;
+        use lpscript::parse_script;
 
         let program = parse_script(
             "float hue = xNorm; \

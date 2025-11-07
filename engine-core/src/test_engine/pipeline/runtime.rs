@@ -6,8 +6,8 @@ use super::super::palette::Palette;
 use super::config::FxPipelineConfig;
 use super::rgb_utils::{grey_to_i32, i32_to_grey, pack_rgb};
 use super::{Buffer, BufferFormat, BufferRef, PipelineError, PipelineStep, RuntimeOptions};
-use crate::lpscript::execute_program_lps;
-use crate::math::Fixed;
+use lpscript::execute_program_lps;
+use lpscript::math::Fixed;
 
 /// Runtime pipeline state
 pub struct FxPipeline {

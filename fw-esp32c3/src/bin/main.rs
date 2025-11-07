@@ -11,15 +11,15 @@ use defmt::info;
 use embassy_executor::Spawner;
 use embassy_time::Instant;
 // Engine imports
-use engine_core::demo_program::create_demo_scene;
-use engine_core::math::Fixed;
-use engine_core::scene::SceneRuntime;
+use engine_core::test_engine::demo_program::create_demo_scene;
+use engine_core::test_engine::scene::SceneRuntime;
 use esp_hal::clock::CpuClock;
 use esp_hal::delay::Delay;
 use esp_hal::rmt::Rmt;
 use esp_hal::time::Rate;
 use esp_hal::timer::systimer::SystemTimer;
 use fw_esp32c3::rmt_ws2811_driver;
+use lpscript::math::Fixed;
 use panic_rtt_target as _;
 
 // This creates a default app-descriptor required by the esp-idf bootloader.

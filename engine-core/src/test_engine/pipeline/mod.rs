@@ -2,10 +2,10 @@
 extern crate alloc;
 use alloc::vec::Vec;
 
-use crate::math::Fixed;
+use lpscript::math::Fixed;
 use super::palette::Palette;
 use crate::power_limit::PowerLimitConfig;
-use crate::lpscript::LpsProgram;
+use lpscript::LpsProgram;
 
 pub mod rgb_utils;
 pub mod config;

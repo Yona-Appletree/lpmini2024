@@ -3,12 +3,12 @@
 
 use defmt::info;
 use embassy_time::Instant;
-use engine_core::demo_program::create_demo_scene;
-use engine_core::scene::SceneRuntime;
+use engine_core::test_engine::demo_program::create_demo_scene;
+use engine_core::test_engine::scene::SceneRuntime;
 use engine_core::test_engine::RuntimeOptions;
-use engine_core::math::{Fixed, ToFixed};
 use esp_hal::clock::CpuClock;
 use esp_hal::timer::systimer::SystemTimer;
+use lpscript::math::{Fixed, ToFixed};
 use panic_rtt_target as _;
 
 esp_bootloader_esp_idf::esp_app_desc!();
@@ -57,7 +57,7 @@ async fn main(_spawner: embassy_executor::Spawner) {
     info!("Embassy initialized!");
     info!("Test Engine Benchmark - 16x16");
     info!("");
-    
+
     benchmark_16x16().await;
 
     info!("");

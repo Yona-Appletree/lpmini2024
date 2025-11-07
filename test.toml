@@ -1,0 +1,5 @@
+steps = [{
+type = "shader",
+inputs = { zoom = "children.lfo.value" },
+glsl = "perlin3(uv*zoom, time)"
+}]

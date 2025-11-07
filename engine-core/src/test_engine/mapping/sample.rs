@@ -1,5 +1,5 @@
 /// Image sampling with bilinear interpolation
-use crate::math::{Fixed, FIXED_SHIFT};
+use lpscript::math::{Fixed, FIXED_SHIFT};
 use core::cmp::{max, min};
 
 /// Bilinear interpolation of a single channel
@@ -123,7 +123,7 @@ pub fn sample_rgb_bilinear(
 #[cfg(all(test, not(feature = "use-libm")))]
 mod tests {
     use super::*;
-    use crate::math::ToFixed;
+    use lpscript::math::ToFixed;
 
     #[test]
     fn test_bilinear_interp_channel_corners() {

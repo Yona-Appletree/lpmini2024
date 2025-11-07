@@ -1,7 +1,7 @@
 /// Spiral LED mappings
 use super::{LedMap, LedMapping};
-use crate::math::{Fixed, FIXED_ONE, FIXED_SHIFT, ToFixed};
-use crate::math::trig::{sin, cos};
+use lpscript::math::{Fixed, FIXED_ONE, FIXED_SHIFT, ToFixed};
+use lpscript::math::trig::{sin, cos};
 use core::cmp::{max, min};
 
 impl LedMapping {

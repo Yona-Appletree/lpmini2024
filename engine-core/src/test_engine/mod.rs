@@ -8,17 +8,23 @@ pub mod mapping;
 pub mod palette;
 pub mod pipeline;
 
+/// Demo program configuration
+pub mod demo_program;
 #[cfg(test)]
 mod mapping_tests;
 #[cfg(test)]
 mod pipeline_tests;
+/// Scene configuration and runtime system
+pub mod scene;
+/// Standard test scene shared between ESP32 and host
+pub mod test_scene;
 
 // Re-export commonly used items
 // LoadSource is now defined in lpscript::vm::opcodes::load
-pub use crate::lpscript::vm::opcodes::LoadSource;
+pub use lpscript::vm::opcodes::LoadSource;
 
 #[allow(deprecated)]
-pub use crate::math::{
+pub use lpscript::math::{
     fixed_from_f32, fixed_from_int, fixed_to_f32, Fixed, FIXED_ONE, FIXED_SHIFT,
 };
 pub use mapping::{apply_2d_mapping, LedMapping, MappingConfig};

@@ -1,7 +1,7 @@
 /// Circular panel LED mappings (concentric rings)
 use super::{LedMap, LedMapping};
-use crate::math::trig::{cos, sin};
-use crate::math::{Fixed, FIXED_ONE, FIXED_SHIFT};
+use lpscript::math::trig::{cos, sin};
+use lpscript::math::{Fixed, FIXED_ONE, FIXED_SHIFT};
 
 impl LedMapping {
     /// Create a circular panel mapping with concentric rings

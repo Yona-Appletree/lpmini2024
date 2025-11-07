@@ -1,5 +1,5 @@
 /// 2D to 1D LED mapping system
-use crate::math::{Fixed, Vec2};
+use lpscript::math::{Fixed, Vec2};
 
 mod circular;
 pub mod config;

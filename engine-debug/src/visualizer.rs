@@ -7,12 +7,13 @@ use embedded_graphics::{
     primitives::{Circle, PrimitiveStyle},
     text::Text,
 };
-use engine_core::test_scene::{render_test_scene, SceneData, WIDTH, HEIGHT};
+use engine_core::test_engine::demo_program::create_demo_scene;
+use engine_core::test_engine::scene::SceneRuntime;
+use engine_core::test_engine::test_scene::{render_test_scene, SceneData, HEIGHT, WIDTH};
 use engine_core::test_engine::{LedMapping, RuntimeOptions};
-use engine_core::math::{Fixed, ToFixed};
-use engine_core::demo_program::create_demo_scene;
-use engine_core::scene::SceneRuntime;
+use lpscript::math::{Fixed, ToFixed};
 use minifb::{Key, Window, WindowOptions};
+
 
 const SCALE: usize = 16;
 const STATS_BAR_HEIGHT: usize = 40;
@@ -32,16 +33,16 @@ fn main() {
     });
 
     window.set_target_fps(60);
-    
+
     // Create demo scene
     let config = create_demo_scene(WIDTH, HEIGHT);
     let options = RuntimeOptions::new(WIDTH, HEIGHT);
     let runtime = SceneRuntime::new(config, options).expect("Valid scene config");
     let mut scene = SceneData::from_runtime(runtime);
-    
+
     let mut _frame_count = 0u32;
     let mut buffer: Vec<u32> = vec![0; WINDOW_WIDTH * WINDOW_HEIGHT];
-    
+
     // Performance tracking
     let mut total_engine_us = 0u64;
     let mut total_ui_us = 0u64;
@@ -49,29 +50,32 @@ fn main() {
     let mut engine_us_avg = 0.0;
     let mut ui_us_avg = 0.0;
     let mut scene_time = 0.0f32;
-    
+
     // ESP32 benchmark data: (pixels, esp32_us)
     const ESP32_BENCHMARKS: [(usize, f32); 5] = [
-        (64, 2211.0),      // 8x8
-        (144, 4616.0),     // 12x12
-        (256, 7968.0),     // 16x16
-        (400, 12287.0),    // 20x20
-        (576, 17568.0),    // 24x24
+        (64, 2211.0),   // 8x8
+        (144, 4616.0),  // 12x12
+        (256, 7968.0),  // 16x16
+        (400, 12287.0), // 20x20
+        (576, 17568.0), // 24x24
     ];
-    
+
     // Compute linear regression: esp32_us = slope * pixels + intercept
     fn compute_esp32_model() -> (f32, f32) {
         let n = ESP32_BENCHMARKS.len() as f32;
         let sum_x: f32 = ESP32_BENCHMARKS.iter().map(|(p, _)| *p as f32).sum();
         let sum_y: f32 = ESP32_BENCHMARKS.iter().map(|(_, us)| *us).sum();
         let sum_xy: f32 = ESP32_BENCHMARKS.iter().map(|(p, us)| *p as f32 * us).sum();
-        let sum_x2: f32 = ESP32_BENCHMARKS.iter().map(|(p, _)| (*p as f32) * (*p as f32)).sum();
-        
+        let sum_x2: f32 = ESP32_BENCHMARKS
+            .iter()
+            .map(|(p, _)| (*p as f32) * (*p as f32))
+            .sum();
+
         let slope = (n * sum_xy - sum_x * sum_y) / (n * sum_x2 - sum_x * sum_x);
         let intercept = (sum_y - slope * sum_x) / n;
         (slope, intercept)
     }
-    
+
     let (esp32_us_per_pixel, esp32_base_us) = compute_esp32_model();
 
     let mut last_frame_time = std::time::Instant::now();
@@ -80,15 +84,15 @@ fn main() {
         let frame_start = std::time::Instant::now();
         let delta = frame_start.duration_since(last_frame_time).as_secs_f32();
         last_frame_time = frame_start;
-        
+
         scene_time += delta * 0.5;
         let time = scene_time.to_fixed();
-        
+
         // Time just the engine render
         let engine_start = std::time::Instant::now();
         render_test_scene(&mut scene, time);
         let engine_us = engine_start.elapsed().as_micros() as u64;
-        
+
         // Track performance
         total_engine_us += engine_us;
         frames_for_avg += 1;
@@ -120,22 +124,38 @@ fn main() {
                 }
             }
         }
-        
+
         // Draw LED output after all buffers
         let led_offset_x = x_offset;
         let led_count = scene.led_count();
         draw_leds(scene.led_output(), &mut buffer, led_offset_x, 0, SCALE);
-        
+
         // Draw debug overlay on RGB buffer (buffer 1)
         let rgb_buffer_offset = WIDTH * SCALE; // Greyscale is at 0, RGB is at WIDTH*SCALE
-        draw_led_debug_overlay(&mut buffer, scene.mapping(), led_count, rgb_buffer_offset, led_offset_x, 0, SCALE);
-        
+        draw_led_debug_overlay(
+            &mut buffer,
+            scene.mapping(),
+            led_count,
+            rgb_buffer_offset,
+            led_offset_x,
+            0,
+            SCALE,
+        );
+
         // Predict ESP32 performance for current canvas size
         let pixels = WIDTH * HEIGHT;
         let esp32_predicted_us = esp32_us_per_pixel * pixels as f32 + esp32_base_us;
-        draw_stats_bar(&mut buffer, engine_us_avg, ui_us_avg, esp32_predicted_us, led_count);
+        draw_stats_bar(
+            &mut buffer,
+            engine_us_avg,
+            ui_us_avg,
+            esp32_predicted_us,
+            led_count,
+        );
 
-        window.update_with_buffer(&buffer, WINDOW_WIDTH, WINDOW_HEIGHT).unwrap();
+        window
+            .update_with_buffer(&buffer, WINDOW_WIDTH, WINDOW_HEIGHT)
+            .unwrap();
 
         _frame_count += 1;
         let full_frame_us = frame_start.elapsed().as_micros() as u64;
@@ -202,12 +222,12 @@ fn draw_leds(leds: &[u8], buffer: &mut [u32], offset_x: usize, offset_y: usize, 
         primitives::{Circle, PrimitiveStyle},
         text::Text,
     };
-    
+
     let mut fb = Framebuffer::new(buffer, WINDOW_WIDTH, WINDOW_HEIGHT);
     let text_style = MonoTextStyle::new(&FONT_6X10, Rgb888::new(255, 255, 255));
-    
+
     let led_count = leds.len() / 3;
-    
+
     // Draw as filled circles using embedded-graphics
     for led_idx in 0..led_count {
         let idx = led_idx * 3;
@@ -223,11 +243,17 @@ fn draw_leds(leds: &[u8], buffer: &mut [u32], offset_x: usize, offset_y: usize, 
         let diameter = scale as u32;
 
         // Draw filled circle
-        Circle::new(Point::new(center_x - (diameter / 2) as i32, center_y - (diameter / 2) as i32), diameter)
-            .into_styled(PrimitiveStyle::with_fill(Rgb888::new(r, g, b)))
-            .draw(&mut fb)
-            .ok();
-        
+        Circle::new(
+            Point::new(
+                center_x - (diameter / 2) as i32,
+                center_y - (diameter / 2) as i32,
+            ),
+            diameter,
+        )
+        .into_styled(PrimitiveStyle::with_fill(Rgb888::new(r, g, b)))
+        .draw(&mut fb)
+        .ok();
+
         // Draw LED number
         let label = format!("{}", led_idx);
         let text_x = center_x - (label.len() as i32 * 3);
@@ -334,7 +360,13 @@ fn draw_led_debug_overlay(
     }
 }
 
-fn draw_stats_bar(buffer: &mut [u32], engine_us: f32, ui_us: f32, esp32_predicted_us: f32, led_count: usize) {
+fn draw_stats_bar(
+    buffer: &mut [u32],
+    engine_us: f32,
+    ui_us: f32,
+    esp32_predicted_us: f32,
+    led_count: usize,
+) {
     // Fill black bar at bottom
     let bar_y_start = HEIGHT * SCALE;
     for y in bar_y_start..(HEIGHT * SCALE + STATS_BAR_HEIGHT) {
@@ -344,30 +376,50 @@ fn draw_stats_bar(buffer: &mut [u32], engine_us: f32, ui_us: f32, esp32_predicte
             }
         }
     }
-    
+
     let mut fb = Framebuffer::new(buffer, WINDOW_WIDTH, WINDOW_HEIGHT);
     let text_style = MonoTextStyle::new(&FONT_6X10, Rgb888::new(200, 200, 200));
     let text_style_bright = MonoTextStyle::new(&FONT_6X10, Rgb888::new(255, 255, 255));
-    
+
     // Line 1: Canvas info
     let info_text = format!("Canvas: {}x{}  Output: {} LEDs", WIDTH, HEIGHT, led_count);
-    Text::new(&info_text, Point::new(10, (HEIGHT * SCALE + 10) as i32), text_style)
-        .draw(&mut fb)
-        .ok();
-    
+    Text::new(
+        &info_text,
+        Point::new(10, (HEIGHT * SCALE + 10) as i32),
+        text_style,
+    )
+    .draw(&mut fb)
+    .ok();
+
     // Line 2: Performance stats
-    let engine_fps = if engine_us > 0.0 { 1_000_000.0 / engine_us } else { 0.0 };
-    let esp32_fps = if esp32_predicted_us > 0.0 { 1_000_000.0 / esp32_predicted_us } else { 0.0 };
-    let ui_fps = if ui_us > 0.0 { 1_000_000.0 / ui_us } else { 0.0 };
-    
+    let engine_fps = if engine_us > 0.0 {
+        1_000_000.0 / engine_us
+    } else {
+        0.0
+    };
+    let esp32_fps = if esp32_predicted_us > 0.0 {
+        1_000_000.0 / esp32_predicted_us
+    } else {
+        0.0
+    };
+    let ui_fps = if ui_us > 0.0 {
+        1_000_000.0 / ui_us
+    } else {
+        0.0
+    };
+
     let perf_text = format!(
         "Engine: {:.0}us ({:.0} FPS)  ESP32 predicted: {:.0} FPS  UI: {:.0} FPS",
         engine_us, engine_fps, esp32_fps, ui_fps
     );
-    
-    Text::new(&perf_text, Point::new(10, (HEIGHT * SCALE + 22) as i32), text_style_bright)
-        .draw(&mut fb)
-        .ok();
+
+    Text::new(
+        &perf_text,
+        Point::new(10, (HEIGHT * SCALE + 22) as i32),
+        text_style_bright,
+    )
+    .draw(&mut fb)
+    .ok();
 }
 
 #[inline(always)]

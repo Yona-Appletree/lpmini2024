@@ -17,5 +17,6 @@ path = "src/lps_compile.rs"
 
 [dependencies]
 engine-core = { path = "../engine-core" }
+lpscript = { path = "../lpscript" }
 minifb = "0.27"
 embedded-graphics = "0.8"

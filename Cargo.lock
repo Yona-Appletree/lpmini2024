@@ -663,6 +663,7 @@ version = "0.1.0"
 dependencies = [
  "fixed",
  "libm",
+ "lpscript",
  "smart-leds",
 ]
 
@@ -672,6 +673,7 @@ version = "0.1.0"
 dependencies = [
  "embedded-graphics",
  "engine-core",
+ "lpscript",
  "minifb",
 ]
 
@@ -1181,6 +1183,7 @@ dependencies = [
  "esp-hal",
  "esp-hal-embassy",
  "esp-wifi",
+ "lpscript",
  "panic-rtt-target",
  "rtt-target",
  "smart-leds",
@@ -1442,6 +1445,15 @@ dependencies = [
  "schemars",
  "serde",
  "serde_json",
+]
+
+[[package]]
+name = "lpscript"
+version = "0.1.0"
+dependencies = [
+ "fixed",
+ "libm",
+ "smart-leds",
 ]
 
 [[package]]

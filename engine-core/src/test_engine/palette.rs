@@ -1,5 +1,5 @@
 /// Palette-based RGB conversion
-use crate::math::{Fixed, FIXED_SHIFT, FIXED_ONE};
+use lpscript::math::{Fixed, FIXED_SHIFT, FIXED_ONE};
 
 /// RGB color representation
 #[derive(Debug, Clone, Copy)]
@@ -125,7 +125,7 @@ pub fn rgb_buffer_from_greyscale(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::math::ToFixed;
+    use lpscript::math::ToFixed;
 
     #[test]
     fn test_palette_edges() {
