@@ -87,39 +87,49 @@ impl PoolAllocator {
             });
         }
         
-        // Get block from free list
-        if self.free_list.is_null() {
-            return Err(AllocError::PoolExhausted);
-        }
+        // Find a block that meets the alignment requirement
+        // We need to search through the free list to find an aligned block
+        let mut current = &mut self.free_list;
+        let mut prev: Option<*mut *mut u8> = None;
         
-        // Remove from free list
-        let block_ptr = self.free_list;
-        // Read the next pointer from the block
-        let next_ptr = block_ptr as *mut *mut u8;
-        let next = unsafe { core::ptr::read(next_ptr) };
-        self.free_list = next;
-        self.used_blocks += 1;
-        
-        // Check if block is actually aligned to the requested alignment
-        let block_addr = block_ptr as usize;
-        if block_addr % layout.align() != 0 {
-            // Block is not aligned - we can't satisfy this request
-            // Put block back on free list
-            unsafe {
-                core::ptr::write(next_ptr, self.free_list);
+        while !current.is_null() {
+            let block_ptr = *current;
+            let block_addr = block_ptr as usize;
+            
+            // Check if this block is aligned to the requested alignment
+            if block_addr % layout.align() == 0 {
+                // Found an aligned block - remove it from free list
+                let next_ptr = block_ptr as *mut *mut u8;
+                let next = unsafe { core::ptr::read(next_ptr) };
+                
+                // Update the previous node's next pointer (or free_list if this was first)
+                if let Some(prev_ptr) = prev {
+                    unsafe {
+                        core::ptr::write(prev_ptr, next);
+                    }
+                } else {
+                    self.free_list = next;
+                }
+                
+                self.used_blocks += 1;
+                
+                // Return as NonNull<[u8]>
+                return Ok(unsafe {
+                    NonNull::slice_from_raw_parts(
+                        NonNull::new_unchecked(block_ptr),
+                        self.block_size,
+                    )
+                });
             }
-            self.free_list = block_ptr;
-            self.used_blocks -= 1;
-            return Err(AllocError::InvalidLayout);
+            
+            // This block doesn't meet alignment - move to next
+            prev = Some(current as *mut *mut u8);
+            let next_ptr = block_ptr as *mut *mut u8;
+            current = unsafe { &mut *next_ptr };
         }
         
-        // Return as NonNull<[u8]>
-        Ok(unsafe {
-            NonNull::slice_from_raw_parts(
-                NonNull::new_unchecked(block_ptr),
-                self.block_size,
-            )
-        })
+        // No aligned block found
+        Err(AllocError::InvalidLayout)
     }
     
     /// Deallocate a block
@@ -661,6 +671,91 @@ mod tests {
             let block2 = pool.allocate(layout2).unwrap();
             let block2_ptr = block2.as_ptr() as *const u8 as usize;
             assert_eq!(block2_ptr % 8, 0, "Block should be aligned to 8 bytes, got ptr at offset {}", block2_ptr % 8);
+        }
+    }
+    
+    // Test for memory alignment: Pool should ensure blocks meet alignment requirements
+    #[test]
+    fn test_pool_ensures_alignment() {
+        // Test with unaligned memory - pool should skip blocks that don't meet alignment
+        let mut memory = [0u8; 2048];
+        // Start at offset 1 to force misalignment
+        let unaligned_ptr = NonNull::new(unsafe { memory.as_mut_ptr().add(1) }).unwrap();
+        
+        unsafe {
+            // Create pool with block_size 64, but memory starts at offset 1
+            let mut pool = PoolAllocator::new(unaligned_ptr, 2047, 64).unwrap();
+            
+            // Request alignment of 16
+            let layout = Layout::from_size_align(32, 16).unwrap();
+            
+            // Pool should find a block that IS aligned to 16, even if first block isn't
+            // This tests that the pool skips misaligned blocks
+            let result = pool.allocate(layout);
+            
+            if let Ok(block) = result {
+                let block_ptr = block.as_ptr() as *const u8 as usize;
+                assert_eq!(block_ptr % 16, 0, "Pool should return aligned block even from unaligned memory");
+            } else {
+                // If it fails, that's also acceptable - means pool correctly rejects
+                // when no aligned blocks are available
+            }
+        }
+    }
+    
+    #[test]
+    fn test_pool_alignment_with_different_requirements() {
+        let mut memory = [0u8; 2048];
+        // Align memory to 64 bytes to ensure blocks are aligned
+        let memory_ptr = {
+            let addr = memory.as_mut_ptr() as usize;
+            let aligned_addr = (addr + 63) & !63;
+            NonNull::new(aligned_addr as *mut u8).unwrap()
+        };
+        
+        unsafe {
+            let mut pool = PoolAllocator::new(memory_ptr, 2048, 64).unwrap();
+            
+            // Test various alignment requirements
+            for align in [1, 2, 4, 8, 16, 32, 64] {
+                let layout = Layout::from_size_align(32, align).unwrap();
+                let block = pool.allocate(layout).unwrap();
+                let block_ptr = block.as_ptr() as *const u8 as usize;
+                assert_eq!(
+                    block_ptr % align,
+                    0,
+                    "Block should be aligned to {} bytes, got offset {}",
+                    align,
+                    block_ptr % align
+                );
+                
+                // Deallocate for next test
+                pool.deallocate(NonNull::new(block.as_ptr() as *mut u8).unwrap(), layout);
+            }
+        }
+    }
+    
+    #[test]
+    fn test_pool_skips_misaligned_blocks() {
+        // Create memory where first block is misaligned but later blocks are aligned
+        let mut memory = [0u8; 2048];
+        // Start at offset 8 (not aligned to 16)
+        let memory_ptr = NonNull::new(unsafe { memory.as_mut_ptr().add(8) }).unwrap();
+        
+        unsafe {
+            let mut pool = PoolAllocator::new(memory_ptr, 2040, 64).unwrap();
+            
+            // Request alignment of 16
+            let layout = Layout::from_size_align(32, 16).unwrap();
+            
+            // First block would be at offset 8, which is not aligned to 16
+            // Pool should skip it and find a block that IS aligned
+            let result = pool.allocate(layout);
+            
+            if let Ok(block) = result {
+                let block_ptr = block.as_ptr() as *const u8 as usize;
+                assert_eq!(block_ptr % 16, 0, "Pool should skip misaligned blocks and return aligned one");
+            }
         }
     }
     

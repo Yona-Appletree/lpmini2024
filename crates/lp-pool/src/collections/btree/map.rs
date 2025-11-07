@@ -146,6 +146,130 @@ where
     pub fn len(&self) -> usize {
         self.len
     }
+    
+    pub fn is_empty(&self) -> bool {
+        self.len == 0
+    }
+    
+    pub fn contains_key(&self, key: &K) -> bool {
+        self.get(key).is_some()
+    }
+    
+    pub fn try_remove(&mut self, key: &K) -> Result<Option<V>, AllocError> {
+        if let Some(root) = self.root {
+            unsafe {
+                match Self::remove_node(&mut self.root, root, key)? {
+                    Some(value) => {
+                        self.len -= 1;
+                        Ok(Some(value))
+                    }
+                    None => Ok(None),
+                }
+            }
+        } else {
+            Ok(None)
+        }
+    }
+    
+    unsafe fn remove_node(
+        root_ref: &mut Option<NonNull<Node<K, V>>>,
+        node_ptr: NonNull<Node<K, V>>,
+        key: &K,
+    ) -> Result<Option<V>, AllocError> {
+        let node = &mut *node_ptr.as_ptr();
+        match key.cmp(node.key()) {
+            core::cmp::Ordering::Equal => {
+                // Found the node to remove
+                let value = core::ptr::read(node.value());
+                let left = node.left();
+                let right = node.right();
+                
+                // Handle different cases
+                match (left, right) {
+                    (None, None) => {
+                        // Leaf node - just remove it
+                        if Some(node_ptr) == *root_ref {
+                            *root_ref = None;
+                        }
+                        Node::deallocate(node_ptr);
+                        Ok(Some(value))
+                    }
+                    (Some(left_node), None) => {
+                        // Only left child - replace this node with left child
+                        if Some(node_ptr) == *root_ref {
+                            *root_ref = Some(left_node);
+                        }
+                        Node::deallocate(node_ptr);
+                        Ok(Some(value))
+                    }
+                    (None, Some(right_node)) => {
+                        // Only right child - replace this node with right child
+                        if Some(node_ptr) == *root_ref {
+                            *root_ref = Some(right_node);
+                        }
+                        Node::deallocate(node_ptr);
+                        Ok(Some(value))
+                    }
+                    (Some(_left_node), Some(right_node)) => {
+                        // Two children - find inorder successor (min in right subtree)
+                        let successor = Self::find_min(right_node);
+                        let successor_node = &*successor.as_ptr();
+                        
+                        // Replace key and value with successor's
+                        let old_value = core::ptr::read(node.value());
+                        core::ptr::write(node.key_mut(), core::ptr::read(successor_node.key()));
+                        core::ptr::write(node.value_mut(), core::ptr::read(successor_node.value()));
+                        
+                        // Remove successor from right subtree
+                        Self::remove_node(&mut Some(node_ptr), right_node, successor_node.key())?;
+                        
+                        Ok(Some(old_value))
+                    }
+                }
+            }
+            core::cmp::Ordering::Less => {
+                if let Some(left) = node.left() {
+                    let mut left_ref = node.left();
+                    let result = Self::remove_node(&mut left_ref, left, key)?;
+                    node.set_left(left_ref);
+                    Ok(result)
+                } else {
+                    Ok(None)
+                }
+            }
+            core::cmp::Ordering::Greater => {
+                if let Some(right) = node.right() {
+                    let mut right_ref = node.right();
+                    let result = Self::remove_node(&mut right_ref, right, key)?;
+                    node.set_right(right_ref);
+                    Ok(result)
+                } else {
+                    Ok(None)
+                }
+            }
+        }
+    }
+    
+    unsafe fn find_min(mut node_ptr: NonNull<Node<K, V>>) -> NonNull<Node<K, V>> {
+        loop {
+            let node = &*node_ptr.as_ptr();
+            if let Some(left) = node.left() {
+                node_ptr = left;
+            } else {
+                break;
+            }
+        }
+        node_ptr
+    }
+    
+    pub fn clear(&mut self) {
+        if let Some(root) = self.root.take() {
+            unsafe {
+                Self::drop_tree(root);
+            }
+        }
+        self.len = 0;
+    }
 }
 
 #[cfg(test)]
@@ -235,6 +359,71 @@ mod tests {
             let mut map = LpBTreeMap::new_with_scope(Some("test_scope"));
             map.try_insert(1, 10)?;
             assert_eq!(map.get(&1), Some(&10));
+            Ok::<(), AllocError>(())
+        }).unwrap();
+    }
+    
+    // Test for design issue #4: Missing BTreeMap methods
+    #[test]
+    fn test_btree_map_is_empty() {
+        let pool = setup_pool();
+        pool.run(|| {
+            let map = LpBTreeMap::<i32, i32>::new();
+            assert!(map.is_empty());
+            
+            let mut map2 = LpBTreeMap::new();
+            map2.try_insert(1, 10)?;
+            assert!(!map2.is_empty());
+            Ok::<(), AllocError>(())
+        }).unwrap();
+    }
+    
+    #[test]
+    fn test_btree_map_contains_key() {
+        let pool = setup_pool();
+        pool.run(|| {
+            let mut map = LpBTreeMap::new();
+            map.try_insert(1, 10)?;
+            assert!(map.contains_key(&1));
+            assert!(!map.contains_key(&2));
+            Ok::<(), AllocError>(())
+        }).unwrap();
+    }
+    
+    #[test]
+    fn test_btree_map_remove() {
+        let pool = setup_pool();
+        pool.run(|| {
+            let mut map = LpBTreeMap::new();
+            map.try_insert(1, 10)?;
+            map.try_insert(2, 20)?;
+            assert_eq!(map.len(), 2);
+            
+            let removed = map.try_remove(&1)?;
+            assert_eq!(removed, Some(10));
+            assert_eq!(map.len(), 1);
+            assert!(!map.contains_key(&1));
+            assert!(map.contains_key(&2));
+            
+            let removed2 = map.try_remove(&99)?;
+            assert_eq!(removed2, None);
+            Ok::<(), AllocError>(())
+        }).unwrap();
+    }
+    
+    #[test]
+    fn test_btree_map_clear() {
+        let pool = setup_pool();
+        pool.run(|| {
+            let mut map = LpBTreeMap::new();
+            map.try_insert(1, 10)?;
+            map.try_insert(2, 20)?;
+            assert_eq!(map.len(), 2);
+            
+            map.clear();
+            assert_eq!(map.len(), 0);
+            assert!(map.is_empty());
+            assert!(!map.contains_key(&1));
             Ok::<(), AllocError>(())
         }).unwrap();
     }

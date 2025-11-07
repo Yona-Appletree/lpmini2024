@@ -90,6 +90,10 @@ where
         &self.key
     }
     
+    pub fn key_mut(&mut self) -> &mut K {
+        &mut self.key
+    }
+    
     pub fn value(&self) -> &V {
         &self.value
     }

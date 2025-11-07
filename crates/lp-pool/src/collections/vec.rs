@@ -122,6 +122,10 @@ impl<T> LpVec<T> {
         self.capacity
     }
     
+    pub fn is_empty(&self) -> bool {
+        self.len == 0
+    }
+    
     pub fn get(&self, index: usize) -> Option<&T> {
         if index >= self.len {
             return None;
@@ -143,6 +147,12 @@ impl<T> LpVec<T> {
     }
     
     /// Get raw slice of the underlying data (for internal use)
+    /// 
+    /// # Safety
+    /// This method assumes that `self.data` is properly aligned for type `T`.
+    /// The caller must ensure that the pool allocator provides blocks aligned to
+    /// at least `align_of::<T>()`. If alignment requirements are not met, this
+    /// may result in undefined behavior.
     pub(crate) fn as_raw_slice(&self) -> &[T] {
         unsafe {
             core::slice::from_raw_parts(
@@ -308,6 +318,61 @@ mod tests {
             vec.try_push(1)?;
             vec.try_push(2)?;
             assert_eq!(vec.len(), 2);
+            Ok::<(), AllocError>(())
+        }).unwrap();
+    }
+    
+    // Test for design issue #6: Pointer arithmetic alignment
+    // This test verifies that LpVec handles aligned types correctly
+    // Note: This test may fail if the pool doesn't provide aligned blocks
+    #[test]
+    fn test_vec_aligned_types() {
+        #[repr(align(16))]
+        struct Aligned16(u64);
+        
+        // Use a pool with block_size that's a multiple of 16 to ensure alignment
+        let mut memory = [0u8; 16384];
+        // Align memory to 16 bytes
+        let memory_ptr = {
+            let addr = memory.as_mut_ptr() as usize;
+            let aligned_addr = (addr + 15) & !15;
+            NonNull::new(aligned_addr as *mut u8).unwrap()
+        };
+        let pool = unsafe {
+            LpMemoryPool::new(memory_ptr, 16384 - (memory_ptr.as_ptr() as usize - memory.as_mut_ptr() as usize), 128).unwrap()
+        };
+        
+        pool.run(|| {
+            let mut vec = LpVec::new();
+            vec.try_push(Aligned16(1))?;
+            vec.try_push(Aligned16(2))?;
+            vec.try_push(Aligned16(3))?;
+            
+            // Verify we can access the values correctly
+            assert_eq!(vec.get(0).unwrap().0, 1);
+            assert_eq!(vec.get(1).unwrap().0, 2);
+            assert_eq!(vec.get(2).unwrap().0, 3);
+            
+            // Verify alignment is maintained (if allocation succeeded)
+            let slice = vec.as_raw_slice();
+            let ptr = slice.as_ptr() as usize;
+            assert_eq!(ptr % 16, 0, "Vec data should be aligned to 16 bytes");
+            
+            Ok::<(), AllocError>(())
+        }).unwrap();
+    }
+    
+    // Test for design issue #12: Missing is_empty method
+    #[test]
+    fn test_vec_is_empty() {
+        let pool = setup_pool();
+        pool.run(|| {
+            let vec = LpVec::<i32>::new();
+            assert!(vec.is_empty());
+            
+            let mut vec2 = LpVec::new();
+            vec2.try_push(1)?;
+            assert!(!vec2.is_empty());
             Ok::<(), AllocError>(())
         }).unwrap();
     }

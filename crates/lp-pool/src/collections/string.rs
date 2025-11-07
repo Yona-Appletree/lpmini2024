@@ -43,6 +43,10 @@ impl LpString {
     pub fn len(&self) -> usize {
         self.vec.len()
     }
+    
+    pub fn is_empty(&self) -> bool {
+        self.vec.is_empty()
+    }
 }
 
 impl Default for LpString {
