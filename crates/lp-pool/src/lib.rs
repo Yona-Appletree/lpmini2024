@@ -52,7 +52,7 @@ pub mod collections;
 pub use error::AllocError;
 pub use memory_pool::{LpMemoryPool, PoolStats};
 pub use allocator::LpAllocatorWrapper;
-pub use collections::{LpVec, LpString, LpBTreeMap, LpBox, print_memory_stats, print_memory_stats_with};
+pub use collections::{LpVec, LpVecIter, LpVecIterMut, LpString, LpBTreeMap, LpBox, print_memory_stats, print_memory_stats_with};
 
 #[cfg(test)]
 mod integration_tests {

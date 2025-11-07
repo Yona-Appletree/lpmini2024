@@ -4,7 +4,7 @@ pub mod btree;
 pub mod pool_box;
 pub mod alloc_meta;
 
-pub use vec::LpVec;
+pub use vec::{LpVec, LpVecIter, LpVecIterMut};
 pub use string::LpString;
 pub use btree::LpBTreeMap;
 pub use pool_box::LpBox;
