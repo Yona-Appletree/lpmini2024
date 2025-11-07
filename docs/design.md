@@ -222,3 +222,4 @@ The renderer determines what gets evaluated each frame.
 4. **Composable by default** - Small nodes combine into complex behaviors
 5. **Fail gracefully** - Invalid references or errors don't crash the system
 
+

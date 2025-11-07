@@ -18,6 +18,7 @@
       <sourceFolder url="file://$MODULE_DIR$/crates/engine-core/examples" isTestSource="false" />
       <sourceFolder url="file://$MODULE_DIR$/crates/engine-core/src" isTestSource="false" />
       <sourceFolder url="file://$MODULE_DIR$/crates/engine-core/tests" isTestSource="true" />
+      <sourceFolder url="file://$MODULE_DIR$/crates/lp-data-derive/src" isTestSource="false" />
       <sourceFolder url="file://$MODULE_DIR$/crates/lp-math/src" isTestSource="false" />
       <sourceFolder url="file://$MODULE_DIR$/crates/lpcore/src" isTestSource="false" />
       <excludeFolder url="file://$MODULE_DIR$/node_modules" />

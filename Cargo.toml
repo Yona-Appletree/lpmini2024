@@ -6,6 +6,7 @@ members = [
     "crates/engine-core",
     "apps/lp-debug",
     "crates/lp-data",
+    "crates/lp-data-derive",
     "crates/lp-script", "crates/lp-math",
 ]
 # Exclude fw-esp32c3 from default builds since it requires ESP32 target

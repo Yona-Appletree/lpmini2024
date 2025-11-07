@@ -1,13 +1,14 @@
+mod registry;
 mod types;
 mod zod_gen;
 
-use lp_data::registry::TypeRegistry;
+use registry::SchemaRegistry;
 use types::lfo_config::{LfoConfig, LfoShape};
 use types::ui_slider::UiSliderConfig;
 
 fn main() {
     // Create registry and register all types
-    let mut registry = TypeRegistry::new();
+    let mut registry = SchemaRegistry::new();
     registry.register::<UiSliderConfig>();
     registry.register::<LfoShape>();
     registry.register::<LfoConfig>();

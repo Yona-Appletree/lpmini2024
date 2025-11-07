@@ -1,41 +1,38 @@
-use lp_data::registry::LpDataType;
-use lp_data::ty::{LpEnumVariant, LpField, LpStructType, LpType};
+use lp_math::fixed::Fixed;
+use schemars::JsonSchema;
+use serde::{Deserialize, Serialize};
 
-/// LFO shape enumeration
-pub struct LfoShape;
+/// LFO waveform shape enumeration
+#[derive(Serialize, Deserialize, JsonSchema, Debug, Clone, Copy, PartialEq, Eq)]
+pub enum LfoWaveformShape {
+    Sine,
+    Square,
+    Triangle,
+    Sawtooth,
+}
 
-impl LpDataType for LfoShape {
-    fn type_name() -> &'static str {
-        "LfoShape"
-    }
+/// Range type for LFO (min, max as Fixed)
+#[derive(Serialize, Deserialize, JsonSchema, Debug, Clone)]
+pub struct LfoRange {
+    /// Minimum value
+    pub min: Fixed,
 
-    fn lp_type() -> LpType {
-        LpType::enumeration(
-            "LfoShape",
-            vec![
-                LpEnumVariant::unit("Sine"),
-                LpEnumVariant::unit("Square"),
-                LpEnumVariant::unit("Triangle"),
-                LpEnumVariant::unit("Sawtooth"),
-            ],
-        )
-    }
+    /// Maximum value
+    pub max: Fixed,
 }
 
 /// Configuration for an LFO (Low Frequency Oscillator)
-pub struct LfoConfig;
+#[derive(Serialize, Deserialize, JsonSchema, Debug, Clone)]
+pub struct LfoConfig {
+    /// Period of oscillation in milliseconds
+    pub period_ms: i32,
 
-impl LpDataType for LfoConfig {
-    fn type_name() -> &'static str {
-        "LfoConfig"
-    }
+    /// Range of oscillation
+    pub range: LfoRange,
 
-    fn lp_type() -> LpType {
-        let mut struct_ty = LpStructType::new("LfoConfig");
-        struct_ty.add_field(LpField::new("period_ms", LpType::int32()));
-        struct_ty.add_field(LpField::new("shape", LfoShape::lp_type()));
-        struct_ty.add_field(LpField::new("min", LpType::fixed32()));
-        struct_ty.add_field(LpField::new("max", LpType::fixed32()));
-        LpType::structure(struct_ty)
-    }
+    /// Waveform shape
+    pub shape: LfoWaveformShape,
 }
+
+// Type aliases for backward compatibility
+pub type LfoShape = LfoWaveformShape;

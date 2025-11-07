@@ -1,21 +1,19 @@
-use lp_data::registry::LpDataType;
-use lp_data::ty::{LpField, LpStructType, LpType};
+use lp_math::fixed::Fixed;
+use schemars::JsonSchema;
+use serde::{Deserialize, Serialize};
 
 /// Configuration for a UI slider control
-pub struct UiSliderConfig;
+#[derive(Serialize, Deserialize, JsonSchema, Debug, Clone)]
+pub struct UiSliderConfig {
+    /// Minimum value
+    pub min: Fixed,
 
-impl LpDataType for UiSliderConfig {
-    fn type_name() -> &'static str {
-        "UiSliderConfig"
-    }
+    /// Maximum value
+    pub max: Fixed,
 
-    fn lp_type() -> LpType {
-        let mut struct_ty = LpStructType::new("UiSliderConfig");
-        struct_ty.add_field(LpField::new("min", LpType::fixed32()));
-        struct_ty.add_field(LpField::new("max", LpType::fixed32()));
-        struct_ty.add_field(LpField::new("step", LpType::fixed32()));
-        struct_ty.add_field(LpField::new("default", LpType::fixed32()));
-        LpType::structure(struct_ty)
-    }
+    /// Step size
+    pub step: Fixed,
+
+    /// Default value
+    pub default: Fixed,
 }
-

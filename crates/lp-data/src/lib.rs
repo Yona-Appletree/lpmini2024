@@ -24,6 +24,8 @@
 extern crate alloc;
 
 pub mod annotation;
+#[cfg(feature = "schemars")]
+pub mod custom_types;
 pub mod registry;
 pub mod schema;
 pub mod ty;

@@ -1424,8 +1424,18 @@ name = "lp-data"
 version = "0.1.0"
 dependencies = [
  "lp-math",
+ "schemars",
  "serde",
  "serde_json",
+]
+
+[[package]]
+name = "lp-data-derive"
+version = "0.1.0"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "syn",
 ]
 
 [[package]]
@@ -1444,12 +1454,21 @@ dependencies = [
 [[package]]
 name = "lp-math"
 version = "0.1.0"
+dependencies = [
+ "schemars",
+ "serde",
+]
 
 [[package]]
 name = "lp-schema-gen"
 version = "0.0.0"
 dependencies = [
  "lp-data",
+ "lp-data-derive",
+ "lp-math",
+ "schemars",
+ "serde",
+ "serde_json",
 ]
 
 [[package]]

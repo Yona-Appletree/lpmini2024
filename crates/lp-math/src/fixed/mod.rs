@@ -38,6 +38,8 @@ pub mod conversions;
 /// # Noise
 /// - `noise::perlin3(x, y, z, octaves)` - 3D Perlin noise
 pub mod fixed;
+#[cfg(feature = "serde")]
+pub mod serde_impl;
 pub mod interpolation;
 pub mod noise;
 pub mod rounding;
