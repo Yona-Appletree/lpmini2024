@@ -1445,19 +1445,19 @@ name = "lp-math"
 version = "0.1.0"
 
 [[package]]
+name = "lp-schema-gen"
+version = "0.0.0"
+dependencies = [
+ "lpcore",
+ "serde_json",
+]
+
+[[package]]
 name = "lp-script"
 version = "0.1.0"
 dependencies = [
  "libm",
  "lp-math",
-]
-
-[[package]]
-name = "lpcli"
-version = "0.0.0"
-dependencies = [
- "lpcore",
- "serde_json",
 ]
 
 [[package]]

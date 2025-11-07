@@ -1,5 +1,5 @@
 [package]
-name = "lpcli"
+name = "lp-schema-gen"
 edition = "2021"
 
 [dependencies]

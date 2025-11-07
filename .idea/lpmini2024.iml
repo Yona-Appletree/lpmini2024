@@ -14,7 +14,7 @@
       <sourceFolder url="file://$MODULE_DIR$/apps/fw-esp32c3/tests" isTestSource="true" />
       <sourceFolder url="file://$MODULE_DIR$/apps/lp-debug/src" isTestSource="false" />
       <sourceFolder url="file://$MODULE_DIR$/apps/lp-debug/tests" isTestSource="true" />
-      <sourceFolder url="file://$MODULE_DIR$/apps/lpcli/src" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/apps/lp-schema-gen/src" isTestSource="false" />
       <sourceFolder url="file://$MODULE_DIR$/crates/engine-core/examples" isTestSource="false" />
       <sourceFolder url="file://$MODULE_DIR$/crates/engine-core/src" isTestSource="false" />
       <sourceFolder url="file://$MODULE_DIR$/crates/engine-core/tests" isTestSource="true" />

@@ -1,7 +1,7 @@
 [workspace]
 members = [
     "crates/lpcore",
-    "apps/lpcli",
+    "apps/lp-schema-gen",
     "apps/fw-esp32c3",
     "crates/engine-core",
     "apps/lp-debug",
@@ -12,7 +12,7 @@ members = [
 # (it has its own .cargo/config.toml with target = "riscv32imc-unknown-none-elf")
 default-members = [
     "crates/lpcore",
-    "apps/lpcli",
+    "apps/lp-schema-gen",
     "crates/engine-core",
     "apps/lp-debug",
     "crates/lp-script",
