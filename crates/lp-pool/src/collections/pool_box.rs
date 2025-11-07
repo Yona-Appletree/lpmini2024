@@ -80,6 +80,12 @@ impl<T> Drop for LpBox<T> {
     fn drop(&mut self) {
         let layout = Layout::new::<T>();
 
+        // CRITICAL: Drop the value BEFORE deallocating memory
+        // Otherwise we're dropping from memory that's already been freed
+        unsafe {
+            core::ptr::drop_in_place(self.ptr.as_ptr());
+        }
+
         // Deallocate
         let _ = with_active_pool(|pool| {
             unsafe {
@@ -93,11 +99,6 @@ impl<T> Drop for LpBox<T> {
 
             Ok::<(), AllocError>(())
         });
-
-        // Drop value
-        unsafe {
-            core::ptr::drop_in_place(self.ptr.as_ptr());
-        }
     }
 }
 
@@ -182,5 +183,46 @@ mod tests {
         let pool = setup_pool();
         let boxed = pool.run(|| LpBox::try_new(String::from("hello"))).unwrap();
         assert_eq!(*boxed, "hello");
+    }
+
+    #[test]
+    fn test_drop_before_deallocate() {
+        use core::sync::atomic::{AtomicBool, Ordering};
+
+        static DROP_CALLED: AtomicBool = AtomicBool::new(false);
+
+        /// Type that accesses its own data during drop
+        /// This would cause UB if memory is freed before drop is called
+        struct DropChecker {
+            sentinel: u32,
+        }
+
+        impl Drop for DropChecker {
+            fn drop(&mut self) {
+                // CRITICAL: This accesses self.sentinel from memory
+                // If memory was already freed, this is undefined behavior
+                assert_eq!(
+                    self.sentinel, 0xDEADBEEF,
+                    "Drop accessed freed memory - sentinel corrupted!"
+                );
+                DROP_CALLED.store(true, Ordering::SeqCst);
+            }
+        }
+
+        let pool = setup_pool();
+        DROP_CALLED.store(false, Ordering::SeqCst);
+
+        {
+            let _boxed = pool
+                .run(|| {
+                    LpBox::try_new(DropChecker {
+                        sentinel: 0xDEADBEEF,
+                    })
+                })
+                .unwrap();
+        }
+
+        // Verify drop was called
+        assert!(DROP_CALLED.load(Ordering::SeqCst), "Drop was not called!");
     }
 }

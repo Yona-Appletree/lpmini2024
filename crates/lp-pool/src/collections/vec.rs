@@ -226,6 +226,29 @@ impl<T> LpVec<T> {
         }
     }
 
+    pub fn pop(&mut self) -> Option<T> {
+        if self.len == 0 {
+            return None;
+        }
+
+        self.len -= 1;
+        unsafe {
+            let ptr = self.data.as_ptr().add(self.len * core::mem::size_of::<T>()) as *mut T;
+            Some(core::ptr::read(ptr))
+        }
+    }
+
+    pub fn clear(&mut self) {
+        // Drop all elements
+        unsafe {
+            for i in 0..self.len {
+                let ptr = self.data.as_ptr().add(i * core::mem::size_of::<T>()) as *mut T;
+                core::ptr::drop_in_place(ptr);
+            }
+        }
+        self.len = 0;
+    }
+
     pub fn iter(&self) -> LpVecIter<'_, T> {
         LpVecIter {
             vec: self,
@@ -279,6 +302,15 @@ impl<T> Drop for LpVec<T> {
     fn drop(&mut self) {
         if self.capacity > 0 {
             let layout = Layout::array::<T>(self.capacity).unwrap();
+
+            // CRITICAL: Drop all elements BEFORE deallocating memory
+            // Otherwise we're dropping from memory that's already been freed
+            unsafe {
+                for i in 0..self.len {
+                    let ptr = self.data.as_ptr().add(i * core::mem::size_of::<T>()) as *mut T;
+                    core::ptr::drop_in_place(ptr);
+                }
+            }
 
             #[cfg(feature = "alloc-meta")]
             {
@@ -639,6 +671,326 @@ mod tests {
             }
 
             assert_eq!(vec[1], 99);
+            Ok::<(), AllocError>(())
+        })
+        .unwrap();
+    }
+
+    #[test]
+    fn test_vec_drop_before_deallocate() {
+        use core::sync::atomic::{AtomicUsize, Ordering};
+
+        static DROP_COUNT: AtomicUsize = AtomicUsize::new(0);
+
+        /// Type that accesses its own data during drop
+        /// This would cause UB if memory is freed before drop is called
+        struct DropChecker {
+            sentinel: u32,
+        }
+
+        impl Drop for DropChecker {
+            fn drop(&mut self) {
+                // CRITICAL: This accesses self.sentinel from memory
+                // If memory was already freed, this is undefined behavior
+                assert_eq!(
+                    self.sentinel, 0xDEADBEEF,
+                    "Drop accessed freed memory - sentinel corrupted!"
+                );
+                DROP_COUNT.fetch_add(1, Ordering::SeqCst);
+            }
+        }
+
+        let pool = setup_pool();
+        DROP_COUNT.store(0, Ordering::SeqCst);
+
+        pool.run(|| {
+            {
+                let mut vec = LpVec::new();
+                vec.try_push(DropChecker { sentinel: 0xDEADBEEF })?;
+                vec.try_push(DropChecker { sentinel: 0xDEADBEEF })?;
+                vec.try_push(DropChecker { sentinel: 0xDEADBEEF })?;
+            }
+            // Vec dropped here - all 3 elements should be dropped
+
+            // Verify all drops were called
+            assert_eq!(
+                DROP_COUNT.load(Ordering::SeqCst),
+                3,
+                "All 3 elements should have been dropped!"
+            );
+
+            Ok::<(), AllocError>(())
+        })
+        .unwrap();
+    }
+
+    // === Comprehensive Edge Case Tests ===
+
+    #[test]
+    fn test_vec_zst() {
+        // Zero-sized types
+        let pool = setup_pool();
+        pool.run(|| {
+            let mut vec = LpVec::<()>::new();
+            vec.try_push(())?;
+            vec.try_push(())?;
+            vec.try_push(())?;
+
+            assert_eq!(vec.len(), 3);
+            assert_eq!(vec.get(0), Some(&()));
+            assert_eq!(vec.get(1), Some(&()));
+            assert_eq!(vec.get(2), Some(&()));
+
+            Ok::<(), AllocError>(())
+        })
+        .unwrap();
+    }
+
+    #[test]
+    fn test_vec_pop_empty() {
+        let pool = setup_pool();
+        pool.run(|| {
+            let mut vec = LpVec::<i32>::new();
+
+            // Pop from empty vec
+            assert_eq!(vec.pop(), None);
+
+            // Push one, pop one
+            vec.try_push(42)?;
+            assert_eq!(vec.pop(), Some(42));
+
+            // Pop again from empty
+            assert_eq!(vec.pop(), None);
+
+            Ok::<(), AllocError>(())
+        })
+        .unwrap();
+    }
+
+    #[test]
+    fn test_vec_clear_with_drop() {
+        use core::sync::atomic::{AtomicUsize, Ordering};
+
+        static CLEAR_DROP_COUNT: AtomicUsize = AtomicUsize::new(0);
+
+        struct DropCounter;
+        impl Drop for DropCounter {
+            fn drop(&mut self) {
+                CLEAR_DROP_COUNT.fetch_add(1, Ordering::SeqCst);
+            }
+        }
+
+        let pool = setup_pool();
+        CLEAR_DROP_COUNT.store(0, Ordering::SeqCst);
+
+        pool.run(|| {
+            let mut vec = LpVec::new();
+            vec.try_push(DropCounter)?;
+            vec.try_push(DropCounter)?;
+            vec.try_push(DropCounter)?;
+            vec.try_push(DropCounter)?;
+
+            vec.clear();
+
+            // All 4 should be dropped
+            assert_eq!(CLEAR_DROP_COUNT.load(Ordering::SeqCst), 4);
+            assert_eq!(vec.len(), 0);
+
+            // Can still push after clear
+            vec.try_push(DropCounter)?;
+            assert_eq!(vec.len(), 1);
+
+            Ok::<(), AllocError>(())
+        })
+        .unwrap();
+    }
+
+    #[test]
+    fn test_vec_nested_drop() {
+        use alloc::string::String;
+        let pool = setup_pool();
+
+        pool.run(|| {
+            let mut vec = LpVec::new();
+            vec.try_push(String::from("hello"))?;
+            vec.try_push(String::from("world"))?;
+            vec.try_push(String::from("test"))?;
+
+            // Drop happens here - should not leak strings
+            Ok::<(), AllocError>(())
+        })
+        .unwrap();
+    }
+
+    #[test]
+    fn test_vec_large_type() {
+        #[derive(Clone, Copy)]
+        struct Large([u64; 8]); // 64 bytes - smaller to fit in block
+
+        let pool = setup_pool();
+        pool.run(|| {
+            let mut vec = LpVec::new();
+            vec.try_push(Large([1; 8]))?;
+            vec.try_push(Large([2; 8]))?;
+            vec.try_push(Large([3; 8]))?;
+
+            assert_eq!(vec.len(), 3);
+            assert_eq!(vec.get(0).unwrap().0[0], 1);
+            assert_eq!(vec.get(1).unwrap().0[0], 2);
+            assert_eq!(vec.get(2).unwrap().0[0], 3);
+
+            Ok::<(), AllocError>(())
+        })
+        .unwrap();
+    }
+
+    #[test]
+    fn test_vec_iterator_exactsize() {
+        let pool = setup_pool();
+        pool.run(|| {
+            let mut vec = LpVec::new();
+            vec.try_push(1)?;
+            vec.try_push(2)?;
+            vec.try_push(3)?;
+
+            let mut iter = vec.iter();
+            assert_eq!(iter.len(), 3);
+
+            iter.next();
+            assert_eq!(iter.len(), 2);
+
+            iter.next();
+            assert_eq!(iter.len(), 1);
+
+            iter.next();
+            assert_eq!(iter.len(), 0);
+
+            assert_eq!(iter.next(), None);
+
+            Ok::<(), AllocError>(())
+        })
+        .unwrap();
+    }
+
+    #[test]
+    fn test_vec_iterator_double_ended() {
+        let pool = setup_pool();
+        pool.run(|| {
+            let mut vec = LpVec::new();
+            vec.try_push(1)?;
+            vec.try_push(2)?;
+            vec.try_push(3)?;
+            vec.try_push(4)?;
+
+            let mut iter = vec.iter();
+
+            // Alternate between next and next_back
+            assert_eq!(iter.next(), Some(&1));
+            assert_eq!(iter.next_back(), Some(&4));
+            assert_eq!(iter.next(), Some(&2));
+            assert_eq!(iter.next_back(), Some(&3));
+            assert_eq!(iter.next(), None);
+            assert_eq!(iter.next_back(), None);
+
+            Ok::<(), AllocError>(())
+        })
+        .unwrap();
+    }
+
+    #[test]
+    fn test_vec_iterator_empty() {
+        let pool = setup_pool();
+        pool.run(|| {
+            let vec = LpVec::<i32>::new();
+            let mut iter = vec.iter();
+
+            assert_eq!(iter.len(), 0);
+            assert_eq!(iter.next(), None);
+            assert_eq!(iter.next_back(), None);
+
+            Ok::<(), AllocError>(())
+        })
+        .unwrap();
+    }
+
+    #[test]
+    fn test_vec_iterator_single_element() {
+        let pool = setup_pool();
+        pool.run(|| {
+            let mut vec = LpVec::new();
+            vec.try_push(42)?;
+
+            let mut iter = vec.iter();
+            assert_eq!(iter.len(), 1);
+            assert_eq!(iter.next(), Some(&42));
+            assert_eq!(iter.len(), 0);
+            assert_eq!(iter.next(), None);
+
+            Ok::<(), AllocError>(())
+        })
+        .unwrap();
+    }
+
+    #[test]
+    fn test_vec_multiple_growth_cycles() {
+        let pool = setup_pool();
+        pool.run(|| {
+            let mut vec = LpVec::new();
+
+            // Capacity grows: 0 -> 4 -> 8 -> 16 -> 32
+            for i in 0..50 {
+                vec.try_push(i)?;
+            }
+
+            assert_eq!(vec.len(), 50);
+
+            // Verify all values
+            for i in 0..50 {
+                assert_eq!(vec.get(i), Some(&i));
+            }
+
+            Ok::<(), AllocError>(())
+        })
+        .unwrap();
+    }
+
+    #[test]
+    fn test_vec_memory_reuse() {
+        let pool = setup_pool();
+        let before = pool.used_bytes().unwrap();
+
+        pool.run(|| {
+            {
+                let mut vec = LpVec::new();
+                vec.try_push(1)?;
+                vec.try_push(2)?;
+                vec.try_push(3)?;
+                // Vec dropped here
+            }
+
+            let after = pool.used_bytes().unwrap();
+            assert_eq!(after, before, "Memory should be freed after vec drop");
+
+            Ok::<(), AllocError>(())
+        })
+        .unwrap();
+    }
+
+    #[test]
+    fn test_vec_as_raw_slice() {
+        let pool = setup_pool();
+        pool.run(|| {
+            let mut vec = LpVec::new();
+            vec.try_push(10)?;
+            vec.try_push(20)?;
+            vec.try_push(30)?;
+
+            let slice = vec.as_raw_slice();
+            assert_eq!(slice.len(), 3);
+            assert_eq!(slice[0], 10);
+            assert_eq!(slice[1], 20);
+            assert_eq!(slice[2], 30);
+
             Ok::<(), AllocError>(())
         })
         .unwrap();
