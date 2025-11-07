@@ -86,7 +86,7 @@ let noise_value = perlin3(x, y, z, 3);  // 3 octaves
 ## Constants
 
 - `ONE` - 1.0 in fixed-point
-- `ZERO` - 0.0 in fixed-point  
+- `ZERO` - 0.0 in fixed-point
 - `HALF` - 0.5 in fixed-point
 - `PI` - π in fixed-point
 - `TWO_PI` - 2π in fixed-point
@@ -94,4 +94,3 @@ let noise_value = perlin3(x, y, z, 3);  // 3 octaves
 ## Feature Flags
 
 - `serde`: Enable serialization/deserialization support
-

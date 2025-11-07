@@ -59,4 +59,3 @@ let vec_value = Value::vec2(0.5, 0.5);
 - `alloc` (default): Enable heap allocations
 - `std`: Enable standard library features and `schemars`
 - `serde_json`: Enable JSON serialization
-

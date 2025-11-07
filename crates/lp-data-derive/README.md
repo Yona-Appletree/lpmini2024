@@ -17,7 +17,7 @@ use serde::{Serialize, Deserialize};
 struct MyConfig {
     #[lpschema(description = "Number of LED rings")]
     ring_count: i32,
-    
+
     #[lpschema(description = "Base radius in meters")]
     radius: f32,
 }
@@ -32,4 +32,3 @@ struct MyConfig {
 ## Note
 
 This crate is primarily for future extensibility. Currently, users should include `JsonSchema` in their derive list alongside `LpDataType`.
-

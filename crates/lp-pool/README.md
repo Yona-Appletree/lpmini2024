@@ -65,18 +65,19 @@ use lp_pool::{LpMemoryPool, LpVec, LpBox, print_memory_stats_with};
 pool.run(|| {
     let _vec = LpVec::<i32>::new();
     let _boxed = LpBox::try_new(42)?;
-    
+
     // Print statistics (no_std compatible)
     print_memory_stats_with(|s| {
         // Use your custom print function
         // e.g., serial.write_str(s)
     });
-    
+
     Ok::<(), lp_pool::AllocError>(())
 }).unwrap();
 ```
 
 Output format:
+
 ```
 Memory Statistics by Type and Scope:
 ----------------------------------------------------------------------------------------
@@ -91,4 +92,3 @@ TOTAL                                                                 2        2
 ## Feature Flags
 
 - `alloc-meta`: Enable allocation metadata tracking with type and scope information
-

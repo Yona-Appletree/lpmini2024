@@ -18,6 +18,7 @@ A GLSL/HLSL-inspired expression language with compiler and virtual machine.
 ## Language Features
 
 ### Operators
+
 - Arithmetic: `+`, `-`, `*`, `/`, `%`
 - Bitwise (int): `&`, `|`, `^`, `~`, `<<`, `>>`
 - Comparisons: `<`, `>`, `<=`, `>=`, `==`, `!=`
@@ -26,12 +27,14 @@ A GLSL/HLSL-inspired expression language with compiler and virtual machine.
 - Ternary: `condition ? true_val : false_val`
 
 ### Built-in Functions
+
 - **Math**: `sin`, `cos`, `abs`, `floor`, `ceil`, `sqrt`, `pow`, `min`, `max`
 - **Interpolation**: `lerp`, `mix`, `smoothstep`, `clamp`, `saturate`
 - **Noise**: `perlin3(vec3)` or `perlin3(vec3, octaves)`
 - **Vector**: `.x`, `.xy`, `.rgb`, swizzling
 
 ### Built-in Variables
+
 - `uv`: vec2, normalized coordinates (0..1)
 - `coord`: vec2, pixel coordinates
 - `time`: float, time value
@@ -90,8 +93,8 @@ let program = compile_expr_with_options("x * 1.0", &options).unwrap();
 ## Optimization
 
 The compiler automatically optimizes code by default:
+
 - **Constant folding**: `sin(0.0)` → `0.0`
 - **Algebraic simplification**: `x * 1.0` → `x`
 - **Dead code elimination**: Remove unreachable code
 - **Peephole optimization**: Eliminate redundant opcodes
-

@@ -221,5 +221,3 @@ The renderer determines what gets evaluated each frame.
 3. **Pull-based evaluation** - Only compute what's needed
 4. **Composable by default** - Small nodes combine into complex behaviors
 5. **Fail gracefully** - Invalid references or errors don't crash the system
-
-

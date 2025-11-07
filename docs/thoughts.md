@@ -23,33 +23,33 @@ Focusing on the current MVP goals, but keeping in mind larger goals.
 ## MVP goals
 
 - UI
-    - Accessible to mobile users, scales up for desktop
-    - Ideally just web-based for now, but due to communication limitations, might have to make a
-      mobile app for access to serial, bluetooth
+  - Accessible to mobile users, scales up for desktop
+  - Ideally just web-based for now, but due to communication limitations, might have to make a
+    mobile app for access to serial, bluetooth
 - Targets
-    - ESP32c3 is the main production target
-    - WebAssembly so the UI can be tested without actual hardware
+  - ESP32c3 is the main production target
+  - WebAssembly so the UI can be tested without actual hardware
 - Scale
-    - 50-250 RGB pixels
-    - 16x16 2d visualization
+  - 50-250 RGB pixels
+  - 16x16 2d visualization
 - Editing
-    - We need live editing, where the user can in real time make changes to the scene and see it in
-      real time
+  - We need live editing, where the user can in real time make changes to the scene and see it in
+    real time
 - Communication
-    - The firmware runs on esp32, the ui in a browser, and we use WebSerial to talk to the device
-    - Bluetooth is a stretch goal, but I don't think mobile browsers support it
+  - The firmware runs on esp32, the ui in a browser, and we use WebSerial to talk to the device
+  - Bluetooth is a stretch goal, but I don't think mobile browsers support it
 - Supports customizable inputs
-    - must have: buttons, potentiometers
-    - bonus: sound, rotary encoders
+  - must have: buttons, potentiometers
+  - bonus: sound, rotary encoders
 - One WS2811 output
-    - Must be configurable pin
-    - Supports "scanning" mode where we iterate through the pins to help the user figure out which
-      pin the strip is attached to
+  - Must be configurable pin
+  - Supports "scanning" mode where we iterate through the pins to help the user figure out which
+    pin the strip is attached to
 - Visualizations
-    - Are some kind of pipeline of composable stages, some of which may be shader-based.
-    - Must have the ability to define multiple visualizations that can be switched between.
+  - Are some kind of pipeline of composable stages, some of which may be shader-based.
+  - Must have the ability to define multiple visualizations that can be switched between.
 - Debugging
-    - Debugging is a key feature. We must gracefully handle errors and crashes of the firmware.
+  - Debugging is a key feature. We must gracefully handle errors and crashes of the firmware.
 
 ## Future goals
 
@@ -85,4 +85,3 @@ Mostly I want to iterate on the above example scene to work out a good model.
 1. in toml that's just syntax for a property, so its perlin: { children: { lfo : { type: "math:
    lfo" }}}
    and yes, its a child entity
-

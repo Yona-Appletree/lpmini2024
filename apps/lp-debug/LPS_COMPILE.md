@@ -65,4 +65,3 @@ cargo build --package lp-debug --bin lps-compile --release
 ```
 
 Binary location: `./target/release/lps-compile`
-
