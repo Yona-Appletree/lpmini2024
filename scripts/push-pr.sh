@@ -41,6 +41,7 @@ require_command gh "brew install gh"
 require_command cargo "rustup toolchain install stable"
 require_command rustup "brew install rustup-init && rustup-init"
 require_command jq "brew install jq"
+require_command ldproxy "cargo install ldproxy --locked"
 
 TURBO_CMD=()
 if command -v turbo >/dev/null 2>&1; then
@@ -108,6 +109,19 @@ run_step "turbo validate" "${TURBO_CMD[@]}" validate
 run_step "cargo fmt (nightly check)" rustup run nightly cargo fmt --all -- --check
 run_step "cargo clippy" cargo clippy --all-targets --all-features -- -D warnings
 run_step "cargo test" cargo test
+run_step "cargo test (lp-pool without default features)" cargo test -p lp-pool --lib --no-default-features
+
+ensure_riscv_target() {
+  local target="riscv32imc-unknown-none-elf"
+  if ! rustup target list --installed | grep -q "^${target}$"; then
+    info "Installing Rust target ${target}"
+    rustup target add "${target}"
+  fi
+}
+
+ensure_riscv_target
+
+run_step "cargo build (fw-esp32c3 firmware)" bash -c 'cd apps/fw-esp32c3 && cargo build --release --locked'
 
 current_branch="$(git rev-parse --abbrev-ref HEAD)"
 if [[ "${current_branch}" == "HEAD" ]]; then
