@@ -6,36 +6,32 @@ use crate::compiler::error::TypeError;
 use crate::compiler::typechecker::{FunctionTable, SymbolTable, TypeChecker};
 
 impl TypeChecker {
-    /// Type check a statement by ID
-    pub(crate) fn check_stmt_id(
-        pool: &mut AstPool,
-        stmt_id: Stmt,
+    /// Type check a statement
+    pub(crate) fn check_stmt(
+        stmt: &mut Stmt,
         symbols: &mut SymbolTable,
         func_table: &FunctionTable,
     ) -> Result<(), TypeError> {
-        // Clone the statement kind to avoid borrow issues
-        let stmt_kind = pool.stmt(stmt_id).kind.clone();
-
-        match stmt_kind {
+        match &mut stmt.kind {
             StmtKind::VarDecl { ty, name, init } => {
-                if let Some(init_id) = init {
-                    Self::infer_type_id(pool, init_id, symbols, func_table)?;
+                if let Some(init_expr) = init {
+                    Self::infer_type(init_expr, symbols, func_table)?;
                 }
-                let _ = symbols.declare(name, ty);
+                let _ = symbols.declare(name.clone(), ty.clone());
             }
 
-            StmtKind::Return(expr_id) => {
-                Self::infer_type_id(pool, expr_id, symbols, func_table)?;
+            StmtKind::Return(expr) => {
+                Self::infer_type(expr, symbols, func_table)?;
             }
 
-            StmtKind::Expr(expr_id) => {
-                Self::infer_type_id(pool, expr_id, symbols, func_table)?;
+            StmtKind::Expr(expr) => {
+                Self::infer_type(expr, symbols, func_table)?;
             }
 
             StmtKind::Block(stmts) => {
                 symbols.push_scope();
-                for stmt_id in stmts {
-                    Self::check_stmt_id(pool, stmt_id, symbols, func_table)?;
+                for stmt in stmts.iter_mut() {
+                    Self::check_stmt(stmt, symbols, func_table)?;
                 }
                 symbols.pop_scope();
             }
@@ -45,16 +41,16 @@ impl TypeChecker {
                 then_stmt,
                 else_stmt,
             } => {
-                Self::infer_type_id(pool, condition, symbols, func_table)?;
-                Self::check_stmt_id(pool, then_stmt, symbols, func_table)?;
-                if let Some(else_id) = else_stmt {
-                    Self::check_stmt_id(pool, else_id, symbols, func_table)?;
+                Self::infer_type(condition, symbols, func_table)?;
+                Self::check_stmt(then_stmt.as_mut(), symbols, func_table)?;
+                if let Some(else_s) = else_stmt {
+                    Self::check_stmt(else_s.as_mut(), symbols, func_table)?;
                 }
             }
 
             StmtKind::While { condition, body } => {
-                Self::infer_type_id(pool, condition, symbols, func_table)?;
-                Self::check_stmt_id(pool, body, symbols, func_table)?;
+                Self::infer_type(condition, symbols, func_table)?;
+                Self::check_stmt(body.as_mut(), symbols, func_table)?;
             }
 
             StmtKind::For {
@@ -64,16 +60,16 @@ impl TypeChecker {
                 body,
             } => {
                 symbols.push_scope();
-                if let Some(init_id) = init {
-                    Self::check_stmt_id(pool, init_id, symbols, func_table)?;
+                if let Some(init_stmt) = init {
+                    Self::check_stmt(init_stmt.as_mut(), symbols, func_table)?;
                 }
-                if let Some(cond_id) = condition {
-                    Self::infer_type_id(pool, cond_id, symbols, func_table)?;
+                if let Some(cond) = condition {
+                    Self::infer_type(cond, symbols, func_table)?;
                 }
-                if let Some(inc_id) = increment {
-                    Self::infer_type_id(pool, inc_id, symbols, func_table)?;
+                if let Some(inc) = increment {
+                    Self::infer_type(inc, symbols, func_table)?;
                 }
-                Self::check_stmt_id(pool, body, symbols, func_table)?;
+                Self::check_stmt(body.as_mut(), symbols, func_table)?;
                 symbols.pop_scope();
             }
         }
