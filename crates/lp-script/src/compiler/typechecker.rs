@@ -10,7 +10,6 @@
 /// in the expr/ and stmt/ subdirectories respectively.
 use crate::compiler::ast::{AstPool, ExprId};
 use crate::compiler::error::TypeError;
-
 // Import function-related types from compiler::func
 pub(crate) use crate::compiler::func::FunctionTable;
 // Import symbol table from compiler::symbol_table

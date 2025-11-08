@@ -1,5 +1,6 @@
-use schemars::{JsonSchema, Schema};
 use std::collections::BTreeMap;
+
+use schemars::{JsonSchema, Schema};
 
 /// Registry for all registered LP data types using schemars
 pub struct SchemaRegistry {

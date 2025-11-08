@@ -244,48 +244,46 @@ impl AstOptTest {
 mod tests {
     use super::*;
     // TODO: Re-enable when algebraic optimizer is updated to use AstPool
-    /*
-    #[test]
-    fn test_ast_transformation() {
-        // Test that x + 0 simplifies to x
-        AstOptTest::new("time + 0.0")
-            .with_pass(algebraic::simplify_expr)
-            .expect_ast({
-                let mut expr = var("time");
-                expr.ty = Some(Type::Fixed);
-                expr
-            })
-            .run()
-            .expect("Should simplify x + 0 to x");
-    }
-
-    #[test]
-    fn test_semantic_preservation() {
-        // Test that x * 1 produces same result as x
-        AstOptTest::new("time * 1.0")
-            .with_pass(algebraic::simplify_expr)
-            .expect_semantics_preserved()
-            .with_time(42.0)
-            .run()
-            .expect("Should preserve semantics");
-    }
-
-    #[test]
-    fn test_both_ast_and_semantics() {
-        // Test both structural transformation and semantic preservation
-        AstOptTest::new("time * 1.0")
-            .with_pass(algebraic::simplify_expr)
-            .expect_ast({
-                let mut expr = var("time");
-                expr.ty = Some(Type::Fixed);
-                expr
-            })
-            .expect_semantics_preserved()
-            .with_time(42.0)
-            .run()
-            .expect("Should pass both checks");
-    }
-    */
+    // #[test]
+    // fn test_ast_transformation() {
+    // Test that x + 0 simplifies to x
+    // AstOptTest::new("time + 0.0")
+    // .with_pass(algebraic::simplify_expr)
+    // .expect_ast({
+    // let mut expr = var("time");
+    // expr.ty = Some(Type::Fixed);
+    // expr
+    // })
+    // .run()
+    // .expect("Should simplify x + 0 to x");
+    // }
+    //
+    // #[test]
+    // fn test_semantic_preservation() {
+    // Test that x * 1 produces same result as x
+    // AstOptTest::new("time * 1.0")
+    // .with_pass(algebraic::simplify_expr)
+    // .expect_semantics_preserved()
+    // .with_time(42.0)
+    // .run()
+    // .expect("Should preserve semantics");
+    // }
+    //
+    // #[test]
+    // fn test_both_ast_and_semantics() {
+    // Test both structural transformation and semantic preservation
+    // AstOptTest::new("time * 1.0")
+    // .with_pass(algebraic::simplify_expr)
+    // .expect_ast({
+    // let mut expr = var("time");
+    // expr.ty = Some(Type::Fixed);
+    // expr
+    // })
+    // .expect_semantics_preserved()
+    // .with_time(42.0)
+    // .run()
+    // .expect("Should pass both checks");
+    // }
 
     #[test]
     fn test_no_pass_specified() {

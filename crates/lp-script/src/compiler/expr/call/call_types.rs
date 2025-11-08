@@ -3,12 +3,11 @@ extern crate alloc;
 
 use alloc::string::ToString;
 
+use super::expand_componentwise;
 use crate::compiler::ast::{AstPool, ExprId};
 use crate::compiler::error::{TypeError, TypeErrorKind};
 use crate::compiler::typechecker::{FunctionTable, SymbolTable, TypeChecker};
 use crate::shared::Type;
-
-use super::expand_componentwise;
 
 /// Type check function call
 ///

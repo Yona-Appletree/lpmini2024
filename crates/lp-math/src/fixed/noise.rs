@@ -1,5 +1,6 @@
 /// Perlin noise implementation
 use core::cmp::Ord;
+
 use super::fixed::Fixed;
 use super::interpolation::lerp;
 

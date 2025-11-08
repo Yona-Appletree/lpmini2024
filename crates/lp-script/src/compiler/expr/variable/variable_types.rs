@@ -1,10 +1,11 @@
 /// Variable type checking
 extern crate alloc;
 
+use alloc::string::String;
+
 use crate::compiler::error::{TypeError, TypeErrorKind};
 use crate::compiler::typechecker::SymbolTable;
 use crate::shared::Type;
-use alloc::string::String;
 
 /// Check variable type (including built-in variables)
 pub(in crate::compiler) fn check_variable(

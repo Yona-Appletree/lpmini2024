@@ -1,3 +1,5 @@
+use std::collections::VecDeque;
+
 /// Simple visualizer for the test engine
 /// Shows the grayscale buffer, RGB buffer, and LED output in real-time
 use embedded_graphics::{
@@ -13,7 +15,6 @@ use engine_core::test_engine::test_scene::{render_test_scene, SceneData, HEIGHT,
 use engine_core::test_engine::{LedMapping, RuntimeOptions};
 use lp_script::fixed::{Fixed, ToFixed};
 use minifb::{Key, Window, WindowOptions};
-use std::collections::VecDeque;
 
 const SCALE: usize = 16;
 const STATS_BAR_HEIGHT: usize = 80;
@@ -343,13 +344,12 @@ fn draw_rgb_2d(rgb: &[u8], buffer: &mut [u32], offset_x: usize, offset_y: usize,
 }
 
 fn draw_leds(leds: &[u8], buffer: &mut [u32], offset_x: usize, offset_y: usize, scale: usize) {
-    use embedded_graphics::{
-        mono_font::{ascii::FONT_6X10, MonoTextStyle},
-        pixelcolor::Rgb888,
-        prelude::*,
-        primitives::{Circle, PrimitiveStyle},
-        text::Text,
-    };
+    use embedded_graphics::mono_font::ascii::FONT_6X10;
+    use embedded_graphics::mono_font::MonoTextStyle;
+    use embedded_graphics::pixelcolor::Rgb888;
+    use embedded_graphics::prelude::*;
+    use embedded_graphics::primitives::{Circle, PrimitiveStyle};
+    use embedded_graphics::text::Text;
 
     let mut fb = Framebuffer::new(buffer, WINDOW_WIDTH, WINDOW_HEIGHT);
     let text_style = MonoTextStyle::new(&FONT_6X10, Rgb888::new(255, 255, 255));
