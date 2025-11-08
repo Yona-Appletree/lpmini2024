@@ -5,6 +5,7 @@ edition = "2021"
 
 [features]
 use-libm = []
+profiling = ["dep:pprof", "dep:libc"]
 
 [dependencies]
 # Math for no_std
@@ -14,3 +15,7 @@ smart-leds = { version = "0.4", default-features = false }
 
 # LPScript language and fixed library
 lp-script = { path = "../lp-script" }
+
+# Profiling support (requires std)
+pprof = { version = "0.15", optional = true, features = ["flamegraph"] }
+libc = { version = "0.2", optional = true }

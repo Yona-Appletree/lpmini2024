@@ -84,6 +84,104 @@ pub fn create_demo_scene(width: usize, height: usize) -> SceneConfig {
     SceneConfig::new(pipeline_config, mapping_config)
 }
 
+/// Run the demo scene with profiling enabled
+/// This function collects profiling data and generates a flamegraph
+#[cfg(feature = "profiling")]
+pub fn run_demo_with_profiling(
+    width: usize,
+    height: usize,
+    num_frames: u32,
+    output_path: &str,
+) -> Result<(), Box<dyn std::error::Error>> {
+    extern crate std;
+    use crate::test_engine::scene::SceneRuntime;
+    use crate::test_engine::RuntimeOptions;
+    use lp_script::fixed::ToFixed;
+    use pprof::ProfilerGuard;
+    use std::time::Instant;
+
+    // Create the demo scene
+    let config = create_demo_scene(width, height);
+    let options = RuntimeOptions::new(width, height);
+    let mut scene = SceneRuntime::new(config, options)
+        .map_err(|e| format!("Failed to create scene: {:?}", e))?;
+
+    // Get CPU time at start (Unix/macOS)
+    #[cfg(unix)]
+    let cpu_start = {
+        use std::mem::MaybeUninit;
+        unsafe {
+            let mut tms: MaybeUninit<libc::tms> = MaybeUninit::uninit();
+            let _ = libc::times(tms.as_mut_ptr());
+            let tms = tms.assume_init();
+            (tms.tms_utime + tms.tms_stime) as f64 / libc::sysconf(libc::_SC_CLK_TCK) as f64
+        }
+    };
+    #[cfg(not(unix))]
+    let cpu_start = 0.0;
+
+    // Start wall clock timer and profiling
+    let wall_start = Instant::now();
+    let guard = ProfilerGuard::new(100)?;
+
+    // Run the demo for the specified number of frames
+    for i in 0..num_frames {
+        let time = (i as f32 * 0.01).to_fixed();
+        scene.render(time, 1)
+            .map_err(|e| format!("Render failed: {:?}", e))?;
+    }
+
+    // Get CPU time at end
+    #[cfg(unix)]
+    let cpu_end = {
+        use std::mem::MaybeUninit;
+        unsafe {
+            let mut tms: MaybeUninit<libc::tms> = MaybeUninit::uninit();
+            let _ = libc::times(tms.as_mut_ptr());
+            let tms = tms.assume_init();
+            (tms.tms_utime + tms.tms_stime) as f64 / libc::sysconf(libc::_SC_CLK_TCK) as f64
+        }
+    };
+    #[cfg(not(unix))]
+    let cpu_end = 0.0;
+
+    let wall_elapsed = wall_start.elapsed();
+
+    // Generate and save the profile report
+    if let Ok(report) = guard.report().build() {
+        // Generate flamegraph directly
+        let mut file = std::fs::File::create(output_path)?;
+        report.flamegraph(&mut file)?;
+        println!("Flamegraph saved to: {}", output_path);
+    }
+
+    // Print timing information
+    println!("\nTiming Results:");
+    let wall_ms = wall_elapsed.as_secs_f64() * 1000.0;
+    println!("  Wall clock time: {:.3}s ({:.1}ms)", 
+        wall_elapsed.as_secs_f64(), 
+        wall_ms);
+    #[cfg(unix)]
+    {
+        let cpu_time = cpu_end - cpu_start;
+        let cpu_ms = cpu_time * 1000.0;
+        println!("  CPU time: {:.3}s ({:.1}ms)", cpu_time, cpu_ms);
+        println!("  CPU ms spent: {:.1}ms", cpu_ms);
+    }
+    #[cfg(not(unix))]
+    {
+        println!("  CPU time: N/A (not available on this platform)");
+    }
+    println!("  Frames: {}", num_frames);
+    if num_frames > 0 {
+        println!("  Avg time per frame: {:.3}ms", 
+            wall_ms / num_frames as f64);
+        println!("  FPS: {:.1}", num_frames as f64 / wall_elapsed.as_secs_f64());
+    }
+
+    Ok(())
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
