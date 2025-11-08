@@ -13,7 +13,7 @@ mod tests {
                 let arg1 = b.num(1.0);
                 let arg2 = b.num(2.0);
                 let vec = b.vec2(vec![arg1, arg2]);
-                b.swizzle(vec, "x", Type::Fixed)
+                b.swizzle(vec, "x", Some(Type::Fixed))
             })
             .expect_opcodes(vec![
                 LpsOpCode::Push(1.0.to_fixed()),
@@ -32,7 +32,7 @@ mod tests {
                 let arg1 = b.num(1.0);
                 let arg2 = b.num(2.0);
                 let vec = b.vec2(vec![arg1, arg2]);
-                b.swizzle(vec, "y", Type::Fixed)
+                b.swizzle(vec, "y", Some(Type::Fixed))
             })
             .expect_result_fixed(2.0)
             .run()
@@ -46,7 +46,7 @@ mod tests {
                 let arg2 = b.num(2.0);
                 let arg3 = b.num(3.0);
                 let vec = b.vec3(vec![arg1, arg2, arg3]);
-                b.swizzle(vec, "xy", Type::Vec2)
+                b.swizzle(vec, "xy", Some(Type::Vec2))
             })
             .expect_result_vec2(Vec2 {
                 x: 1.0.to_fixed(),
@@ -69,7 +69,7 @@ mod tests {
                 let arg1 = b.num(1.0);
                 let arg2 = b.num(2.0);
                 let vec = b.vec2(vec![arg1, arg2]);
-                b.swizzle(vec, "yx", Type::Vec2)
+                b.swizzle(vec, "yx", Some(Type::Vec2))
             })
             .expect_opcodes(vec![
                 LpsOpCode::Push(1.0.to_fixed()),
@@ -91,7 +91,7 @@ mod tests {
                 let arg1 = b.num(1.0);
                 let arg2 = b.num(2.0);
                 let vec = b.vec2(vec![arg1, arg2]);
-                b.swizzle(vec, "xx", Type::Vec2)
+                b.swizzle(vec, "xx", Some(Type::Vec2))
             })
             .expect_opcodes(vec![
                 LpsOpCode::Push(1.0.to_fixed()),
@@ -121,7 +121,7 @@ mod tests {
                 let arg1 = b.num(1.0);
                 let arg2 = b.num(2.0);
                 let vec = b.vec2(vec![arg1, arg2]);
-                b.swizzle(vec, "gr", Type::Vec2)
+                b.swizzle(vec, "gr", Some(Type::Vec2))
             })
             .expect_result_vec2(Vec2 {
                 x: 2.0.to_fixed(),

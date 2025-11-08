@@ -2,19 +2,18 @@
 extern crate alloc;
 use alloc::vec::Vec;
 
-use crate::compiler::ast::{AstPool, ExprId};
+use crate::compiler::ast::Expr;
 use crate::compiler::codegen::CodeGenerator;
 use crate::shared::Type;
 use crate::vm::opcodes::LpsOpCode;
 
 impl<'a> CodeGenerator<'a> {
-    pub(crate) fn gen_swizzle_id(&mut self, pool: &AstPool, expr: ExprId, components: &str) {
+    pub(crate) fn gen_swizzle(&mut self, expr: &Expr, components: &str) {
         // Generate the base expression (leaves vector components on stack)
-        self.gen_expr_id(pool, expr);
+        self.gen_expr(expr);
 
         // Generate swizzle opcodes based on component string
-        let expr_obj = pool.expr(expr);
-        let source_type = expr_obj.ty.as_ref().unwrap();
+        let source_type = expr.ty.as_ref().unwrap();
         let source_size = match source_type {
             Type::Vec2 => 2,
             Type::Vec3 => 3,

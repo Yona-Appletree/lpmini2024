@@ -1,7 +1,7 @@
 use alloc::vec::Vec;
 
 /// Function call parsing
-use crate::compiler::ast::{ExprId, ExprKind};
+use crate::compiler::ast::{Expr, ExprKind};
 use crate::compiler::error::ParseError;
 use crate::compiler::lexer::TokenKind;
 use crate::compiler::parser::Parser;
@@ -9,7 +9,7 @@ use crate::shared::Span;
 
 impl Parser {
     // Parse function call
-    pub(crate) fn parse_function_call(&mut self) -> Result<ExprId, ParseError> {
+    pub(crate) fn parse_function_call(&mut self) -> Result<Expr, ParseError> {
         let token = self.current().clone();
 
         if let TokenKind::Ident(name) = &token.kind {
@@ -30,25 +30,18 @@ impl Parser {
                 };
 
                 let kind = ExprKind::Call { name, args };
-
-                self.pool
-                    .alloc_expr(kind, Span::new(start, end))
-                    .map_err(|e| self.pool_error_to_parse_error(e))
+                Ok(Expr::new(kind, Span::new(start, end)))
             } else {
                 // Not a function call, return variable
-                self.pool
-                    .alloc_expr(ExprKind::Variable(name), token.span)
-                    .map_err(|e| self.pool_error_to_parse_error(e))
+                Ok(Expr::new(ExprKind::Variable(name), token.span))
             }
         } else {
             // Error fallback
-            self.pool
-                .alloc_expr(ExprKind::Number(0.0), token.span)
-                .map_err(|e| self.pool_error_to_parse_error(e))
+            Ok(Expr::new(ExprKind::Number(0.0), token.span))
         }
     }
 
-    pub(crate) fn parse_args(&mut self) -> Result<Vec<ExprId>, ParseError> {
+    pub(crate) fn parse_args(&mut self) -> Result<Vec<Expr>, ParseError> {
         let mut args = Vec::new();
 
         if matches!(self.current().kind, TokenKind::RParen) {

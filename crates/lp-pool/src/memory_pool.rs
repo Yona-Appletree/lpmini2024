@@ -1,12 +1,8 @@
-use core::cell::RefCell;
 use core::ptr::NonNull;
-
-use thread_local::ThreadLocal;
 
 use crate::error::AllocError;
 use crate::pool::LpAllocator;
-
-static ROOT_POOL: ThreadLocal<RefCell<Option<LpAllocator>>> = ThreadLocal::new();
+use crate::state;
 
 /// Main memory pool interface with thread-local allocator
 pub struct LpMemoryPool;
@@ -19,24 +15,18 @@ impl LpMemoryPool {
     /// - Memory must remain valid for the lifetime of the pool
     pub unsafe fn new(memory: NonNull<u8>, size: usize) -> Result<Self, AllocError> {
         let root_pool = LpAllocator::new(memory, size)?;
-        ROOT_POOL
-            .get_or(|| RefCell::new(None))
-            .borrow_mut()
-            .replace(root_pool);
+        state::set_allocator(root_pool);
         Ok(LpMemoryPool)
     }
 
     /// Execute a closure with the pool active
-    pub fn run<F, R>(&self, f: F) -> Result<R, AllocError>
+    pub fn run<F, R, E>(&self, f: F) -> Result<R, E>
     where
-        F: FnOnce() -> Result<R, AllocError>,
+        F: FnOnce() -> Result<R, E>,
+        E: From<AllocError>,
     {
-        // Check pool exists but don't hold borrow
-        {
-            let pool_ref = ROOT_POOL.get_or(|| RefCell::new(None)).borrow();
-            if pool_ref.is_none() {
-                return Err(AllocError::PoolExhausted);
-            }
+        if !state::allocator_exists() {
+            return Err(E::from(AllocError::PoolExhausted));
         }
         // Execute closure - it will access pool via with_active_pool()
         f()
@@ -44,24 +34,24 @@ impl LpMemoryPool {
 
     /// Get current memory usage statistics
     pub fn stats(&self) -> Result<PoolStats, AllocError> {
-        let pool_ref = ROOT_POOL.get_or(|| RefCell::new(None)).borrow();
-        let pool = pool_ref.as_ref().ok_or(AllocError::PoolExhausted)?;
-        Ok(PoolStats {
-            used_bytes: pool.used_bytes(),
-            capacity: pool.capacity(),
-            used_blocks: pool.used_blocks(),
-            free_blocks: pool.free_blocks(),
+        state::with_allocator(|pool| {
+            Ok(PoolStats {
+                used_bytes: pool.used_bytes(),
+                capacity: pool.capacity(),
+                used_blocks: pool.used_blocks(),
+                free_blocks: pool.free_blocks(),
+            })
         })
     }
 
     /// Get current used bytes
     pub fn used_bytes(&self) -> Result<usize, AllocError> {
-        Ok(self.stats()?.used_bytes)
+        self.stats().map(|stats| stats.used_bytes)
     }
 
     /// Get total capacity in bytes
     pub fn capacity(&self) -> Result<usize, AllocError> {
-        Ok(self.stats()?.capacity)
+        self.stats().map(|stats| stats.capacity)
     }
 
     /// Get available bytes (capacity - used)
@@ -94,9 +84,7 @@ pub(crate) fn with_active_pool<F, R>(f: F) -> Result<R, AllocError>
 where
     F: FnOnce(&mut LpAllocator) -> Result<R, AllocError>,
 {
-    let mut root_ref = ROOT_POOL.get_or(|| RefCell::new(None)).borrow_mut();
-    let pool = root_ref.as_mut().ok_or(AllocError::PoolExhausted)?;
-    f(pool)
+    state::with_allocator_mut(f)
 }
 
 #[cfg(test)]
@@ -125,7 +113,7 @@ mod tests {
 
         unsafe {
             let pool = LpMemoryPool::new(memory_ptr, 1024).unwrap();
-            let result = pool.run(|| Ok(42)).unwrap();
+            let result = pool.run(|| Ok::<i32, AllocError>(42)).unwrap();
             assert_eq!(result, 42);
         }
     }

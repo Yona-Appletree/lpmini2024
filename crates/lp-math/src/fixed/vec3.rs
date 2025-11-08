@@ -1,6 +1,6 @@
-/// 3D vector for fixed-point fixed
 use core::ops::{Add, Div, Mul, Neg, Sub};
 
+/// 3D vector for fixed-point fixed
 use super::conversions::ToFixed;
 use super::fixed::Fixed;
 use super::vec2::Vec2;

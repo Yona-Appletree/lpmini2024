@@ -4,9 +4,12 @@ version = "0.1.0"
 edition = "2021"
 
 [features]
+default = ["std"]
+std = ["lp-pool/std"]
 use-libm = []
 
 [dependencies]
 # Math for no_std
 libm = { version = "0.2" }
 lp-math = { path = "../lp-math" }
+lp-pool = { path = "../lp-pool", default-features = false, features = ["alloc-meta"] }

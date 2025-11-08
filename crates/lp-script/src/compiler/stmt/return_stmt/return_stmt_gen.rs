@@ -1,13 +1,13 @@
 /// Return statement code generation
 extern crate alloc;
 
-use crate::compiler::ast::{AstPool, ExprId};
+use crate::compiler::ast::Expr;
 use crate::compiler::codegen::CodeGenerator;
 use crate::vm::opcodes::LpsOpCode;
 
 impl<'a> CodeGenerator<'a> {
-    pub(crate) fn gen_return_id(&mut self, pool: &AstPool, expr_id: ExprId) {
-        self.gen_expr_id(pool, expr_id);
+    pub(crate) fn gen_return(&mut self, expr: &Expr) {
+        self.gen_expr(expr);
         self.code.push(LpsOpCode::Return);
     }
 }

@@ -1,5 +1,7 @@
+use lp_pool::LpBox;
+
 /// Logical operator parsing (&&, ||)
-use crate::compiler::ast::{ExprId, ExprKind};
+use crate::compiler::ast::{Expr, ExprKind};
 use crate::compiler::error::ParseError;
 use crate::compiler::lexer::TokenKind;
 use crate::compiler::parser::Parser;
@@ -7,42 +9,42 @@ use crate::shared::Span;
 
 impl Parser {
     // Logical OR: ||
-    pub(crate) fn logical_or(&mut self) -> Result<ExprId, ParseError> {
+    pub(crate) fn logical_or(&mut self) -> Result<Expr, ParseError> {
         self.enter_recursion()?;
-        let mut expr_id = self.logical_and()?;
+        let mut expr = self.logical_and()?;
 
         while matches!(self.current().kind, TokenKind::Or) {
-            let start = self.pool.expr(expr_id).span.start;
+            let start = expr.span.start;
             self.advance();
-            let right_id = self.logical_and()?;
-            let end = self.pool.expr(right_id).span.end;
-            expr_id = self
-                .pool
-                .alloc_expr(ExprKind::Or(expr_id, right_id), Span::new(start, end))
-                .map_err(|e| self.pool_error_to_parse_error(e))?;
+            let right = self.logical_and()?;
+            let end = right.span.end;
+            expr = Expr::new(
+                ExprKind::Or(LpBox::try_new(expr)?, LpBox::try_new(right)?),
+                Span::new(start, end),
+            );
         }
 
         self.exit_recursion();
-        Ok(expr_id)
+        Ok(expr)
     }
 
     // Logical AND: &&
-    pub(crate) fn logical_and(&mut self) -> Result<ExprId, ParseError> {
+    pub(crate) fn logical_and(&mut self) -> Result<Expr, ParseError> {
         self.enter_recursion()?;
-        let mut expr_id = self.bitwise_or()?;
+        let mut expr = self.bitwise_or()?;
 
         while matches!(self.current().kind, TokenKind::And) {
-            let start = self.pool.expr(expr_id).span.start;
+            let start = expr.span.start;
             self.advance();
-            let right_id = self.bitwise_or()?;
-            let end = self.pool.expr(right_id).span.end;
-            expr_id = self
-                .pool
-                .alloc_expr(ExprKind::And(expr_id, right_id), Span::new(start, end))
-                .map_err(|e| self.pool_error_to_parse_error(e))?;
+            let right = self.bitwise_or()?;
+            let end = right.span.end;
+            expr = Expr::new(
+                ExprKind::And(LpBox::try_new(expr)?, LpBox::try_new(right)?),
+                Span::new(start, end),
+            );
         }
 
         self.exit_recursion();
-        Ok(expr_id)
+        Ok(expr)
     }
 }

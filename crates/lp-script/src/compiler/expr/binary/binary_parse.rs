@@ -1,5 +1,7 @@
+use lp_pool::LpBox;
+
 /// Binary operator parsing (+, -, *, /, %, ^)
-use crate::compiler::ast::{ExprId, ExprKind};
+use crate::compiler::ast::{Expr, ExprKind};
 use crate::compiler::error::ParseError;
 use crate::compiler::lexer::TokenKind;
 use crate::compiler::parser::Parser;
@@ -7,85 +9,85 @@ use crate::shared::Span;
 
 impl Parser {
     // Additive: + -
-    pub(crate) fn additive(&mut self) -> Result<ExprId, ParseError> {
+    pub(crate) fn additive(&mut self) -> Result<Expr, ParseError> {
         self.enter_recursion()?;
-        let mut expr_id = self.multiplicative()?;
+        let mut expr = self.multiplicative()?;
 
         loop {
-            let start = self.pool.expr(expr_id).span.start;
+            let start = expr.span.start;
             match &self.current().kind {
                 TokenKind::Plus => {
                     self.advance();
-                    let right_id = self.multiplicative()?;
-                    let end = self.pool.expr(right_id).span.end;
-                    expr_id = self
-                        .pool
-                        .alloc_expr(ExprKind::Add(expr_id, right_id), Span::new(start, end))
-                        .map_err(|e| self.pool_error_to_parse_error(e))?;
+                    let right = self.multiplicative()?;
+                    let end = right.span.end;
+                    expr = Expr::new(
+                        ExprKind::Add(LpBox::try_new(expr)?, LpBox::try_new(right)?),
+                        Span::new(start, end),
+                    );
                 }
                 TokenKind::Minus => {
                     self.advance();
-                    let right_id = self.multiplicative()?;
-                    let end = self.pool.expr(right_id).span.end;
-                    expr_id = self
-                        .pool
-                        .alloc_expr(ExprKind::Sub(expr_id, right_id), Span::new(start, end))
-                        .map_err(|e| self.pool_error_to_parse_error(e))?;
+                    let right = self.multiplicative()?;
+                    let end = right.span.end;
+                    expr = Expr::new(
+                        ExprKind::Sub(LpBox::try_new(expr)?, LpBox::try_new(right)?),
+                        Span::new(start, end),
+                    );
                 }
                 _ => break,
             }
         }
 
         self.exit_recursion();
-        Ok(expr_id)
+        Ok(expr)
     }
 
     // Multiplicative: * / %
-    pub(crate) fn multiplicative(&mut self) -> Result<ExprId, ParseError> {
+    pub(crate) fn multiplicative(&mut self) -> Result<Expr, ParseError> {
         self.enter_recursion()?;
-        let mut expr_id = self.exponential()?;
+        let mut expr = self.exponential()?;
 
         loop {
-            let start = self.pool.expr(expr_id).span.start;
+            let start = expr.span.start;
             match &self.current().kind {
                 TokenKind::Star => {
                     self.advance();
-                    let right_id = self.exponential()?;
-                    let end = self.pool.expr(right_id).span.end;
-                    expr_id = self
-                        .pool
-                        .alloc_expr(ExprKind::Mul(expr_id, right_id), Span::new(start, end))
-                        .map_err(|e| self.pool_error_to_parse_error(e))?;
+                    let right = self.exponential()?;
+                    let end = right.span.end;
+                    expr = Expr::new(
+                        ExprKind::Mul(LpBox::try_new(expr)?, LpBox::try_new(right)?),
+                        Span::new(start, end),
+                    );
                 }
                 TokenKind::Slash => {
                     self.advance();
-                    let right_id = self.exponential()?;
-                    let end = self.pool.expr(right_id).span.end;
-                    expr_id = self
-                        .pool
-                        .alloc_expr(ExprKind::Div(expr_id, right_id), Span::new(start, end))
-                        .map_err(|e| self.pool_error_to_parse_error(e))?;
+                    let right = self.exponential()?;
+                    let end = right.span.end;
+                    expr = Expr::new(
+                        ExprKind::Div(LpBox::try_new(expr)?, LpBox::try_new(right)?),
+                        Span::new(start, end),
+                    );
                 }
                 TokenKind::Percent => {
                     self.advance();
-                    let right_id = self.exponential()?;
-                    let end = self.pool.expr(right_id).span.end;
-                    expr_id = self
-                        .pool
-                        .alloc_expr(ExprKind::Mod(expr_id, right_id), Span::new(start, end))
-                        .map_err(|e| self.pool_error_to_parse_error(e))?;
+                    let right = self.exponential()?;
+                    let end = right.span.end;
+                    expr = Expr::new(
+                        ExprKind::Mod(LpBox::try_new(expr)?, LpBox::try_new(right)?),
+                        Span::new(start, end),
+                    );
                 }
                 _ => break,
             }
         }
 
         self.exit_recursion();
-        Ok(expr_id)
+        Ok(expr)
     }
 
     // Exponential: ^ removed (use pow() function instead)
     // This now just delegates to unary, will be re-added as bitwise XOR in Phase 2
-    pub(crate) fn exponential(&mut self) -> Result<ExprId, ParseError> {
+    pub(crate) fn exponential(&mut self) -> Result<Expr, ParseError> {
         self.unary()
     }
 }

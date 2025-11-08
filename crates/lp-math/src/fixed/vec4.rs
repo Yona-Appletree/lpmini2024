@@ -1,6 +1,6 @@
-/// 4D vector for fixed-point fixed (useful for RGBA colors and homogeneous coordinates)
 use core::ops::{Add, Div, Mul, Neg, Sub};
 
+/// 4D vector for fixed-point fixed (useful for RGBA colors and homogeneous coordinates)
 use super::conversions::ToFixed;
 use super::fixed::Fixed;
 use super::vec2::Vec2;

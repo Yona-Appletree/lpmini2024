@@ -4,7 +4,7 @@
 mod binary_gen;
 mod binary_parse;
 mod binary_types;
-pub(in crate::compiler) use binary_types::check_binary_arithmetic_id;
+pub(in crate::compiler) use binary_types::check_binary_arithmetic;
 
 #[cfg(test)]
 mod binary_tests;

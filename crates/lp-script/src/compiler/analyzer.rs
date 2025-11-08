@@ -2,7 +2,7 @@
 extern crate alloc;
 use alloc::vec::Vec;
 
-use crate::compiler::ast::{AstPool, Parameter, Program, StmtId, StmtKind};
+use crate::compiler::ast::{Parameter, Program, Stmt, StmtKind};
 use crate::compiler::codegen::LocalAllocator;
 use crate::compiler::error::{TypeError, TypeErrorKind};
 use crate::compiler::func::{FunctionMetadata, FunctionTable, LocalVarInfo};
@@ -13,7 +13,7 @@ pub struct FunctionAnalyzer;
 
 impl FunctionAnalyzer {
     /// Analyze a program and build function metadata table
-    pub fn analyze_program(program: &Program, pool: &AstPool) -> Result<FunctionTable, TypeError> {
+    pub fn analyze_program(program: &Program) -> Result<FunctionTable, TypeError> {
         let mut func_table = FunctionTable::new();
 
         // Analyze each function
@@ -21,8 +21,7 @@ impl FunctionAnalyzer {
             let param_types: Vec<Type> = func.params.iter().map(|p| p.ty.clone()).collect();
 
             // Discover locals in function body
-            let (locals, local_count) =
-                Self::analyze_function_body(&func.body, &func.params, pool)?;
+            let (locals, local_count) = Self::analyze_function_body(&func.body, &func.params)?;
 
             let metadata = FunctionMetadata {
                 params: param_types,
@@ -44,9 +43,8 @@ impl FunctionAnalyzer {
 
     /// Analyze a single function body to discover all local variables
     fn analyze_function_body(
-        body: &[StmtId],
+        body: &[Stmt],
         params: &[Parameter],
-        pool: &AstPool,
     ) -> Result<(Vec<LocalVarInfo>, u32), TypeError> {
         let mut locals = LocalAllocator::new();
         let mut local_infos = Vec::new();
@@ -63,8 +61,8 @@ impl FunctionAnalyzer {
 
         // Then discover all VarDecl statements in the function body
         // Pass local_infos so we can record each variable as it's declared
-        for &stmt_id in body {
-            Self::discover_locals_with_tracking(stmt_id, pool, &mut locals, &mut local_infos)?;
+        for stmt in body {
+            Self::discover_locals_with_tracking(stmt, &mut locals, &mut local_infos)?;
         }
 
         Ok((local_infos, locals.next_index))
@@ -72,26 +70,26 @@ impl FunctionAnalyzer {
 
     /// Recursively discover all VarDecl statements with tracking
     fn discover_locals_with_tracking(
-        stmt_id: StmtId,
-        pool: &AstPool,
+        stmt: &Stmt,
         locals: &mut LocalAllocator,
         local_infos: &mut Vec<LocalVarInfo>,
     ) -> Result<(), TypeError> {
-        let stmt = pool.stmt(stmt_id);
-        let stmt_kind = stmt.kind.clone();
-
-        match stmt_kind {
+        match &stmt.kind {
             StmtKind::VarDecl { ty, name, .. } => {
                 // Allocate a local for this variable and record it
                 let index = locals.allocate_typed(name.clone(), ty.clone());
-                local_infos.push(LocalVarInfo { name, ty, index });
+                local_infos.push(LocalVarInfo {
+                    name: name.clone(),
+                    ty: ty.clone(),
+                    index,
+                });
             }
 
             StmtKind::Block(stmts) => {
                 // Enter a new scope for the block
                 locals.push_scope();
-                for &inner_stmt_id in &stmts {
-                    Self::discover_locals_with_tracking(inner_stmt_id, pool, locals, local_infos)?;
+                for inner_stmt in stmts {
+                    Self::discover_locals_with_tracking(inner_stmt, locals, local_infos)?;
                 }
                 locals.pop_scope();
             }
@@ -102,27 +100,27 @@ impl FunctionAnalyzer {
                 ..
             } => {
                 // Analyze then branch
-                Self::discover_locals_with_tracking(then_stmt, pool, locals, local_infos)?;
+                Self::discover_locals_with_tracking(then_stmt.as_ref(), locals, local_infos)?;
 
                 // Analyze else branch if present
-                if let Some(else_id) = else_stmt {
-                    Self::discover_locals_with_tracking(else_id, pool, locals, local_infos)?;
+                if let Some(else_stmt) = else_stmt {
+                    Self::discover_locals_with_tracking(else_stmt.as_ref(), locals, local_infos)?;
                 }
             }
 
             StmtKind::While { body, .. } => {
-                Self::discover_locals_with_tracking(body, pool, locals, local_infos)?;
+                Self::discover_locals_with_tracking(body.as_ref(), locals, local_infos)?;
             }
 
             StmtKind::For { init, body, .. } => {
                 // For loops create a scope for the init statement
                 locals.push_scope();
 
-                if let Some(init_id) = init {
-                    Self::discover_locals_with_tracking(init_id, pool, locals, local_infos)?;
+                if let Some(init_stmt) = init {
+                    Self::discover_locals_with_tracking(init_stmt.as_ref(), locals, local_infos)?;
                 }
 
-                Self::discover_locals_with_tracking(body, pool, locals, local_infos)?;
+                Self::discover_locals_with_tracking(body.as_ref(), locals, local_infos)?;
 
                 locals.pop_scope();
             }
@@ -136,25 +134,18 @@ impl FunctionAnalyzer {
 
     /// Recursively discover all VarDecl statements (legacy version without tracking)
     #[allow(dead_code)]
-    fn discover_locals(
-        stmt_id: StmtId,
-        pool: &AstPool,
-        locals: &mut LocalAllocator,
-    ) -> Result<(), TypeError> {
-        let stmt = pool.stmt(stmt_id);
-        let stmt_kind = stmt.kind.clone();
-
-        match stmt_kind {
+    fn discover_locals(stmt: &Stmt, locals: &mut LocalAllocator) -> Result<(), TypeError> {
+        match &stmt.kind {
             StmtKind::VarDecl { ty, name, .. } => {
                 // Allocate a local for this variable
-                locals.allocate_typed(name, ty);
+                locals.allocate_typed(name.clone(), ty.clone());
             }
 
             StmtKind::Block(stmts) => {
                 // Enter a new scope for the block
                 locals.push_scope();
-                for &inner_stmt_id in &stmts {
-                    Self::discover_locals(inner_stmt_id, pool, locals)?;
+                for inner_stmt in stmts {
+                    Self::discover_locals(inner_stmt, locals)?;
                 }
                 locals.pop_scope();
             }
@@ -165,27 +156,27 @@ impl FunctionAnalyzer {
                 ..
             } => {
                 // Analyze then branch
-                Self::discover_locals(then_stmt, pool, locals)?;
+                Self::discover_locals(then_stmt.as_ref(), locals)?;
 
                 // Analyze else branch if present
-                if let Some(else_id) = else_stmt {
-                    Self::discover_locals(else_id, pool, locals)?;
+                if let Some(else_stmt) = else_stmt {
+                    Self::discover_locals(else_stmt.as_ref(), locals)?;
                 }
             }
 
             StmtKind::While { body, .. } => {
-                Self::discover_locals(body, pool, locals)?;
+                Self::discover_locals(body.as_ref(), locals)?;
             }
 
             StmtKind::For { init, body, .. } => {
                 // For loops create a scope for the init statement
                 locals.push_scope();
 
-                if let Some(init_id) = init {
-                    Self::discover_locals(init_id, pool, locals)?;
+                if let Some(init_stmt) = init {
+                    Self::discover_locals(init_stmt.as_ref(), locals)?;
                 }
 
-                Self::discover_locals(body, pool, locals)?;
+                Self::discover_locals(body.as_ref(), locals)?;
 
                 locals.pop_scope();
             }
@@ -523,10 +514,10 @@ mod tests {
         let mut lexer = Lexer::new(program_text);
         let tokens = lexer.tokenize();
         let parser = Parser::new(tokens);
-        let (program, pool) = parser.parse_program().expect("parse should succeed");
+        let program = parser.parse_program().expect("parse should succeed");
 
         let func_table =
-            FunctionAnalyzer::analyze_program(&program, &pool).expect("analysis should succeed");
+            FunctionAnalyzer::analyze_program(&program).expect("analysis should succeed");
 
         let metadata = func_table.lookup("test").expect("function should exist");
 

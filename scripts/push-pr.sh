@@ -39,7 +39,9 @@ require_command() {
 require_command git "https://git-scm.com/downloads"
 require_command gh "brew install gh"
 require_command cargo "rustup toolchain install stable"
+require_command rustup "brew install rustup-init && rustup-init"
 require_command jq "brew install jq"
+require_command ldproxy "cargo install ldproxy --locked"
 
 TURBO_CMD=()
 if command -v turbo >/dev/null 2>&1; then
@@ -104,7 +106,22 @@ run_step() {
 info "Repository root: ${ROOT_DIR}"
 
 run_step "turbo validate" "${TURBO_CMD[@]}" validate
+run_step "cargo fmt (nightly check)" rustup run nightly cargo fmt --all -- --check
+run_step "cargo clippy" cargo clippy --all-targets --all-features -- -D warnings
 run_step "cargo test" cargo test
+run_step "cargo test (lp-pool without default features)" cargo test -p lp-pool --lib --no-default-features
+
+ensure_riscv_target() {
+  local target="riscv32imc-unknown-none-elf"
+  if ! rustup target list --installed | grep -q "^${target}$"; then
+    info "Installing Rust target ${target}"
+    rustup target add "${target}"
+  fi
+}
+
+ensure_riscv_target
+
+run_step "cargo build (fw-esp32c3 firmware)" bash -c 'cd apps/fw-esp32c3 && cargo build --release --locked'
 
 current_branch="$(git rev-parse --abbrev-ref HEAD)"
 if [[ "${current_branch}" == "HEAD" ]]; then
@@ -243,11 +260,18 @@ fi
 
 warn "Workflow failed for commit ${commit_sha}. Downloading logs."
 log_dir="$(mktemp -d "${LOG_ROOT}/run_${commit_sha}_XXXXXX")"
-if gh run download "${run_id}" --dir "${log_dir}" --log; then
-  error "GitHub Actions run failed. Logs saved at: ${log_dir}"
+log_file="${log_dir}/workflow.log"
+if NO_COLOR=1 gh run view "${run_id}" --log >"${log_file}" 2>&1; then
+  error "GitHub Actions run failed. Logs saved at: ${log_file}"
   warn "Inspect the logs and iterate on the reported failures before re-running this script."
+  info "Extracting relevant log lines:"
+  if command -v rg >/dev/null 2>&1; then
+    rg --color=never --line-number --ignore-case --no-heading --regexp 'error' --regexp 'fail' --regexp 'panic' "${log_file}" || true
+  else
+    grep -n -i -E 'error|fail|panic' "${log_file}" || true
+  fi
 else
-  warn "Failed to download logs automatically. Use \`gh run download ${run_id} --dir <path> --log\` to fetch them manually."
+  warn "Failed to download logs automatically. Use \`NO_COLOR=1 gh run view ${run_id} --log > <path>\` to fetch them manually."
 fi
 
 exit 1

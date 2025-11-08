@@ -80,6 +80,30 @@ impl<T> core::ops::DerefMut for LpBox<T> {
     }
 }
 
+impl<T: Clone> Clone for LpBox<T> {
+    fn clone(&self) -> Self {
+        // SAFETY: We know the pointer is valid
+        let value_ref = unsafe { &*self.ptr.as_ptr() };
+        let cloned_value = value_ref.clone();
+
+        // try_new will allocate new memory and copy the cloned value
+        #[cfg(feature = "alloc-meta")]
+        let scope = self.meta.scope;
+        #[cfg(not(feature = "alloc-meta"))]
+        let scope = None;
+
+        Self::try_new_with_scope(cloned_value, scope)
+            .expect("Failed to clone LpBox: pool exhausted")
+    }
+}
+
+impl<T: core::fmt::Debug> core::fmt::Debug for LpBox<T> {
+    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+        // Delegate to T's Debug implementation
+        core::fmt::Debug::fmt(self.as_ref(), f)
+    }
+}
+
 impl<T> Drop for LpBox<T> {
     fn drop(&mut self) {
         let layout = Layout::new::<T>();

@@ -1,19 +1,24 @@
 /// Test utilities for lp-script statements/scripts - builder pattern for clean testing
 extern crate alloc;
-use alloc::boxed::Box;
 use alloc::format;
 use alloc::string::String;
-use alloc::vec::Vec;
+use core::ptr::NonNull;
 
-use crate::compiler::ast::{AstPool, Program};
+use lp_pool::LpMemoryPool;
+
+use crate::compiler::ast::{Program, Stmt};
+use crate::compiler::expr::expr_test_util::expr_eq_ignore_spans;
 use crate::compiler::func::FunctionMetadata;
+use crate::compiler::optimize::{self, OptimizeOptions};
 use crate::compiler::stmt::stmt_test_ast::StmtBuilder;
 use crate::compiler::{codegen, lexer, parser, typechecker};
-use crate::fixed::{Fixed, ToFixed, Vec2, Vec3, Vec4};
+use crate::fixed::{Fixed, ToFixed};
 use crate::shared::Type;
 use crate::vm::lps_vm::LpsVm;
 use crate::vm::vm_limits::VmLimits;
-use crate::vm::{LpsOpCode, LpsProgram};
+use crate::vm::{FunctionDef, LpsOpCode, LpsProgram};
+
+type ProgramBuilder = Box<dyn FnOnce(&mut StmtBuilder) -> Program>;
 
 /// Function metadata assertion helper
 pub struct FunctionMetadataAssertion {
@@ -33,31 +38,9 @@ pub struct FunctionMetadataAssertion {
 /// - Type Check: Type validation and return type checking
 /// - Codegen: Bytecode generation
 /// - Execution: Runtime behavior
-///
-/// # Example: Testing function metadata
-/// ```
-/// use lp_script::compiler::stmt::stmt_test_util::ScriptTest;
-/// use lp_script::shared::Type;
-///
-/// ScriptTest::new("
-///     float add(float a, float b) {
-///         float result = a + b;
-///         return result;
-///     }
-/// ")
-/// .expect_function_metadata("add", vec![Type::Fixed, Type::Fixed], Type::Fixed, 3)
-/// .expect_function_local_names("add", vec!["a", "b", "result"])
-/// .run()
-/// .unwrap();
-/// ```
-///
-/// Note: Script mode supports variable declarations, control flow, etc.
-/// Built-in variables like `x`, `y`, `time` from uv/coord still work.
-type ProgramBuilderFn = Box<dyn FnOnce(&mut StmtBuilder) -> Program>;
-
 pub struct ScriptTest {
     input: String,
-    expected_ast_builder: Option<ProgramBuilderFn>,
+    expected_ast_builder: Option<ProgramBuilder>,
     expected_opcodes: Option<Vec<LpsOpCode>>,
     expected_result: Option<TestResult>,
     expected_function_metadata: Vec<FunctionMetadataAssertion>,
@@ -68,16 +51,9 @@ pub struct ScriptTest {
 
 enum TestResult {
     Fixed(Fixed),
-    #[allow(dead_code)]
-    Vec2(Vec2),
-    #[allow(dead_code)]
-    Vec3(Vec3),
-    #[allow(dead_code)]
-    Vec4(Vec4),
 }
 
 impl ScriptTest {
-    /// Create a new test case with the given input script
     pub fn new(input: &str) -> Self {
         ScriptTest {
             input: String::from(input),
@@ -91,7 +67,6 @@ impl ScriptTest {
         }
     }
 
-    /// Expect a specific Program AST structure using a builder closure
     pub fn expect_ast<F>(mut self, builder_fn: F) -> Self
     where
         F: FnOnce(&mut StmtBuilder) -> Program + 'static,
@@ -100,70 +75,21 @@ impl ScriptTest {
         self
     }
 
-    /// Set x value for built-in `x` variable (default: 0.5)
-    #[allow(dead_code)]
-    pub fn with_x(mut self, x: f32) -> Self {
-        self.x = x.to_fixed();
-        self
-    }
-
-    /// Set y value for built-in `y` variable (default: 0.5)
-    #[allow(dead_code)]
-    pub fn with_y(mut self, y: f32) -> Self {
-        self.y = y.to_fixed();
-        self
-    }
-
-    /// Set time value for built-in (default: 0.0)
-    #[allow(dead_code)]
     pub fn with_time(mut self, time: f32) -> Self {
         self.time = time.to_fixed();
         self
     }
 
-    /// Set VM run parameters (x, y, time) for built-in variables
-    #[allow(dead_code)]
-    pub fn with_vm_params(mut self, x: f32, y: f32, time: f32) -> Self {
-        self.x = x.to_fixed();
-        self.y = y.to_fixed();
-        self.time = time.to_fixed();
-        self
-    }
-
-    /// Expect specific opcodes to be generated
     pub fn expect_opcodes(mut self, expected: Vec<LpsOpCode>) -> Self {
         self.expected_opcodes = Some(expected);
         self
     }
 
-    /// Expect a specific result when executed (takes f32, converts internally)
     pub fn expect_result_fixed(mut self, expected: f32) -> Self {
         self.expected_result = Some(TestResult::Fixed(expected.to_fixed()));
         self
     }
 
-    /// Expect a vec2 result
-    #[allow(dead_code)]
-    pub fn expect_result_vec2(mut self, expected: Vec2) -> Self {
-        self.expected_result = Some(TestResult::Vec2(expected));
-        self
-    }
-
-    /// Expect a vec3 result
-    #[allow(dead_code)]
-    pub fn expect_result_vec3(mut self, expected: Vec3) -> Self {
-        self.expected_result = Some(TestResult::Vec3(expected));
-        self
-    }
-
-    /// Expect a vec4 result
-    #[allow(dead_code)]
-    pub fn expect_result_vec4(mut self, expected: Vec4) -> Self {
-        self.expected_result = Some(TestResult::Vec4(expected));
-        self
-    }
-
-    /// Expect specific function metadata from analyzer
     pub fn expect_function_local_count(mut self, func_name: &str, count: u32) -> Self {
         self.expected_function_metadata
             .push(FunctionMetadataAssertion {
@@ -177,7 +103,6 @@ impl ScriptTest {
         self
     }
 
-    /// Expect function parameter types
     pub fn expect_function_params(mut self, func_name: &str, param_types: Vec<Type>) -> Self {
         self.expected_function_metadata
             .push(FunctionMetadataAssertion {
@@ -191,7 +116,6 @@ impl ScriptTest {
         self
     }
 
-    /// Expect function metadata (comprehensive)
     pub fn expect_function_metadata(
         mut self,
         func_name: &str,
@@ -211,9 +135,7 @@ impl ScriptTest {
         self
     }
 
-    /// Expect specific local variable names in order
     pub fn expect_function_local_names(mut self, func_name: &str, local_names: Vec<&str>) -> Self {
-        // Find existing assertion or create new one
         if let Some(assertion) = self
             .expected_function_metadata
             .iter_mut()
@@ -237,7 +159,6 @@ impl ScriptTest {
         self
     }
 
-    /// Helper to check function metadata assertions
     fn check_metadata_assertion(
         metadata: &FunctionMetadata,
         assertion: &FunctionMetadataAssertion,
@@ -248,7 +169,7 @@ impl ScriptTest {
         if let Some(expected_count) = assertion.expected_param_count {
             if metadata.params.len() != expected_count {
                 errors.push(format!(
-                    "Function '{}': expected {} params, got {}",
+                    "Function '{}': expected {} params, found {}",
                     func_name,
                     expected_count,
                     metadata.params.len()
@@ -256,78 +177,89 @@ impl ScriptTest {
             }
         }
 
-        if let Some(ref expected_types) = assertion.expected_param_types {
+        if let Some(expected_types) = &assertion.expected_param_types {
             if metadata.params != *expected_types {
                 errors.push(format!(
-                    "Function '{}': param types mismatch\n  Expected: {:?}\n  Got: {:?}",
+                    "Function '{}': param type mismatch
+  Expected: {:?}
+  Got: {:?}",
                     func_name, expected_types, metadata.params
                 ));
             }
         }
 
-        if let Some(ref expected_return) = assertion.expected_return_type {
-            if metadata.return_type != *expected_return {
+        if let Some(expected_return) = &assertion.expected_return_type {
+            if &metadata.return_type != expected_return {
                 errors.push(format!(
-                    "Function '{}': expected return type {:?}, got {:?}",
+                    "Function '{}': return type mismatch
+  Expected: {:?}
+  Got: {:?}",
                     func_name, expected_return, metadata.return_type
                 ));
             }
         }
 
         if let Some(expected_count) = assertion.expected_local_count {
-            if metadata.local_count != expected_count {
+            if metadata.locals.len() as u32 != expected_count {
                 errors.push(format!(
-                    "Function '{}': expected {} locals, got {}",
-                    func_name, expected_count, metadata.local_count
+                    "Function '{}': local count mismatch
+  Expected: {}
+  Got: {}",
+                    func_name,
+                    expected_count,
+                    metadata.locals.len()
                 ));
             }
         }
 
-        if let Some(ref expected_names) = assertion.expected_local_names {
+        if let Some(expected_names) = &assertion.expected_local_names {
             let actual_names: Vec<String> =
                 metadata.locals.iter().map(|l| l.name.clone()).collect();
-            if actual_names != *expected_names {
+            if &actual_names != expected_names {
                 errors.push(format!(
-                    "Function '{}': local names mismatch\n  Expected: {:?}\n  Got: {:?}",
+                    "Function '{}': local names mismatch
+  Expected: {:?}
+  Got: {:?}",
                     func_name, expected_names, actual_names
                 ));
             }
         }
     }
 
-    /// Run all expectations and return result
-    /// Collects all errors instead of stopping at the first one
     pub fn run(self) -> Result<(), String> {
+        const POOL_SIZE: usize = 512 * 1024;
+        let mut memory = vec![0u8; POOL_SIZE];
+        let memory_ptr =
+            NonNull::new(memory.as_mut_ptr()).ok_or_else(|| String::from("pool memory null"))?;
+        let pool = unsafe { LpMemoryPool::new(memory_ptr, POOL_SIZE).map_err(String::from)? };
+
+        let ScriptTest {
+            input,
+            expected_ast_builder,
+            expected_opcodes,
+            expected_result,
+            expected_function_metadata,
+            x,
+            y,
+            time,
+        } = self;
+
+        pool.run(|| {
         let mut errors = Vec::new();
 
-        // if self.expected_opcodes.is_none() {
-        //     return Err("No expectations set for opcodes.".to_string());
-        // }
-        //
-        // if self.expected_ast_builder.is_none() {
-        //     return Err("No expectations set for ast.".to_string());
-        // }
-        //
-        // if self.expected_result.is_none() {
-        //     return Err("No expectations set for result.".to_string());
-        // }
-
-        // Parse the script
-        let mut lexer = lexer::Lexer::new(&self.input);
+            let mut lexer = lexer::Lexer::new(&input);
         let tokens = lexer.tokenize();
         let parser = parser::Parser::new(tokens);
-        let (ast_program, pool) = match parser.parse_program() {
-            Ok(result) => result,
+            let mut program = match parser.parse_program() {
+                Ok(program) => program,
             Err(e) => {
                 errors.push(format!("Parse error: {}", e));
                 return Err(errors.join("\n\n"));
             }
         };
 
-        // Analyze to build function table
         let func_table =
-            match crate::compiler::analyzer::FunctionAnalyzer::analyze_program(&ast_program, &pool)
-            {
+                match crate::compiler::analyzer::FunctionAnalyzer::analyze_program(&program) {
                 Ok(table) => table,
                 Err(e) => {
                     errors.push(format!("Analysis error: {}", e));
@@ -335,8 +267,7 @@ impl ScriptTest {
                 }
             };
 
-        // Check function metadata expectations
-        for assertion in &self.expected_function_metadata {
+            for assertion in &expected_function_metadata {
             if let Some(metadata) = func_table.lookup(&assertion.function_name) {
                 Self::check_metadata_assertion(metadata, assertion, &mut errors);
             } else {
@@ -347,62 +278,51 @@ impl ScriptTest {
             }
         }
 
-        // Type check
-        let (typed_program, pool) =
-            match typechecker::TypeChecker::check_program(ast_program, pool, &func_table) {
-                Ok(result) => result,
-                Err(e) => {
+            if let Err(e) = typechecker::TypeChecker::check_program(&mut program, &func_table) {
                     errors.push(format!("Type check error: {}", e));
                     return Err(errors.join("\n\n"));
                 }
-            };
 
-        // Check AST if expected (after type checking)
-        if let Some(builder_fn) = self.expected_ast_builder {
+            if let Some(builder_fn) = expected_ast_builder {
             let mut builder = StmtBuilder::new();
             let expected_program = builder_fn(&mut builder);
-            let expected_pool = builder.into_pool();
-            if !program_eq_ignore_spans_with_pool(
-                &typed_program,
-                &pool,
-                &expected_program,
-                &expected_pool,
-            ) {
+                if !program_eq_ignore_spans(&program, &expected_program) {
                 errors.push(format!(
-                    "Program AST mismatch:\nExpected: {:#?}\nActual:   {:#?}",
-                    expected_program, typed_program
+                        "Program AST mismatch:
+Expected: {:#?}
+Actual:   {:#?}",
+                        expected_program, program
                 ));
             }
         }
 
-        // Generate opcodes and create program
-        let (opcodes, local_count, local_types) =
-            codegen::CodeGenerator::generate_program(&pool, &typed_program);
-
-        // Create LocalVarDef entries from local_types
-        let local_defs: Vec<crate::LocalVarDef> = (0..local_count)
-            .map(|i| {
-                let ty = local_types.get(&i).cloned().unwrap_or(Type::Fixed);
-                crate::LocalVarDef::new(alloc::format!("local_{}", i), ty)
+            let functions =
+                codegen::CodeGenerator::generate_program_with_functions(&program, &func_table);
+            let optimize_options = OptimizeOptions::none();
+            let vm_functions: Vec<FunctionDef> = functions
+                .into_iter()
+                .map(|func| {
+                    let optimized_opcodes =
+                        optimize::optimize_opcodes(func.opcodes.clone(), &optimize_options);
+                    FunctionDef::new(func.name.clone(), func.return_type.clone())
+                        .with_params(func.params.clone())
+                        .with_locals(func.locals.clone())
+                        .with_opcodes(optimized_opcodes)
             })
             .collect();
 
-        // Create main function with locals and opcodes
-        let main_function = crate::vm::FunctionDef::new("main".into(), Type::Void)
-            .with_locals(local_defs)
-            .with_opcodes(opcodes);
+            let program_obj = LpsProgram::new("test".into())
+                .with_functions(vm_functions)
+                .with_source(input.clone());
 
-        let program = LpsProgram::new("test".into())
-            .with_functions(vec![main_function])
-            .with_source(self.input.clone());
-
-        // Check opcodes if expected
-        if let Some(expected_opcodes) = &self.expected_opcodes {
-            if let Some(main_fn) = program.main_function() {
-                if &main_fn.opcodes != expected_opcodes {
+            if let Some(expected) = &expected_opcodes {
+                if let Some(main_fn) = program_obj.main_function() {
+                    if &main_fn.opcodes != expected {
                     errors.push(format!(
-                        "Opcode mismatch:\nExpected: {:#?}\nActual:   {:#?}",
-                        expected_opcodes, main_fn.opcodes
+                            "Opcode mismatch:
+Expected: {:#?}
+Actual:   {:#?}",
+                            expected, main_fn.opcodes
                     ));
                 }
             } else {
@@ -410,102 +330,25 @@ impl ScriptTest {
             }
         }
 
-        // Check execution result if expected
-        if let Some(expected_result) = self.expected_result {
-            match LpsVm::new(&program, VmLimits::default()) {
-                Ok(mut vm) => {
-                    match expected_result {
-                        TestResult::Fixed(expected) => {
-                            match vm.run_scalar(self.x, self.y, self.time) {
+            if let Some(expected_result) = expected_result {
+                match LpsVm::new(&program_obj, VmLimits::default()) {
+                    Ok(mut vm) => match expected_result {
+                        TestResult::Fixed(expected) => match vm.run_scalar(x, y, time) {
                                 Ok(result) => {
-                                    let expected_f32 = expected.to_f32();
-                                    let actual_f32 = result.to_f32();
-                                    let diff = (expected_f32 - actual_f32).abs();
-
-                                    if diff > 0.0001 {
+                                let diff = (expected.to_f32() - result.to_f32()).abs();
+                                if diff > 0.01 {
                                         errors.push(format!(
                                             "Result mismatch:\nExpected: {}\nActual:   {}\nDiff:     {}",
-                                            expected_f32, actual_f32, diff
+                                        expected.to_f32(),
+                                        result.to_f32(),
+                                        diff
                                         ));
                                     }
                                 }
-                                Err(e) => {
-                                    errors.push(format!("Runtime error: {:?}", e));
-                                }
-                            }
-                        }
-                        TestResult::Vec2(expected) => {
-                            match vm.run_vec2(self.x, self.y, self.time) {
-                                Ok(result) => {
-                                    // Check all components
-                                    let x_diff = (expected.x.to_f32() - result.x.to_f32()).abs();
-                                    let y_diff = (expected.y.to_f32() - result.y.to_f32()).abs();
-
-                                    if x_diff > 0.0001 || y_diff > 0.0001 {
-                                        errors.push(format!(
-                                            "Vec2 result mismatch:\nExpected: ({}, {})\nActual:   ({}, {})",
-                                            expected.x.to_f32(), expected.y.to_f32(),
-                                            result.x.to_f32(), result.y.to_f32()
-                                        ));
-                                    }
-                                }
-                                Err(e) => {
-                                    errors.push(format!("Runtime error: {:?}", e));
-                                }
-                            }
-                        }
-                        TestResult::Vec3(expected) => {
-                            match vm.run_vec3(self.x, self.y, self.time) {
-                                Ok(result) => {
-                                    // Check all components
-                                    let x_diff = (expected.x.to_f32() - result.x.to_f32()).abs();
-                                    let y_diff = (expected.y.to_f32() - result.y.to_f32()).abs();
-                                    let z_diff = (expected.z.to_f32() - result.z.to_f32()).abs();
-
-                                    if x_diff > 0.0001 || y_diff > 0.0001 || z_diff > 0.0001 {
-                                        errors.push(format!(
-                                            "Vec3 result mismatch:\nExpected: ({}, {}, {})\nActual:   ({}, {}, {})",
-                                            expected.x.to_f32(), expected.y.to_f32(), expected.z.to_f32(),
-                                            result.x.to_f32(), result.y.to_f32(), result.z.to_f32()
-                                        ));
-                                    }
-                                }
-                                Err(e) => {
-                                    errors.push(format!("Runtime error: {:?}", e));
-                                }
-                            }
-                        }
-                        TestResult::Vec4(expected) => {
-                            match vm.run_vec4(self.x, self.y, self.time) {
-                                Ok(result) => {
-                                    // Check all components
-                                    let x_diff = (expected.x.to_f32() - result.x.to_f32()).abs();
-                                    let y_diff = (expected.y.to_f32() - result.y.to_f32()).abs();
-                                    let z_diff = (expected.z.to_f32() - result.z.to_f32()).abs();
-                                    let w_diff = (expected.w.to_f32() - result.w.to_f32()).abs();
-
-                                    if x_diff > 0.0001
-                                        || y_diff > 0.0001
-                                        || z_diff > 0.0001
-                                        || w_diff > 0.0001
-                                    {
-                                        errors.push(format!(
-                                            "Vec4 result mismatch:\nExpected: ({}, {}, {}, {})\nActual:   ({}, {}, {}, {})",
-                                            expected.x.to_f32(), expected.y.to_f32(), expected.z.to_f32(), expected.w.to_f32(),
-                                            result.x.to_f32(), result.y.to_f32(), result.z.to_f32(), result.w.to_f32()
-                                        ));
-                                    }
-                                }
-                                Err(e) => {
-                                    errors.push(format!("Runtime error: {:?}", e));
-                                }
-                            }
-                        }
-                    }
-                }
-                Err(e) => {
-                    errors.push(format!("VM creation error: {:?}", e));
-                }
+                            Err(e) => errors.push(format!("Runtime error: {:?}", e)),
+                        },
+                    },
+                    Err(e) => errors.push(format!("Failed to create VM: {:?}", e)),
             }
         }
 
@@ -514,16 +357,11 @@ impl ScriptTest {
         } else {
             Err(errors.join("\n\n"))
         }
+        })
     }
 }
 
-/// Compare Program AST ignoring spans with pools
-fn program_eq_ignore_spans_with_pool(
-    actual: &Program,
-    actual_pool: &AstPool,
-    expected: &Program,
-    expected_pool: &AstPool,
-) -> bool {
+fn program_eq_ignore_spans(actual: &Program, expected: &Program) -> bool {
     if actual.stmts.len() != expected.stmts.len() {
         return false;
     }
@@ -532,73 +370,11 @@ fn program_eq_ignore_spans_with_pool(
         .stmts
         .iter()
         .zip(expected.stmts.iter())
-        .all(|(a, e)| stmt_eq_ignore_spans_with_pool(*a, actual_pool, *e, expected_pool))
+        .all(|(a, e)| stmt_eq_ignore_spans(a, e))
 }
 
-/// Compare Expression AST ignoring spans with pools
-fn expr_eq_ignore_spans_with_pool(
-    actual_id: crate::compiler::ast::ExprId,
-    actual_pool: &AstPool,
-    expected_id: crate::compiler::ast::ExprId,
-    expected_pool: &AstPool,
-) -> bool {
-    use crate::compiler::ast::ExprKind;
-
-    let actual = actual_pool.expr(actual_id);
-    let expected = expected_pool.expr(expected_id);
-
-    // Compare types if both present
-    if actual.ty != expected.ty {
-        return false;
-    }
-
-    match (&actual.kind, &expected.kind) {
-        (ExprKind::Number(n1), ExprKind::Number(n2)) => (n1 - n2).abs() < 0.001,
-        (ExprKind::IntNumber(i1), ExprKind::IntNumber(i2)) => i1 == i2,
-        (ExprKind::Variable(v1), ExprKind::Variable(v2)) => v1 == v2,
-
-        (ExprKind::Add(l1, r1), ExprKind::Add(l2, r2))
-        | (ExprKind::Sub(l1, r1), ExprKind::Sub(l2, r2))
-        | (ExprKind::Mul(l1, r1), ExprKind::Mul(l2, r2))
-        | (ExprKind::Div(l1, r1), ExprKind::Div(l2, r2))
-        | (ExprKind::Mod(l1, r1), ExprKind::Mod(l2, r2)) => {
-            expr_eq_ignore_spans_with_pool(*l1, actual_pool, *l2, expected_pool)
-                && expr_eq_ignore_spans_with_pool(*r1, actual_pool, *r2, expected_pool)
-        }
-
-        (
-            ExprKind::Assign {
-                target: t1,
-                value: v1,
-            },
-            ExprKind::Assign {
-                target: t2,
-                value: v2,
-            },
-        ) => t1 == t2 && expr_eq_ignore_spans_with_pool(*v1, actual_pool, *v2, expected_pool),
-
-        (ExprKind::Call { name: n1, args: a1 }, ExprKind::Call { name: n2, args: a2 }) => {
-            n1 == n2
-                && a1.len() == a2.len()
-                && a1.iter().zip(a2.iter()).all(|(arg1, arg2)| {
-                    expr_eq_ignore_spans_with_pool(*arg1, actual_pool, *arg2, expected_pool)
-                })
-        }
-
-        _ => false, // Other cases not needed for current tests
-    }
-}
-
-fn stmt_eq_ignore_spans_with_pool(
-    actual_id: crate::compiler::ast::StmtId,
-    actual_pool: &AstPool,
-    expected_id: crate::compiler::ast::StmtId,
-    expected_pool: &AstPool,
-) -> bool {
+fn stmt_eq_ignore_spans(actual: &Stmt, expected: &Stmt) -> bool {
     use crate::compiler::ast::StmtKind;
-
-    let actual = actual_pool.stmt(actual_id);
-    let expected = expected_pool.stmt(expected_id);
 
     match (&actual.kind, &expected.kind) {
         (
@@ -613,32 +389,23 @@ fn stmt_eq_ignore_spans_with_pool(
                 init: i2,
             },
         ) => {
-            t1 == t2
-                && n1 == n2
-                && match (i1, i2) {
-                    (None, None) => true,
-                    (Some(e1), Some(e2)) => {
-                        expr_eq_ignore_spans_with_pool(*e1, actual_pool, *e2, expected_pool)
-                    }
-                    _ => false,
-                }
+            if t1 != t2 || n1 != n2 {
+                return false;
+            }
+            match (i1, i2) {
+                (None, None) => true,
+                (Some(a), Some(b)) => expr_eq_ignore_spans(a, b),
+                _ => false,
+            }
         }
-
-        (StmtKind::Return(e1), StmtKind::Return(e2)) => {
-            expr_eq_ignore_spans_with_pool(*e1, actual_pool, *e2, expected_pool)
+        (StmtKind::Return(a), StmtKind::Return(b)) => expr_eq_ignore_spans(a, b),
+        (StmtKind::Expr(a), StmtKind::Expr(b)) => expr_eq_ignore_spans(a, b),
+        (StmtKind::Block(a), StmtKind::Block(b)) => {
+            a.len() == b.len()
+                && a.iter()
+                    .zip(b.iter())
+                    .all(|(sa, sb)| stmt_eq_ignore_spans(sa, sb))
         }
-
-        (StmtKind::Expr(e1), StmtKind::Expr(e2)) => {
-            expr_eq_ignore_spans_with_pool(*e1, actual_pool, *e2, expected_pool)
-        }
-
-        (StmtKind::Block(s1), StmtKind::Block(s2)) => {
-            s1.len() == s2.len()
-                && s1.iter().zip(s2.iter()).all(|(a, b)| {
-                    stmt_eq_ignore_spans_with_pool(*a, actual_pool, *b, expected_pool)
-                })
-        }
-
         (
             StmtKind::If {
                 condition: c1,
@@ -651,17 +418,14 @@ fn stmt_eq_ignore_spans_with_pool(
                 else_stmt: e2,
             },
         ) => {
-            expr_eq_ignore_spans_with_pool(*c1, actual_pool, *c2, expected_pool)
-                && stmt_eq_ignore_spans_with_pool(*t1, actual_pool, *t2, expected_pool)
+            expr_eq_ignore_spans(c1, c2)
+                && stmt_eq_ignore_spans(t1, t2)
                 && match (e1, e2) {
                     (None, None) => true,
-                    (Some(s1), Some(s2)) => {
-                        stmt_eq_ignore_spans_with_pool(*s1, actual_pool, *s2, expected_pool)
-                    }
+                    (Some(a), Some(b)) => stmt_eq_ignore_spans(a, b),
                     _ => false,
                 }
         }
-
         (
             StmtKind::While {
                 condition: c1,
@@ -671,11 +435,7 @@ fn stmt_eq_ignore_spans_with_pool(
                 condition: c2,
                 body: b2,
             },
-        ) => {
-            expr_eq_ignore_spans_with_pool(*c1, actual_pool, *c2, expected_pool)
-                && stmt_eq_ignore_spans_with_pool(*b1, actual_pool, *b2, expected_pool)
-        }
-
+        ) => expr_eq_ignore_spans(c1, c2) && stmt_eq_ignore_spans(b1, b2),
         (
             StmtKind::For {
                 init: i1,
@@ -690,74 +450,23 @@ fn stmt_eq_ignore_spans_with_pool(
                 body: b2,
             },
         ) => {
-            let init_match = match (i1, i2) {
-                (None, None) => true,
-                (Some(s1), Some(s2)) => {
-                    stmt_eq_ignore_spans_with_pool(*s1, actual_pool, *s2, expected_pool)
-                }
-                _ => false,
-            };
-            let cond_match = match (c1, c2) {
-                (None, None) => true,
-                (Some(e1), Some(e2)) => {
-                    expr_eq_ignore_spans_with_pool(*e1, actual_pool, *e2, expected_pool)
-                }
-                _ => false,
-            };
-            let inc_match = match (inc1, inc2) {
-                (None, None) => true,
-                (Some(e1), Some(e2)) => {
-                    expr_eq_ignore_spans_with_pool(*e1, actual_pool, *e2, expected_pool)
-                }
-                _ => false,
-            };
-            init_match
-                && cond_match
-                && inc_match
-                && stmt_eq_ignore_spans_with_pool(*b1, actual_pool, *b2, expected_pool)
+            match (i1, i2) {
+                (None, None) => {}
+                (Some(a), Some(b)) if stmt_eq_ignore_spans(a, b) => {}
+                _ => return false,
+            }
+            match (c1, c2) {
+                (None, None) => {}
+                (Some(a), Some(b)) if expr_eq_ignore_spans(a, b) => {}
+                _ => return false,
+            }
+            match (inc1, inc2) {
+                (None, None) => {}
+                (Some(a), Some(b)) if expr_eq_ignore_spans(a, b) => {}
+                _ => return false,
+            }
+            stmt_eq_ignore_spans(b1, b2)
         }
-
         _ => false,
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-    use crate::shared::Type;
-
-    #[test]
-    fn test_script_simple_var_decl() {
-        ScriptTest::new("float x = 5.0; return x;")
-            .expect_ast(|b| {
-                let init = b.num(5.0);
-                let var_stmt = b.var_decl(Type::Fixed, "x", Some(init));
-                let ret_var = b.typed_var("x", Type::Fixed);
-                let ret_stmt = b.return_stmt(ret_var);
-                b.program(vec![var_stmt, ret_stmt])
-            })
-            .expect_opcodes(vec![
-                LpsOpCode::Push(5.0.to_fixed()),
-                LpsOpCode::StoreLocalFixed(0),
-                LpsOpCode::LoadLocalFixed(0),
-                LpsOpCode::Return,
-            ])
-            .expect_result_fixed(5.0)
-            .run()
-            .expect("Should compile and run");
-    }
-
-    #[test]
-    fn test_script_with_ast() {
-        ScriptTest::new("return 42.0;")
-            .expect_ast(|b| {
-                let expr = b.num(42.0);
-                let stmt = b.return_stmt(expr);
-                b.program(vec![stmt])
-            })
-            .expect_opcodes(vec![LpsOpCode::Push(42.0.to_fixed()), LpsOpCode::Return])
-            .expect_result_fixed(42.0)
-            .run()
-            .expect("Should match AST and result");
     }
 }

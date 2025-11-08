@@ -1,5 +1,7 @@
+use lp_pool::LpBox;
+
 /// Comparison operator parsing (<, >, <=, >=, ==, !=)
-use crate::compiler::ast::{ExprId, ExprKind};
+use crate::compiler::ast::{Expr, ExprKind};
 use crate::compiler::error::ParseError;
 use crate::compiler::lexer::TokenKind;
 use crate::compiler::parser::Parser;
@@ -7,91 +9,88 @@ use crate::shared::Span;
 
 impl Parser {
     // Equality: == !=
-    pub(crate) fn equality(&mut self) -> Result<ExprId, ParseError> {
+    pub(crate) fn equality(&mut self) -> Result<Expr, ParseError> {
         self.enter_recursion()?;
-        let mut expr_id = self.relational()?;
+        let mut expr = self.relational()?;
 
         loop {
-            let start = self.pool.expr(expr_id).span.start;
+            let start = expr.span.start;
             match &self.current().kind {
                 TokenKind::EqEq => {
                     self.advance();
-                    let right_id = self.relational()?;
-                    let end = self.pool.expr(right_id).span.end;
-                    expr_id = self
-                        .pool
-                        .alloc_expr(ExprKind::Eq(expr_id, right_id), Span::new(start, end))
-                        .map_err(|e| self.pool_error_to_parse_error(e))?;
+                    let right = self.relational()?;
+                    let end = right.span.end;
+                    expr = Expr::new(
+                        ExprKind::Eq(LpBox::try_new(expr)?, LpBox::try_new(right)?),
+                        Span::new(start, end),
+                    );
                 }
                 TokenKind::NotEq => {
                     self.advance();
-                    let right_id = self.relational()?;
-                    let end = self.pool.expr(right_id).span.end;
-                    expr_id = self
-                        .pool
-                        .alloc_expr(ExprKind::NotEq(expr_id, right_id), Span::new(start, end))
-                        .map_err(|e| self.pool_error_to_parse_error(e))?;
+                    let right = self.relational()?;
+                    let end = right.span.end;
+                    expr = Expr::new(
+                        ExprKind::NotEq(LpBox::try_new(expr)?, LpBox::try_new(right)?),
+                        Span::new(start, end),
+                    );
                 }
                 _ => break,
             }
         }
 
         self.exit_recursion();
-        Ok(expr_id)
+        Ok(expr)
     }
 
     // Relational: < > <= >=
-    pub(crate) fn relational(&mut self) -> Result<ExprId, ParseError> {
+    pub(crate) fn relational(&mut self) -> Result<Expr, ParseError> {
         self.enter_recursion()?;
-        let mut expr_id = self.shift()?;
+        let mut expr = self.shift()?;
 
         loop {
-            let start = self.pool.expr(expr_id).span.start;
+            let start = expr.span.start;
             match &self.current().kind {
                 TokenKind::Less => {
                     self.advance();
-                    let right_id = self.shift()?;
-                    let end = self.pool.expr(right_id).span.end;
-                    expr_id = self
-                        .pool
-                        .alloc_expr(ExprKind::Less(expr_id, right_id), Span::new(start, end))
-                        .map_err(|e| self.pool_error_to_parse_error(e))?;
+                    let right = self.shift()?;
+                    let end = right.span.end;
+                    expr = Expr::new(
+                        ExprKind::Less(LpBox::try_new(expr)?, LpBox::try_new(right)?),
+                        Span::new(start, end),
+                    );
                 }
                 TokenKind::Greater => {
                     self.advance();
-                    let right_id = self.shift()?;
-                    let end = self.pool.expr(right_id).span.end;
-                    expr_id = self
-                        .pool
-                        .alloc_expr(ExprKind::Greater(expr_id, right_id), Span::new(start, end))
-                        .map_err(|e| self.pool_error_to_parse_error(e))?;
+                    let right = self.shift()?;
+                    let end = right.span.end;
+                    expr = Expr::new(
+                        ExprKind::Greater(LpBox::try_new(expr)?, LpBox::try_new(right)?),
+                        Span::new(start, end),
+                    );
                 }
                 TokenKind::LessEq => {
                     self.advance();
-                    let right_id = self.shift()?;
-                    let end = self.pool.expr(right_id).span.end;
-                    expr_id = self
-                        .pool
-                        .alloc_expr(ExprKind::LessEq(expr_id, right_id), Span::new(start, end))
-                        .map_err(|e| self.pool_error_to_parse_error(e))?;
+                    let right = self.shift()?;
+                    let end = right.span.end;
+                    expr = Expr::new(
+                        ExprKind::LessEq(LpBox::try_new(expr)?, LpBox::try_new(right)?),
+                        Span::new(start, end),
+                    );
                 }
                 TokenKind::GreaterEq => {
                     self.advance();
-                    let right_id = self.shift()?;
-                    let end = self.pool.expr(right_id).span.end;
-                    expr_id = self
-                        .pool
-                        .alloc_expr(
-                            ExprKind::GreaterEq(expr_id, right_id),
-                            Span::new(start, end),
-                        )
-                        .map_err(|e| self.pool_error_to_parse_error(e))?;
+                    let right = self.shift()?;
+                    let end = right.span.end;
+                    expr = Expr::new(
+                        ExprKind::GreaterEq(LpBox::try_new(expr)?, LpBox::try_new(right)?),
+                        Span::new(start, end),
+                    );
                 }
                 _ => break,
             }
         }
 
         self.exit_recursion();
-        Ok(expr_id)
+        Ok(expr)
     }
 }

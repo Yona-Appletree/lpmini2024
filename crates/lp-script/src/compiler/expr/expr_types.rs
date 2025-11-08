@@ -2,97 +2,103 @@
 extern crate alloc;
 use alloc::vec;
 
-use crate::compiler::ast::{AstPool, ExprId, ExprKind};
+use crate::compiler::ast::{Expr, ExprKind};
 use crate::compiler::error::{TypeError, TypeErrorKind};
 use crate::compiler::typechecker::{FunctionTable, SymbolTable, TypeChecker};
 use crate::shared::Type;
 
 impl TypeChecker {
-    /// Type check an expression by ID, mutating the pool
-    pub(crate) fn infer_type_id(
-        pool: &mut AstPool,
-        expr_id: ExprId,
+    /// Type check an expression, mutating it in place
+    pub(crate) fn infer_type(
+        expr: &mut Expr,
         symbols: &mut SymbolTable,
         func_table: &FunctionTable,
     ) -> Result<(), TypeError> {
-        // Clone the expression kind to avoid borrow issues
-        let expr_kind = pool.expr(expr_id).kind.clone();
-        let expr_span = pool.expr(expr_id).span;
+        let expr_span = expr.span;
 
-        match &expr_kind {
+        match &mut expr.kind {
             // Literals
             ExprKind::Number(_) => {
-                pool.expr_mut(expr_id).ty = Some(Self::check_number());
+                expr.ty = Some(Self::check_number());
             }
 
             ExprKind::IntNumber(_) => {
-                pool.expr_mut(expr_id).ty = Some(Self::check_int_number());
+                expr.ty = Some(Self::check_int_number());
             }
 
             ExprKind::Variable(name) => {
                 let var_type =
                     crate::compiler::expr::variable::check_variable(name, symbols, expr_span)?;
-                pool.expr_mut(expr_id).ty = Some(var_type);
+                expr.ty = Some(var_type);
             }
 
             // Binary arithmetic operations
-            ExprKind::Add(left_id, right_id)
-            | ExprKind::Sub(left_id, right_id)
-            | ExprKind::Mul(left_id, right_id)
-            | ExprKind::Div(left_id, right_id)
-            | ExprKind::Mod(left_id, right_id) => {
-                let result_ty = crate::compiler::expr::binary::check_binary_arithmetic_id(
-                    pool, *left_id, *right_id, symbols, func_table, expr_span,
+            ExprKind::Add(left, right)
+            | ExprKind::Sub(left, right)
+            | ExprKind::Mul(left, right)
+            | ExprKind::Div(left, right)
+            | ExprKind::Mod(left, right) => {
+                let result_ty = crate::compiler::expr::binary::check_binary_arithmetic(
+                    left.as_mut(),
+                    right.as_mut(),
+                    symbols,
+                    func_table,
+                    expr_span,
                 )?;
-                pool.expr_mut(expr_id).ty = Some(result_ty);
+                expr.ty = Some(result_ty);
             }
 
             // Bitwise operations (Int32 only)
-            ExprKind::BitwiseAnd(left_id, right_id)
-            | ExprKind::BitwiseOr(left_id, right_id)
-            | ExprKind::BitwiseXor(left_id, right_id)
-            | ExprKind::LeftShift(left_id, right_id)
-            | ExprKind::RightShift(left_id, right_id) => {
-                let result_ty = Self::check_bitwise_binary_id(
-                    pool, *left_id, *right_id, symbols, func_table, expr_span,
+            ExprKind::BitwiseAnd(left, right)
+            | ExprKind::BitwiseOr(left, right)
+            | ExprKind::BitwiseXor(left, right)
+            | ExprKind::LeftShift(left, right)
+            | ExprKind::RightShift(left, right) => {
+                let result_ty = Self::check_bitwise_binary(
+                    left.as_mut(),
+                    right.as_mut(),
+                    symbols,
+                    func_table,
+                    expr_span,
                 )?;
-                pool.expr_mut(expr_id).ty = Some(result_ty);
+                expr.ty = Some(result_ty);
             }
 
-            ExprKind::BitwiseNot(operand_id) => {
+            ExprKind::BitwiseNot(operand) => {
                 let result_ty =
-                    Self::check_bitwise_not_id(pool, *operand_id, symbols, func_table, expr_span)?;
-                pool.expr_mut(expr_id).ty = Some(result_ty);
+                    Self::check_bitwise_not(operand.as_mut(), symbols, func_table, expr_span)?;
+                expr.ty = Some(result_ty);
             }
 
             // Comparisons
-            ExprKind::Less(left_id, right_id)
-            | ExprKind::Greater(left_id, right_id)
-            | ExprKind::LessEq(left_id, right_id)
-            | ExprKind::GreaterEq(left_id, right_id)
-            | ExprKind::Eq(left_id, right_id)
-            | ExprKind::NotEq(left_id, right_id) => {
-                let ty = Self::check_comparison_id(pool, *left_id, *right_id, symbols, func_table)?;
-                pool.expr_mut(expr_id).ty = Some(ty);
+            ExprKind::Less(left, right)
+            | ExprKind::Greater(left, right)
+            | ExprKind::LessEq(left, right)
+            | ExprKind::GreaterEq(left, right)
+            | ExprKind::Eq(left, right)
+            | ExprKind::NotEq(left, right) => {
+                let ty =
+                    Self::check_comparison(left.as_mut(), right.as_mut(), symbols, func_table)?;
+                expr.ty = Some(ty);
             }
 
             // Logical operations
-            ExprKind::And(left_id, right_id) | ExprKind::Or(left_id, right_id) => {
+            ExprKind::And(left, right) | ExprKind::Or(left, right) => {
                 let result_ty =
-                    Self::check_logical_id(pool, *left_id, *right_id, symbols, func_table)?;
-                pool.expr_mut(expr_id).ty = Some(result_ty);
+                    Self::check_logical(left.as_mut(), right.as_mut(), symbols, func_table)?;
+                expr.ty = Some(result_ty);
             }
 
-            ExprKind::Not(operand_id) => {
-                Self::infer_type_id(pool, *operand_id, symbols, func_table)?;
-                pool.expr_mut(expr_id).ty = Some(Type::Bool);
+            ExprKind::Not(operand) => {
+                Self::infer_type(operand.as_mut(), symbols, func_table)?;
+                expr.ty = Some(Type::Bool);
             }
 
             // Unary negation
-            ExprKind::Neg(operand_id) => {
-                Self::infer_type_id(pool, *operand_id, symbols, func_table)?;
-                let operand_ty = pool.expr(*operand_id).ty.clone();
-                pool.expr_mut(expr_id).ty = operand_ty;
+            ExprKind::Neg(operand) => {
+                Self::infer_type(operand.as_mut(), symbols, func_table)?;
+                let operand_ty = operand.ty.clone();
+                expr.ty = operand_ty;
             }
 
             // Increment/Decrement
@@ -101,7 +107,7 @@ impl TypeChecker {
             | ExprKind::PostIncrement(name)
             | ExprKind::PostDecrement(name) => {
                 let ty = crate::compiler::expr::variable::check_incdec(name, symbols, expr_span)?;
-                pool.expr_mut(expr_id).ty = Some(ty);
+                expr.ty = Some(ty);
             }
 
             // Ternary
@@ -110,56 +116,48 @@ impl TypeChecker {
                 true_expr,
                 false_expr,
             } => {
-                let ty = Self::check_ternary_id(
-                    pool,
-                    *condition,
-                    *true_expr,
-                    *false_expr,
+                let ty = Self::check_ternary(
+                    condition.as_mut(),
+                    true_expr.as_mut(),
+                    false_expr.as_mut(),
                     symbols,
                     func_table,
                 )?;
-                pool.expr_mut(expr_id).ty = Some(ty);
+                expr.ty = Some(ty);
             }
 
             // Assignment
             ExprKind::Assign { target, value } => {
-                let ty = Self::check_assign_id(pool, target, *value, symbols, func_table)?;
-                pool.expr_mut(expr_id).ty = Some(ty);
+                let ty = Self::check_assign(target, value.as_mut(), symbols, func_table)?;
+                expr.ty = Some(ty);
             }
 
             // Function call
             ExprKind::Call { name, args } => {
-                let (ty, expanded_id) = crate::compiler::expr::call::check_call_id(
-                    pool, name, args, symbols, func_table, expr_span,
+                let (ty, expanded_expr) = crate::compiler::expr::call::check_call(
+                    name, args, symbols, func_table, expr_span,
                 )?;
 
-                if let Some(expanded) = expanded_id {
+                if let Some(expanded) = expanded_expr {
                     // Replace this call with the expanded component-wise version
-                    // Copy the expanded expression to this location
-                    let expanded_kind = pool.expr(expanded).kind.clone();
-                    let expanded_ty = pool.expr(expanded).ty.clone();
-                    pool.expr_mut(expr_id).kind = expanded_kind;
-                    pool.expr_mut(expr_id).ty = expanded_ty;
+                    *expr = expanded;
                 } else {
-                    pool.expr_mut(expr_id).ty = Some(ty);
+                    expr.ty = Some(ty);
                 }
             }
 
             // Vector constructors
             ExprKind::Vec2Constructor(args) => {
-                let ty =
-                    Self::check_vec_constructor_id(pool, args, 2, symbols, func_table, expr_span)?;
-                pool.expr_mut(expr_id).ty = Some(ty);
+                let ty = Self::check_vec_constructor(args, 2, symbols, func_table, expr_span)?;
+                expr.ty = Some(ty);
             }
             ExprKind::Vec3Constructor(args) => {
-                let ty =
-                    Self::check_vec_constructor_id(pool, args, 3, symbols, func_table, expr_span)?;
-                pool.expr_mut(expr_id).ty = Some(ty);
+                let ty = Self::check_vec_constructor(args, 3, symbols, func_table, expr_span)?;
+                expr.ty = Some(ty);
             }
             ExprKind::Vec4Constructor(args) => {
-                let ty =
-                    Self::check_vec_constructor_id(pool, args, 4, symbols, func_table, expr_span)?;
-                pool.expr_mut(expr_id).ty = Some(ty);
+                let ty = Self::check_vec_constructor(args, 4, symbols, func_table, expr_span)?;
+                expr.ty = Some(ty);
             }
 
             // Swizzle
@@ -168,8 +166,8 @@ impl TypeChecker {
                 components,
             } => {
                 let ty =
-                    Self::check_swizzle_id(pool, *swizzle_expr, components, symbols, func_table)?;
-                pool.expr_mut(expr_id).ty = Some(ty);
+                    Self::check_swizzle(swizzle_expr.as_mut(), components, symbols, func_table)?;
+                expr.ty = Some(ty);
             }
         }
 
@@ -188,101 +186,93 @@ impl TypeChecker {
     // Helper methods delegated to specific modules:
     // check_variable - delegated to variable/variable_types.rs
     // check_incdec - delegated to variable/variable_types.rs
-    // Helper methods that work with IDs instead of references
-    // check_binary_arithmetic_id - delegated to binary/binary_types.rs
+    // check_binary_arithmetic - delegated to binary/binary_types.rs
 
-    fn check_bitwise_binary_id(
-        pool: &mut AstPool,
-        left_id: ExprId,
-        right_id: ExprId,
+    fn check_bitwise_binary(
+        left: &mut Expr,
+        right: &mut Expr,
         symbols: &mut SymbolTable,
         func_table: &FunctionTable,
         _span: crate::shared::Span,
     ) -> Result<Type, TypeError> {
-        Self::infer_type_id(pool, left_id, symbols, func_table)?;
-        Self::infer_type_id(pool, right_id, symbols, func_table)?;
+        Self::infer_type(left, symbols, func_table)?;
+        Self::infer_type(right, symbols, func_table)?;
         Ok(Type::Int32)
     }
 
-    fn check_bitwise_not_id(
-        pool: &mut AstPool,
-        operand_id: ExprId,
+    fn check_bitwise_not(
+        operand: &mut Expr,
         symbols: &mut SymbolTable,
         func_table: &FunctionTable,
         _span: crate::shared::Span,
     ) -> Result<Type, TypeError> {
-        Self::infer_type_id(pool, operand_id, symbols, func_table)?;
+        Self::infer_type(operand, symbols, func_table)?;
         Ok(Type::Int32)
     }
 
-    fn check_comparison_id(
-        pool: &mut AstPool,
-        left_id: ExprId,
-        right_id: ExprId,
+    fn check_comparison(
+        left: &mut Expr,
+        right: &mut Expr,
         symbols: &mut SymbolTable,
         func_table: &FunctionTable,
     ) -> Result<Type, TypeError> {
-        Self::infer_type_id(pool, left_id, symbols, func_table)?;
-        Self::infer_type_id(pool, right_id, symbols, func_table)?;
+        Self::infer_type(left, symbols, func_table)?;
+        Self::infer_type(right, symbols, func_table)?;
         Ok(Type::Bool)
     }
 
-    fn check_logical_id(
-        pool: &mut AstPool,
-        left_id: ExprId,
-        right_id: ExprId,
+    fn check_logical(
+        left: &mut Expr,
+        right: &mut Expr,
         symbols: &mut SymbolTable,
         func_table: &FunctionTable,
     ) -> Result<Type, TypeError> {
-        Self::infer_type_id(pool, left_id, symbols, func_table)?;
-        Self::infer_type_id(pool, right_id, symbols, func_table)?;
+        Self::infer_type(left, symbols, func_table)?;
+        Self::infer_type(right, symbols, func_table)?;
         Ok(Type::Bool)
     }
 
-    fn check_ternary_id(
-        pool: &mut AstPool,
-        condition_id: ExprId,
-        true_id: ExprId,
-        false_id: ExprId,
+    fn check_ternary(
+        condition: &mut Expr,
+        true_expr: &mut Expr,
+        false_expr: &mut Expr,
         symbols: &mut SymbolTable,
         func_table: &FunctionTable,
     ) -> Result<Type, TypeError> {
-        Self::infer_type_id(pool, condition_id, symbols, func_table)?;
-        Self::infer_type_id(pool, true_id, symbols, func_table)?;
-        Self::infer_type_id(pool, false_id, symbols, func_table)?;
+        Self::infer_type(condition, symbols, func_table)?;
+        Self::infer_type(true_expr, symbols, func_table)?;
+        Self::infer_type(false_expr, symbols, func_table)?;
 
-        let true_ty = pool.expr(true_id).ty.clone().unwrap_or(Type::Fixed);
+        let true_ty = true_expr.ty.clone().unwrap_or(Type::Fixed);
         Ok(true_ty)
     }
 
-    fn check_assign_id(
-        pool: &mut AstPool,
+    fn check_assign(
         target: &str,
-        value_id: ExprId,
+        value: &mut Expr,
         symbols: &mut SymbolTable,
         func_table: &FunctionTable,
     ) -> Result<Type, TypeError> {
         use alloc::string::ToString;
-        Self::infer_type_id(pool, value_id, symbols, func_table)?;
-        let value_ty = pool.expr(value_id).ty.clone().unwrap_or(Type::Fixed);
+        Self::infer_type(value, symbols, func_table)?;
+        let value_ty = value.ty.clone().unwrap_or(Type::Fixed);
 
         // Update symbol table
         symbols.set(target.to_string(), value_ty.clone());
         Ok(value_ty)
     }
 
-    // check_call_id - delegated to call/call_types.rs
+    // check_call - delegated to call/call_types.rs
 
-    fn check_vec_constructor_id(
-        pool: &mut AstPool,
-        args: &[ExprId],
+    fn check_vec_constructor(
+        args: &mut [Expr],
         _dim: usize,
         symbols: &mut SymbolTable,
         func_table: &FunctionTable,
         _span: crate::shared::Span,
     ) -> Result<Type, TypeError> {
-        for &arg_id in args {
-            Self::infer_type_id(pool, arg_id, symbols, func_table)?;
+        for arg in args.iter_mut() {
+            Self::infer_type(arg, symbols, func_table)?;
         }
 
         // Return appropriate vector type based on dimension
@@ -294,18 +284,16 @@ impl TypeChecker {
         })
     }
 
-    fn check_swizzle_id(
-        pool: &mut AstPool,
-        expr_id: ExprId,
+    fn check_swizzle(
+        swizzle_expr: &mut Expr,
         components: &str,
         symbols: &mut SymbolTable,
         func_table: &FunctionTable,
     ) -> Result<Type, TypeError> {
-        Self::infer_type_id(pool, expr_id, symbols, func_table)?;
+        Self::infer_type(swizzle_expr, symbols, func_table)?;
 
-        let base_expr = pool.expr(expr_id);
-        let base_ty = base_expr.ty.as_ref().unwrap();
-        let span = base_expr.span;
+        let base_ty = swizzle_expr.ty.as_ref().unwrap();
+        let span = swizzle_expr.span;
 
         // Validate that base is a vector
         let base_size = match base_ty {

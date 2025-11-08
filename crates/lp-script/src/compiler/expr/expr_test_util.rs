@@ -1,27 +1,25 @@
+#![cfg(test)]
 /// Test utilities for lp-script expressions - builder pattern for clean testing
-#[cfg(test)]
+extern crate alloc;
+use alloc::boxed::Box;
 use alloc::string::String;
-#[cfg(test)]
 use alloc::vec::Vec;
+use alloc::{format, vec};
+use core::ptr::NonNull;
 
-#[cfg(test)]
-use crate::compiler::ast::{AstPool, ExprId};
-#[cfg(test)]
+use lp_pool::LpMemoryPool;
+
+use crate::compiler::ast::Expr;
 use crate::compiler::optimize::OptimizeOptions;
-#[cfg(test)]
 use crate::compiler::test_ast::AstBuilder;
-#[cfg(test)]
 use crate::compiler::{codegen, lexer, optimize, parser, typechecker};
-#[cfg(test)]
 use crate::fixed::{Fixed, ToFixed, Vec2, Vec3, Vec4};
-#[cfg(test)]
 use crate::shared::Type;
-#[cfg(test)]
 use crate::vm::lps_vm::LpsVm;
-#[cfg(test)]
 use crate::vm::vm_limits::VmLimits;
-#[cfg(test)]
 use crate::vm::{LpsOpCode, LpsProgram};
+
+type ExprBuilder = Box<dyn FnOnce(&mut AstBuilder) -> Expr>;
 
 /// Builder for testing expressions through the compilation pipeline
 ///
@@ -29,14 +27,11 @@ use crate::vm::{LpsOpCode, LpsProgram};
 /// that derive their values from the VM's run() parameters. Use `.with_vm_params()`
 /// to set these. For script mode tests, you would use `.local_*()` methods instead.
 #[cfg(test)]
-type AstBuilderFn = Box<dyn FnOnce(&mut AstBuilder) -> ExprId>;
-
-#[cfg(test)]
 pub struct ExprTest {
     input: String,
     declared_locals: Vec<(String, Type)>, // For symbol table
     local_initial_values: Vec<(String, Vec<i32>)>, /* Initial values for locals (raw i32 representation) */
-    expected_ast_builder: Option<AstBuilderFn>,
+    expected_ast_builder: Option<ExprBuilder>,
     expected_opcodes: Option<Vec<LpsOpCode>>,
     expected_result: Option<TestResult>,
     expected_locals: Vec<(String, Fixed)>, // Expected local values after execution
@@ -150,10 +145,10 @@ impl ExprTest {
     }
 
     /// Expect a specific AST structure built with a closure
-    /// The closure receives an AstBuilder and returns the root ExprId
+    /// The closure receives an AstBuilder and returns the root Expr
     pub fn expect_ast<F>(mut self, builder_fn: F) -> Self
     where
-        F: FnOnce(&mut AstBuilder) -> ExprId + 'static,
+        F: FnOnce(&mut AstBuilder) -> Expr + 'static,
     {
         self.expected_ast_builder = Some(Box::new(builder_fn));
         self
@@ -216,367 +211,277 @@ impl ExprTest {
     /// Run all expectations and return result
     /// Collects all errors instead of stopping at the first one
     pub fn run(self) -> Result<(), String> {
-        let mut errors = Vec::new();
+        const POOL_SIZE: usize = 512 * 1024;
+        let mut memory = vec![0u8; POOL_SIZE];
+        let memory_ptr =
+            NonNull::new(memory.as_mut_ptr()).ok_or_else(|| String::from("pool memory null"))?;
+        let pool = unsafe { LpMemoryPool::new(memory_ptr, POOL_SIZE).map_err(String::from)? };
 
-        // Parse the input
-        let mut lexer = lexer::Lexer::new(&self.input);
-        let tokens = lexer.tokenize();
-        let mut parser = parser::Parser::new(tokens);
-        let ast_id = match parser.parse() {
-            Ok(id) => id,
-            Err(e) => {
-                errors.push(format!("Parse error: {}", e));
-                return Err(errors.join("\n\n"));
-            }
-        };
-        let pool = parser.pool;
+        let ExprTest {
+            input,
+            declared_locals,
+            local_initial_values,
+            expected_ast_builder,
+            expected_opcodes,
+            expected_result,
+            expected_locals,
+            optimize_options,
+            x,
+            y,
+            time,
+        } = self;
 
-        // Type check
-        let (typed_ast_id, pool) = match typechecker::TypeChecker::check(ast_id, pool) {
-            Ok(result) => result,
-            Err(e) => {
+        pool.run(|| {
+            let mut errors = Vec::new();
+
+            let mut lexer = lexer::Lexer::new(&input);
+            let tokens = lexer.tokenize();
+            let mut parser = parser::Parser::new(tokens);
+            let mut expr = match parser.parse() {
+                Ok(expr) => expr,
+                Err(e) => {
+                    errors.push(format!("Parse error: {}", e));
+                    return Err(errors.join("\n\n"));
+                }
+            };
+
+            if let Err(e) = typechecker::TypeChecker::check(&mut expr) {
                 errors.push(format!("Type check error: {}", e));
                 return Err(errors.join("\n\n"));
             }
-        };
 
-        // Check AST if expected (after type checking so types are populated)
-        if let Some(builder_fn) = self.expected_ast_builder {
-            let mut expected_builder = AstBuilder::new();
-            let expected_ast_id = builder_fn(&mut expected_builder);
-            let expected_pool = expected_builder.into_pool();
-
-            if !ast_eq_ignore_spans_with_pool(&pool, typed_ast_id, &expected_pool, expected_ast_id)
-            {
-                errors.push(format!(
-                    "AST mismatch:\nExpected: {:?}\nActual:   {:?}",
-                    expected_pool.expr(expected_ast_id),
-                    pool.expr(typed_ast_id)
-                ));
-            }
-        }
-
-        // Generate opcodes (with locals if any were declared)
-        let mut opcodes = if !self.declared_locals.is_empty() {
-            let predeclared: Vec<(String, u32, Type)> = self
-                .declared_locals
-                .iter()
-                .enumerate()
-                .map(|(idx, (name, ty))| (name.clone(), idx as u32, ty.clone()))
-                .collect();
-            codegen::CodeGenerator::generate_with_locals(&pool, typed_ast_id, predeclared)
-        } else {
-            codegen::CodeGenerator::generate(&pool, typed_ast_id)
-        };
-
-        // Apply opcode optimization if configured
-        if let Some(ref options) = self.optimize_options {
-            opcodes = optimize::optimize_opcodes(opcodes, options);
-        }
-
-        // Create LocalVarDef entries from declared locals with initial values
-        let local_defs: Vec<crate::LocalVarDef> = self
-            .declared_locals
-            .iter()
-            .map(|(name, ty)| {
-                let mut def = crate::LocalVarDef::new(name.clone(), ty.clone());
-                // Set initial value if provided
-                if let Some((_, init_val)) =
-                    self.local_initial_values.iter().find(|(n, _)| n == name)
-                {
-                    def = def.with_initial_value(init_val.clone());
-                }
-                def
-            })
-            .collect();
-
-        // Create main function with locals and opcodes
-        let main_function = crate::vm::FunctionDef::new("main".into(), Type::Void)
-            .with_locals(local_defs)
-            .with_opcodes(opcodes);
-
-        let program = LpsProgram::new("test".into())
-            .with_functions(vec![main_function])
-            .with_source(self.input.clone());
-
-        // Check opcodes if expected
-        if let Some(expected_opcodes) = &self.expected_opcodes {
-            if let Some(main_fn) = program.main_function() {
-                if &main_fn.opcodes != expected_opcodes {
+            if let Some(builder_fn) = expected_ast_builder {
+                let mut expected_builder = AstBuilder::new();
+                let expected_expr = builder_fn(&mut expected_builder);
+                if !expr_eq_ignore_spans(&expr, &expected_expr) {
                     errors.push(format!(
-                        "Opcode mismatch:\nExpected: {:#?}\nActual:   {:#?}",
-                        expected_opcodes, main_fn.opcodes
+                        "AST mismatch:
+Expected: {:?}
+Actual:   {:?}",
+                        expected_expr, expr
                     ));
                 }
-            } else {
-                errors.push(String::from("Program has no main function"));
             }
-        }
 
-        // Check execution result or expected locals
-        if self.expected_result.is_some() || !self.expected_locals.is_empty() {
-            match LpsVm::new(&program, VmLimits::default()) {
-                Ok(mut vm) => {
-                    // Run with configured x, y, time values (for built-ins like time)
-                    if let Some(expected_result) = self.expected_result {
-                        match expected_result {
-                            TestResult::Fixed(expected) => {
-                                match vm.run_scalar(self.x, self.y, self.time) {
-                                    Ok(result) => {
-                                        // Compare with some tolerance for floating point
-                                        // Using 0.01 tolerance to account for fixed-point precision
-                                        let expected_f32 = expected.to_f32();
-                                        let actual_f32 = result.to_f32();
-                                        let diff = (expected_f32 - actual_f32).abs();
+            if let Some(ref options) = optimize_options {
+                optimize::optimize_ast_expr(&mut expr, options);
+            }
 
+            let mut opcodes = if !declared_locals.is_empty() {
+                let predeclared: Vec<(String, u32, Type)> = declared_locals
+                    .iter()
+                    .enumerate()
+                    .map(|(idx, (name, ty))| (name.clone(), idx as u32, ty.clone()))
+                    .collect();
+                codegen::CodeGenerator::generate_with_locals(&expr, predeclared)
+            } else {
+                codegen::CodeGenerator::generate(&expr)
+            };
+
+            if let Some(ref options) = optimize_options {
+                opcodes = optimize::optimize_opcodes(opcodes, options);
+            }
+
+            let local_defs: Vec<crate::LocalVarDef> = declared_locals
+                .iter()
+                .map(|(name, ty)| {
+                    let mut def = crate::LocalVarDef::new(name.clone(), ty.clone());
+                    if let Some((_, init_val)) =
+                        local_initial_values.iter().find(|(n, _)| n == name)
+                    {
+                        def = def.with_initial_value(init_val.clone());
+                    }
+                    def
+                })
+                .collect();
+
+            let program = LpsProgram::new("test".into())
+                .with_functions(vec![crate::vm::FunctionDef::new("main".into(), Type::Void)
+                    .with_locals(local_defs)
+                    .with_opcodes(opcodes.clone())])
+                .with_source(input.clone());
+
+            if let Some(expected) = &expected_opcodes {
+                if let Some(main_fn) = program.main_function() {
+                    if &main_fn.opcodes != expected {
+                        errors.push(format!(
+                            "Opcode mismatch:
+Expected: {:#?}
+Actual:   {:#?}",
+                            expected, main_fn.opcodes
+                        ));
+                    }
+                } else {
+                    errors.push(String::from("Program has no main function"));
+                }
+            }
+
+            if expected_result.is_some() || !expected_locals.is_empty() {
+                match LpsVm::new(&program, VmLimits::default()) {
+                    Ok(mut vm) => {
+                        if let Some(expected_result) = expected_result {
+                            match expected_result {
+                                TestResult::Fixed(expected) => match vm.run_scalar(x, y, time) {
+                                    Ok(actual) => {
+                                        let diff = (expected.to_f32() - actual.to_f32()).abs();
                                         if diff > 0.01 {
                                             errors.push(format!(
-                                            "Result mismatch:\nExpected: {}\nActual:   {}\nDiff:     {}",
-                                            expected_f32, actual_f32, diff
-                                        ));
+                                                "Result mismatch:
+Expected: {}
+Actual:   {}
+Diff:     {}",
+                                                expected.to_f32(),
+                                                actual.to_f32(),
+                                                diff
+                                            ));
                                         }
                                     }
-                                    Err(e) => {
-                                        errors.push(format!("Runtime error: {:?}", e));
-                                    }
-                                }
-                            }
-                            TestResult::Vec2(expected) => {
-                                match vm.run_vec2(self.x, self.y, self.time) {
-                                    Ok(result) => {
-                                        // Check all components
-                                        let x_diff =
-                                            (expected.x.to_f32() - result.x.to_f32()).abs();
-                                        let y_diff =
-                                            (expected.y.to_f32() - result.y.to_f32()).abs();
-
-                                        if x_diff > 0.0001 || y_diff > 0.0001 {
+                                    Err(e) => errors.push(format!("Runtime error: {:?}", e)),
+                                },
+                                TestResult::Vec2(expected) => match vm.run_vec2(x, y, time) {
+                                    Ok(actual) => {
+                                        let diffs = [
+                                            (expected.x.to_f32() - actual.x.to_f32()).abs(),
+                                            (expected.y.to_f32() - actual.y.to_f32()).abs(),
+                                        ];
+                                        if diffs.iter().any(|d| *d > 0.0001) {
                                             errors.push(format!(
-                                            "Vec2 result mismatch:\nExpected: ({}, {})\nActual:   ({}, {})",
-                                            expected.x.to_f32(), expected.y.to_f32(),
-                                            result.x.to_f32(), result.y.to_f32()
-                                        ));
+                                                "Vec2 result mismatch:
+Expected: ({}, {})
+Actual:   ({}, {})",
+                                                expected.x.to_f32(),
+                                                expected.y.to_f32(),
+                                                actual.x.to_f32(),
+                                                actual.y.to_f32()
+                                            ));
                                         }
                                     }
-                                    Err(e) => {
-                                        errors.push(format!("Runtime error: {:?}", e));
-                                    }
-                                }
-                            }
-                            TestResult::Vec3(expected) => {
-                                match vm.run_vec3(self.x, self.y, self.time) {
-                                    Ok(result) => {
-                                        // Check all components
-                                        let x_diff =
-                                            (expected.x.to_f32() - result.x.to_f32()).abs();
-                                        let y_diff =
-                                            (expected.y.to_f32() - result.y.to_f32()).abs();
-                                        let z_diff =
-                                            (expected.z.to_f32() - result.z.to_f32()).abs();
-
-                                        if x_diff > 0.0001 || y_diff > 0.0001 || z_diff > 0.0001 {
+                                    Err(e) => errors.push(format!("Runtime error: {:?}", e)),
+                                },
+                                TestResult::Vec3(expected) => match vm.run_vec3(x, y, time) {
+                                    Ok(actual) => {
+                                        let diffs = [
+                                            (expected.x.to_f32() - actual.x.to_f32()).abs(),
+                                            (expected.y.to_f32() - actual.y.to_f32()).abs(),
+                                            (expected.z.to_f32() - actual.z.to_f32()).abs(),
+                                        ];
+                                        if diffs.iter().any(|d| *d > 0.0001) {
                                             errors.push(format!(
-                                            "Vec3 result mismatch:\nExpected: ({}, {}, {})\nActual:   ({}, {}, {})",
-                                            expected.x.to_f32(), expected.y.to_f32(), expected.z.to_f32(),
-                                            result.x.to_f32(), result.y.to_f32(), result.z.to_f32()
-                                        ));
+                                                "Vec3 result mismatch:
+Expected: ({}, {}, {})
+Actual:   ({}, {}, {})",
+                                                expected.x.to_f32(),
+                                                expected.y.to_f32(),
+                                                expected.z.to_f32(),
+                                                actual.x.to_f32(),
+                                                actual.y.to_f32(),
+                                                actual.z.to_f32()
+                                            ));
                                         }
                                     }
-                                    Err(e) => {
-                                        errors.push(format!("Runtime error: {:?}", e));
-                                    }
-                                }
-                            }
-                            TestResult::Vec4(expected) => {
-                                match vm.run_vec4(self.x, self.y, self.time) {
-                                    Ok(result) => {
-                                        // Check all components
-                                        let x_diff =
-                                            (expected.x.to_f32() - result.x.to_f32()).abs();
-                                        let y_diff =
-                                            (expected.y.to_f32() - result.y.to_f32()).abs();
-                                        let z_diff =
-                                            (expected.z.to_f32() - result.z.to_f32()).abs();
-                                        let w_diff =
-                                            (expected.w.to_f32() - result.w.to_f32()).abs();
-
-                                        if x_diff > 0.0001
-                                            || y_diff > 0.0001
-                                            || z_diff > 0.0001
-                                            || w_diff > 0.0001
-                                        {
+                                    Err(e) => errors.push(format!("Runtime error: {:?}", e)),
+                                },
+                                TestResult::Vec4(expected) => match vm.run_vec4(x, y, time) {
+                                    Ok(actual) => {
+                                        let diffs = [
+                                            (expected.x.to_f32() - actual.x.to_f32()).abs(),
+                                            (expected.y.to_f32() - actual.y.to_f32()).abs(),
+                                            (expected.z.to_f32() - actual.z.to_f32()).abs(),
+                                            (expected.w.to_f32() - actual.w.to_f32()).abs(),
+                                        ];
+                                        if diffs.iter().any(|d| *d > 0.0001) {
                                             errors.push(format!(
-                                            "Vec4 result mismatch:\nExpected: ({}, {}, {}, {})\nActual:   ({}, {}, {}, {})",
-                                            expected.x.to_f32(), expected.y.to_f32(), expected.z.to_f32(), expected.w.to_f32(),
-                                            result.x.to_f32(), result.y.to_f32(), result.z.to_f32(), result.w.to_f32()
-                                        ));
+                                                "Vec4 result mismatch:
+Expected: ({}, {}, {}, {})
+Actual:   ({}, {}, {}, {})",
+                                                expected.x.to_f32(),
+                                                expected.y.to_f32(),
+                                                expected.z.to_f32(),
+                                                expected.w.to_f32(),
+                                                actual.x.to_f32(),
+                                                actual.y.to_f32(),
+                                                actual.z.to_f32(),
+                                                actual.w.to_f32()
+                                            ));
                                         }
                                     }
-                                    Err(e) => {
-                                        errors.push(format!("Runtime error: {:?}", e));
+                                    Err(e) => errors.push(format!("Runtime error: {:?}", e)),
+                                },
+                            }
+                        }
+
+                        if !expected_locals.is_empty() {
+                            for (name, expected_val) in &expected_locals {
+                                match vm.get_local_by_name(name) {
+                                    Some(value) => {
+                                        let diff = (expected_val.to_f32() - value.to_f32()).abs();
+                                        if diff > 0.01 {
+                                            errors.push(format!(
+                                                "Local '{}' mismatch:\nExpected: {}\nActual:   {}",
+                                                name,
+                                                expected_val.to_f32(),
+                                                value.to_f32()
+                                            ));
+                                        }
                                     }
+                                    None => errors
+                                        .push(format!("Local '{}' not found in VM locals", name)),
                                 }
                             }
                         }
                     }
-
-                    // Check expected local values using new debugging API
-                    for (name, expected) in &self.expected_locals {
-                        match vm.get_local_by_name(name) {
-                            Some(actual) => {
-                                let expected_f32 = expected.to_f32();
-                                let actual_f32 = actual.to_f32();
-                                let diff = (expected_f32 - actual_f32).abs();
-
-                                if diff > 0.01 {
-                                    errors.push(format!(
-                                        "Local '{}' mismatch:\nExpected: {}\nActual:   {}\nDiff:     {}",
-                                        name, expected_f32, actual_f32, diff
-                                    ));
-                                }
-                            }
-                            None => {
-                                errors
-                                    .push(format!("Local '{}' not found in locals storage", name));
-                            }
-                        }
-                    }
-                }
-                Err(e) => {
-                    errors.push(format!("VM creation error: {:?}", e));
+                    Err(e) => errors.push(format!("Failed to create VM: {:?}", e)),
                 }
             }
-        }
 
-        if errors.is_empty() {
-            Ok(())
-        } else {
-            Err(errors.join("\n\n"))
-        }
+            if errors.is_empty() {
+                Ok(())
+            } else {
+                Err(errors.join("\n\n"))
+            }
+        })
     }
 }
 
-/// Compare AST expressions by ID in their respective pools, ignoring spans but checking types
-#[cfg(test)]
-pub(crate) fn ast_eq_ignore_spans_with_pool(
-    actual_pool: &AstPool,
-    actual_id: ExprId,
-    expected_pool: &AstPool,
-    expected_id: ExprId,
-) -> bool {
+/// Compare AST expressions ignoring spans but checking types when available
+pub(crate) fn expr_eq_ignore_spans(actual: &Expr, expected: &Expr) -> bool {
     use crate::compiler::ast::ExprKind;
 
-    let actual = actual_pool.expr(actual_id);
-    let expected = expected_pool.expr(expected_id);
-
-    // Check types match (only if both are Some - allow None in expected for flexibility)
     match (&actual.ty, &expected.ty) {
-        (Some(a), Some(e)) if a != e => return false,
-        _ => {} // If expected is None, accept any actual type
+        (Some(a), Some(b)) if a != b => return false,
+        _ => {}
     }
 
-    // Compare expression kinds
     match (&actual.kind, &expected.kind) {
         (ExprKind::Number(a), ExprKind::Number(b)) => (a - b).abs() < 0.0001,
         (ExprKind::IntNumber(a), ExprKind::IntNumber(b)) => a == b,
         (ExprKind::Variable(a), ExprKind::Variable(b)) => a == b,
 
-        // Binary operations
-        (ExprKind::Add(l1, r1), ExprKind::Add(l2, r2)) => {
-            ast_eq_ignore_spans_with_pool(actual_pool, *l1, expected_pool, *l2)
-                && ast_eq_ignore_spans_with_pool(actual_pool, *r1, expected_pool, *r2)
-        }
-        (ExprKind::Sub(l1, r1), ExprKind::Sub(l2, r2)) => {
-            ast_eq_ignore_spans_with_pool(actual_pool, *l1, expected_pool, *l2)
-                && ast_eq_ignore_spans_with_pool(actual_pool, *r1, expected_pool, *r2)
-        }
-        (ExprKind::Mul(l1, r1), ExprKind::Mul(l2, r2)) => {
-            ast_eq_ignore_spans_with_pool(actual_pool, *l1, expected_pool, *l2)
-                && ast_eq_ignore_spans_with_pool(actual_pool, *r1, expected_pool, *r2)
-        }
-        (ExprKind::Div(l1, r1), ExprKind::Div(l2, r2)) => {
-            ast_eq_ignore_spans_with_pool(actual_pool, *l1, expected_pool, *l2)
-                && ast_eq_ignore_spans_with_pool(actual_pool, *r1, expected_pool, *r2)
-        }
-        (ExprKind::Mod(l1, r1), ExprKind::Mod(l2, r2)) => {
-            ast_eq_ignore_spans_with_pool(actual_pool, *l1, expected_pool, *l2)
-                && ast_eq_ignore_spans_with_pool(actual_pool, *r1, expected_pool, *r2)
-        }
-
-        // Bitwise operations
-        (ExprKind::BitwiseAnd(l1, r1), ExprKind::BitwiseAnd(l2, r2)) => {
-            ast_eq_ignore_spans_with_pool(actual_pool, *l1, expected_pool, *l2)
-                && ast_eq_ignore_spans_with_pool(actual_pool, *r1, expected_pool, *r2)
-        }
-        (ExprKind::BitwiseOr(l1, r1), ExprKind::BitwiseOr(l2, r2)) => {
-            ast_eq_ignore_spans_with_pool(actual_pool, *l1, expected_pool, *l2)
-                && ast_eq_ignore_spans_with_pool(actual_pool, *r1, expected_pool, *r2)
-        }
-        (ExprKind::BitwiseXor(l1, r1), ExprKind::BitwiseXor(l2, r2)) => {
-            ast_eq_ignore_spans_with_pool(actual_pool, *l1, expected_pool, *l2)
-                && ast_eq_ignore_spans_with_pool(actual_pool, *r1, expected_pool, *r2)
-        }
-        (ExprKind::BitwiseNot(o1), ExprKind::BitwiseNot(o2)) => {
-            ast_eq_ignore_spans_with_pool(actual_pool, *o1, expected_pool, *o2)
-        }
-        (ExprKind::LeftShift(l1, r1), ExprKind::LeftShift(l2, r2)) => {
-            ast_eq_ignore_spans_with_pool(actual_pool, *l1, expected_pool, *l2)
-                && ast_eq_ignore_spans_with_pool(actual_pool, *r1, expected_pool, *r2)
-        }
-        (ExprKind::RightShift(l1, r1), ExprKind::RightShift(l2, r2)) => {
-            ast_eq_ignore_spans_with_pool(actual_pool, *l1, expected_pool, *l2)
-                && ast_eq_ignore_spans_with_pool(actual_pool, *r1, expected_pool, *r2)
+        (ExprKind::Add(a1, b1), ExprKind::Add(a2, b2))
+        | (ExprKind::Sub(a1, b1), ExprKind::Sub(a2, b2))
+        | (ExprKind::Mul(a1, b1), ExprKind::Mul(a2, b2))
+        | (ExprKind::Div(a1, b1), ExprKind::Div(a2, b2))
+        | (ExprKind::Mod(a1, b1), ExprKind::Mod(a2, b2))
+        | (ExprKind::BitwiseAnd(a1, b1), ExprKind::BitwiseAnd(a2, b2))
+        | (ExprKind::BitwiseOr(a1, b1), ExprKind::BitwiseOr(a2, b2))
+        | (ExprKind::BitwiseXor(a1, b1), ExprKind::BitwiseXor(a2, b2))
+        | (ExprKind::LeftShift(a1, b1), ExprKind::LeftShift(a2, b2))
+        | (ExprKind::RightShift(a1, b1), ExprKind::RightShift(a2, b2))
+        | (ExprKind::Less(a1, b1), ExprKind::Less(a2, b2))
+        | (ExprKind::Greater(a1, b1), ExprKind::Greater(a2, b2))
+        | (ExprKind::LessEq(a1, b1), ExprKind::LessEq(a2, b2))
+        | (ExprKind::GreaterEq(a1, b1), ExprKind::GreaterEq(a2, b2))
+        | (ExprKind::Eq(a1, b1), ExprKind::Eq(a2, b2))
+        | (ExprKind::NotEq(a1, b1), ExprKind::NotEq(a2, b2))
+        | (ExprKind::And(a1, b1), ExprKind::And(a2, b2))
+        | (ExprKind::Or(a1, b1), ExprKind::Or(a2, b2)) => {
+            expr_eq_ignore_spans(a1, a2) && expr_eq_ignore_spans(b1, b2)
         }
 
-        // Increment/Decrement
-        (ExprKind::PreIncrement(v1), ExprKind::PreIncrement(v2)) => v1 == v2,
-        (ExprKind::PreDecrement(v1), ExprKind::PreDecrement(v2)) => v1 == v2,
-        (ExprKind::PostIncrement(v1), ExprKind::PostIncrement(v2)) => v1 == v2,
-        (ExprKind::PostDecrement(v1), ExprKind::PostDecrement(v2)) => v1 == v2,
+        (ExprKind::BitwiseNot(v1), ExprKind::BitwiseNot(v2))
+        | (ExprKind::Not(v1), ExprKind::Not(v2))
+        | (ExprKind::Neg(v1), ExprKind::Neg(v2)) => expr_eq_ignore_spans(v1, v2),
 
-        // Comparisons
-        (ExprKind::Less(l1, r1), ExprKind::Less(l2, r2)) => {
-            ast_eq_ignore_spans_with_pool(actual_pool, *l1, expected_pool, *l2)
-                && ast_eq_ignore_spans_with_pool(actual_pool, *r1, expected_pool, *r2)
-        }
-        (ExprKind::Greater(l1, r1), ExprKind::Greater(l2, r2)) => {
-            ast_eq_ignore_spans_with_pool(actual_pool, *l1, expected_pool, *l2)
-                && ast_eq_ignore_spans_with_pool(actual_pool, *r1, expected_pool, *r2)
-        }
-        (ExprKind::LessEq(l1, r1), ExprKind::LessEq(l2, r2)) => {
-            ast_eq_ignore_spans_with_pool(actual_pool, *l1, expected_pool, *l2)
-                && ast_eq_ignore_spans_with_pool(actual_pool, *r1, expected_pool, *r2)
-        }
-        (ExprKind::GreaterEq(l1, r1), ExprKind::GreaterEq(l2, r2)) => {
-            ast_eq_ignore_spans_with_pool(actual_pool, *l1, expected_pool, *l2)
-                && ast_eq_ignore_spans_with_pool(actual_pool, *r1, expected_pool, *r2)
-        }
-        (ExprKind::Eq(l1, r1), ExprKind::Eq(l2, r2)) => {
-            ast_eq_ignore_spans_with_pool(actual_pool, *l1, expected_pool, *l2)
-                && ast_eq_ignore_spans_with_pool(actual_pool, *r1, expected_pool, *r2)
-        }
-        (ExprKind::NotEq(l1, r1), ExprKind::NotEq(l2, r2)) => {
-            ast_eq_ignore_spans_with_pool(actual_pool, *l1, expected_pool, *l2)
-                && ast_eq_ignore_spans_with_pool(actual_pool, *r1, expected_pool, *r2)
-        }
-
-        // Logical
-        (ExprKind::And(l1, r1), ExprKind::And(l2, r2)) => {
-            ast_eq_ignore_spans_with_pool(actual_pool, *l1, expected_pool, *l2)
-                && ast_eq_ignore_spans_with_pool(actual_pool, *r1, expected_pool, *r2)
-        }
-        (ExprKind::Or(l1, r1), ExprKind::Or(l2, r2)) => {
-            ast_eq_ignore_spans_with_pool(actual_pool, *l1, expected_pool, *l2)
-                && ast_eq_ignore_spans_with_pool(actual_pool, *r1, expected_pool, *r2)
-        }
-        (ExprKind::Not(o1), ExprKind::Not(o2)) => {
-            ast_eq_ignore_spans_with_pool(actual_pool, *o1, expected_pool, *o2)
-        }
-        (ExprKind::Neg(o1), ExprKind::Neg(o2)) => {
-            ast_eq_ignore_spans_with_pool(actual_pool, *o1, expected_pool, *o2)
-        }
-
-        // Ternary
         (
             ExprKind::Ternary {
                 condition: c1,
@@ -589,12 +494,11 @@ pub(crate) fn ast_eq_ignore_spans_with_pool(
                 false_expr: f2,
             },
         ) => {
-            ast_eq_ignore_spans_with_pool(actual_pool, *c1, expected_pool, *c2)
-                && ast_eq_ignore_spans_with_pool(actual_pool, *t1, expected_pool, *t2)
-                && ast_eq_ignore_spans_with_pool(actual_pool, *f1, expected_pool, *f2)
+            expr_eq_ignore_spans(c1, c2)
+                && expr_eq_ignore_spans(t1, t2)
+                && expr_eq_ignore_spans(f1, f2)
         }
 
-        // Swizzle
         (
             ExprKind::Swizzle {
                 expr: e1,
@@ -604,45 +508,27 @@ pub(crate) fn ast_eq_ignore_spans_with_pool(
                 expr: e2,
                 components: c2,
             },
-        ) => ast_eq_ignore_spans_with_pool(actual_pool, *e1, expected_pool, *e2) && c1 == c2,
+        ) => c1 == c2 && expr_eq_ignore_spans(e1, e2),
 
-        // Call
         (ExprKind::Call { name: n1, args: a1 }, ExprKind::Call { name: n2, args: a2 }) => {
-            if n1 != n2 || a1.len() != a2.len() {
-                return false;
-            }
-            a1.iter().zip(a2.iter()).all(|(arg1, arg2)| {
-                ast_eq_ignore_spans_with_pool(actual_pool, *arg1, expected_pool, *arg2)
-            })
+            n1 == n2
+                && a1.len() == a2.len()
+                && a1
+                    .iter()
+                    .zip(a2.iter())
+                    .all(|(x, y)| expr_eq_ignore_spans(x, y))
         }
 
-        // Vector constructors
-        (ExprKind::Vec2Constructor(a1), ExprKind::Vec2Constructor(a2)) => {
-            if a1.len() != a2.len() {
-                return false;
-            }
-            a1.iter().zip(a2.iter()).all(|(arg1, arg2)| {
-                ast_eq_ignore_spans_with_pool(actual_pool, *arg1, expected_pool, *arg2)
-            })
-        }
-        (ExprKind::Vec3Constructor(a1), ExprKind::Vec3Constructor(a2)) => {
-            if a1.len() != a2.len() {
-                return false;
-            }
-            a1.iter().zip(a2.iter()).all(|(arg1, arg2)| {
-                ast_eq_ignore_spans_with_pool(actual_pool, *arg1, expected_pool, *arg2)
-            })
-        }
-        (ExprKind::Vec4Constructor(a1), ExprKind::Vec4Constructor(a2)) => {
-            if a1.len() != a2.len() {
-                return false;
-            }
-            a1.iter().zip(a2.iter()).all(|(arg1, arg2)| {
-                ast_eq_ignore_spans_with_pool(actual_pool, *arg1, expected_pool, *arg2)
-            })
+        (ExprKind::Vec2Constructor(a1), ExprKind::Vec2Constructor(a2))
+        | (ExprKind::Vec3Constructor(a1), ExprKind::Vec3Constructor(a2))
+        | (ExprKind::Vec4Constructor(a1), ExprKind::Vec4Constructor(a2)) => {
+            a1.len() == a2.len()
+                && a1
+                    .iter()
+                    .zip(a2.iter())
+                    .all(|(x, y)| expr_eq_ignore_spans(x, y))
         }
 
-        // Assignment
         (
             ExprKind::Assign {
                 target: t1,
@@ -652,7 +538,7 @@ pub(crate) fn ast_eq_ignore_spans_with_pool(
                 target: t2,
                 value: v2,
             },
-        ) => t1 == t2 && ast_eq_ignore_spans_with_pool(actual_pool, *v1, expected_pool, *v2),
+        ) => t1 == t2 && expr_eq_ignore_spans(v1, v2),
 
         _ => false,
     }

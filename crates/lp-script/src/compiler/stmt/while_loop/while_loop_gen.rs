@@ -1,23 +1,23 @@
 /// While loop code generation
 extern crate alloc;
 
-use crate::compiler::ast::{AstPool, ExprId, StmtId};
+use crate::compiler::ast::{Expr, Stmt};
 use crate::compiler::codegen::CodeGenerator;
 use crate::vm::opcodes::LpsOpCode;
 
 impl<'a> CodeGenerator<'a> {
-    pub(crate) fn gen_while_stmt_id(&mut self, pool: &AstPool, condition: ExprId, body: StmtId) {
+    pub(crate) fn gen_while_stmt(&mut self, condition: &Expr, body: &Stmt) {
         let loop_start = self.code.len();
 
         // Generate condition
-        self.gen_expr_id(pool, condition);
+        self.gen_expr(condition);
 
         // JumpIfZero to end
         let jump_to_end = self.code.len();
         self.code.push(LpsOpCode::JumpIfZero(0)); // Placeholder
 
         // Body
-        self.gen_stmt_id(pool, body);
+        self.gen_stmt(body);
 
         // Jump back to loop start
         let jump_back_idx = self.code.len();

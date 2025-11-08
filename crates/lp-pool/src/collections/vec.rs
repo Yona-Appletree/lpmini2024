@@ -372,7 +372,7 @@ mod tests {
             let vec = LpVec::<i32>::new();
             assert_eq!(vec.len(), 0);
             assert_eq!(vec.capacity(), 0);
-            Ok(())
+            Ok::<(), AllocError>(())
         })
         .unwrap();
     }

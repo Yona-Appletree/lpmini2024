@@ -1,6 +1,6 @@
-/// 2D vector for fixed-point coordinates
 use core::ops::{Add, Div, Mul, Neg, Sub};
 
+/// 2D vector for fixed-point coordinates
 use super::conversions::ToFixed;
 use super::fixed::Fixed;
 

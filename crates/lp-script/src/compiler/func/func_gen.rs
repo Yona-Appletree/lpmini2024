@@ -4,7 +4,7 @@ use alloc::collections::BTreeMap;
 use alloc::string::String;
 use alloc::vec::Vec;
 
-use crate::compiler::ast::{AstPool, FunctionDef as AstFunctionDef};
+use crate::compiler::ast::FunctionDef as AstFunctionDef;
 use crate::compiler::codegen::{CodeGenerator, LocalAllocator};
 use crate::compiler::func::{FunctionMetadata, FunctionTable};
 use crate::shared::Type;
@@ -16,7 +16,6 @@ use crate::vm::{FunctionDef as VmFunctionDef, LocalVarDef, ParamDef};
 /// This is the core function generation logic using the pool-based API.
 /// It handles parameter allocation, function body code generation, and metadata conversion.
 pub fn gen_user_function(
-    pool: &AstPool,
     ast_func: &AstFunctionDef,
     func_table: &FunctionTable,
     function_indices: &BTreeMap<String, u32>,
@@ -49,8 +48,8 @@ pub fn gen_user_function(
 
     // Generate function body
     let mut gen = CodeGenerator::new(&mut func_code, &mut locals, function_indices);
-    for &stmt_id in &ast_func.body {
-        gen.gen_stmt_id(pool, stmt_id);
+    for stmt in &ast_func.body {
+        gen.gen_stmt(stmt);
     }
 
     // Add return if missing

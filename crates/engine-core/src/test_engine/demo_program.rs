@@ -95,11 +95,13 @@ pub fn run_demo_with_profiling(
     output_path: &str,
 ) -> Result<(), Box<dyn std::error::Error>> {
     extern crate std;
-    use crate::test_engine::scene::SceneRuntime;
-    use crate::test_engine::RuntimeOptions;
+    use std::time::Instant;
+
     use lp_script::fixed::ToFixed;
     use pprof::ProfilerGuard;
-    use std::time::Instant;
+
+    use crate::test_engine::scene::SceneRuntime;
+    use crate::test_engine::RuntimeOptions;
 
     // Create the demo scene
     let config = create_demo_scene(width, height);
@@ -128,7 +130,8 @@ pub fn run_demo_with_profiling(
     // Run the demo for the specified number of frames
     for i in 0..num_frames {
         let time = (i as f32 * 0.01).to_fixed();
-        scene.render(time, 1)
+        scene
+            .render(time, 1)
             .map_err(|e| format!("Render failed: {:?}", e))?;
     }
 
@@ -159,9 +162,11 @@ pub fn run_demo_with_profiling(
     // Print timing information
     println!("\nTiming Results:");
     let wall_ms = wall_elapsed.as_secs_f64() * 1000.0;
-    println!("  Wall clock time: {:.3}s ({:.1}ms)", 
-        wall_elapsed.as_secs_f64(), 
-        wall_ms);
+    println!(
+        "  Wall clock time: {:.3}s ({:.1}ms)",
+        wall_elapsed.as_secs_f64(),
+        wall_ms
+    );
     #[cfg(unix)]
     {
         let cpu_time = cpu_end - cpu_start;
@@ -175,9 +180,11 @@ pub fn run_demo_with_profiling(
     }
     println!("  Frames: {}", num_frames);
     if num_frames > 0 {
-        println!("  Avg time per frame: {:.3}ms", 
-            wall_ms / num_frames as f64);
-        println!("  FPS: {:.1}", num_frames as f64 / wall_elapsed.as_secs_f64());
+        println!("  Avg time per frame: {:.3}ms", wall_ms / num_frames as f64);
+        println!(
+            "  FPS: {:.1}",
+            num_frames as f64 / wall_elapsed.as_secs_f64()
+        );
     }
 
     Ok(())

@@ -6,19 +6,17 @@ use alloc::vec;
 use alloc::vec::Vec;
 
 use super::local_allocator::LocalAllocator;
-use crate::compiler::ast::{AstPool, Program, StmtId, StmtKind};
+use crate::compiler::ast::{Program, Stmt, StmtKind};
 use crate::compiler::func::FunctionTable;
 use crate::shared::Type;
 use crate::vm::opcodes::LpsOpCode;
 use crate::vm::{FunctionDef as VmFunctionDef, LocalVarDef};
 
 /// Infer return type from typed statements (after type checking)
-fn infer_main_return_type(stmts: &[StmtId], pool: &AstPool) -> Type {
+fn infer_main_return_type(stmts: &[Stmt]) -> Type {
     // Look for the last return statement to determine type
-    for stmt_id in stmts.iter().rev() {
-        let stmt = pool.stmt(*stmt_id);
-        if let StmtKind::Return(expr_id) = stmt.kind {
-            let expr = pool.expr(expr_id);
+    for stmt in stmts.iter().rev() {
+        if let StmtKind::Return(expr) = &stmt.kind {
             // After type checking, expr.ty should be Some
             if let Some(ty) = &expr.ty {
                 return ty.clone();
@@ -33,11 +31,9 @@ fn infer_main_return_type(stmts: &[StmtId], pool: &AstPool) -> Type {
 /// Generate a complete program with functions (new API with FunctionTable)
 /// Returns a vector of FunctionDef with main at index 0
 pub fn gen_program_with_functions(
-    pool: &AstPool,
     program: &Program,
     func_table: &FunctionTable,
-    _gen_stmt: impl Fn(&AstPool, StmtId, &mut Vec<LpsOpCode>, &mut LocalAllocator, &BTreeMap<String, u32>)
-        + Copy,
+    _gen_stmt: impl Fn(&Stmt, &mut Vec<LpsOpCode>, &mut LocalAllocator, &BTreeMap<String, u32>) + Copy,
 ) -> Vec<VmFunctionDef> {
     // Build function index map: function name -> final index in output
     // Main will always be at index 0, other functions follow in order (excluding main)
@@ -58,7 +54,6 @@ pub fn gen_program_with_functions(
     // Generate user-defined functions first (we'll reorder later)
     for ast_func in &program.functions {
         let vm_func = crate::compiler::func::func_gen::gen_user_function(
-            pool,
             ast_func,
             func_table,
             &function_indices,
@@ -72,8 +67,8 @@ pub fn gen_program_with_functions(
     {
         let mut gen =
             super::CodeGenerator::new(&mut main_code, &mut main_locals, &function_indices);
-        for &stmt_id in &program.stmts {
-            gen.gen_stmt_id(pool, stmt_id);
+        for stmt in &program.stmts {
+            gen.gen_stmt(stmt);
         }
 
         // Add return if missing
@@ -98,7 +93,7 @@ pub fn gen_program_with_functions(
     let main_return_type = func_table
         .lookup("main")
         .map(|meta| meta.return_type.clone())
-        .unwrap_or_else(|| infer_main_return_type(&program.stmts, pool));
+        .unwrap_or_else(|| infer_main_return_type(&program.stmts));
 
     let main_func = VmFunctionDef::new(String::from("main"), main_return_type)
         .with_locals(main_local_defs)
@@ -115,39 +110,6 @@ pub fn gen_program_with_functions(
     }
 
     final_functions
-}
-
-/// Generate opcodes for a program (script mode) - Legacy API
-/// Returns (opcodes, local_count, local_types) tuple
-#[cfg(test)]
-pub fn gen_program(
-    pool: &AstPool,
-    program: &Program,
-    _gen_stmt: impl Fn(&AstPool, StmtId, &mut Vec<LpsOpCode>, &mut LocalAllocator, &BTreeMap<String, u32>)
-        + Copy,
-) -> (Vec<LpsOpCode>, u32, BTreeMap<u32, crate::shared::Type>) {
-    let mut code = Vec::new();
-    let function_offsets = BTreeMap::new();
-
-    // Generate main code using CodeGenerator
-    let mut locals = LocalAllocator::new();
-    let (local_count, local_types) = {
-        let mut gen = super::CodeGenerator::new(&mut code, &mut locals, &function_offsets);
-        for &stmt_id in &program.stmts {
-            gen.gen_stmt_id(pool, stmt_id);
-        }
-
-        // If no explicit return, add one
-        if !matches!(gen.code.last(), Some(LpsOpCode::Return)) {
-            gen.code.push(LpsOpCode::Push(crate::fixed::Fixed::ZERO));
-            gen.code.push(LpsOpCode::Return);
-        }
-
-        (gen.locals.next_index, gen.locals.local_types.clone())
-    };
-
-    // Return opcodes, local count, and types
-    (code, local_count, local_types)
 }
 
 #[cfg(test)]

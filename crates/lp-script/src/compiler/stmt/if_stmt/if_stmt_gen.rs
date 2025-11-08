@@ -1,29 +1,28 @@
 /// If statement code generation
 extern crate alloc;
 
-use crate::compiler::ast::{AstPool, ExprId, StmtId};
+use crate::compiler::ast::{Expr, Stmt};
 use crate::compiler::codegen::CodeGenerator;
 use crate::vm::opcodes::LpsOpCode;
 
 impl<'a> CodeGenerator<'a> {
-    pub(crate) fn gen_if_stmt_id(
+    pub(crate) fn gen_if_stmt(
         &mut self,
-        pool: &AstPool,
-        condition: ExprId,
-        then_stmt: StmtId,
-        else_stmt: Option<StmtId>,
+        condition: &Expr,
+        then_stmt: &Stmt,
+        else_stmt: Option<&Stmt>,
     ) {
         // Generate condition
-        self.gen_expr_id(pool, condition);
+        self.gen_expr(condition);
 
         // JumpIfZero to else/end
         let jump_to_else = self.code.len();
         self.code.push(LpsOpCode::JumpIfZero(0)); // Placeholder
 
         // Then branch
-        self.gen_stmt_id(pool, then_stmt);
+        self.gen_stmt(then_stmt);
 
-        if let Some(else_id) = else_stmt {
+        if let Some(else_s) = else_stmt {
             // Jump over else
             let jump_to_end = self.code.len();
             self.code.push(LpsOpCode::Jump(0)); // Placeholder
@@ -35,7 +34,7 @@ impl<'a> CodeGenerator<'a> {
             }
 
             // Else branch
-            self.gen_stmt_id(pool, else_id);
+            self.gen_stmt(else_s);
 
             // Patch jump to end
             let end = self.code.len();

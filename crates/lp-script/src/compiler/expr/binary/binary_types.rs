@@ -1,7 +1,7 @@
 /// Binary arithmetic type checking
 extern crate alloc;
 
-use crate::compiler::ast::{AstPool, ExprId};
+use crate::compiler::ast::Expr;
 use crate::compiler::error::{TypeError, TypeErrorKind};
 use crate::compiler::typechecker::{FunctionTable, SymbolTable, TypeChecker};
 use crate::shared::Type;
@@ -10,19 +10,18 @@ use crate::shared::Type;
 ///
 /// Handles scalar-scalar, vector-vector, and vector-scalar operations.
 /// Returns the result type.
-pub(in crate::compiler) fn check_binary_arithmetic_id(
-    pool: &mut AstPool,
-    left_id: ExprId,
-    right_id: ExprId,
+pub(in crate::compiler) fn check_binary_arithmetic(
+    left: &mut Expr,
+    right: &mut Expr,
     symbols: &mut SymbolTable,
     func_table: &FunctionTable,
     span: crate::shared::Span,
 ) -> Result<Type, TypeError> {
-    TypeChecker::infer_type_id(pool, left_id, symbols, func_table)?;
-    TypeChecker::infer_type_id(pool, right_id, symbols, func_table)?;
+    TypeChecker::infer_type(left, symbols, func_table)?;
+    TypeChecker::infer_type(right, symbols, func_table)?;
 
-    let left_ty = pool.expr(left_id).ty.clone().unwrap();
-    let right_ty = pool.expr(right_id).ty.clone().unwrap();
+    let left_ty = left.ty.clone().unwrap();
+    let right_ty = right.ty.clone().unwrap();
 
     // Check for vector-scalar operations
     let result_ty = match (&left_ty, &right_ty) {
@@ -31,11 +30,11 @@ pub(in crate::compiler) fn check_binary_arithmetic_id(
 
         // Int -> Fixed promotion
         (Type::Int32, Type::Fixed) => {
-            pool.expr_mut(left_id).ty = Some(Type::Fixed);
+            left.ty = Some(Type::Fixed);
             Type::Fixed
         }
         (Type::Fixed, Type::Int32) => {
-            pool.expr_mut(right_id).ty = Some(Type::Fixed);
+            right.ty = Some(Type::Fixed);
             Type::Fixed
         }
 

@@ -1,15 +1,51 @@
 /// Function tests
 #[cfg(test)]
+mod pool_support {
+    extern crate alloc;
+
+    use alloc::boxed::Box;
+    use core::ptr::NonNull;
+    use std::cell::RefCell;
+    use std::thread_local;
+
+    use lp_pool::LpMemoryPool;
+
+    thread_local! {
+        static THREAD_POOL_STATE: RefCell<Option<&'static mut [u8]>> = const { RefCell::new(None) };
+    }
+
+    pub fn ensure_pool() {
+        const POOL_SIZE: usize = 512 * 1024;
+
+        THREAD_POOL_STATE.with(|state| {
+            if state.borrow().is_none() {
+                let boxed = vec![0u8; POOL_SIZE].into_boxed_slice();
+                let leaked = Box::leak(boxed);
+                let memory_ptr = NonNull::new(leaked.as_mut_ptr())
+                    .expect("pool memory pointer must be non-null");
+                unsafe {
+                    LpMemoryPool::new(memory_ptr, POOL_SIZE).expect("failed to initialize lp-pool");
+                }
+                state.borrow_mut().replace(leaked);
+            }
+        });
+    }
+}
+
+#[cfg(test)]
 mod parse_tests {
+    use super::pool_support::ensure_pool;
     use crate::compiler::lexer::Lexer;
     use crate::compiler::parser::Parser;
 
     #[test]
     fn test_parse_function_no_params() {
+        ensure_pool();
+
         let mut lexer = Lexer::new("float getPi() { return 3.14; }");
         let tokens = lexer.tokenize();
         let parser = Parser::new(tokens);
-        let (program, _pool) = parser.parse_program().expect("parse should succeed");
+        let program = parser.parse_program().expect("parse should succeed");
 
         assert_eq!(program.functions.len(), 1);
         assert_eq!(program.functions[0].name, "getPi");
@@ -18,10 +54,12 @@ mod parse_tests {
 
     #[test]
     fn test_parse_function_with_params() {
+        ensure_pool();
+
         let mut lexer = Lexer::new("float add(float a, float b) { return a + b; }");
         let tokens = lexer.tokenize();
         let parser = Parser::new(tokens);
-        let (program, _pool) = parser.parse_program().expect("parse should succeed");
+        let program = parser.parse_program().expect("parse should succeed");
 
         assert_eq!(program.functions.len(), 1);
         assert_eq!(program.functions[0].params.len(), 2);
@@ -31,10 +69,12 @@ mod parse_tests {
 
     #[test]
     fn test_parse_function_body() {
+        ensure_pool();
+
         let mut lexer = Lexer::new("float double(float x) { return x * 2.0; }");
         let tokens = lexer.tokenize();
         let parser = Parser::new(tokens);
-        let (program, _pool) = parser.parse_program().expect("parse should succeed");
+        let program = parser.parse_program().expect("parse should succeed");
 
         assert_eq!(program.functions.len(), 1);
         assert!(!program.functions[0].body.is_empty());
@@ -42,6 +82,8 @@ mod parse_tests {
 
     #[test]
     fn test_parse_multiple_functions() {
+        ensure_pool();
+
         let mut lexer = Lexer::new(
             "
             float add(float a, float b) { return a + b; }
@@ -50,7 +92,7 @@ mod parse_tests {
         );
         let tokens = lexer.tokenize();
         let parser = Parser::new(tokens);
-        let (program, _pool) = parser.parse_program().expect("parse should succeed");
+        let program = parser.parse_program().expect("parse should succeed");
 
         assert_eq!(program.functions.len(), 2);
         assert_eq!(program.functions[0].name, "add");
@@ -60,6 +102,7 @@ mod parse_tests {
 
 #[cfg(test)]
 mod return_path_tests {
+    use super::pool_support::ensure_pool;
     use crate::compiler::analyzer::FunctionAnalyzer;
     use crate::compiler::ast::Program;
     use crate::compiler::error::{TypeError, TypeErrorKind};
@@ -68,20 +111,19 @@ mod return_path_tests {
     use crate::compiler::typechecker::TypeChecker;
 
     fn parse_and_typecheck_program(input: &str) -> Result<Program, TypeError> {
+        ensure_pool();
+
         let mut lexer = Lexer::new(input);
         let tokens = lexer.tokenize();
         let parser = Parser::new(tokens);
-        let (program, pool) = parser.parse_program().map_err(|e| TypeError {
+        let mut program = parser.parse_program().map_err(|e| TypeError {
             kind: TypeErrorKind::UndefinedVariable(format!("Parse error: {}", e)),
             span: crate::shared::Span::EMPTY,
         })?;
 
-        // Analyze to build function table
-        let func_table = FunctionAnalyzer::analyze_program(&program, &pool)?;
-
-        // Type check with function table
-        let (typed_program, _pool) = TypeChecker::check_program(program, pool, &func_table)?;
-        Ok(typed_program)
+        let func_table = FunctionAnalyzer::analyze_program(&program)?;
+        TypeChecker::check_program(&mut program, &func_table)?;
+        Ok(program)
     }
 
     #[test]

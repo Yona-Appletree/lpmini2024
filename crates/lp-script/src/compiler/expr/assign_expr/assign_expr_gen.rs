@@ -1,14 +1,14 @@
 /// Assignment expression code generation
 extern crate alloc;
 
-use crate::compiler::ast::{AstPool, ExprId};
+use crate::compiler::ast::Expr;
 use crate::compiler::codegen::CodeGenerator;
 use crate::shared::Type;
 use crate::vm::opcodes::LpsOpCode;
 
 impl<'a> CodeGenerator<'a> {
-    pub(crate) fn gen_assign_expr_id(&mut self, pool: &AstPool, target: &str, value: ExprId) {
-        self.gen_expr_id(pool, value);
+    pub(crate) fn gen_assign_expr(&mut self, target: &str, value: &Expr) {
+        self.gen_expr(value);
 
         if let Some(local_idx) = self.locals.get(target) {
             let var_type = self.locals.get_type(local_idx).unwrap_or(&Type::Fixed);

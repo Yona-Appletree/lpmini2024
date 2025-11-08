@@ -1,5 +1,5 @@
 /// Vector constructor parsing
-use crate::compiler::ast::{ExprId, ExprKind};
+use crate::compiler::ast::{Expr, ExprKind};
 use crate::compiler::error::ParseError;
 use crate::compiler::lexer::TokenKind;
 use crate::compiler::parser::Parser;
@@ -7,7 +7,7 @@ use crate::shared::Span;
 
 impl Parser {
     // Parse vector constructor
-    pub(crate) fn parse_vec_constructor(&mut self) -> Result<ExprId, ParseError> {
+    pub(crate) fn parse_vec_constructor(&mut self) -> Result<Expr, ParseError> {
         let token = self.current().clone();
         let vec_kind = token.kind.clone();
         let start = token.span.start;
@@ -31,8 +31,6 @@ impl Parser {
             _ => unreachable!(),
         };
 
-        self.pool
-            .alloc_expr(kind, Span::new(start, end))
-            .map_err(|e| self.pool_error_to_parse_error(e))
+        Ok(Expr::new(kind, Span::new(start, end)))
     }
 }

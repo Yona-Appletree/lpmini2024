@@ -1,3 +1,6 @@
+extern crate alloc;
+use alloc::format;
+use alloc::string::String;
 use core::fmt;
 
 /// Errors that can occur during memory allocation
@@ -43,5 +46,11 @@ impl From<allocator_api2::alloc::AllocError> for AllocError {
 impl From<AllocError> for allocator_api2::alloc::AllocError {
     fn from(_: AllocError) -> Self {
         allocator_api2::alloc::AllocError
+    }
+}
+
+impl From<AllocError> for String {
+    fn from(e: AllocError) -> Self {
+        format!("{}", e)
     }
 }

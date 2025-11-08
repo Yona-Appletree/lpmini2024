@@ -1,473 +1,483 @@
-/// Constant folding optimization (pool-based API)
+use lp_math::fixed::{
+    ceil as fixed_ceil, cos as fixed_cos, floor as fixed_floor, lerp as fixed_lerp,
+    pow as fixed_pow, saturate as fixed_saturate, sin as fixed_sin, sqrt as fixed_sqrt, Fixed,
+};
+
+/// Constant folding optimization (LpBox AST)
 ///
-/// Evaluates expressions with constant operands at compile time.
-extern crate alloc;
+/// TODO: Re-implement full constant folding for the new recursive AST. For now
+/// this pass simply traverses the expression tree and returns whether a change
+/// was made. No actual folding is performed yet.
+use crate::compiler::ast::{Expr, ExprKind};
+use crate::shared::Type;
 
-// Import libm for pow (not yet implemented in fixed-point)
-use libm::powf;
+#[derive(Clone, Copy, Debug, PartialEq)]
+enum ConstValue {
+    Float(f32),
+    Int(i32),
+    Bool(bool),
+}
 
-use crate::compiler::ast::{AstPool, ExprId, ExprKind};
-// Import fixed-point fixed for compile-time constant evaluation
-use crate::fixed::{ceil, cos, floor, saturate, sin, sqrt, tan, Fixed};
-
-/// Fold constants in an expression tree
-pub fn fold_constants(expr_id: ExprId, pool: AstPool) -> (ExprId, AstPool) {
-    let expr = pool.expr(expr_id);
-    let span = expr.span;
-    let ty = expr.ty.clone();
-    let kind = expr.kind.clone();
-
-    match kind {
-        // Binary arithmetic - fold if both operands are constants
-        ExprKind::Add(left_id, right_id) => {
-            let (new_left, pool2) = fold_constants(left_id, pool);
-            let (new_right, mut pool3) = fold_constants(right_id, pool2);
-
-            match (&pool3.expr(new_left).kind, &pool3.expr(new_right).kind) {
-                (ExprKind::Number(a), ExprKind::Number(b)) => {
-                    if let Ok(id) = pool3.alloc_expr(ExprKind::Number(a + b), span) {
-                        pool3.expr_mut(id).ty = ty.clone();
-                        (id, pool3)
-                    } else {
-                        (expr_id, pool3)
-                    }
-                }
-                (ExprKind::IntNumber(a), ExprKind::IntNumber(b)) => {
-                    if let Ok(id) = pool3.alloc_expr(ExprKind::IntNumber(a + b), span) {
-                        pool3.expr_mut(id).ty = ty.clone();
-                        (id, pool3)
-                    } else {
-                        (expr_id, pool3)
-                    }
-                }
-                _ => {
-                    // Update the Add node with potentially optimized children
-                    pool3.expr_mut(expr_id).kind = ExprKind::Add(new_left, new_right);
-                    (expr_id, pool3)
+impl ConstValue {
+    fn as_float(self) -> f32 {
+        match self {
+            ConstValue::Float(v) => v,
+            ConstValue::Int(v) => v as f32,
+            ConstValue::Bool(v) => {
+                if v {
+                    1.0
+                } else {
+                    0.0
                 }
             }
         }
+    }
 
-        ExprKind::Sub(left_id, right_id) => {
-            let (new_left, pool2) = fold_constants(left_id, pool);
-            let (new_right, mut pool3) = fold_constants(right_id, pool2);
+    fn as_int(self) -> Option<i32> {
+        match self {
+            ConstValue::Int(v) => Some(v),
+            _ => None,
+        }
+    }
 
-            match (&pool3.expr(new_left).kind, &pool3.expr(new_right).kind) {
-                (ExprKind::Number(a), ExprKind::Number(b)) => {
-                    if let Ok(id) = pool3.alloc_expr(ExprKind::Number(a - b), span) {
-                        pool3.expr_mut(id).ty = ty.clone();
-                        (id, pool3)
-                    } else {
-                        (expr_id, pool3)
-                    }
-                }
-                _ => {
-                    pool3.expr_mut(expr_id).kind = ExprKind::Sub(new_left, new_right);
-                    (expr_id, pool3)
+    fn as_fixed(self) -> Fixed {
+        match self {
+            ConstValue::Float(v) => Fixed::from_f32(v),
+            ConstValue::Int(v) => Fixed::from_i32(v),
+            ConstValue::Bool(v) => {
+                if v {
+                    Fixed::ONE
+                } else {
+                    Fixed::ZERO
                 }
             }
         }
+    }
 
-        ExprKind::Mul(left_id, right_id) => {
-            let (new_left, pool2) = fold_constants(left_id, pool);
-            let (new_right, mut pool3) = fold_constants(right_id, pool2);
+    fn truthy(self) -> bool {
+        match self {
+            ConstValue::Bool(v) => v,
+            ConstValue::Int(v) => v != 0,
+            ConstValue::Float(v) => v != 0.0,
+        }
+    }
+}
 
-            match (&pool3.expr(new_left).kind, &pool3.expr(new_right).kind) {
-                (ExprKind::Number(a), ExprKind::Number(b)) => {
-                    if let Ok(id) = pool3.alloc_expr(ExprKind::Number(a * b), span) {
-                        pool3.expr_mut(id).ty = ty.clone();
-                        (id, pool3)
-                    } else {
-                        (expr_id, pool3)
-                    }
-                }
-                (ExprKind::IntNumber(a), ExprKind::IntNumber(b)) => {
-                    if let Ok(id) = pool3.alloc_expr(ExprKind::IntNumber(a * b), span) {
-                        pool3.expr_mut(id).ty = ty.clone();
-                        (id, pool3)
-                    } else {
-                        (expr_id, pool3)
-                    }
-                }
-                _ => {
-                    pool3.expr_mut(expr_id).kind = ExprKind::Mul(new_left, new_right);
-                    (expr_id, pool3)
-                }
+fn const_value(expr: &Expr) -> Option<ConstValue> {
+    match &expr.kind {
+        ExprKind::Number(n) => match expr.ty {
+            Some(Type::Bool) => Some(ConstValue::Bool(*n != 0.0)),
+            Some(Type::Int32) => Some(ConstValue::Int(*n as i32)),
+            _ => Some(ConstValue::Float(*n)),
+        },
+        ExprKind::IntNumber(i) => {
+            if matches!(expr.ty, Some(Type::Bool)) {
+                Some(ConstValue::Bool(*i != 0))
+            } else {
+                Some(ConstValue::Int(*i))
             }
         }
+        _ => None,
+    }
+}
 
-        ExprKind::Div(left_id, right_id) => {
-            let (new_left, pool2) = fold_constants(left_id, pool);
-            let (new_right, mut pool3) = fold_constants(right_id, pool2);
+#[derive(Clone)]
+struct FoldReplacement {
+    kind: ExprKind,
+    ty: Option<Type>,
+    keep_existing_ty: bool,
+}
 
-            match (&pool3.expr(new_left).kind, &pool3.expr(new_right).kind) {
-                (ExprKind::Number(a), ExprKind::Number(b)) if *b != 0.0 => {
-                    if let Ok(id) = pool3.alloc_expr(ExprKind::Number(a / b), span) {
-                        pool3.expr_mut(id).ty = ty.clone();
-                        (id, pool3)
-                    } else {
-                        (expr_id, pool3)
-                    }
-                }
-                _ => {
-                    pool3.expr_mut(expr_id).kind = ExprKind::Div(new_left, new_right);
-                    (expr_id, pool3)
-                }
+impl FoldReplacement {
+    fn new(kind: ExprKind, ty: Option<Type>, keep_existing_ty: bool) -> Self {
+        FoldReplacement {
+            kind,
+            ty,
+            keep_existing_ty,
+        }
+    }
+
+    fn apply(self, expr: &mut Expr) {
+        expr.kind = self.kind;
+        if self.keep_existing_ty && expr.ty.is_some() {
+            return;
+        }
+        expr.ty = self.ty;
+    }
+}
+
+fn replacement_number(value: f32, keep_existing_ty: bool) -> FoldReplacement {
+    FoldReplacement::new(ExprKind::Number(value), Some(Type::Fixed), keep_existing_ty)
+}
+
+fn replacement_int(value: i32, keep_existing_ty: bool) -> FoldReplacement {
+    FoldReplacement::new(
+        ExprKind::IntNumber(value),
+        Some(Type::Int32),
+        keep_existing_ty,
+    )
+}
+
+fn replacement_bool(value: bool) -> FoldReplacement {
+    FoldReplacement::new(
+        ExprKind::Number(if value { 1.0 } else { 0.0 }),
+        Some(Type::Bool),
+        false,
+    )
+}
+
+fn fold_call(name: &str, args: &mut [Expr], keep_existing_ty: bool) -> Option<FoldReplacement> {
+    match name {
+        "sin" if args.len() == 1 => {
+            let value = const_value(&args[0])?;
+            let result = fixed_sin(value.as_fixed());
+            Some(replacement_number(result.to_f32(), keep_existing_ty))
+        }
+        "cos" if args.len() == 1 => {
+            let value = const_value(&args[0])?;
+            let result = fixed_cos(value.as_fixed());
+            Some(replacement_number(result.to_f32(), keep_existing_ty))
+        }
+        "sqrt" if args.len() == 1 => {
+            let value = const_value(&args[0])?;
+            let result = fixed_sqrt(value.as_fixed());
+            Some(replacement_number(result.to_f32(), keep_existing_ty))
+        }
+        "abs" if args.len() == 1 => {
+            let value = const_value(&args[0])?;
+            if let Some(v) = value.as_int() {
+                Some(replacement_int(v.abs(), keep_existing_ty))
+            } else {
+                let result = value.as_fixed().abs();
+                Some(replacement_number(result.to_f32(), keep_existing_ty))
             }
         }
-
-        // Unary negation
-        ExprKind::Neg(operand_id) => {
-            let (new_operand, mut pool2) = fold_constants(operand_id, pool);
-            match &pool2.expr(new_operand).kind {
-                ExprKind::Number(n) => {
-                    if let Ok(id) = pool2.alloc_expr(ExprKind::Number(-n), span) {
-                        (id, pool2)
-                    } else {
-                        (expr_id, pool2)
-                    }
-                }
-                _ => {
-                    pool2.expr_mut(expr_id).kind = ExprKind::Neg(new_operand);
-                    (expr_id, pool2)
-                }
+        "floor" if args.len() == 1 => {
+            let value = const_value(&args[0])?;
+            let result = fixed_floor(value.as_fixed());
+            Some(replacement_number(result.to_f32(), keep_existing_ty))
+        }
+        "ceil" if args.len() == 1 => {
+            let value = const_value(&args[0])?;
+            let result = fixed_ceil(value.as_fixed());
+            Some(replacement_number(result.to_f32(), keep_existing_ty))
+        }
+        "min" if args.len() == 2 => {
+            let left = const_value(&args[0])?;
+            let right = const_value(&args[1])?;
+            if let (Some(l), Some(r)) = (left.as_int(), right.as_int()) {
+                Some(replacement_int(l.min(r), keep_existing_ty))
+            } else {
+                let result = left.as_fixed().min(right.as_fixed());
+                Some(replacement_number(result.to_f32(), keep_existing_ty))
             }
         }
-
-        // Comparisons
-        ExprKind::Greater(left_id, right_id) => {
-            let (new_left, pool2) = fold_constants(left_id, pool);
-            let (new_right, mut pool3) = fold_constants(right_id, pool2);
-
-            match (&pool3.expr(new_left).kind, &pool3.expr(new_right).kind) {
-                (ExprKind::Number(a), ExprKind::Number(b)) => {
-                    let result_val = if a > b { 1.0 } else { 0.0 };
-                    if let Ok(id) = pool3.alloc_expr(ExprKind::Number(result_val), span) {
-                        pool3.expr_mut(id).ty = ty.clone();
-                        (id, pool3)
-                    } else {
-                        (expr_id, pool3)
-                    }
-                }
-                _ => {
-                    pool3.expr_mut(expr_id).kind = ExprKind::Greater(new_left, new_right);
-                    (expr_id, pool3)
-                }
+        "max" if args.len() == 2 => {
+            let left = const_value(&args[0])?;
+            let right = const_value(&args[1])?;
+            if let (Some(l), Some(r)) = (left.as_int(), right.as_int()) {
+                Some(replacement_int(l.max(r), keep_existing_ty))
+            } else {
+                let result = left.as_fixed().max(right.as_fixed());
+                Some(replacement_number(result.to_f32(), keep_existing_ty))
             }
         }
-
-        ExprKind::Less(left_id, right_id) => {
-            let (new_left, pool2) = fold_constants(left_id, pool);
-            let (new_right, mut pool3) = fold_constants(right_id, pool2);
-
-            match (&pool3.expr(new_left).kind, &pool3.expr(new_right).kind) {
-                (ExprKind::Number(a), ExprKind::Number(b)) => {
-                    let result_val = if a < b { 1.0 } else { 0.0 };
-                    if let Ok(id) = pool3.alloc_expr(ExprKind::Number(result_val), span) {
-                        pool3.expr_mut(id).ty = ty.clone();
-                        (id, pool3)
-                    } else {
-                        (expr_id, pool3)
-                    }
-                }
-                _ => {
-                    pool3.expr_mut(expr_id).kind = ExprKind::Less(new_left, new_right);
-                    (expr_id, pool3)
-                }
-            }
+        "clamp" if args.len() == 3 => {
+            let x = const_value(&args[0])?.as_fixed();
+            let min_val = const_value(&args[1])?.as_fixed();
+            let max_val = const_value(&args[2])?.as_fixed();
+            let result = x.clamp(min_val, max_val);
+            Some(replacement_number(result.to_f32(), keep_existing_ty))
         }
+        "pow" if args.len() == 2 => {
+            let base = const_value(&args[0])?.as_fixed();
+            let exponent = const_value(&args[1])?.as_fixed();
+            let exp_int = exponent.to_i32();
+            let result = fixed_pow(base, exp_int);
+            Some(replacement_number(result.to_f32(), keep_existing_ty))
+        }
+        "lerp" | "mix" if args.len() == 3 => {
+            let a = const_value(&args[0])?.as_fixed();
+            let b = const_value(&args[1])?.as_fixed();
+            let t = const_value(&args[2])?.as_fixed();
+            let result = fixed_lerp(a, b, t);
+            Some(replacement_number(result.to_f32(), keep_existing_ty))
+        }
+        "saturate" if args.len() == 1 => {
+            let value = const_value(&args[0])?.as_fixed();
+            let result = fixed_saturate(value);
+            Some(replacement_number(result.to_f32(), keep_existing_ty))
+        }
+        _ => None,
+    }
+}
 
-        // Ternary: condition ? true_expr : false_expr
-        ExprKind::Ternary {
+fn fold_ternary(condition: &Expr, then_expr: &Expr, else_expr: &Expr) -> Option<FoldReplacement> {
+    let cond = const_value(condition)?;
+    let selected = if cond.truthy() { then_expr } else { else_expr };
+    Some(FoldReplacement::new(
+        selected.kind.clone(),
+        selected.ty.clone(),
+        false,
+    ))
+}
+
+fn fold_binary_numeric(
+    left: &Expr,
+    right: &Expr,
+    op: fn(f32, f32) -> f32,
+    int_op: Option<fn(i32, i32) -> i32>,
+    keep_existing_ty: bool,
+) -> Option<FoldReplacement> {
+    let left_val = const_value(left)?;
+    let right_val = const_value(right)?;
+
+    if let (Some(op_int), Some(l), Some(r)) = (int_op, left_val.as_int(), right_val.as_int()) {
+        Some(replacement_int(op_int(l, r), keep_existing_ty))
+    } else {
+        Some(replacement_number(
+            op(left_val.as_float(), right_val.as_float()),
+            keep_existing_ty,
+        ))
+    }
+}
+
+fn fold_binary_int(
+    left: &Expr,
+    right: &Expr,
+    op: fn(i32, i32) -> i32,
+    keep_existing_ty: bool,
+) -> Option<FoldReplacement> {
+    let left_val = const_value(left)?.as_int()?;
+    let right_val = const_value(right)?.as_int()?;
+    Some(replacement_int(op(left_val, right_val), keep_existing_ty))
+}
+
+fn fold_binary_bool(
+    left: &Expr,
+    right: &Expr,
+    op: fn(bool, bool) -> bool,
+) -> Option<FoldReplacement> {
+    let left_val = const_value(left)?;
+    let right_val = const_value(right)?;
+    Some(replacement_bool(op(left_val.truthy(), right_val.truthy())))
+}
+
+fn fold_compare(left: &Expr, right: &Expr, cmp: fn(f32, f32) -> bool) -> Option<FoldReplacement> {
+    let left_val = const_value(left)?.as_float();
+    let right_val = const_value(right)?.as_float();
+    Some(replacement_bool(cmp(left_val, right_val)))
+}
+
+fn fold_equality(left: &Expr, right: &Expr, expected_equal: bool) -> Option<FoldReplacement> {
+    let left_val = const_value(left)?;
+    let right_val = const_value(right)?;
+    let equal = match (left_val, right_val) {
+        (ConstValue::Int(a), ConstValue::Int(b)) => a == b,
+        (ConstValue::Float(a), ConstValue::Float(b)) => a == b,
+        (a, b) => a.as_float() == b.as_float(),
+    };
+    Some(replacement_bool(if expected_equal {
+        equal
+    } else {
+        !equal
+    }))
+}
+
+fn fold_unary_numeric(
+    operand: &Expr,
+    op: fn(f32) -> f32,
+    int_op: Option<fn(i32) -> i32>,
+    keep_existing_ty: bool,
+) -> Option<FoldReplacement> {
+    let operand_val = const_value(operand)?;
+    if let (Some(op_int), Some(v)) = (int_op, operand_val.as_int()) {
+        Some(replacement_int(op_int(v), keep_existing_ty))
+    } else {
+        Some(replacement_number(
+            op(operand_val.as_float()),
+            keep_existing_ty,
+        ))
+    }
+}
+
+fn fold_not(operand: &Expr) -> Option<FoldReplacement> {
+    let operand_val = const_value(operand)?;
+    Some(replacement_bool(!operand_val.truthy()))
+}
+
+fn fold_bitwise_not(operand: &Expr, keep_existing_ty: bool) -> Option<FoldReplacement> {
+    let operand_val = const_value(operand)?.as_int()?;
+    Some(replacement_int(!operand_val, keep_existing_ty))
+}
+
+pub fn fold_constants(expr: &mut Expr) -> bool {
+    use ExprKind::*;
+
+    let mut changed = false;
+
+    match &mut expr.kind {
+        Add(left, right)
+        | Sub(left, right)
+        | Mul(left, right)
+        | Div(left, right)
+        | Mod(left, right)
+        | BitwiseAnd(left, right)
+        | BitwiseOr(left, right)
+        | BitwiseXor(left, right)
+        | LeftShift(left, right)
+        | RightShift(left, right)
+        | Less(left, right)
+        | Greater(left, right)
+        | LessEq(left, right)
+        | GreaterEq(left, right)
+        | Eq(left, right)
+        | NotEq(left, right)
+        | And(left, right)
+        | Or(left, right) => {
+            changed |= fold_constants(left.as_mut());
+            changed |= fold_constants(right.as_mut());
+        }
+        Neg(operand) | BitwiseNot(operand) | Not(operand) => {
+            changed |= fold_constants(operand.as_mut());
+        }
+        Ternary {
             condition,
             true_expr,
             false_expr,
         } => {
-            let (new_cond, pool2) = fold_constants(condition, pool);
-            let (new_true, pool3) = fold_constants(true_expr, pool2);
-            let (new_false, mut pool4) = fold_constants(false_expr, pool3);
-
-            // If condition is constant, return the appropriate branch
-            match &pool4.expr(new_cond).kind {
-                ExprKind::Number(n) if *n != 0.0 => (new_true, pool4), // true
-                ExprKind::Number(_) => (new_false, pool4),             // false (0.0)
-                _ => {
-                    pool4.expr_mut(expr_id).kind = ExprKind::Ternary {
-                        condition: new_cond,
-                        true_expr: new_true,
-                        false_expr: new_false,
-                    };
-                    (expr_id, pool4)
-                }
+            changed |= fold_constants(condition.as_mut());
+            changed |= fold_constants(true_expr.as_mut());
+            changed |= fold_constants(false_expr.as_mut());
+        }
+        Assign { value, .. } => {
+            changed |= fold_constants(value.as_mut());
+        }
+        Call { args, .. }
+        | Vec2Constructor(args)
+        | Vec3Constructor(args)
+        | Vec4Constructor(args) => {
+            for arg in args.iter_mut() {
+                changed |= fold_constants(arg);
             }
         }
-
-        // Logical And: a && b
-        ExprKind::And(left_id, right_id) => {
-            let (new_left, pool2) = fold_constants(left_id, pool);
-            let (new_right, mut pool3) = fold_constants(right_id, pool2);
-
-            match (&pool3.expr(new_left).kind, &pool3.expr(new_right).kind) {
-                (ExprKind::Number(a), ExprKind::Number(b)) => {
-                    let result_val = if *a != 0.0 && *b != 0.0 { 1.0 } else { 0.0 };
-                    if let Ok(id) = pool3.alloc_expr(ExprKind::Number(result_val), span) {
-                        pool3.expr_mut(id).ty = ty.clone();
-                        (id, pool3)
-                    } else {
-                        (expr_id, pool3)
-                    }
-                }
-                (ExprKind::Number(a), _) if *a == 0.0 => {
-                    // false && x = false
-                    (new_left, pool3)
-                }
-                (_, ExprKind::Number(b)) if *b == 0.0 => {
-                    // x && false = false
-                    (new_right, pool3)
-                }
-                _ => {
-                    pool3.expr_mut(expr_id).kind = ExprKind::And(new_left, new_right);
-                    (expr_id, pool3)
-                }
-            }
+        Swizzle { expr: inner, .. } => {
+            changed |= fold_constants(inner.as_mut());
         }
+        Number(_) | IntNumber(_) | Variable(_) | PreIncrement(_) | PreDecrement(_)
+        | PostIncrement(_) | PostDecrement(_) => {}
+    }
 
-        // Logical Or: a || b
-        ExprKind::Or(left_id, right_id) => {
-            let (new_left, pool2) = fold_constants(left_id, pool);
-            let (new_right, mut pool3) = fold_constants(right_id, pool2);
-
-            match (&pool3.expr(new_left).kind, &pool3.expr(new_right).kind) {
-                (ExprKind::Number(a), ExprKind::Number(b)) => {
-                    let result_val = if *a != 0.0 || *b != 0.0 { 1.0 } else { 0.0 };
-                    if let Ok(id) = pool3.alloc_expr(ExprKind::Number(result_val), span) {
-                        pool3.expr_mut(id).ty = ty.clone();
-                        (id, pool3)
-                    } else {
-                        (expr_id, pool3)
-                    }
-                }
-                (ExprKind::Number(a), _) if *a != 0.0 => {
-                    // true || x = true
-                    (new_left, pool3)
-                }
-                (_, ExprKind::Number(b)) if *b != 0.0 => {
-                    // x || true = true
-                    (new_right, pool3)
-                }
-                _ => {
-                    pool3.expr_mut(expr_id).kind = ExprKind::Or(new_left, new_right);
-                    (expr_id, pool3)
-                }
-            }
-        }
-
-        // Logical Not: !a
-        ExprKind::Not(operand_id) => {
-            let (new_operand, mut pool2) = fold_constants(operand_id, pool);
-            match &pool2.expr(new_operand).kind {
-                ExprKind::Number(n) => {
-                    let result_val = if *n == 0.0 { 1.0 } else { 0.0 };
-                    if let Ok(id) = pool2.alloc_expr(ExprKind::Number(result_val), span) {
-                        (id, pool2)
-                    } else {
-                        (expr_id, pool2)
-                    }
-                }
-                _ => {
-                    pool2.expr_mut(expr_id).kind = ExprKind::Not(new_operand);
-                    (expr_id, pool2)
-                }
-            }
-        }
-
-        // Binary fixed functions (min, max, pow, mod)
-        ExprKind::Call { ref name, ref args } if args.len() == 2 => {
-            let arg1_id = args[0];
-            let arg2_id = args[1];
-            let (new_arg1, pool2) = fold_constants(arg1_id, pool);
-            let (new_arg2, mut pool3) = fold_constants(arg2_id, pool2);
-
-            match (&pool3.expr(new_arg1).kind, &pool3.expr(new_arg2).kind) {
-                (ExprKind::Number(a), ExprKind::Number(b)) => {
-                    let result_val = match name.as_str() {
-                        "min" => a.min(*b),
-                        "max" => a.max(*b),
-                        "pow" => powf(*a, *b),
-                        "mod" => {
-                            if *b != 0.0 {
-                                a % b
-                            } else {
-                                pool3.expr_mut(expr_id).kind = ExprKind::Call {
-                                    name: name.clone(),
-                                    args: alloc::vec![new_arg1, new_arg2],
-                                };
-                                return (expr_id, pool3);
-                            }
-                        }
-                        _ => {
-                            pool3.expr_mut(expr_id).kind = ExprKind::Call {
-                                name: name.clone(),
-                                args: alloc::vec![new_arg1, new_arg2],
-                            };
-                            return (expr_id, pool3);
-                        }
-                    };
-
-                    if let Ok(id) = pool3.alloc_expr(ExprKind::Number(result_val), span) {
-                        pool3.expr_mut(id).ty = ty.clone();
-                        (id, pool3)
-                    } else {
-                        (expr_id, pool3)
-                    }
-                }
-                _ => {
-                    pool3.expr_mut(expr_id).kind = ExprKind::Call {
-                        name: name.clone(),
-                        args: alloc::vec![new_arg1, new_arg2],
-                    };
-                    (expr_id, pool3)
-                }
-            }
-        }
-
-        // Ternary fixed functions (clamp, lerp, smoothstep)
-        ExprKind::Call { ref name, ref args } if args.len() == 3 => {
-            let arg1_id = args[0];
-            let arg2_id = args[1];
-            let arg3_id = args[2];
-            let (new_arg1, pool2) = fold_constants(arg1_id, pool);
-            let (new_arg2, pool3) = fold_constants(arg2_id, pool2);
-            let (new_arg3, mut pool4) = fold_constants(arg3_id, pool3);
-
-            match (
-                &pool4.expr(new_arg1).kind,
-                &pool4.expr(new_arg2).kind,
-                &pool4.expr(new_arg3).kind,
-            ) {
-                (ExprKind::Number(a), ExprKind::Number(b), ExprKind::Number(c)) => {
-                    let result_val = match name.as_str() {
-                        "clamp" => a.max(*b).min(*c),      // clamp(x, min, max)
-                        "lerp" | "mix" => a + (c - a) * b, // lerp(a, b, c) = a + (c - a) * b
-                        "smoothstep" => {
-                            // smoothstep(edge0, edge1, x) - complex, skip for now
-                            pool4.expr_mut(expr_id).kind = ExprKind::Call {
-                                name: name.clone(),
-                                args: alloc::vec![new_arg1, new_arg2, new_arg3],
-                            };
-                            return (expr_id, pool4);
-                        }
-                        _ => {
-                            pool4.expr_mut(expr_id).kind = ExprKind::Call {
-                                name: name.clone(),
-                                args: alloc::vec![new_arg1, new_arg2, new_arg3],
-                            };
-                            return (expr_id, pool4);
-                        }
-                    };
-
-                    if let Ok(id) = pool4.alloc_expr(ExprKind::Number(result_val), span) {
-                        (id, pool4)
-                    } else {
-                        (expr_id, pool4)
-                    }
-                }
-                _ => {
-                    pool4.expr_mut(expr_id).kind = ExprKind::Call {
-                        name: name.clone(),
-                        args: alloc::vec![new_arg1, new_arg2, new_arg3],
-                    };
-                    (expr_id, pool4)
-                }
-            }
-        }
-
-        // Unary fixed functions (sin, cos, etc.)
-        ExprKind::Call { ref name, ref args } if args.len() == 1 => {
-            let arg_id = args[0];
-            let (new_arg, mut pool2) = fold_constants(arg_id, pool);
-
-            if let ExprKind::Number(n) = &pool2.expr(new_arg).kind {
-                // Convert to fixed-point for fixed operations
-                let fixed_arg = Fixed::from_f32(*n);
-                let result_fixed = match name.as_str() {
-                    "sin" => sin(fixed_arg),
-                    "cos" => cos(fixed_arg),
-                    "tan" => tan(fixed_arg),
-                    "sqrt" => sqrt(fixed_arg),
-                    "abs" => fixed_arg.abs(),
-                    "floor" => floor(fixed_arg),
-                    "ceil" => ceil(fixed_arg),
-                    "saturate" => saturate(fixed_arg),
-                    _ => {
-                        pool2.expr_mut(expr_id).kind = ExprKind::Call {
-                            name: name.clone(),
-                            args: alloc::vec![new_arg],
-                        };
-                        return (expr_id, pool2);
-                    }
+    let replacement = match &mut expr.kind {
+        Add(left, right) => fold_binary_numeric(
+            left.as_ref(),
+            right.as_ref(),
+            |a, b| a + b,
+            Some(|a, b| a + b),
+            true,
+        ),
+        Sub(left, right) => fold_binary_numeric(
+            left.as_ref(),
+            right.as_ref(),
+            |a, b| a - b,
+            Some(|a, b| a - b),
+            true,
+        ),
+        Mul(left, right) => fold_binary_numeric(
+            left.as_ref(),
+            right.as_ref(),
+            |a, b| a * b,
+            Some(|a, b| a * b),
+            true,
+        ),
+        Div(left, right) => {
+            if let Some(denom) = const_value(right.as_ref()) {
+                let zero = match denom {
+                    ConstValue::Int(v) => v == 0,
+                    _ => denom.as_float() == 0.0,
                 };
-                // Convert back to f32 for AST storage
-                let result_val = result_fixed.to_f32();
-
-                if let Ok(id) = pool2.alloc_expr(ExprKind::Number(result_val), span) {
-                    (id, pool2)
+                if zero {
+                    None
                 } else {
-                    (expr_id, pool2)
+                    fold_binary_numeric(
+                        left.as_ref(),
+                        right.as_ref(),
+                        |a, b| a / b,
+                        Some(|a, b| a / b),
+                        true,
+                    )
                 }
             } else {
-                pool2.expr_mut(expr_id).kind = ExprKind::Call {
-                    name: name.clone(),
-                    args: alloc::vec![new_arg],
-                };
-                (expr_id, pool2)
+                None
             }
         }
-
-        // Recursively fold vector constructors
-        ExprKind::Vec2Constructor(ref args) => {
-            let mut new_args = alloc::vec::Vec::new();
-            let mut current_pool = pool;
-
-            for &arg_id in args {
-                let (new_arg, next_pool) = fold_constants(arg_id, current_pool);
-                new_args.push(new_arg);
-                current_pool = next_pool;
+        Mod(left, right) => {
+            let left_val = const_value(left.as_ref());
+            let right_val = const_value(right.as_ref());
+            match (left_val, right_val) {
+                (Some(ConstValue::Int(a)), Some(ConstValue::Int(b))) if b != 0 => {
+                    Some(replacement_int(a % b, true))
+                }
+                (Some(l), Some(r)) => {
+                    let divisor = r.as_float();
+                    if divisor == 0.0 {
+                        None
+                    } else {
+                        Some(replacement_number(l.as_float() % divisor, true))
+                    }
+                }
+                _ => None,
             }
-
-            current_pool.expr_mut(expr_id).kind = ExprKind::Vec2Constructor(new_args);
-            (expr_id, current_pool)
         }
-
-        ExprKind::Vec3Constructor(ref args) => {
-            let mut new_args = alloc::vec::Vec::new();
-            let mut current_pool = pool;
-
-            for &arg_id in args {
-                let (new_arg, next_pool) = fold_constants(arg_id, current_pool);
-                new_args.push(new_arg);
-                current_pool = next_pool;
-            }
-
-            current_pool.expr_mut(expr_id).kind = ExprKind::Vec3Constructor(new_args);
-            (expr_id, current_pool)
+        BitwiseAnd(left, right) => {
+            fold_binary_int(left.as_ref(), right.as_ref(), |a, b| a & b, true)
         }
-
-        ExprKind::Vec4Constructor(ref args) => {
-            let mut new_args = alloc::vec::Vec::new();
-            let mut current_pool = pool;
-
-            for &arg_id in args {
-                let (new_arg, next_pool) = fold_constants(arg_id, current_pool);
-                new_args.push(new_arg);
-                current_pool = next_pool;
-            }
-
-            current_pool.expr_mut(expr_id).kind = ExprKind::Vec4Constructor(new_args);
-            (expr_id, current_pool)
+        BitwiseOr(left, right) => {
+            fold_binary_int(left.as_ref(), right.as_ref(), |a, b| a | b, true)
         }
+        BitwiseXor(left, right) => {
+            fold_binary_int(left.as_ref(), right.as_ref(), |a, b| a ^ b, true)
+        }
+        LeftShift(left, right) => fold_binary_int(
+            left.as_ref(),
+            right.as_ref(),
+            |a, b| a.wrapping_shl(b as u32),
+            true,
+        ),
+        RightShift(left, right) => fold_binary_int(
+            left.as_ref(),
+            right.as_ref(),
+            |a, b| a.wrapping_shr(b as u32),
+            true,
+        ),
+        Less(left, right) => fold_compare(left.as_ref(), right.as_ref(), |a, b| a < b),
+        Greater(left, right) => fold_compare(left.as_ref(), right.as_ref(), |a, b| a > b),
+        LessEq(left, right) => fold_compare(left.as_ref(), right.as_ref(), |a, b| a <= b),
+        GreaterEq(left, right) => fold_compare(left.as_ref(), right.as_ref(), |a, b| a >= b),
+        Eq(left, right) => fold_equality(left.as_ref(), right.as_ref(), true),
+        NotEq(left, right) => fold_equality(left.as_ref(), right.as_ref(), false),
+        And(left, right) => fold_binary_bool(left.as_ref(), right.as_ref(), |a, b| a && b),
+        Or(left, right) => fold_binary_bool(left.as_ref(), right.as_ref(), |a, b| a || b),
+        Neg(operand) => fold_unary_numeric(operand.as_ref(), |a| -a, Some(|a| -a), true),
+        BitwiseNot(operand) => fold_bitwise_not(operand.as_ref(), true),
+        Not(operand) => fold_not(operand.as_ref()),
+        Ternary {
+            condition,
+            true_expr,
+            false_expr,
+        } => fold_ternary(condition.as_ref(), true_expr.as_ref(), false_expr.as_ref()),
+        Assign { .. } => None,
+        Call { name, args } => fold_call(name, args.as_mut_slice(), true),
+        Vec2Constructor(_) | Vec3Constructor(_) | Vec4Constructor(_) => None,
+        Swizzle { .. } => None,
+        Number(_) | IntNumber(_) | Variable(_) | PreIncrement(_) | PreDecrement(_)
+        | PostIncrement(_) | PostDecrement(_) => None,
+    };
 
-        // All other expressions - return as-is
-        _ => (expr_id, pool),
+    if let Some(replacement) = replacement {
+        replacement.apply(expr);
+        changed = true;
     }
+
+    changed
 }

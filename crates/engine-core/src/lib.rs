@@ -1,4 +1,4 @@
-#![cfg_attr(not(any(test, feature = "profiling")), no_std)]
+#![cfg_attr(not(any(test, feature = "profiling", feature = "std")), no_std)]
 
 // Disabled: Custom allocator was causing SIGABRT during full test suite
 // The VM now has built-in memory limits via VmLimits, making this unnecessary

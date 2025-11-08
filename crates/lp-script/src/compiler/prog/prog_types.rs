@@ -2,7 +2,7 @@
 extern crate alloc;
 use alloc::string::ToString;
 
-use crate::compiler::ast::{AstPool, ExprId, Program, StmtId, StmtKind};
+use crate::compiler::ast::{Expr, Program, Stmt, StmtKind};
 use crate::compiler::error::{TypeError, TypeErrorKind};
 use crate::compiler::typechecker::{FunctionTable, SymbolTable, TypeChecker};
 use crate::shared::Type;
@@ -10,40 +10,37 @@ use crate::shared::Type;
 impl TypeChecker {
     /// Type check a program (script mode) with pre-built function table
     pub fn check_program(
-        program: Program,
-        mut pool: AstPool,
+        program: &mut Program,
         func_table: &FunctionTable,
-    ) -> Result<(Program, AstPool), TypeError> {
+    ) -> Result<(), TypeError> {
         // Type check each function body
-        for func in &program.functions {
+        for func in &mut program.functions {
             Self::check_function_body(
-                &func.body,
+                &mut func.body,
                 &func.return_type,
                 &func.params,
                 func.span,
                 &func.name,
-                &mut pool,
                 func_table,
             )?;
         }
 
         // Type check top-level statements
         let mut symbols = SymbolTable::new();
-        for stmt_id in &program.stmts {
-            Self::check_stmt_id(&mut pool, *stmt_id, &mut symbols, func_table)?;
+        for stmt in &mut program.stmts {
+            Self::check_stmt(stmt, &mut symbols, func_table)?;
         }
 
-        Ok((program, pool))
+        Ok(())
     }
 
     /// Type check a function body
     fn check_function_body(
-        body: &[StmtId],
+        body: &mut [Stmt],
         expected_return_type: &Type,
         params: &[crate::compiler::ast::Parameter],
         func_span: crate::shared::Span,
         func_name: &str,
-        pool: &mut AstPool,
         func_table: &FunctionTable,
     ) -> Result<(), TypeError> {
         let mut symbols = SymbolTable::new();
@@ -59,18 +56,17 @@ impl TypeChecker {
         }
 
         // Type check each statement in the function body
-        for &stmt_id in body {
-            Self::check_stmt_id(pool, stmt_id, &mut symbols, func_table)?;
+        for stmt in body.iter_mut() {
+            Self::check_stmt(stmt, &mut symbols, func_table)?;
 
             // Check if this is a return statement and validate its type
-            let stmt = pool.stmt(stmt_id);
-            if let StmtKind::Return(expr_id) = &stmt.kind {
-                Self::check_return_type(*expr_id, expected_return_type, pool, func_table)?;
+            if let StmtKind::Return(expr) = &stmt.kind {
+                Self::check_return_type(expr, expected_return_type)?;
             }
         }
 
         // Verify all code paths return a value (if return_type != Void)
-        if *expected_return_type != Type::Void && !Self::all_paths_return_id(body, pool) {
+        if *expected_return_type != Type::Void && !Self::all_paths_return(body) {
             return Err(TypeError {
                 kind: TypeErrorKind::MissingReturn(func_name.to_string()),
                 span: func_span,
@@ -81,14 +77,7 @@ impl TypeChecker {
     }
 
     /// Check if a return expression matches the expected return type
-    fn check_return_type(
-        expr_id: ExprId,
-        expected: &Type,
-        pool: &AstPool,
-        _func_table: &FunctionTable,
-    ) -> Result<(), TypeError> {
-        let expr = pool.expr(expr_id);
-
+    fn check_return_type(expr: &Expr, expected: &Type) -> Result<(), TypeError> {
         // Get the actual type of the return expression
         let actual_type = if let Some(ty) = &expr.ty {
             ty.clone()
@@ -114,29 +103,26 @@ impl TypeChecker {
         Ok(())
     }
 
-    /// Check if all code paths in a statement list return (using StmtId)
-    fn all_paths_return_id(stmts: &[StmtId], pool: &AstPool) -> bool {
-        stmts
-            .iter()
-            .any(|&stmt_id| Self::stmt_always_returns_id(stmt_id, pool))
+    /// Check if all code paths in a statement list return
+    fn all_paths_return(stmts: &[Stmt]) -> bool {
+        stmts.iter().any(Self::stmt_always_returns)
     }
 
-    /// Check if a statement always returns (using StmtId)
-    fn stmt_always_returns_id(stmt_id: StmtId, pool: &AstPool) -> bool {
-        let stmt = pool.stmt(stmt_id);
+    /// Check if a statement always returns
+    fn stmt_always_returns(stmt: &Stmt) -> bool {
         match &stmt.kind {
             StmtKind::Return(_) => true,
 
-            StmtKind::Block(stmts) => Self::all_paths_return_id(stmts, pool),
+            StmtKind::Block(stmts) => Self::all_paths_return(stmts),
 
             StmtKind::If {
                 then_stmt,
                 else_stmt,
                 ..
             } => {
-                if let Some(else_id) = else_stmt {
-                    Self::stmt_always_returns_id(*then_stmt, pool)
-                        && Self::stmt_always_returns_id(*else_id, pool)
+                if let Some(else_s) = else_stmt {
+                    Self::stmt_always_returns(then_stmt.as_ref())
+                        && Self::stmt_always_returns(else_s.as_ref())
                 } else {
                     false
                 }
