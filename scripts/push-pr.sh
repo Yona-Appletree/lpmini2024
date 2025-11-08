@@ -83,7 +83,24 @@ if [[ "${current_branch}" == "HEAD" ]]; then
   exit 1
 fi
 
-run_step "git push" git push origin "${current_branch}"
+info "Pushing branch ${current_branch} to origin."
+push_output="$(git push origin "${current_branch}" 2>&1)"
+if [[ $? -ne 0 ]]; then
+  printf '%s\n' "${push_output}"
+  error "\"git push\" failed."
+  if grep -qi 'non-fast-forward' <<<"${push_output}"; then
+    warn "Remote has commits that local history lacks. If you amended or rebased, run:"
+    warn "  git push --force-with-lease origin ${current_branch}"
+    warn "Otherwise, sync first via:"
+    warn "  git pull --rebase origin ${current_branch}"
+  elif grep -qi 'Authentication failed' <<<"${push_output}"; then
+    warn "Authenticate with Git (e.g., \`gh auth refresh -h github.com -s repo\` or reconfigure your SSH keys) and rerun."
+  else
+    warn "Review the git error above, resolve it, then rerun this script."
+  fi
+  exit 1
+fi
+printf '%s\n' "${push_output}"
 
 if ! gh auth status >/dev/null 2>&1; then
   error "GitHub CLI is not authenticated."

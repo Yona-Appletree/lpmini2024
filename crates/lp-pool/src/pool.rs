@@ -55,7 +55,9 @@ impl LpAllocator {
     /// Allocate a block using first-fit strategy with block splitting
     pub fn allocate(&mut self, layout: Layout) -> Result<NonNull<[u8]>, AllocError> {
         let requested_size = layout.size();
-        let align = layout.align();
+        let align = layout.align().max(1);
+        let header_size = mem::size_of::<BlockHeader>();
+        let metadata_size = core::mem::size_of::<usize>();
 
         // Walk the free list to find a suitable block (first-fit)
         let mut current_ptr = self.free_list;
@@ -72,70 +74,88 @@ impl LpAllocator {
                     continue;
                 }
 
-                // With 32-byte header, data is naturally aligned to 8, 16, 32
-                // For larger alignments, we'd need padding (not currently supported)
-                let data_ptr = BlockHeader::data_ptr(current_ptr);
-                let data_addr = data_ptr as usize;
+                let block_base = current_ptr as usize;
+                let min_user_addr = block_base
+                    .checked_add(header_size + metadata_size)
+                    .ok_or(AllocError::InvalidLayout)?;
 
-                // Check if naturally aligned (works for align <= 32)
-                if data_addr.is_multiple_of(align) {
-                    // Calculate total size needed
-                    let total_needed = mem::size_of::<BlockHeader>() + requested_size;
+                let align_mask = align - 1;
+                let aligned_user_addr = if align > 1 {
+                    (min_user_addr
+                        .checked_add(align_mask)
+                        .ok_or(AllocError::InvalidLayout)?)
+                        & !align_mask
+                } else {
+                    min_user_addr
+                };
 
-                    // Check if this block is large enough
-                    if header.size >= total_needed {
-                        // Found a suitable block!
-                        // Remove from free list
-                        let next_free = BlockHeader::read_next_free(current_ptr);
-                        if prev_ptr.is_null() {
-                            self.free_list = next_free;
-                        } else {
-                            BlockHeader::write_next_free(prev_ptr, next_free);
-                        }
+                let metadata_addr = aligned_user_addr
+                    .checked_sub(metadata_size)
+                    .ok_or(AllocError::InvalidLayout)?;
+                let aligned_data_offset = metadata_addr
+                    .checked_sub(block_base)
+                    .ok_or(AllocError::InvalidLayout)?;
 
-                        // Calculate remaining size after allocation
-                        let remaining_size = header.size - total_needed;
-                        let min_leftover = MIN_BLOCK_SIZE;
+                let total_needed = match aligned_user_addr
+                    .checked_sub(block_base)
+                    .and_then(|offset| offset.checked_add(requested_size))
+                {
+                    Some(val) => val,
+                    None => return Err(AllocError::InvalidLayout),
+                };
 
-                        let (alloc_block_ptr, alloc_size) = if remaining_size >= min_leftover {
-                            // Split: current block becomes allocated, remainder becomes free
-                            let alloc_size = total_needed;
-                            let remainder_ptr = current_ptr.add(alloc_size);
-
-                            // Write remainder block header
-                            let remainder_header = BlockHeader::new(remaining_size, false);
-                            BlockHeader::write(remainder_ptr, remainder_header);
-
-                            // Add remainder to free list
-                            BlockHeader::write_next_free(remainder_ptr, self.free_list);
-                            self.free_list = remainder_ptr;
-
-                            (current_ptr, alloc_size)
-                        } else {
-                            // No split - use entire block
-                            (current_ptr, header.size)
-                        };
-
-                        // Mark block as allocated
-                        let alloc_header = BlockHeader::new(alloc_size, true);
-                        BlockHeader::write(alloc_block_ptr, alloc_header);
-
-                        // Update used bytes
-                        self.used_bytes += alloc_size;
-
-                        // Return pointer to data area
-                        let data_ptr = BlockHeader::data_ptr(alloc_block_ptr);
-
-                        return Ok(NonNull::slice_from_raw_parts(
-                            NonNull::new_unchecked(data_ptr),
-                            requested_size,
-                        ));
-                    }
+                if total_needed > header.size {
+                    prev_ptr = current_ptr;
+                    current_ptr = BlockHeader::read_next_free(current_ptr);
+                    continue;
                 }
 
-                // Move to next block in free list
-                prev_ptr = current_ptr;
-                current_ptr = BlockHeader::read_next_free(current_ptr);
+                // Found a suitable block!
+                let next_free = BlockHeader::read_next_free(current_ptr);
+                if prev_ptr.is_null() {
+                    self.free_list = next_free;
+                } else {
+                    BlockHeader::write_next_free(prev_ptr, next_free);
+                }
+
+                let remaining_size = header.size - total_needed;
+                let min_leftover = MIN_BLOCK_SIZE;
+
+                let (alloc_block_ptr, alloc_size) = if remaining_size >= min_leftover {
+                    let alloc_size = total_needed;
+                    let remainder_ptr = current_ptr.add(alloc_size);
+
+                    let remainder_header = BlockHeader::new(remaining_size, false);
+                    BlockHeader::write(remainder_ptr, remainder_header);
+
+                    BlockHeader::write_next_free(remainder_ptr, self.free_list);
+                    self.free_list = remainder_ptr;
+
+                    (current_ptr, alloc_size)
+                } else {
+                    (current_ptr, header.size)
+                };
+
+                if aligned_data_offset > u16::MAX as usize {
+                    return Err(AllocError::InvalidLayout);
+                }
+
+                let alloc_header =
+                    BlockHeader::new_with_offset(alloc_size, true, aligned_data_offset as u16);
+                BlockHeader::write(alloc_block_ptr, alloc_header);
+
+                self.used_bytes += alloc_size;
+
+                let metadata_ptr = alloc_block_ptr.add(aligned_data_offset);
+                // Store metadata (offset back to header)
+                core::ptr::write_unaligned(metadata_ptr as *mut usize, alloc_block_ptr as usize);
+
+                let user_ptr = aligned_user_addr as *mut u8;
+
+                return Ok(NonNull::slice_from_raw_parts(
+                    NonNull::new_unchecked(user_ptr),
+                    requested_size,
+                ));
             }
         }
 
@@ -153,7 +173,8 @@ impl LpAllocator {
     /// In debug builds, panics if `ptr` is not within the pool's memory region
     pub unsafe fn deallocate(&mut self, ptr: NonNull<u8>, _layout: Layout) {
         // Convert data pointer to block pointer using stored offset
-        let block_ptr = BlockHeader::block_ptr_from_data(ptr.as_ptr());
+        let block_ptr =
+            BlockHeader::block_ptr_from_data(ptr.as_ptr(), self.memory.as_ptr(), self.capacity);
 
         // Validation: check that block_ptr is within our memory region
         #[cfg(debug_assertions)]
@@ -193,6 +214,7 @@ impl LpAllocator {
 
         // Mark block as free
         header.is_allocated = false;
+        header.data_offset = mem::size_of::<BlockHeader>() as u16;
         BlockHeader::write(block_ptr, header);
 
         // Try to coalesce with next block
@@ -466,7 +488,8 @@ mod tests {
 
         unsafe {
             let mut pool = LpAllocator::new(memory_ptr, 1024).unwrap();
-            let layout = Layout::from_size_align(32, 8).unwrap();
+            let allocation_overhead = mem::size_of::<BlockHeader>() + mem::size_of::<usize>();
+            let layout = Layout::from_size_align(64 - allocation_overhead, 8).unwrap();
 
             let ptr1 = pool.allocate(layout).unwrap();
             assert_eq!(pool.used_blocks(), 1);
@@ -489,7 +512,14 @@ mod tests {
 
         unsafe {
             let mut pool = LpAllocator::new(memory_ptr, 128).unwrap();
-            let layout = Layout::from_size_align(32, 8).unwrap();
+            let align = 8;
+            let header_size = mem::size_of::<BlockHeader>();
+            let metadata_size = mem::size_of::<usize>();
+            let max_padding = align - 1;
+            let max_data_capacity =
+                64usize.saturating_sub(header_size + metadata_size + max_padding);
+            let layout_size = (max_data_capacity / align).max(1) * align;
+            let layout = Layout::from_size_align(layout_size, align).unwrap();
 
             // Should get 2 blocks (128 / 64 = 2)
             let _ptr1 = pool.allocate(layout).unwrap();
@@ -1386,7 +1416,8 @@ mod tests {
             let mut pool = LpAllocator::new(memory_ptr, 2048).unwrap();
 
             // Try to allocate entire pool capacity (minus header overhead)
-            let layout = Layout::from_size_align(1900, 8).unwrap();
+            let allocation_overhead = mem::size_of::<BlockHeader>() + mem::size_of::<usize>();
+            let layout = Layout::from_size_align(2048 - allocation_overhead, 8).unwrap();
             let result = pool.allocate(layout);
 
             assert!(
@@ -1425,7 +1456,11 @@ mod tests {
             let ptr = pool.allocate(layout).unwrap();
 
             // Get block pointer and verify header is valid
-            let block_ptr = BlockHeader::block_ptr_from_data(ptr.as_ptr() as *mut u8);
+            let block_ptr = BlockHeader::block_ptr_from_data(
+                ptr.as_ptr() as *mut u8,
+                pool.memory.as_ptr(),
+                pool.capacity,
+            );
             let header = BlockHeader::read(block_ptr);
 
             assert!(header.is_valid(), "Block header should be valid");
