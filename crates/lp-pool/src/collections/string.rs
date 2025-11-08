@@ -142,7 +142,7 @@ mod tests {
             let s = LpString::new();
             assert_eq!(s.len(), 0);
             assert_eq!(s.as_str(), "");
-            Ok(())
+            Ok::<(), AllocError>(())
         })
         .unwrap();
     }

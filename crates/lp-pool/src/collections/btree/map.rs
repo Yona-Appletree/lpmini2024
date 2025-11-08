@@ -366,7 +366,7 @@ mod tests {
         pool.run(|| {
             let map = LpBTreeMap::<i32, i32>::new();
             assert_eq!(map.len(), 0);
-            Ok(())
+            Ok::<(), AllocError>(())
         })
         .unwrap();
     }

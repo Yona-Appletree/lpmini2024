@@ -105,7 +105,7 @@ mod tests {
             let layout = Layout::from_size_align(64, 8).unwrap();
             let ptr = allocator.allocate(layout);
             assert!(ptr.is_ok());
-            Ok(())
+            Ok::<(), AllocError>(())
         })
         .unwrap();
     }
@@ -122,7 +122,7 @@ mod tests {
             unsafe {
                 allocator.deallocate(ptr_u8, layout);
             }
-            Ok(())
+            Ok::<(), AllocError>(())
         })
         .unwrap();
     }
@@ -139,7 +139,7 @@ mod tests {
             let ptr_u8 = NonNull::new(ptr.as_ptr() as *mut u8).unwrap();
             let grown = unsafe { allocator.grow(ptr_u8, old_layout, new_layout) };
             assert!(grown.is_ok());
-            Ok(())
+            Ok::<(), AllocError>(())
         })
         .unwrap();
     }
@@ -156,7 +156,7 @@ mod tests {
             let ptr_u8 = NonNull::new(ptr.as_ptr() as *mut u8).unwrap();
             let shrunk = unsafe { allocator.shrink(ptr_u8, old_layout, new_layout) };
             assert!(shrunk.is_ok());
-            Ok(())
+            Ok::<(), AllocError>(())
         })
         .unwrap();
     }

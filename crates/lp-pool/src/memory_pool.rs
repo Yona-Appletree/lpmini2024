@@ -126,7 +126,7 @@ mod tests {
 
         unsafe {
             let pool = LpMemoryPool::new(memory_ptr, 1024).unwrap();
-            let result = pool.run(|| Ok(42)).unwrap();
+            let result = pool.run(|| Ok::<i32, AllocError>(42)).unwrap();
             assert_eq!(result, 42);
         }
     }
