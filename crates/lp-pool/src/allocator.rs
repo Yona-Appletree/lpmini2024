@@ -19,7 +19,7 @@ use crate::memory_pool::with_active_pool;
 ///
 /// let mut memory = [0u8; 4096];
 /// let memory_ptr = NonNull::new(memory.as_mut_ptr()).unwrap();
-/// let pool = unsafe { LpMemoryPool::new(memory_ptr, 4096, 64).unwrap() };
+/// let pool = unsafe { LpMemoryPool::new(memory_ptr, 4096).unwrap() };
 ///
 /// pool.run(|| {
 ///     let allocator = LpAllocatorWrapper;

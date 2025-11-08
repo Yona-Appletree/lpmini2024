@@ -2,9 +2,6 @@ use super::node::Node;
 use crate::error::AllocError;
 use core::ptr::NonNull;
 
-#[cfg(feature = "alloc-meta")]
-use super::super::alloc_meta::AllocationMeta;
-
 /// Pool-backed BTreeMap implementation
 ///
 /// Uses a binary search tree structure (simplified B-tree) with nodes allocated from the pool.
@@ -21,6 +18,7 @@ where
     root: Option<NonNull<Node<K, V>>>,
     len: usize,
     #[cfg(feature = "alloc-meta")]
+    #[allow(dead_code)]
     scope: Option<&'static str>,
 }
 
@@ -306,6 +304,47 @@ where
     }
 }
 
+// Default implementation
+impl<K, V> Default for LpBTreeMap<K, V>
+where
+    K: Ord,
+{
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+// Drop implementation
+impl<K, V> Drop for LpBTreeMap<K, V>
+where
+    K: Ord,
+{
+    fn drop(&mut self) {
+        if let Some(root) = self.root {
+            unsafe {
+                Self::drop_tree(root);
+            }
+        }
+    }
+}
+
+// Additional methods
+impl<K, V> LpBTreeMap<K, V>
+where
+    K: Ord,
+{
+    unsafe fn drop_tree(node_ptr: NonNull<Node<K, V>>) {
+        let node = &*node_ptr.as_ptr();
+        if let Some(left) = node.left() {
+            Self::drop_tree(left);
+        }
+        if let Some(right) = node.right() {
+            Self::drop_tree(right);
+        }
+        Node::deallocate(node_ptr);
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -550,7 +589,7 @@ mod tests {
             }
         }
 
-        struct ValWithDrop(i32);
+        struct ValWithDrop(#[allow(dead_code)] i32);
 
         impl Drop for ValWithDrop {
             fn drop(&mut self) {
@@ -886,43 +925,5 @@ mod tests {
             Ok::<(), AllocError>(())
         })
         .unwrap();
-    }
-}
-
-impl<K, V> Default for LpBTreeMap<K, V>
-where
-    K: Ord,
-{
-    fn default() -> Self {
-        Self::new()
-    }
-}
-
-impl<K, V> Drop for LpBTreeMap<K, V>
-where
-    K: Ord,
-{
-    fn drop(&mut self) {
-        if let Some(root) = self.root {
-            unsafe {
-                Self::drop_tree(root);
-            }
-        }
-    }
-}
-
-impl<K, V> LpBTreeMap<K, V>
-where
-    K: Ord,
-{
-    unsafe fn drop_tree(node_ptr: NonNull<Node<K, V>>) {
-        let node = &*node_ptr.as_ptr();
-        if let Some(left) = node.left() {
-            Self::drop_tree(left);
-        }
-        if let Some(right) = node.right() {
-            Self::drop_tree(right);
-        }
-        Node::deallocate(node_ptr);
     }
 }

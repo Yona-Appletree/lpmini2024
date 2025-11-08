@@ -75,9 +75,12 @@ impl BlockHeader {
 
     /// Get pointer to the data area (after the header)
     /// With 32-byte aligned header, this provides natural alignment up to 32 bytes
+    ///
+    /// # Safety
+    /// - block_ptr must be a valid pointer to a block header
     #[inline]
-    pub fn data_ptr(block_ptr: *mut u8) -> *mut u8 {
-        unsafe { block_ptr.add(mem::size_of::<BlockHeader>()) }
+    pub unsafe fn data_ptr(block_ptr: *mut u8) -> *mut u8 {
+        block_ptr.add(mem::size_of::<BlockHeader>())
     }
 
     /// Get pointer to the block header from a data pointer
@@ -162,7 +165,7 @@ mod tests {
             BlockHeader::write(ptr, header);
             let read_header = BlockHeader::read(ptr);
             assert_eq!(read_header.size, 32);
-            assert_eq!(read_header.is_allocated, false);
+            assert!(!read_header.is_allocated);
         }
     }
 
@@ -170,7 +173,7 @@ mod tests {
     fn test_data_ptr() {
         let mut memory = [0u8; 64];
         let block_ptr = memory.as_mut_ptr();
-        let data_ptr = BlockHeader::data_ptr(block_ptr);
+        let data_ptr = unsafe { BlockHeader::data_ptr(block_ptr) };
 
         let offset = unsafe { data_ptr.offset_from(block_ptr) };
         assert_eq!(offset as usize, mem::size_of::<BlockHeader>());

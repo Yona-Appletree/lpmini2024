@@ -55,10 +55,12 @@ impl<T> LpBox<T> {
         })
     }
 
+    #[allow(clippy::should_implement_trait)]
     pub fn as_ref(&self) -> &T {
         unsafe { &*self.ptr.as_ptr() }
     }
 
+    #[allow(clippy::should_implement_trait)]
     pub fn as_mut(&mut self) -> &mut T {
         unsafe { &mut *self.ptr.as_ptr() }
     }

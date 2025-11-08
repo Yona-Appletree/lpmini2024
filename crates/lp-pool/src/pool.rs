@@ -78,7 +78,7 @@ impl LpAllocator {
                 let data_addr = data_ptr as usize;
 
                 // Check if naturally aligned (works for align <= 32)
-                if data_addr % align == 0 {
+                if data_addr.is_multiple_of(align) {
                     // Calculate total size needed
                     let total_needed = mem::size_of::<BlockHeader>() + requested_size;
 
@@ -1119,11 +1119,8 @@ mod tests {
             let layout = Layout::from_size_align(16, 8).unwrap();
             let mut count = 0;
 
-            loop {
-                match pool.allocate(layout) {
-                    Ok(_) => count += 1,
-                    Err(_) => break,
-                }
+            while pool.allocate(layout).is_ok() {
+                count += 1;
             }
 
             // With variable-size allocator, we should be able to fit many 16-byte allocations
@@ -1160,10 +1157,10 @@ mod tests {
             let grown_ptr = grown.as_ptr() as *const u8;
 
             // Verify data was preserved
-            for i in 0..test_data.len() {
+            for (i, &expected_val) in test_data.iter().enumerate() {
                 assert_eq!(
                     *grown_ptr.add(i),
-                    test_data[i],
+                    expected_val,
                     "Data corrupted at byte {}",
                     i
                 );
@@ -1196,10 +1193,10 @@ mod tests {
             let shrunk_ptr = shrunk.as_ptr() as *const u8;
 
             // Verify data was preserved (up to new size)
-            for i in 0..test_data.len().min(16) {
+            for (i, &expected_val) in test_data.iter().enumerate().take(16) {
                 assert_eq!(
                     *shrunk_ptr.add(i),
-                    test_data[i],
+                    expected_val,
                     "Data corrupted at byte {}",
                     i
                 );
@@ -1304,7 +1301,7 @@ mod tests {
             // or fail gracefully - both are acceptable behaviors
             if let Ok(ptr) = result {
                 // If it succeeds, pointer should be non-null
-                assert!(!ptr.as_ptr().is_null());
+                // Verify NonNull invariant (always non-null by construction)
                 // And deallocate should work
                 pool.deallocate(NonNull::new(ptr.as_ptr() as *mut u8).unwrap(), layout);
             }

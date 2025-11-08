@@ -198,9 +198,10 @@ mod integration_tests {
 
             // Can't nest pool-allocated collections due to RefCell borrow
             // So we'll use standard Vec<String> inside LpBox
-            let mut std_vec = alloc::vec::Vec::new();
-            std_vec.push(alloc::string::String::from("hello"));
-            std_vec.push(alloc::string::String::from("world"));
+            let std_vec = alloc::vec![
+                alloc::string::String::from("hello"),
+                alloc::string::String::from("world")
+            ];
 
             let boxed = LpBox::try_new(std_vec)?;
             vec.try_push(boxed)?;
@@ -394,7 +395,7 @@ mod integration_tests {
 
             let ratio = pool.usage_ratio().unwrap();
             assert!(
-                ratio >= 0.4 && ratio <= 0.9,
+                (0.4..=0.9).contains(&ratio),
                 "Usage ratio should be in reasonable range, got {}",
                 ratio
             );
