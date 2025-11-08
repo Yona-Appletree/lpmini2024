@@ -1,4 +1,3 @@
-#![cfg(test)]
 #![allow(dead_code)]
 
 /// Helper functions for building expected statement AST in tests using the

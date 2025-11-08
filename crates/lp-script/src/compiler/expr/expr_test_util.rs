@@ -19,6 +19,8 @@ use crate::vm::lps_vm::LpsVm;
 use crate::vm::vm_limits::VmLimits;
 use crate::vm::{LpsOpCode, LpsProgram};
 
+type ExprBuilder = Box<dyn FnOnce(&mut AstBuilder) -> Expr>;
+
 /// Builder for testing expressions through the compilation pipeline
 ///
 /// Note: In expression mode, variables like `x`, `y`, `time` are built-in variables
@@ -29,7 +31,7 @@ pub struct ExprTest {
     input: String,
     declared_locals: Vec<(String, Type)>, // For symbol table
     local_initial_values: Vec<(String, Vec<i32>)>, /* Initial values for locals (raw i32 representation) */
-    expected_ast_builder: Option<Box<dyn FnOnce(&mut AstBuilder) -> Expr>>,
+    expected_ast_builder: Option<ExprBuilder>,
     expected_opcodes: Option<Vec<LpsOpCode>>,
     expected_result: Option<TestResult>,
     expected_locals: Vec<(String, Fixed)>, // Expected local values after execution
@@ -282,8 +284,7 @@ Actual:   {:?}",
 
             let local_defs: Vec<crate::LocalVarDef> = declared_locals
                 .iter()
-                .enumerate()
-                .map(|(_idx, (name, ty))| {
+                .map(|(name, ty)| {
                     let mut def = crate::LocalVarDef::new(name.clone(), ty.clone());
                     if let Some((_, init_val)) =
                         local_initial_values.iter().find(|(n, _)| n == name)
@@ -298,7 +299,7 @@ Actual:   {:?}",
                 .with_functions(vec![crate::vm::FunctionDef::new("main".into(), Type::Void)
                     .with_locals(local_defs)
                     .with_opcodes(opcodes.clone())])
-                .with_source(input.clone().into());
+                .with_source(input.clone());
 
             if let Some(expected) = &expected_opcodes {
                 if let Some(main_fn) = program.main_function() {

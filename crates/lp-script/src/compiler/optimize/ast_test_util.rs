@@ -1,4 +1,3 @@
-#![cfg(test)]
 /// Test utilities for AST-level optimizations on the recursive `LpBox` AST.
 extern crate alloc;
 
@@ -65,16 +64,6 @@ impl AstOptTest {
 
     pub fn expect_semantics_preserved(mut self) -> Self {
         self.check_semantics = true;
-        self
-    }
-
-    pub fn with_x(mut self, x: f32) -> Self {
-        self.x = x.to_fixed();
-        self
-    }
-
-    pub fn with_y(mut self, y: f32) -> Self {
-        self.y = y.to_fixed();
         self
     }
 

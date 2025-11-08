@@ -85,22 +85,6 @@ impl<'a> CodeGenerator<'a> {
         )
     }
 
-    /// Generate opcodes for a program (script mode) - Legacy API
-    /// Returns (opcodes, local_count, local_types) tuple
-    #[cfg(test)]
-    pub fn generate_program(
-        program: &Program,
-    ) -> (
-        Vec<LpsOpCode>,
-        u32,
-        alloc::collections::BTreeMap<u32, crate::shared::Type>,
-    ) {
-        program::gen_program(program, |stmt, code, locals, func_offsets| {
-            let mut gen = CodeGenerator::new(code, locals, func_offsets);
-            gen.gen_stmt(stmt);
-        })
-    }
-
     // Codegen methods are implemented in their respective organized modules
     // Expression dispatcher: codegen/expr.rs
     // Statement dispatcher: codegen/stmt.rs

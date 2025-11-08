@@ -112,37 +112,6 @@ pub fn gen_program_with_functions(
     final_functions
 }
 
-/// Generate opcodes for a program (script mode) - Legacy API
-/// Returns (opcodes, local_count, local_types) tuple
-#[cfg(test)]
-pub fn gen_program(
-    program: &Program,
-    _gen_stmt: impl Fn(&Stmt, &mut Vec<LpsOpCode>, &mut LocalAllocator, &BTreeMap<String, u32>) + Copy,
-) -> (Vec<LpsOpCode>, u32, BTreeMap<u32, crate::shared::Type>) {
-    let mut code = Vec::new();
-    let function_offsets = BTreeMap::new();
-
-    // Generate main code using CodeGenerator
-    let mut locals = LocalAllocator::new();
-    let (local_count, local_types) = {
-        let mut gen = super::CodeGenerator::new(&mut code, &mut locals, &function_offsets);
-        for stmt in &program.stmts {
-            gen.gen_stmt(stmt);
-        }
-
-        // If no explicit return, add one
-        if !matches!(gen.code.last(), Some(LpsOpCode::Return)) {
-            gen.code.push(LpsOpCode::Push(crate::fixed::Fixed::ZERO));
-            gen.code.push(LpsOpCode::Return);
-        }
-
-        (gen.locals.next_index, gen.locals.local_types.clone())
-    };
-
-    // Return opcodes, local count, and types
-    (code, local_count, local_types)
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;

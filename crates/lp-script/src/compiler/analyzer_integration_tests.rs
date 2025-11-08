@@ -61,7 +61,7 @@ mod tests {
         let mut lexer = Lexer::new(source);
         let tokens = lexer.tokenize();
         let parser = Parser::new(tokens);
-        let mut program = parser.parse_program().expect("parse should succeed");
+        let program = parser.parse_program().expect("parse should succeed");
         let func_table =
             FunctionAnalyzer::analyze_program(&program).expect("analysis should succeed");
         (program, func_table)

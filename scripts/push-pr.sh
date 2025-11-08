@@ -39,6 +39,7 @@ require_command() {
 require_command git "https://git-scm.com/downloads"
 require_command gh "brew install gh"
 require_command cargo "rustup toolchain install stable"
+require_command rustup "brew install rustup-init && rustup-init"
 require_command jq "brew install jq"
 
 TURBO_CMD=()
@@ -104,6 +105,8 @@ run_step() {
 info "Repository root: ${ROOT_DIR}"
 
 run_step "turbo validate" "${TURBO_CMD[@]}" validate
+run_step "cargo fmt (nightly check)" rustup run nightly cargo fmt --all -- --check
+run_step "cargo clippy" cargo clippy --all-targets --all-features -- -D warnings
 run_step "cargo test" cargo test
 
 current_branch="$(git rev-parse --abbrev-ref HEAD)"
@@ -243,11 +246,12 @@ fi
 
 warn "Workflow failed for commit ${commit_sha}. Downloading logs."
 log_dir="$(mktemp -d "${LOG_ROOT}/run_${commit_sha}_XXXXXX")"
-if gh run download "${run_id}" --dir "${log_dir}" --log; then
-  error "GitHub Actions run failed. Logs saved at: ${log_dir}"
+log_file="${log_dir}/workflow.log"
+if NO_COLOR=1 gh run view "${run_id}" --log >"${log_file}" 2>&1; then
+  error "GitHub Actions run failed. Logs saved at: ${log_file}"
   warn "Inspect the logs and iterate on the reported failures before re-running this script."
 else
-  warn "Failed to download logs automatically. Use \`gh run download ${run_id} --dir <path> --log\` to fetch them manually."
+  warn "Failed to download logs automatically. Use \`NO_COLOR=1 gh run view ${run_id} --log > <path>\` to fetch them manually."
 fi
 
 exit 1

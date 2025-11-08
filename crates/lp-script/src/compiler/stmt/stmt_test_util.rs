@@ -1,9 +1,7 @@
-#![cfg(test)]
 /// Test utilities for lp-script statements/scripts - builder pattern for clean testing
 extern crate alloc;
 use alloc::format;
 use alloc::string::String;
-use alloc::vec::Vec;
 use core::ptr::NonNull;
 
 use lp_pool::LpMemoryPool;
@@ -14,7 +12,7 @@ use crate::compiler::func::FunctionMetadata;
 use crate::compiler::optimize::{self, OptimizeOptions};
 use crate::compiler::stmt::stmt_test_ast::StmtBuilder;
 use crate::compiler::{codegen, lexer, parser, typechecker};
-use crate::fixed::{Fixed, ToFixed, Vec2, Vec3, Vec4};
+use crate::fixed::{Fixed, ToFixed};
 use crate::shared::Type;
 use crate::vm::lps_vm::LpsVm;
 use crate::vm::vm_limits::VmLimits;
@@ -53,9 +51,6 @@ pub struct ScriptTest {
 
 enum TestResult {
     Fixed(Fixed),
-    Vec2(Vec2),
-    Vec3(Vec3),
-    Vec4(Vec4),
 }
 
 impl ScriptTest {
@@ -80,24 +75,7 @@ impl ScriptTest {
         self
     }
 
-    pub fn with_x(mut self, x: f32) -> Self {
-        self.x = x.to_fixed();
-        self
-    }
-
-    pub fn with_y(mut self, y: f32) -> Self {
-        self.y = y.to_fixed();
-        self
-    }
-
     pub fn with_time(mut self, time: f32) -> Self {
-        self.time = time.to_fixed();
-        self
-    }
-
-    pub fn with_vm_params(mut self, x: f32, y: f32, time: f32) -> Self {
-        self.x = x.to_fixed();
-        self.y = y.to_fixed();
         self.time = time.to_fixed();
         self
     }
@@ -109,21 +87,6 @@ impl ScriptTest {
 
     pub fn expect_result_fixed(mut self, expected: f32) -> Self {
         self.expected_result = Some(TestResult::Fixed(expected.to_fixed()));
-        self
-    }
-
-    pub fn expect_result_vec2(mut self, expected: Vec2) -> Self {
-        self.expected_result = Some(TestResult::Vec2(expected));
-        self
-    }
-
-    pub fn expect_result_vec3(mut self, expected: Vec3) -> Self {
-        self.expected_result = Some(TestResult::Vec3(expected));
-        self
-    }
-
-    pub fn expect_result_vec4(mut self, expected: Vec4) -> Self {
-        self.expected_result = Some(TestResult::Vec4(expected));
         self
     }
 
@@ -282,56 +245,56 @@ impl ScriptTest {
         } = self;
 
         pool.run(|| {
-            let mut errors = Vec::new();
+        let mut errors = Vec::new();
 
             let mut lexer = lexer::Lexer::new(&input);
-            let tokens = lexer.tokenize();
-            let parser = parser::Parser::new(tokens);
+        let tokens = lexer.tokenize();
+        let parser = parser::Parser::new(tokens);
             let mut program = match parser.parse_program() {
                 Ok(program) => program,
+            Err(e) => {
+                errors.push(format!("Parse error: {}", e));
+                return Err(errors.join("\n\n"));
+            }
+        };
+
+        let func_table =
+                match crate::compiler::analyzer::FunctionAnalyzer::analyze_program(&program) {
+                Ok(table) => table,
                 Err(e) => {
-                    errors.push(format!("Parse error: {}", e));
+                    errors.push(format!("Analysis error: {}", e));
                     return Err(errors.join("\n\n"));
                 }
             };
 
-            let func_table =
-                match crate::compiler::analyzer::FunctionAnalyzer::analyze_program(&program) {
-                    Ok(table) => table,
-                    Err(e) => {
-                        errors.push(format!("Analysis error: {}", e));
-                        return Err(errors.join("\n\n"));
-                    }
-                };
-
             for assertion in &expected_function_metadata {
-                if let Some(metadata) = func_table.lookup(&assertion.function_name) {
-                    Self::check_metadata_assertion(metadata, assertion, &mut errors);
-                } else {
-                    errors.push(format!(
-                        "Function metadata check: Function '{}' not found in function table",
-                        assertion.function_name
-                    ));
-                }
+            if let Some(metadata) = func_table.lookup(&assertion.function_name) {
+                Self::check_metadata_assertion(metadata, assertion, &mut errors);
+            } else {
+                errors.push(format!(
+                    "Function metadata check: Function '{}' not found in function table",
+                    assertion.function_name
+                ));
             }
+        }
 
             if let Err(e) = typechecker::TypeChecker::check_program(&mut program, &func_table) {
-                errors.push(format!("Type check error: {}", e));
-                return Err(errors.join("\n\n"));
-            }
+                    errors.push(format!("Type check error: {}", e));
+                    return Err(errors.join("\n\n"));
+                }
 
             if let Some(builder_fn) = expected_ast_builder {
-                let mut builder = StmtBuilder::new();
-                let expected_program = builder_fn(&mut builder);
+            let mut builder = StmtBuilder::new();
+            let expected_program = builder_fn(&mut builder);
                 if !program_eq_ignore_spans(&program, &expected_program) {
-                    errors.push(format!(
+                errors.push(format!(
                         "Program AST mismatch:
 Expected: {:#?}
 Actual:   {:#?}",
                         expected_program, program
-                    ));
-                }
+                ));
             }
+        }
 
             let functions =
                 codegen::CodeGenerator::generate_program_with_functions(&program, &func_table);
@@ -345,8 +308,8 @@ Actual:   {:#?}",
                         .with_params(func.params.clone())
                         .with_locals(func.locals.clone())
                         .with_opcodes(optimized_opcodes)
-                })
-                .collect();
+            })
+            .collect();
 
             let program_obj = LpsProgram::new("test".into())
                 .with_functions(vm_functions)
@@ -355,106 +318,45 @@ Actual:   {:#?}",
             if let Some(expected) = &expected_opcodes {
                 if let Some(main_fn) = program_obj.main_function() {
                     if &main_fn.opcodes != expected {
-                        errors.push(format!(
+                    errors.push(format!(
                             "Opcode mismatch:
 Expected: {:#?}
 Actual:   {:#?}",
                             expected, main_fn.opcodes
-                        ));
-                    }
-                } else {
-                    errors.push(String::from("Program has no main function"));
+                    ));
                 }
+            } else {
+                errors.push(String::from("Program has no main function"));
             }
+        }
 
             if let Some(expected_result) = expected_result {
                 match LpsVm::new(&program_obj, VmLimits::default()) {
                     Ok(mut vm) => match expected_result {
                         TestResult::Fixed(expected) => match vm.run_scalar(x, y, time) {
-                            Ok(result) => {
+                                Ok(result) => {
                                 let diff = (expected.to_f32() - result.to_f32()).abs();
                                 if diff > 0.01 {
-                                    errors.push(format!(
-                                        "Result mismatch:\nExpected: {}\nActual:   {}\nDiff:     {}",
+                                        errors.push(format!(
+                                            "Result mismatch:\nExpected: {}\nActual:   {}\nDiff:     {}",
                                         expected.to_f32(),
                                         result.to_f32(),
                                         diff
-                                    ));
+                                        ));
+                                    }
                                 }
-                            }
-                            Err(e) => errors.push(format!("Runtime error: {:?}", e)),
-                        },
-                        TestResult::Vec2(expected) => match vm.run_vec2(x, y, time) {
-                            Ok(result) => {
-                                let dx = (expected.x.to_f32() - result.x.to_f32()).abs();
-                                let dy = (expected.y.to_f32() - result.y.to_f32()).abs();
-                                if dx > 0.0001 || dy > 0.0001 {
-                                    errors.push(format!(
-                                        "Vec2 result mismatch:\nExpected: ({}, {})\nActual:   ({}, {})",
-                                        expected.x.to_f32(),
-                                        expected.y.to_f32(),
-                                        result.x.to_f32(),
-                                        result.y.to_f32()
-                                    ));
-                                }
-                            }
-                            Err(e) => errors.push(format!("Runtime error: {:?}", e)),
-                        },
-                        TestResult::Vec3(expected) => match vm.run_vec3(x, y, time) {
-                            Ok(result) => {
-                                let diffs = [
-                                    (expected.x.to_f32() - result.x.to_f32()).abs(),
-                                    (expected.y.to_f32() - result.y.to_f32()).abs(),
-                                    (expected.z.to_f32() - result.z.to_f32()).abs(),
-                                ];
-                                if diffs.iter().any(|d| *d > 0.0001) {
-                                    errors.push(format!(
-                                        "Vec3 result mismatch:\nExpected: ({}, {}, {})\nActual:   ({}, {}, {})",
-                                        expected.x.to_f32(),
-                                        expected.y.to_f32(),
-                                        expected.z.to_f32(),
-                                        result.x.to_f32(),
-                                        result.y.to_f32(),
-                                        result.z.to_f32()
-                                    ));
-                                }
-                            }
-                            Err(e) => errors.push(format!("Runtime error: {:?}", e)),
-                        },
-                        TestResult::Vec4(expected) => match vm.run_vec4(x, y, time) {
-                            Ok(result) => {
-                                let diffs = [
-                                    (expected.x.to_f32() - result.x.to_f32()).abs(),
-                                    (expected.y.to_f32() - result.y.to_f32()).abs(),
-                                    (expected.z.to_f32() - result.z.to_f32()).abs(),
-                                    (expected.w.to_f32() - result.w.to_f32()).abs(),
-                                ];
-                                if diffs.iter().any(|d| *d > 0.0001) {
-                                    errors.push(format!(
-                                        "Vec4 result mismatch:\nExpected: ({}, {}, {}, {})\nActual:   ({}, {}, {}, {})",
-                                        expected.x.to_f32(),
-                                        expected.y.to_f32(),
-                                        expected.z.to_f32(),
-                                        expected.w.to_f32(),
-                                        result.x.to_f32(),
-                                        result.y.to_f32(),
-                                        result.z.to_f32(),
-                                        result.w.to_f32()
-                                    ));
-                                }
-                            }
                             Err(e) => errors.push(format!("Runtime error: {:?}", e)),
                         },
                     },
                     Err(e) => errors.push(format!("Failed to create VM: {:?}", e)),
-                }
             }
+        }
 
-            if errors.is_empty() {
-                Ok(())
-            } else {
-                Err(errors.join("\n\n"))
-            }
+        if errors.is_empty() {
+            Ok(())
+        } else {
+            Err(errors.join("\n\n"))
+        }
         })
     }
 }

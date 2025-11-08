@@ -11,7 +11,7 @@ mod pool_support {
     use lp_pool::LpMemoryPool;
 
     thread_local! {
-        static THREAD_POOL_STATE: RefCell<Option<&'static mut [u8]>> = RefCell::new(None);
+        static THREAD_POOL_STATE: RefCell<Option<&'static mut [u8]>> = const { RefCell::new(None) };
     }
 
     pub fn ensure_pool() {
