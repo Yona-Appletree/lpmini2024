@@ -112,17 +112,34 @@ if ! gh auth status >/dev/null 2>&1; then
   exit 1
 fi
 
+pr_info_json="$(gh pr view --json url,state,number 2>/dev/null || true)"
 pr_url=""
-if ! pr_url="$(gh pr view --json url --jq '.url' 2>/dev/null)"; then
-  info "No open PR detected for ${current_branch}. Creating one."
+
+if [[ -z "${pr_info_json}" ]]; then
+  info "No PR detected for ${current_branch}. Creating one."
+elif [[ "${pr_info_json}" == "null" ]]; then
+  info "No PR detected for ${current_branch}. Creating one."
+else
+  pr_state="$(printf '%s' "${pr_info_json}" | jq -r '.state')"
+  pr_url="$(printf '%s' "${pr_info_json}" | jq -r '.url')"
+  pr_number="$(printf '%s' "${pr_info_json}" | jq -r '.number')"
+
+  if [[ "${pr_state}" == "OPEN" ]]; then
+    info "Existing PR detected: ${pr_url}"
+  else
+    info "Current PR #${pr_number} is ${pr_state}. Creating a new PR."
+    pr_url=""
+  fi
+fi
+
+if [[ -z "${pr_url}" ]]; then
   if ! gh pr create --fill --head "${current_branch}"; then
     error "Failed to create a pull request automatically."
     warn "Use \`gh pr create --fill --head ${current_branch}\` after resolving the issue."
     exit 1
   fi
   pr_url="$(gh pr view --json url --jq '.url')"
-else
-  info "Existing PR detected: ${pr_url}"
+  info "New PR created: ${pr_url}"
 fi
 
 commit_sha="$(git rev-parse HEAD)"
