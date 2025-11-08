@@ -5,12 +5,15 @@ edition = "2021"
 
 [features]
 default = ["alloc-meta", "std"]
-alloc-meta = []  # Enable allocation metadata tracking with type and scope information
+# Enable allocation metadata tracking with type and scope information.
+# Requires std so diagnostics can use thread-local state.
+alloc-meta = ["std", "thread_local"]
 std = []
 
 [dependencies]
 allocator-api2 = "0.2"
 spin = { version = "0.9", features = ["portable_atomic"] }
+thread_local = { version = "1.1", optional = true }
 
 [dev-dependencies]
 
