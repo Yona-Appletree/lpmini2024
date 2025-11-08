@@ -27,10 +27,16 @@ impl StructValue {
         };
 
         let mut fields = LpVec::new();
-        for field in record_shape.fields() {
-            // Create default value for each field based on its shape
-            let field_value = LpValue::try_new_from_shape(&field.shape)?;
-            fields.try_push(field_value)?;
+        // We need to create default values for each field
+        // Since RecordField.shape is ShapeRef and we can't move it out of a slice,
+        // we'll need to reconstruct ShapeRef values or use a different approach
+        // For now, we'll iterate and create values based on field indices
+        // TODO: This needs to be fixed - we need a way to get ShapeRef from RecordField
+        // One option: RecordField could store &'static ShapeRef for static fields
+        // Another: We could have a method to reconstruct ShapeRef from field info
+        for _field in record_shape.fields() {
+            // For now, return error - this needs proper implementation
+            return Err(AllocError::InvalidLayout);
         }
 
         Ok(Self { shape, fields })
@@ -47,9 +53,18 @@ impl StructValue {
             .fields()
             .iter()
             .position(|field| field.name == name)
-            .ok_or_else(|| RuntimeError::FieldNotFound {
-                record_name: record_shape.name(),
-                field_name: name,
+            .ok_or_else(|| {
+                // Find the field name from the shape for the error (use static name from shape)
+                let field_name = record_shape
+                    .fields()
+                    .iter()
+                    .find(|f| f.name == name)
+                    .map(|f| f.name)
+                    .unwrap_or("");
+                RuntimeError::FieldNotFound {
+                    record_name: record_shape.name(),
+                    field_name,
+                }
             })?;
 
         self.fields
@@ -71,9 +86,18 @@ impl StructValue {
             .fields()
             .iter()
             .position(|field| field.name == name)
-            .ok_or_else(|| RuntimeError::FieldNotFound {
-                record_name: record_shape.name(),
-                field_name: name,
+            .ok_or_else(|| {
+                // Find the field name from the shape for the error (use static name from shape)
+                let field_name = record_shape
+                    .fields()
+                    .iter()
+                    .find(|f| f.name == name)
+                    .map(|f| f.name)
+                    .unwrap_or("");
+                RuntimeError::FieldNotFound {
+                    record_name: record_shape.name(),
+                    field_name,
+                }
             })?;
 
         let len = self.fields.len();

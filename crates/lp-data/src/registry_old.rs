@@ -1,7 +1,9 @@
 use alloc::collections::BTreeMap;
 use alloc::vec::Vec;
 
-use crate::metadata::LpTypeMeta;
+// TODO: This old registry system will be removed
+// For now, using a placeholder type
+pub struct LpTypeMeta; // Placeholder - old system removed
 
 /// Trait implemented by types that can describe their schema.
 pub trait LpDescribe {

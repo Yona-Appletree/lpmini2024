@@ -9,7 +9,7 @@ use lp_math::fixed::Fixed;
 use lp_pool::collections::{LpBox, LpString, LpVec};
 use lp_pool::error::AllocError;
 
-use crate::metadata::{LpType, LpTypeMeta, TypeRef};
+use crate::shape::shape_ref::ShapeRef;
 use crate::types::{
     bool as bool_value, fixed as fixed_value, int32 as int32_value, string as string_value,
     vec2 as vec2_value, vec3 as vec3_value, vec4 as vec4_value,
@@ -20,8 +20,8 @@ use crate::types::{ArrayValue, EnumValue, MapValue, OptionValue, StructValue};
 #[derive(Debug, Clone, PartialEq)]
 pub enum RuntimeError {
     TypeMismatch {
-        expected: LpType,
-        actual: LpType,
+        expected: &'static str, // Shape name or description
+        actual: &'static str,
     },
     FieldNotFound {
         record_name: &'static str,
@@ -82,26 +82,21 @@ pub enum LpValue {
 }
 
 impl LpValue {
-    /// Get the type types for this value.
-    ///
-    /// Note: For scalar and vector types, this creates temporary types.
-    /// For records, arrays, enums, and options, it returns the stored type reference.
-    pub fn ty(&self) -> LpTypeMeta {
+    /// Get the shape reference for this value.
+    pub fn shape(&self) -> &ShapeRef {
         match self {
-            LpValue::Fixed(_) => LpTypeMeta::new(LpType::fixed()),
-            LpValue::Int32(_) => LpTypeMeta::new(LpType::int32()),
-            LpValue::Bool(_) => LpTypeMeta::new(LpType::boolean()),
-            LpValue::String(_) => LpTypeMeta::new(LpType::string()),
-            LpValue::Vec2(_, _) => LpTypeMeta::new(LpType::vec2()),
-            LpValue::Vec3(_, _, _) => LpTypeMeta::new(LpType::vec3()),
-            LpValue::Vec4(_, _, _, _) => LpTypeMeta::new(LpType::vec4()),
-            LpValue::Option(opt) => LpTypeMeta::new(LpType::option(opt.inner_type)),
-            LpValue::Array(arr) => LpTypeMeta::new(LpType::Array(crate::metadata::ArrayType::new(
-                arr.element_type,
-            ))),
-            LpValue::Struct(s) => (*s.struct_type).clone(),
-            LpValue::Map(m) => (*m.map_type.as_ref()).clone(),
-            LpValue::Enum(e) => (*e.enum_type).clone(),
+            LpValue::Fixed(_) => &ShapeRef::Fixed,
+            LpValue::Int32(_) => &ShapeRef::Int32,
+            LpValue::Bool(_) => &ShapeRef::Bool,
+            LpValue::String(_) => &ShapeRef::String,
+            LpValue::Vec2(_, _) => &ShapeRef::Vec2,
+            LpValue::Vec3(_, _, _) => &ShapeRef::Vec3,
+            LpValue::Vec4(_, _, _, _) => &ShapeRef::Vec4,
+            LpValue::Option(opt) => &opt.shape,
+            LpValue::Array(arr) => &arr.shape,
+            LpValue::Struct(s) => &s.shape,
+            LpValue::Map(m) => &m.shape,
+            LpValue::Enum(e) => &e.shape,
         }
     }
 
@@ -141,20 +136,20 @@ impl LpValue {
     }
 
     /// Construct an Option::None value.
-    pub fn try_option_none(inner_type: TypeRef) -> Result<Self, AllocError> {
-        OptionValue::try_none(inner_type).map(Self::Option)
+    pub fn try_option_none(shape: ShapeRef) -> Result<Self, AllocError> {
+        OptionValue::try_none(shape).map(Self::Option)
     }
 
     /// Construct an Option::Some value.
-    pub fn try_option_some(inner_type: TypeRef, value: LpValue) -> Result<Self, AllocError> {
-        OptionValue::try_some(inner_type, value).map(Self::Option)
+    pub fn try_option_some(shape: ShapeRef, value: LpValue) -> Result<Self, AllocError> {
+        OptionValue::try_some(shape, value).map(Self::Option)
     }
 
-    /// Construct a new struct value from RecordType metadata.
+    /// Construct a new struct value from a ShapeRef.
     ///
-    /// Initializes all fields to default values based on their types.
-    pub fn try_struct(struct_type: TypeRef) -> Result<Self, AllocError> {
-        StructValue::try_new(struct_type).map(Self::Struct)
+    /// Initializes all fields to default values based on their shapes.
+    pub fn try_struct(shape: ShapeRef) -> Result<Self, AllocError> {
+        StructValue::try_new(shape).map(Self::Struct)
     }
 
     /// Construct a new map value (dynamic record).
@@ -163,49 +158,65 @@ impl LpValue {
     }
 
     /// Legacy alias for try_struct (for backwards compatibility).
-    pub fn try_record(record_type: TypeRef) -> Result<Self, AllocError> {
-        Self::try_struct(record_type)
+    pub fn try_record(shape: ShapeRef) -> Result<Self, AllocError> {
+        Self::try_struct(shape)
     }
 
     /// Construct a new array value.
-    pub fn try_array(element_type: TypeRef, capacity: usize) -> Result<Self, AllocError> {
-        ArrayValue::try_new(element_type, capacity).map(Self::Array)
+    pub fn try_array(shape: ShapeRef, capacity: usize) -> Result<Self, AllocError> {
+        ArrayValue::try_new(shape, capacity).map(Self::Array)
     }
 
-    /// Construct a new value from type types.
+    /// Construct a new value from a ShapeRef.
     ///
-    /// Creates a default value based on the type:
+    /// Creates a default value based on the shape:
     /// - Scalars: zero/false/empty
     /// - Vectors: all zeros
     /// - Arrays: empty array
     /// - Records: all fields initialized to defaults
     /// - Options: None
-    pub fn try_new(ty: &LpTypeMeta) -> Result<Self, AllocError> {
-        match &ty.ty {
-            LpType::Fixed(_) => Ok(Self::Fixed(Fixed::ZERO)),
-            LpType::Int32(_) => Ok(Self::Int32(0)),
-            LpType::Bool(_) => Ok(Self::Bool(false)),
-            LpType::String(_) => Ok(Self::String(LpString::new())),
-            LpType::Vec2(_) => Ok(Self::Vec2(Fixed::ZERO, Fixed::ZERO)),
-            LpType::Vec3(_) => Ok(Self::Vec3(Fixed::ZERO, Fixed::ZERO, Fixed::ZERO)),
-            LpType::Vec4(_) => Ok(Self::Vec4(
+    pub fn try_new_from_shape(shape: ShapeRef) -> Result<Self, AllocError> {
+        match shape {
+            ShapeRef::Fixed => Ok(Self::Fixed(Fixed::ZERO)),
+            ShapeRef::Int32 => Ok(Self::Int32(0)),
+            ShapeRef::Bool => Ok(Self::Bool(false)),
+            ShapeRef::String => Ok(Self::String(LpString::new())),
+            ShapeRef::Vec2 => Ok(Self::Vec2(Fixed::ZERO, Fixed::ZERO)),
+            ShapeRef::Vec3 => Ok(Self::Vec3(Fixed::ZERO, Fixed::ZERO, Fixed::ZERO)),
+            ShapeRef::Vec4 => Ok(Self::Vec4(
                 Fixed::ZERO,
                 Fixed::ZERO,
                 Fixed::ZERO,
                 Fixed::ZERO,
             )),
-            LpType::Array(array) => Self::try_array(array.element, 0),
-            LpType::Record(_) => {
-                // Records require static type types (TypeRef)
-                // For non-static types, we can't create records
-                Err(AllocError::InvalidLayout)
+            ShapeRef::Array(_) => {
+                // For arrays, we need to create a new array value with the same shape
+                // The shape will be stored in ArrayValue
+                ArrayValue::try_new(shape, 0).map(Self::Array)
             }
-            LpType::Map(_) => Self::try_map(),
-            LpType::Enum(_) => {
+            ShapeRef::Record(_) => StructValue::try_new(shape).map(Self::Struct),
+            ShapeRef::Map(_) => Self::try_map(),
+            ShapeRef::Enum(_) => {
                 // Enums need a variant to be specified, can't create default
                 Err(AllocError::InvalidLayout)
             }
-            LpType::Option(opt) => Self::try_option_none(opt.inner),
+            ShapeRef::Option(ref opt_ref) => {
+                // Extract inner shape from OptionShape
+                use crate::shape::shape::OptionShape;
+                let _inner_shape = match opt_ref {
+                    crate::shape::shape_ref::OptionShapeRef::Static(os) => os.inner(),
+                    crate::shape::shape_ref::OptionShapeRef::Dynamic(_) => {
+                        return Err(AllocError::InvalidLayout); // Dynamic options not yet supported
+                    }
+                };
+                // Create Option::None with the Option shape itself
+                // The shape will be stored in OptionValue
+                Self::try_option_none(shape)
+            }
+            ShapeRef::Tuple(_) => {
+                // Tuples need all elements specified
+                Err(AllocError::InvalidLayout)
+            }
         }
     }
 

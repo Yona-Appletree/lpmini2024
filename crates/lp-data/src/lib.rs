@@ -8,20 +8,11 @@
 #[cfg(feature = "alloc")]
 extern crate alloc;
 
-pub mod metadata;
 pub mod registry;
 pub mod registry_old;
 pub mod shape;
 pub mod types;
 pub mod value;
-
-// Re-export metadata (backwards compatibility - will be removed)
-pub use metadata::{
-    ArrayType, ArrayUi, BoolScalar, BoolUi, EnumType, EnumUi, EnumVariant, FixedScalar,
-    Int32Scalar, LpType, LpTypeMeta, NumberUi, OptionType, RecordField, RecordType, RecordUi,
-    SliderUi, StringScalar, StringUi, TypeRef, Vec2Type, Vec2Ui, Vec3Type, Vec3Ui, Vec4Type,
-    Vec4Ui,
-};
 
 // Re-export MapType
 pub use types::MapType;
