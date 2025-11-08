@@ -21,6 +21,10 @@ error() {
   printf '[push-pr][error] %s\n' "$*" >&2
 }
 
+clear_spinner_line() {
+  printf '\r%*s\r' "${COLUMNS:-80}" ''
+}
+
 require_command() {
   local cmd="$1"
   local install_hint="$2"
@@ -124,12 +128,31 @@ fi
 commit_sha="$(git rev-parse HEAD)"
 info "Waiting for GitHub Actions workflow for commit ${commit_sha}."
 
-run_json="$(
-  gh run list \
-    --limit 20 \
-    --json databaseId,headSha,status,conclusion,workflowName,displayTitle \
-    2>/dev/null | jq --arg sha "${commit_sha}" 'map(select(.headSha == $sha)) | first' || true
-)"
+max_wait_seconds=30
+spinner_frames=('|' '/' '-' '\')
+elapsed_seconds=0
+run_json=""
+
+while (( elapsed_seconds < max_wait_seconds )); do
+  run_json="$(
+    gh run list \
+      --limit 20 \
+      --json databaseId,headSha,status,conclusion,workflowName,displayTitle \
+      2>/dev/null | jq --arg sha "${commit_sha}" 'map(select(.headSha == $sha)) | first' || true
+  )"
+
+  if [[ -n "${run_json}" && "${run_json}" != "null" ]]; then
+    break
+  fi
+
+  spinner_frame="${spinner_frames[elapsed_seconds % ${#spinner_frames[@]}]}"
+  printf '\r[push-pr] Waiting for workflow run (%s) %s' "${commit_sha}" "${spinner_frame}"
+  sleep 1
+  ((elapsed_seconds++))
+done
+
+clear_spinner_line
+
 if [[ -z "${run_json}" || "${run_json}" == "null" ]]; then
   warn "No workflow run found for commit ${commit_sha}."
   warn "If workflows are expected, verify the GitHub Actions configuration or trigger the workflow manually."
