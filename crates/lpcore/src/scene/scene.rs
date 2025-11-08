@@ -11,19 +11,26 @@ pub struct Scene {
     pub nodes: IndexMap<String, SceneNode>,
 }
 
-impl Scene {
-    pub fn new() -> Scene {
+impl Default for Scene {
+    fn default() -> Self {
         Self {
             frame_counter: 0,
             nodes: IndexMap::new(),
         }
     }
+}
 
+impl Scene {
+    pub fn new() -> Scene {
+        Self::default()
+    }
+
+    #[allow(dead_code)]
     fn create_entity_instance(
         &self,
         id_str: &str,
     ) -> Result<Box<dyn EntityInstance>, Box<dyn Error>> {
-        let parsed = EntityId::from_str(id_str)?;
+        let parsed = EntityId::parse_str(id_str)?;
         match parsed.source {
             EntitySource::BuiltIn => {
                 //let instance = EntityInstance::new(entity_id);
@@ -45,7 +52,7 @@ impl Scene {
         });
 
         // add new nodes
-        for (id, node_config) in config.nodes.iter() {
+        for (id, _node_config) in config.nodes.iter() {
             if !self.nodes.contains_key(id) {
                 todo!("entity creation");
 

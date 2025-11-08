@@ -5,7 +5,7 @@ use std::error::Error;
 
 use crate::entity::entity_instance::{EntityInstance, UpdateContext};
 
-#[derive(Serialize, Deserialize, JsonSchema, Debug)]
+#[derive(Serialize, Deserialize, JsonSchema, Debug, Default)]
 pub struct LfoEntity {
     offset_ms: i64,
     prev_period_ms: i64,
@@ -13,10 +13,7 @@ pub struct LfoEntity {
 
 impl LfoEntity {
     pub fn new() -> Self {
-        Self {
-            offset_ms: 0,
-            prev_period_ms: 0,
-        }
+        Self::default()
     }
 }
 
@@ -72,18 +69,13 @@ fn default_max() -> f64 {
 ///
 /// Waveforms for low frequency oscillators.
 ///
-#[derive(Serialize, Deserialize, JsonSchema, Debug)]
+#[derive(Serialize, Deserialize, JsonSchema, Debug, Default)]
 pub enum Shape {
+    #[default]
     Sine,
     Square,
     Triangle,
     Sawtooth,
-}
-
-impl Default for Shape {
-    fn default() -> Self {
-        Self::Sine
-    }
 }
 
 ///

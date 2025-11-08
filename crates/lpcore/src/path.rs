@@ -74,7 +74,7 @@ impl JsonPath {
         let last_idx = self.elems.len() - 1;
 
         // Navigate to the parent of the target location, creating intermediate objects as needed
-        for (i, elem) in self.elems[..last_idx].iter().enumerate() {
+        for elem in self.elems[..last_idx].iter() {
             current = match elem {
                 PathElem::Prop(ref prop) => {
                     if !current.is_object() {
@@ -161,7 +161,7 @@ impl JsonPath {
 /// A path element is either a property name or an index.
 ///
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
-enum PathElem {
+pub enum PathElem {
     Prop(String),
     Index(usize),
 }

@@ -16,7 +16,7 @@ pub enum EntityKind {
 }
 
 impl EntityKind {
-    pub fn from_str(s: &str) -> Result<Self, Box<dyn Error>> {
+    pub fn parse_str(s: &str) -> Result<Self, Box<dyn Error>> {
         match s {
             "circle" => Ok(EntityKind::Circle),
             "lfo" => Ok(EntityKind::Lfo),

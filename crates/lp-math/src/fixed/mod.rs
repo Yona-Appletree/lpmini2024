@@ -37,6 +37,7 @@ pub mod conversions;
 ///
 /// # Noise
 /// - `noise::perlin3(x, y, z, octaves)` - 3D Perlin noise
+#[allow(clippy::module_inception)]
 pub mod fixed;
 pub mod interpolation;
 pub mod noise;

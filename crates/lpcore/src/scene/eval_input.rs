@@ -10,6 +10,7 @@ use crate::{expr::Expr, path::JsonPath};
 /// - Then applies any input bindings relevant to the path.
 /// - Then returns the final value.
 ///
+#[allow(dead_code)]
 pub fn eval_input(
     initial_value: serde_json::Value,
     bindings: &HashMap<JsonPath, Expr>,

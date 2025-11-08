@@ -60,7 +60,7 @@ fn grad(hash: u8, x: Fixed, y: Fixed, z: Fixed) -> Fixed {
 /// # Returns
 /// Fixed-point value in range 0..1 (normalized for ease of use)
 pub fn perlin3(x: Fixed, y: Fixed, z: Fixed, octaves: u8) -> Fixed {
-    let octaves = octaves.min(8).max(1);
+    let octaves = octaves.clamp(1, 8);
     let mut total = 0i64;
     let mut amplitude = Fixed::ONE.0 as i64;
     let mut frequency = Fixed::ONE;
