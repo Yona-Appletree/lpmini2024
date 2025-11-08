@@ -1,13 +1,15 @@
 /// Local variable storage for LPS VM (optimized with raw i32 array)
 extern crate alloc;
 use alloc::string::String;
-use alloc::vec;
 use alloc::vec::Vec;
+
+use lp_pool::collections::{string::LpString, vec::LpVec};
 
 use super::error::LpsVmError;
 use super::lps_program::LocalVarDef;
 use crate::fixed::Fixed;
 use crate::shared::Type;
+use lp_pool::with_global_alloc;
 
 impl LocalStack {
     /// Create new locals storage with the given capacity (in i32 units)
@@ -15,16 +17,22 @@ impl LocalStack {
     /// Capacity should be large enough for all locals across max call depth.
     /// Example: if max depth is 64 and average function uses 20 i32s of locals,
     /// capacity should be at least 64 * 20 = 1280.
-    pub fn new(capacity: usize) -> Self {
-        let data = vec![0; capacity];
+    pub fn new(capacity: usize) -> Result<Self, LpsVmError> {
+        let mut data = LpVec::new();
+        if capacity > 0 {
+            data.try_reserve(capacity)?;
+            for _ in 0..capacity {
+                data.try_push(0)?;
+            }
+        }
 
-        LocalStack {
+        Ok(LocalStack {
             data,
-            metadata: Vec::new(),
+            metadata: LpVec::new(),
             capacity,
             sp: 0,
             local_count: 0,
-        }
+        })
     }
 
     /// Allocate space for a batch of locals (typically for a function)
@@ -47,12 +55,13 @@ impl LocalStack {
             }
 
             // Add metadata
-            self.metadata.push(LocalMetadata {
-                name: def.name.clone(),
+            let name = LpString::try_from_str(def.name.as_str())?;
+            self.metadata.try_push(LocalMetadata {
+                name,
                 ty: def.ty.clone(),
                 offset,
                 size,
-            });
+            })?;
 
             // Initialize with provided value or zero
             if let Some(ref init_value) = def.initial_value {
@@ -93,7 +102,9 @@ impl LocalStack {
             }
 
             // Remove metadata for deallocated locals
-            self.metadata.truncate(local_idx);
+            while self.metadata.len() > local_idx {
+                self.metadata.pop();
+            }
             self.local_count = local_idx;
         }
     }
@@ -344,15 +355,20 @@ impl LocalStack {
         let (offset, size) = self
             .metadata
             .iter()
-            .find(|m| m.name == name)
+            .find(|m| m.name.as_str() == name)
             .map(|m| (m.offset, m.size))?;
 
-        Some(self.data[offset..offset + size].to_vec())
+        Some(
+            self.data.as_slice()[offset..offset + size]
+                .iter()
+                .copied()
+                .collect(),
+        )
     }
 
     /// Get a Fixed local by name (for debugging/testing)
     pub fn get_fixed_by_name(&self, name: &str) -> Option<Fixed> {
-        let meta = self.metadata.iter().find(|m| m.name == name)?;
+        let meta = self.metadata.iter().find(|m| m.name.as_str() == name)?;
         if meta.ty == Type::Fixed || meta.ty == Type::Bool {
             Some(Fixed(self.data[meta.offset]))
         } else {
@@ -362,7 +378,7 @@ impl LocalStack {
 
     /// Get an Int32 local by name (for debugging/testing)
     pub fn get_int32_by_name(&self, name: &str) -> Option<i32> {
-        let meta = self.metadata.iter().find(|m| m.name == name)?;
+        let meta = self.metadata.iter().find(|m| m.name.as_str() == name)?;
         if meta.ty == Type::Int32 {
             Some(self.data[meta.offset])
         } else {
@@ -372,7 +388,7 @@ impl LocalStack {
 
     /// Get a Vec2 local by name (for debugging/testing)
     pub fn get_vec2_by_name(&self, name: &str) -> Option<(Fixed, Fixed)> {
-        let meta = self.metadata.iter().find(|m| m.name == name)?;
+        let meta = self.metadata.iter().find(|m| m.name.as_str() == name)?;
         if meta.ty == Type::Vec2 {
             let x = Fixed(self.data[meta.offset]);
             let y = Fixed(self.data[meta.offset + 1]);
@@ -384,7 +400,7 @@ impl LocalStack {
 
     /// Get a Vec3 local by name (for debugging/testing)
     pub fn get_vec3_by_name(&self, name: &str) -> Option<(Fixed, Fixed, Fixed)> {
-        let meta = self.metadata.iter().find(|m| m.name == name)?;
+        let meta = self.metadata.iter().find(|m| m.name.as_str() == name)?;
         if meta.ty == Type::Vec3 {
             let x = Fixed(self.data[meta.offset]);
             let y = Fixed(self.data[meta.offset + 1]);
@@ -411,10 +427,12 @@ impl LocalStack {
 
     /// List all locals with their names and types (for debugging)
     pub fn list_locals(&self) -> Vec<(String, Type)> {
-        self.metadata
-            .iter()
-            .map(|m| (m.name.clone(), m.ty.clone()))
-            .collect()
+        with_global_alloc(|| {
+            self.metadata
+                .iter()
+                .map(|m| (alloc::string::String::from(m.name.as_str()), m.ty.clone()))
+                .collect()
+        })
     }
 }
 
@@ -422,12 +440,12 @@ impl LocalStack {
 ///
 /// Maps a logical local index to its physical location and type in the i32 array.
 /// This enables efficient storage: Fixed uses 1 i32, Vec2 uses 2, Vec4 uses 4, etc.
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 struct LocalMetadata {
-    name: String,  // For debugging
-    ty: Type,      // Type of this local
-    offset: usize, // Offset in i32 array where data starts
-    size: usize,   // Size in i32 units
+    name: LpString, // For debugging
+    ty: Type,       // Type of this local
+    offset: usize,  // Offset in i32 array where data starts
+    size: usize,    // Size in i32 units
 }
 
 /// Storage for local variables with optimized memory layout
@@ -442,11 +460,11 @@ struct LocalMetadata {
 /// Locals are allocated in a stack-like manner as functions are called,
 /// and deallocated when functions return.
 pub struct LocalStack {
-    data: Vec<i32>,               // Raw i32 storage
-    metadata: Vec<LocalMetadata>, // Per-local type info (indexed by absolute local idx)
-    capacity: usize,              // Max i32s available
-    sp: usize,                    // Current stack pointer (in i32s)
-    local_count: usize,           // Number of logical locals allocated
+    data: LpVec<i32>,               // Raw i32 storage
+    metadata: LpVec<LocalMetadata>, // Per-local type info (indexed by absolute local idx)
+    capacity: usize,                // Max i32s available
+    sp: usize,                      // Current stack pointer (in i32s)
+    local_count: usize,             // Number of logical locals allocated
 }
 
 #[cfg(test)]
@@ -457,7 +475,7 @@ mod tests {
 
     #[test]
     fn test_locals_storage_creation() {
-        let storage = LocalStack::new(2048);
+        let storage = LocalStack::new(2048).expect("local stack allocation");
         assert_eq!(storage.capacity(), 2048);
         assert_eq!(storage.local_count(), 0);
         assert_eq!(storage.sp(), 0);
@@ -465,7 +483,7 @@ mod tests {
 
     #[test]
     fn test_allocate_deallocate() {
-        let mut storage = LocalStack::new(1024);
+        let mut storage = LocalStack::new(1024).expect("local stack allocation");
 
         // Allocate 3 locals: Fixed, Vec2, Vec4
         let defs = vec![
@@ -487,7 +505,7 @@ mod tests {
 
     #[test]
     fn test_fixed_get_set() {
-        let mut storage = LocalStack::new(64);
+        let mut storage = LocalStack::new(64).expect("local stack allocation");
 
         let defs = vec![LocalVarDef::new("x".into(), Type::Fixed)];
         storage.allocate_locals(&defs).unwrap();
@@ -501,7 +519,7 @@ mod tests {
 
     #[test]
     fn test_int32_get_set() {
-        let mut storage = LocalStack::new(64);
+        let mut storage = LocalStack::new(64).expect("local stack allocation");
 
         let defs = vec![LocalVarDef::new("count".into(), Type::Int32)];
         storage.allocate_locals(&defs).unwrap();
@@ -513,7 +531,7 @@ mod tests {
 
     #[test]
     fn test_vec2_get_set() {
-        let mut storage = LocalStack::new(64);
+        let mut storage = LocalStack::new(64).expect("local stack allocation");
 
         let defs = vec![LocalVarDef::new("pos".into(), Type::Vec2)];
         storage.allocate_locals(&defs).unwrap();
@@ -526,7 +544,7 @@ mod tests {
 
     #[test]
     fn test_vec3_get_set() {
-        let mut storage = LocalStack::new(64);
+        let mut storage = LocalStack::new(64).expect("local stack allocation");
 
         let defs = vec![LocalVarDef::new("pos".into(), Type::Vec3)];
         storage.allocate_locals(&defs).unwrap();
@@ -542,7 +560,7 @@ mod tests {
 
     #[test]
     fn test_vec4_get_set() {
-        let mut storage = LocalStack::new(64);
+        let mut storage = LocalStack::new(64).expect("local stack allocation");
 
         let defs = vec![LocalVarDef::new("color".into(), Type::Vec4)];
         storage.allocate_locals(&defs).unwrap();
@@ -565,7 +583,7 @@ mod tests {
 
     #[test]
     fn test_multiple_locals_layout() {
-        let mut storage = LocalStack::new(1024);
+        let mut storage = LocalStack::new(1024).expect("local stack allocation");
 
         // Allocate: Fixed at offset 0, Vec2 at offset 1-2, Fixed at offset 3
         let defs = vec![
@@ -593,7 +611,7 @@ mod tests {
 
     #[test]
     fn test_type_mismatch() {
-        let mut storage = LocalStack::new(64);
+        let mut storage = LocalStack::new(64).expect("local stack allocation");
 
         let defs = vec![LocalVarDef::new("x".into(), Type::Fixed)];
         storage.allocate_locals(&defs).unwrap();
@@ -605,7 +623,7 @@ mod tests {
 
     #[test]
     fn test_out_of_bounds() {
-        let mut storage = LocalStack::new(64);
+        let mut storage = LocalStack::new(64).expect("local stack allocation");
 
         let defs = vec![LocalVarDef::new("x".into(), Type::Fixed)];
         storage.allocate_locals(&defs).unwrap();
@@ -623,7 +641,7 @@ mod tests {
 
     #[test]
     fn test_frame_simulation() {
-        let mut storage = LocalStack::new(1024);
+        let mut storage = LocalStack::new(1024).expect("local stack allocation");
 
         // Main function: Fixed, Vec2
         let main_defs = vec![
@@ -672,7 +690,7 @@ mod tests {
 
     #[test]
     fn test_debugging_api_by_name() {
-        let mut storage = LocalStack::new(1024);
+        let mut storage = LocalStack::new(1024).expect("local stack allocation");
 
         // Allocate locals with names
         let defs = vec![
@@ -720,7 +738,7 @@ mod tests {
 
     #[test]
     fn test_list_locals() {
-        let mut storage = LocalStack::new(1024);
+        let mut storage = LocalStack::new(1024).expect("local stack allocation");
 
         let defs = vec![
             LocalVarDef::new("x".into(), Type::Fixed),

@@ -126,7 +126,7 @@ mod tests {
 
     #[test]
     fn test_add() {
-        let mut stack = ValueStack::new(64);
+        let mut stack = ValueStack::new(64).expect("value stack allocation");
 
         stack.push_fixed(2.0.to_fixed()).unwrap();
         stack.push_fixed(3.0.to_fixed()).unwrap();
@@ -139,7 +139,7 @@ mod tests {
 
     #[test]
     fn test_sub() {
-        let mut stack = ValueStack::new(64);
+        let mut stack = ValueStack::new(64).expect("value stack allocation");
 
         stack.push_fixed(5.0.to_fixed()).unwrap();
         stack.push_fixed(3.0.to_fixed()).unwrap();
@@ -152,7 +152,7 @@ mod tests {
 
     #[test]
     fn test_mul() {
-        let mut stack = ValueStack::new(64);
+        let mut stack = ValueStack::new(64).expect("value stack allocation");
 
         stack.push_fixed(4.0.to_fixed()).unwrap();
         stack.push_fixed(3.0.to_fixed()).unwrap();
@@ -165,7 +165,7 @@ mod tests {
 
     #[test]
     fn test_div() {
-        let mut stack = ValueStack::new(64);
+        let mut stack = ValueStack::new(64).expect("value stack allocation");
 
         stack.push_fixed(12.0.to_fixed()).unwrap();
         stack.push_fixed(4.0.to_fixed()).unwrap();
@@ -178,7 +178,7 @@ mod tests {
 
     #[test]
     fn test_div_by_zero() {
-        let mut stack = ValueStack::new(64);
+        let mut stack = ValueStack::new(64).expect("value stack allocation");
 
         stack.push_fixed(5.0.to_fixed()).unwrap();
         stack.push_fixed(0.0.to_fixed()).unwrap();
@@ -189,7 +189,7 @@ mod tests {
 
     #[test]
     fn test_neg() {
-        let mut stack = ValueStack::new(64);
+        let mut stack = ValueStack::new(64).expect("value stack allocation");
 
         stack.push_fixed(5.0.to_fixed()).unwrap();
 
@@ -201,7 +201,7 @@ mod tests {
 
     #[test]
     fn test_abs() {
-        let mut stack = ValueStack::new(64);
+        let mut stack = ValueStack::new(64).expect("value stack allocation");
 
         stack.push_fixed((-5.0).to_fixed()).unwrap();
 
@@ -213,7 +213,7 @@ mod tests {
 
     #[test]
     fn test_min() {
-        let mut stack = ValueStack::new(64);
+        let mut stack = ValueStack::new(64).expect("value stack allocation");
 
         stack.push_fixed(5.0.to_fixed()).unwrap();
         stack.push_fixed(3.0.to_fixed()).unwrap();
@@ -226,7 +226,7 @@ mod tests {
 
     #[test]
     fn test_max() {
-        let mut stack = ValueStack::new(64);
+        let mut stack = ValueStack::new(64).expect("value stack allocation");
 
         stack.push_fixed(5.0.to_fixed()).unwrap();
         stack.push_fixed(3.0.to_fixed()).unwrap();

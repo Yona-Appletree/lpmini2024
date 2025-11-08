@@ -1,9 +1,6 @@
 /// Call stack management for LPS VM function calls
-extern crate alloc;
-use alloc::vec;
-use alloc::vec::Vec;
-
 use super::error::LpsVmError;
+use lp_pool::collections::vec::LpVec;
 
 /// Call frame for function calls
 ///
@@ -16,13 +13,24 @@ pub struct CallFrame {
     pub locals_restore_sp: usize, // Local count to restore on return
 }
 
+impl Default for CallFrame {
+    fn default() -> Self {
+        CallFrame {
+            return_pc: 0,
+            return_fn_idx: 0,
+            frame_base: 0,
+            locals_restore_sp: 0,
+        }
+    }
+}
+
 /// Call stack for managing function call frames
 ///
 /// Pre-allocates frames to avoid runtime allocations during execution.
 /// Supports variable-sized frames - each function can allocate the exact
 /// number of locals it needs, not a fixed size.
 pub struct CallStack {
-    frames: Vec<CallFrame>,
+    frames: LpVec<CallFrame>,
     depth: usize,
     max_depth: usize,
     frame_base: usize,     // Current frame's base local index
@@ -34,22 +42,22 @@ impl CallStack {
     ///
     /// # Arguments
     /// * `max_depth` - Maximum call depth (e.g., 64)
-    pub fn new(max_depth: usize) -> Self {
-        CallStack {
-            frames: vec![
-                CallFrame {
-                    return_pc: 0,
-                    return_fn_idx: 0,
-                    frame_base: 0,
-                    locals_restore_sp: 0,
-                };
-                max_depth
-            ],
+    pub fn new(max_depth: usize) -> Result<Self, LpsVmError> {
+        let mut frames = LpVec::new();
+        if max_depth > 0 {
+            frames.try_reserve(max_depth)?;
+            for _ in 0..max_depth {
+                frames.try_push(CallFrame::default())?;
+            }
+        }
+
+        Ok(CallStack {
+            frames,
             depth: 0,
             max_depth,
             frame_base: 0,
             current_fn_idx: 0,
-        }
+        })
     }
 
     /// Reset the call stack for a new execution
@@ -158,7 +166,7 @@ mod tests {
 
     #[test]
     fn test_call_stack_creation() {
-        let stack = CallStack::new(64);
+        let stack = CallStack::new(64).expect("call stack allocation");
         assert_eq!(stack.depth(), 0);
         assert_eq!(stack.frame_base(), 0);
         assert_eq!(stack.current_fn_idx(), 0);
@@ -167,7 +175,7 @@ mod tests {
 
     #[test]
     fn test_push_pop_frame() {
-        let mut stack = CallStack::new(64);
+        let mut stack = CallStack::new(64).expect("call stack allocation");
 
         // Main function has 3 locals (indices 0, 1, 2)
         // Push first frame - function 1 with locals starting at index 3
@@ -206,7 +214,7 @@ mod tests {
 
     #[test]
     fn test_reset() {
-        let mut stack = CallStack::new(64);
+        let mut stack = CallStack::new(64).expect("call stack allocation");
 
         // Push some frames
         stack.push_frame(100, 0, 3, 3, 1).unwrap();
@@ -224,7 +232,7 @@ mod tests {
 
     #[test]
     fn test_call_stack_overflow() {
-        let mut stack = CallStack::new(3); // Only 3 frames max
+        let mut stack = CallStack::new(3).expect("call stack allocation"); // Only 3 frames max
 
         // Push 3 frames should work
         stack.push_frame(100, 0, 3, 3, 1).unwrap();
@@ -241,7 +249,7 @@ mod tests {
 
     #[test]
     fn test_variable_sized_frames() {
-        let mut stack = CallStack::new(64);
+        let mut stack = CallStack::new(64).expect("call stack allocation");
 
         // Main: 2 locals (0-1), sp=2
         // Call func1: 3 locals (2-4), sp=5
@@ -274,7 +282,7 @@ mod tests {
 
     #[test]
     fn test_multiple_push_pop() {
-        let mut stack = CallStack::new(64);
+        let mut stack = CallStack::new(64).expect("call stack allocation");
 
         // Simulate multiple function calls with varying local counts
         let mut current_sp = 0;

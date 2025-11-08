@@ -120,7 +120,7 @@ mod tests {
 
     #[test]
     fn test_load_x_norm() {
-        let mut stack = ValueStack::new(64);
+        let mut stack = ValueStack::new(64).expect("value stack allocation");
 
         exec_load(
             &mut stack,
@@ -141,7 +141,7 @@ mod tests {
 
     #[test]
     fn test_load_y_norm() {
-        let mut stack = ValueStack::new(64);
+        let mut stack = ValueStack::new(64).expect("value stack allocation");
 
         exec_load(
             &mut stack,
@@ -162,7 +162,7 @@ mod tests {
 
     #[test]
     fn test_load_time() {
-        let mut stack = ValueStack::new(64);
+        let mut stack = ValueStack::new(64).expect("value stack allocation");
 
         exec_load(
             &mut stack,
@@ -183,7 +183,7 @@ mod tests {
 
     #[test]
     fn test_load_time_norm() {
-        let mut stack = ValueStack::new(64);
+        let mut stack = ValueStack::new(64).expect("value stack allocation");
 
         // Time = 2.3 should wrap to 0.3
         exec_load(
@@ -205,7 +205,7 @@ mod tests {
 
     #[test]
     fn test_load_center_dist() {
-        let mut stack = ValueStack::new(64);
+        let mut stack = ValueStack::new(64).expect("value stack allocation");
 
         // Load at center (50, 50) of 100x100 image
         exec_load(
@@ -228,7 +228,7 @@ mod tests {
 
     #[test]
     fn test_load_center_angle() {
-        let mut stack = ValueStack::new(64);
+        let mut stack = ValueStack::new(64).expect("value stack allocation");
 
         // Load at center (50, 50) of 100x100 image
         exec_load(
@@ -251,8 +251,8 @@ mod tests {
 
     #[test]
     fn test_load_stack_overflow() {
-        let mut stack = ValueStack::new(2); // Small stack
-                                            // Fill the stack
+        let mut stack = ValueStack::new(2).expect("value stack allocation"); // Small stack
+                                                                             // Fill the stack
         stack.push_int32(1).unwrap();
         stack.push_int32(2).unwrap();
 

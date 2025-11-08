@@ -45,7 +45,7 @@ mod tests {
 
     #[test]
     fn test_and_true() {
-        let mut stack = ValueStack::new(64);
+        let mut stack = ValueStack::new(64).expect("value stack allocation");
         stack.push_fixed(1.0.to_fixed()).unwrap();
         stack.push_fixed(1.0.to_fixed()).unwrap();
         exec_and_fixed(&mut stack).unwrap();
@@ -54,7 +54,7 @@ mod tests {
 
     #[test]
     fn test_and_false() {
-        let mut stack = ValueStack::new(64);
+        let mut stack = ValueStack::new(64).expect("value stack allocation");
         stack.push_fixed(1.0.to_fixed()).unwrap();
         stack.push_fixed(0.0.to_fixed()).unwrap();
         exec_and_fixed(&mut stack).unwrap();
@@ -63,7 +63,7 @@ mod tests {
 
     #[test]
     fn test_or_true() {
-        let mut stack = ValueStack::new(64);
+        let mut stack = ValueStack::new(64).expect("value stack allocation");
         stack.push_fixed(1.0.to_fixed()).unwrap();
         stack.push_fixed(0.0.to_fixed()).unwrap();
         exec_or_fixed(&mut stack).unwrap();
@@ -72,7 +72,7 @@ mod tests {
 
     #[test]
     fn test_or_false() {
-        let mut stack = ValueStack::new(64);
+        let mut stack = ValueStack::new(64).expect("value stack allocation");
         stack.push_fixed(0.0.to_fixed()).unwrap();
         stack.push_fixed(0.0.to_fixed()).unwrap();
         exec_or_fixed(&mut stack).unwrap();
@@ -81,7 +81,7 @@ mod tests {
 
     #[test]
     fn test_not_true() {
-        let mut stack = ValueStack::new(64);
+        let mut stack = ValueStack::new(64).expect("value stack allocation");
         stack.push_fixed(0.0.to_fixed()).unwrap();
         exec_not_fixed(&mut stack).unwrap();
         assert_eq!(stack.pop_fixed().unwrap(), Fixed::ONE);
@@ -89,7 +89,7 @@ mod tests {
 
     #[test]
     fn test_not_false() {
-        let mut stack = ValueStack::new(64);
+        let mut stack = ValueStack::new(64).expect("value stack allocation");
         stack.push_fixed(1.0.to_fixed()).unwrap();
         exec_not_fixed(&mut stack).unwrap();
         assert_eq!(stack.pop_fixed().unwrap(), Fixed::ZERO);

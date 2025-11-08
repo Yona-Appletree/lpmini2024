@@ -287,15 +287,27 @@ impl<T> LpVec<T> {
         }
     }
 
+    /// Borrow the contents as a slice.
+    pub fn as_slice(&self) -> &[T] {
+        if self.capacity == 0 {
+            &[]
+        } else {
+            unsafe { core::slice::from_raw_parts(self.data.as_ptr() as *const T, self.len) }
+        }
+    }
+
+    /// Borrow the contents as a mutable slice.
+    pub fn as_mut_slice(&mut self) -> &mut [T] {
+        if self.capacity == 0 {
+            &mut []
+        } else {
+            unsafe { core::slice::from_raw_parts_mut(self.data.as_ptr() as *mut T, self.len) }
+        }
+    }
+
     /// Get raw slice of the underlying data (for internal use)
-    ///
-    /// # Safety
-    /// This method assumes that `self.data` is properly aligned for type `T`.
-    /// The caller must ensure that the pool allocator provides blocks aligned to
-    /// at least `align_of::<T>()`. If alignment requirements are not met, this
-    /// may result in undefined behavior.
     pub(crate) fn as_raw_slice(&self) -> &[T] {
-        unsafe { core::slice::from_raw_parts(self.data.as_ptr() as *const T, self.len) }
+        self.as_slice()
     }
 }
 

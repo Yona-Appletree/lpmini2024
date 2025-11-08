@@ -146,7 +146,7 @@ mod tests {
 
     #[test]
     fn test_select_true() {
-        let mut stack = ValueStack::new(64);
+        let mut stack = ValueStack::new(64).expect("value stack allocation");
 
         // condition = 1 (true)
         stack.push_fixed(1.0f32.to_fixed()).unwrap();
@@ -163,7 +163,7 @@ mod tests {
 
     #[test]
     fn test_select_false() {
-        let mut stack = ValueStack::new(64);
+        let mut stack = ValueStack::new(64).expect("value stack allocation");
 
         // condition = 0 (false)
         stack.push_int32(0).unwrap();
@@ -180,7 +180,7 @@ mod tests {
 
     #[test]
     fn test_select_underflow() {
-        let mut stack = ValueStack::new(64);
+        let mut stack = ValueStack::new(64).expect("value stack allocation");
         // Only push 2 items, need 3
         stack.push_int32(1).unwrap();
         stack.push_int32(2).unwrap();
@@ -225,7 +225,7 @@ mod tests {
 
     #[test]
     fn test_jump_if_zero() {
-        let mut stack = ValueStack::new(64);
+        let mut stack = ValueStack::new(64).expect("value stack allocation");
 
         stack.push_int32(0).unwrap();
 
@@ -237,7 +237,7 @@ mod tests {
 
     #[test]
     fn test_jump_if_zero_no_jump() {
-        let mut stack = ValueStack::new(64);
+        let mut stack = ValueStack::new(64).expect("value stack allocation");
 
         stack.push_fixed(1.0f32.to_fixed()).unwrap();
 
@@ -249,9 +249,9 @@ mod tests {
 
     #[test]
     fn test_return_from_function() {
-        let stack = ValueStack::new(64);
-        let mut call_stack = CallStack::new(64);
-        let mut locals = LocalStack::new(1024);
+        let stack = ValueStack::new(64).expect("value stack allocation");
+        let mut call_stack = CallStack::new(64).expect("call stack allocation");
+        let mut locals = LocalStack::new(1024).expect("local stack allocation");
 
         // Simulate a function call
         call_stack.push_frame(100, 0, 3, 3, 1).unwrap();
@@ -274,9 +274,9 @@ mod tests {
 
     #[test]
     fn test_return_from_main() {
-        let mut stack = ValueStack::new(64);
-        let mut call_stack = CallStack::new(64);
-        let mut locals = LocalStack::new(1024);
+        let mut stack = ValueStack::new(64).expect("value stack allocation");
+        let mut call_stack = CallStack::new(64).expect("call stack allocation");
+        let mut locals = LocalStack::new(1024).expect("local stack allocation");
 
         // Push some values on the stack
         stack.push_fixed(1.5.to_fixed()).unwrap();
@@ -300,9 +300,9 @@ mod tests {
 
     #[test]
     fn test_return_nested_calls() {
-        let stack = ValueStack::new(64);
-        let mut call_stack = CallStack::new(64);
-        let mut locals = LocalStack::new(1024);
+        let stack = ValueStack::new(64).expect("value stack allocation");
+        let mut call_stack = CallStack::new(64).expect("call stack allocation");
+        let mut locals = LocalStack::new(1024).expect("local stack allocation");
 
         // Simulate nested function calls
         call_stack.push_frame(100, 0, 3, 3, 1).unwrap();
@@ -368,8 +368,8 @@ mod tests {
 
         let program = LpsProgram::new("test".into()).with_functions(vec![main_fn, target_fn]);
 
-        let mut locals = LocalStack::new(1024);
-        let mut call_stack = CallStack::new(64);
+        let mut locals = LocalStack::new(1024).expect("local stack allocation");
+        let mut call_stack = CallStack::new(64).expect("call stack allocation");
 
         // Allocate main's locals
         locals
@@ -402,8 +402,8 @@ mod tests {
         let main_fn = FunctionDef::new("main".into(), Type::Void);
         let program = LpsProgram::new("test".into()).with_functions(vec![main_fn]);
 
-        let mut locals = LocalStack::new(1024);
-        let mut call_stack = CallStack::new(64);
+        let mut locals = LocalStack::new(1024).expect("local stack allocation");
+        let mut call_stack = CallStack::new(64).expect("call stack allocation");
 
         // Try to call non-existent function
         let result = exec_call(

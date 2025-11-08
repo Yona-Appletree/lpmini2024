@@ -25,7 +25,7 @@ impl<'a> LpsVm<'a> {
         // Pre-allocate locals storage for frame-based allocation
         // Estimate: 32 i32s per frame * 64 max frames = 2048 i32s
         let local_capacity = 32 * limits.max_call_stack_depth;
-        let mut locals = LocalStack::new(local_capacity);
+        let mut locals = LocalStack::new(local_capacity)?;
 
         // Allocate main function's locals (function 0)
         if let Some(main_fn) = program.main_function() {
@@ -34,10 +34,10 @@ impl<'a> LpsVm<'a> {
 
         Ok(LpsVm {
             program,
-            stack: ValueStack::new(limits.max_stack_size),
+            stack: ValueStack::new(limits.max_stack_size)?,
             pc: 0,
             locals,
-            call_stack: CallStack::new(limits.max_call_stack_depth),
+            call_stack: CallStack::new(limits.max_call_stack_depth)?,
             limits,
             current_fn_idx: 0, // Start in main
         })
