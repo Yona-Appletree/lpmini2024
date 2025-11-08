@@ -41,6 +41,8 @@
 //! - **Coalescing overhead**: Block coalescing requires scanning memory, which has O(n) complexity for finding previous blocks
 
 extern crate alloc;
+#[cfg(feature = "std")]
+extern crate std;
 
 pub mod allocator;
 pub mod block_header;
