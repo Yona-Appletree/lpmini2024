@@ -2,10 +2,10 @@
 extern crate alloc;
 use alloc::vec::Vec;
 
-use crate::compiler::ast::{AstPool, ExprId, Program, StmtId};
+use crate::compiler::ast::{Expr, Program, Stmt};
 use crate::compiler::error::{ParseError, ParseErrorKind};
 use crate::compiler::lexer::{Token, TokenKind};
-use crate::shared::{Span, Type};
+use crate::shared::Span;
 
 // Function parsing is now in compiler::func::func_parse
 // Include it here to add impl methods to Parser
@@ -15,26 +15,19 @@ mod func_parse;
 pub struct Parser {
     pub(crate) tokens: Vec<Token>,
     pub(crate) pos: usize,
-    pub(crate) pool: AstPool,
     recursion_depth: usize,
     max_recursion: usize,
 }
 
 impl Parser {
     pub fn new(tokens: Vec<Token>) -> Self {
-        Self::with_limits(tokens, 128, 20000, 10000)
+        Self::with_limits(tokens, 128)
     }
 
-    pub fn with_limits(
-        tokens: Vec<Token>,
-        max_recursion: usize,
-        max_exprs: usize,
-        max_stmts: usize,
-    ) -> Self {
+    pub fn with_limits(tokens: Vec<Token>, max_recursion: usize) -> Self {
         Parser {
             tokens,
             pos: 0,
-            pool: AstPool::with_capacity(max_exprs, max_stmts),
             recursion_depth: 0,
             max_recursion,
         }
@@ -61,22 +54,6 @@ impl Parser {
         }
     }
 
-    /// Helper to convert AstPoolError to ParseError
-    pub(crate) fn pool_error_to_parse_error(
-        &self,
-        err: crate::compiler::ast::AstPoolError,
-    ) -> ParseError {
-        use crate::compiler::ast::AstPoolError;
-        let kind = match err {
-            AstPoolError::ExprLimitExceeded { max } => ParseErrorKind::ExprLimitExceeded { max },
-            AstPoolError::StmtLimitExceeded { max } => ParseErrorKind::StmtLimitExceeded { max },
-        };
-        ParseError {
-            kind,
-            span: self.current().span,
-        }
-    }
-
     pub(crate) fn current(&self) -> &Token {
         &self.tokens[self.pos]
     }
@@ -88,11 +65,10 @@ impl Parser {
     }
 
     /// Parse an expression (expression mode) - delegated to expr module
-    // pub fn parse(&mut self) -> Result<ExprId, ParseError> is implemented in expr/mod.rs
+    // pub fn parse(&mut self) -> Result<Expr, ParseError> is implemented in expr/mod.rs
 
     /// Parse a full program (script mode)
-    /// Consumes the parser and returns the program along with the AST pool
-    pub fn parse_program(mut self) -> Result<(Program, AstPool), ParseError> {
+    pub fn parse_program(mut self) -> Result<Program, ParseError> {
         let start = self.current().span.start;
         let mut functions = Vec::new();
         let mut stmts = Vec::new();
@@ -108,7 +84,7 @@ impl Parser {
         }
 
         let end = if !stmts.is_empty() {
-            self.pool.stmt(*stmts.last().unwrap()).span.end
+            stmts.last().unwrap().span.end
         } else if !functions.is_empty() {
             functions.last().unwrap().span.end
         } else {
@@ -121,7 +97,7 @@ impl Parser {
             span: Span::new(start, end),
         };
 
-        Ok((program, self.pool))
+        Ok(program)
     }
 
     pub(crate) fn expect(&mut self, expected: TokenKind) -> bool {
@@ -156,7 +132,7 @@ impl Parser {
         ty
     }
 
-    pub(crate) fn parse_stmt(&mut self) -> Result<StmtId, ParseError> {
+    pub(crate) fn parse_stmt(&mut self) -> Result<Stmt, ParseError> {
         match &self.current().kind {
             TokenKind::Float
             | TokenKind::Int
@@ -172,7 +148,7 @@ impl Parser {
         }
     }
 
-    pub(crate) fn parse(&mut self) -> Result<ExprId, ParseError> {
+    pub(crate) fn parse(&mut self) -> Result<Expr, ParseError> {
         self.parse_assignment_expr()
     }
 }
