@@ -52,7 +52,9 @@
         // Running eslint for example is slow and gets in the way of doing rebases and such.
         // Use turbo validate task for more thorough fixes.
         //
-        "fix-staged-fast"
+        "//#fix-staged-fast",
+        "//#fix:syncpack-format",
+        "//#fix:syncpack-mismatches"
       ]
     },
 

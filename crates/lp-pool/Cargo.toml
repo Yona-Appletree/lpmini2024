@@ -1,0 +1,15 @@
+[package]
+name = "lp-pool"
+version = "0.1.0"
+edition = "2021"
+
+[features]
+default = ["alloc-meta"]
+alloc-meta = []  # Enable allocation metadata tracking with type and scope information
+
+[dependencies]
+thread_local = "1.1"
+allocator-api2 = "0.2"
+
+[dev-dependencies]
+

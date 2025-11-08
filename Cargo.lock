@@ -23,6 +23,12 @@ dependencies = [
 
 [[package]]
 name = "allocator-api2"
+version = "0.2.21"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "683d7910e743518b0e34f1186f92494becacb047c7b6bf616c96772180fef923"
+
+[[package]]
+name = "allocator-api2"
 version = "0.3.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "c583acf993cf4245c4acb0a2cc2ab1f9cc097de73411bb6d3647ff6af2b1013d"
@@ -663,16 +669,8 @@ version = "0.1.0"
 dependencies = [
  "fixed",
  "libm",
+ "lp-script",
  "smart-leds",
-]
-
-[[package]]
-name = "engine-debug"
-version = "0.1.0"
-dependencies = [
- "embedded-graphics",
- "engine-core",
- "minifb",
 ]
 
 [[package]]
@@ -719,7 +717,7 @@ version = "0.8.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "7e95f1de57ce5a6600368f3d3c931b0dfe00501661e96f5ab83bc5cdee031784"
 dependencies = [
- "allocator-api2",
+ "allocator-api2 0.3.1",
  "cfg-if",
  "critical-section",
  "defmt 1.0.1",
@@ -897,7 +895,7 @@ version = "0.15.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "84908f2e95cb99a200cf448abafc416576338be590778a15d9224eee237f3210"
 dependencies = [
- "allocator-api2",
+ "allocator-api2 0.3.1",
  "bt-hci 0.3.2",
  "cfg-if",
  "critical-section",
@@ -1181,6 +1179,7 @@ dependencies = [
  "esp-hal",
  "esp-hal-embassy",
  "esp-wifi",
+ "lp-script",
  "panic-rtt-target",
  "rtt-target",
  "smart-leds",
@@ -1427,11 +1426,71 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "34080505efa8e45a4b816c349525ebe327ceaa8559756f0356cba97ef3bf7432"
 
 [[package]]
-name = "lpcli"
+name = "lp-data"
+version = "0.1.0"
+dependencies = [
+ "lp-math",
+ "schemars",
+ "serde",
+ "serde_json",
+]
+
+[[package]]
+name = "lp-data-derive"
+version = "0.1.0"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "syn",
+]
+
+[[package]]
+name = "lp-debug"
+version = "0.1.0"
+dependencies = [
+ "embedded-graphics",
+ "engine-core",
+ "lp-data",
+ "lp-script",
+ "minifb",
+ "serde",
+ "serde_json",
+]
+
+[[package]]
+name = "lp-math"
+version = "0.1.0"
+dependencies = [
+ "schemars",
+ "serde",
+]
+
+[[package]]
+name = "lp-pool"
+version = "0.1.0"
+dependencies = [
+ "allocator-api2 0.2.21",
+ "thread_local",
+]
+
+[[package]]
+name = "lp-schema-gen"
 version = "0.0.0"
 dependencies = [
- "lpcore",
+ "lp-data",
+ "lp-data-derive",
+ "lp-math",
+ "schemars",
+ "serde",
  "serde_json",
+]
+
+[[package]]
+name = "lp-script"
+version = "0.1.0"
+dependencies = [
+ "libm",
+ "lp-math",
 ]
 
 [[package]]
@@ -2144,6 +2203,15 @@ dependencies = [
  "proc-macro2",
  "quote",
  "syn",
+]
+
+[[package]]
+name = "thread_local"
+version = "1.1.9"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "f60246a4944f24f6e018aa17cdeffb7818b76356965d03b07d6a9886e8962185"
+dependencies = [
+ "cfg-if",
 ]
 
 [[package]]

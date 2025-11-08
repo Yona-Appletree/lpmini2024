@@ -1,7 +1,0 @@
-[package]
-name = "lpcli"
-edition = "2021"
-
-[dependencies]
-lpcore = { path = "../lpcore", features = ["std"] }
-serde_json = { version = "1.0", features = ["preserve_order"] }

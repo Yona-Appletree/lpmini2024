@@ -1,0 +1,25 @@
+[package]
+name = "lp-debug"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "bench"
+path = "src/bench.rs"
+
+[[bin]]
+name = "visualizer"
+path = "src/visualizer.rs"
+
+[[bin]]
+name = "lps-compile"
+path = "src/lps_compile.rs"
+
+[dependencies]
+engine-core = { path = "../../crates/engine-core" }
+lp-script = { path = "../../crates/lp-script" }
+lp-data = { path = "../../crates/lp-data", features = ["serde_json"] }
+minifb = "0.27"
+embedded-graphics = "0.8"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"

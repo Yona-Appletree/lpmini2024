@@ -1,0 +1,85 @@
+# example-scene.toml
+
+#
+# An example scene, showing nodes (better name than entities, I think)
+# 
+#
+
+
+# Answered questions:
+# - input type nodes are "ui:"
+# - MuliEntitySpecifier can be an array, a string query, etc
+
+
+[button1]
+type = "ui:momentary"
+# not exactly sure this is right, but I want to avoid messages initially
+"on:press" = "chooser.currentIndex ++"
+
+# input sources are an opaque string that the system input-provider understands
+# they are input-type specific and allow for hardware control over ui
+#
+# the actual ui will show these items as well so a user can control them
+# directly in the interface
+#
+sources = ["gpio:1,pull-up"]
+
+[palette]
+type = "ui:palette"
+
+
+[chooser]
+type = "effect:select"
+
+# an MuliEntitySpecifier or something like that, indicating multiple entities.
+effects = "children"
+
+currentIndex = 0
+
+[chooser.children.perlin]
+type = "effect:pipeline"
+steps = [
+    { type = "expr", uniforms = { zoom="children.zoom.output"}, glsl = "perlin3(uv * zoom, time)", size = "zoom" },
+    { type = "expr", uniforms = { contrast = "children.contrast.output" }, glsl = "pow(input, contrast)" },
+    { type = "palette", palette = "builtin:rainbow" },
+]
+
+# child node of perlin
+# An LFO that controls the zoom of the perlin noise
+[chooser.children.perlin.children.zoom]
+type = "math:lfo"
+period_ms = 5000
+range = [0.1, 2]
+
+# A manual input for contrast that should be user visible
+[chooser.children.perlin.children.contrast]
+type = "ui:slider"
+min = 0.1
+max = 2
+step = 0.01
+default = 1.5
+
+[chooser.children.red]
+type = "effect:pipeline"
+steps = [{ type = "color", color = "FF0000" }]
+
+[circle]
+type = "fixture:concentric"
+rings = [1, 8, 12, 16, 20, 24]
+wrapping = "clockwise"
+
+# output is implied by children, but could be overridden here, if we wanted multiple fixtures for an output?
+output = "strip1"
+offset = 0
+format="rgb" # could be rgba, brg, etc...
+
+[strip1]
+type = "output:local-pixels"
+chip = "ws2811"
+port = "gpio:10"
+length = "infer" # it would be really nice if we could infer the length from the fixture type and mapping
+
+[canvas]
+type = "renderer:2d"
+fixtures = ["circle"]
+effect = "chooser" # effect could be a child, too.

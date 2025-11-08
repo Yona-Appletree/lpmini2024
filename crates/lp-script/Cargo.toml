@@ -1,0 +1,12 @@
+[package]
+name = "lp-script"
+version = "0.1.0"
+edition = "2021"
+
+[features]
+use-libm = []
+
+[dependencies]
+# Math for no_std
+libm = { version = "0.2" }
+lp-math = { path = "../lp-math" }
