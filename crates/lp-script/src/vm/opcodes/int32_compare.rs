@@ -45,7 +45,7 @@ mod tests {
 
     #[test]
     fn test_greater_eq() {
-        let mut stack = ValueStack::new(64).expect("value stack allocation");
+        let mut stack = ValueStack::new(64);
         stack.push_int32(5).unwrap();
         stack.push_int32(5).unwrap();
         exec_greater_eq_int32(&mut stack).unwrap();
@@ -54,7 +54,7 @@ mod tests {
 
     #[test]
     fn test_less_eq() {
-        let mut stack = ValueStack::new(64).expect("value stack allocation");
+        let mut stack = ValueStack::new(64);
         stack.push_int32(3).unwrap();
         stack.push_int32(5).unwrap();
         exec_less_eq_int32(&mut stack).unwrap();
@@ -63,7 +63,7 @@ mod tests {
 
     #[test]
     fn test_eq() {
-        let mut stack = ValueStack::new(64).expect("value stack allocation");
+        let mut stack = ValueStack::new(64);
         stack.push_int32(5).unwrap();
         stack.push_int32(5).unwrap();
         exec_eq_int32(&mut stack).unwrap();
@@ -72,7 +72,7 @@ mod tests {
 
     #[test]
     fn test_not_eq() {
-        let mut stack = ValueStack::new(64).expect("value stack allocation");
+        let mut stack = ValueStack::new(64);
         stack.push_int32(5).unwrap();
         stack.push_int32(3).unwrap();
         exec_not_eq_int32(&mut stack).unwrap();

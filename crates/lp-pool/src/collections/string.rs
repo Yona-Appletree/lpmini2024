@@ -1,5 +1,6 @@
 use super::vec::LpVec;
 use crate::error::AllocError;
+use core::fmt::{self, Write};
 
 /// Pool-backed String
 pub struct LpString {
@@ -32,6 +33,12 @@ impl LpString {
         Ok(())
     }
 
+    pub fn try_push_char(&mut self, ch: char) -> Result<(), AllocError> {
+        let mut buf = [0u8; 4];
+        let encoded = ch.encode_utf8(&mut buf);
+        self.try_push_str(encoded)
+    }
+
     pub fn as_str(&self) -> &str {
         unsafe { core::str::from_utf8_unchecked(self.vec.as_raw_slice()) }
     }
@@ -42,6 +49,19 @@ impl LpString {
 
     pub fn is_empty(&self) -> bool {
         self.vec.is_empty()
+    }
+
+    pub fn clear(&mut self) {
+        self.vec.clear();
+    }
+
+    pub fn try_reserve(&mut self, additional: usize) -> Result<(), AllocError> {
+        let target = self
+            .vec
+            .len()
+            .checked_add(additional)
+            .ok_or(AllocError::PoolExhausted)?;
+        self.vec.try_reserve(target)
     }
 
     /// Create a new LpString from a string slice
@@ -119,6 +139,16 @@ impl core::fmt::Debug for LpString {
 impl core::fmt::Display for LpString {
     fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
         write!(f, "{}", self.as_str())
+    }
+}
+
+impl Write for LpString {
+    fn write_str(&mut self, s: &str) -> fmt::Result {
+        self.try_push_str(s).map_err(|_| fmt::Error)
+    }
+
+    fn write_char(&mut self, c: char) -> fmt::Result {
+        self.try_push_char(c).map_err(|_| fmt::Error)
     }
 }
 

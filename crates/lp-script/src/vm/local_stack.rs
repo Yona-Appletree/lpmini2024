@@ -17,7 +17,7 @@ impl LocalStack {
     /// Capacity should be large enough for all locals across max call depth.
     /// Example: if max depth is 64 and average function uses 20 i32s of locals,
     /// capacity should be at least 64 * 20 = 1280.
-    pub fn new(capacity: usize) -> Result<Self, LpsVmError> {
+    pub fn try_new(capacity: usize) -> Result<Self, LpsVmError> {
         let mut data = LpVec::new();
         if capacity > 0 {
             data.try_reserve(capacity)?;
@@ -33,6 +33,10 @@ impl LocalStack {
             sp: 0,
             local_count: 0,
         })
+    }
+
+    pub fn new(capacity: usize) -> Self {
+        Self::try_new(capacity).expect("local stack allocation failed")
     }
 
     /// Allocate space for a batch of locals (typically for a function)
@@ -475,7 +479,7 @@ mod tests {
 
     #[test]
     fn test_locals_storage_creation() {
-        let storage = LocalStack::new(2048).expect("local stack allocation");
+        let storage = LocalStack::new(2048);
         assert_eq!(storage.capacity(), 2048);
         assert_eq!(storage.local_count(), 0);
         assert_eq!(storage.sp(), 0);
@@ -483,7 +487,7 @@ mod tests {
 
     #[test]
     fn test_allocate_deallocate() {
-        let mut storage = LocalStack::new(1024).expect("local stack allocation");
+        let mut storage = LocalStack::new(1024);
 
         // Allocate 3 locals: Fixed, Vec2, Vec4
         let defs = vec![
@@ -505,7 +509,7 @@ mod tests {
 
     #[test]
     fn test_fixed_get_set() {
-        let mut storage = LocalStack::new(64).expect("local stack allocation");
+        let mut storage = LocalStack::new(64);
 
         let defs = vec![LocalVarDef::new("x".into(), Type::Fixed)];
         storage.allocate_locals(&defs).unwrap();
@@ -519,7 +523,7 @@ mod tests {
 
     #[test]
     fn test_int32_get_set() {
-        let mut storage = LocalStack::new(64).expect("local stack allocation");
+        let mut storage = LocalStack::new(64);
 
         let defs = vec![LocalVarDef::new("count".into(), Type::Int32)];
         storage.allocate_locals(&defs).unwrap();
@@ -531,7 +535,7 @@ mod tests {
 
     #[test]
     fn test_vec2_get_set() {
-        let mut storage = LocalStack::new(64).expect("local stack allocation");
+        let mut storage = LocalStack::new(64);
 
         let defs = vec![LocalVarDef::new("pos".into(), Type::Vec2)];
         storage.allocate_locals(&defs).unwrap();
@@ -544,7 +548,7 @@ mod tests {
 
     #[test]
     fn test_vec3_get_set() {
-        let mut storage = LocalStack::new(64).expect("local stack allocation");
+        let mut storage = LocalStack::new(64);
 
         let defs = vec![LocalVarDef::new("pos".into(), Type::Vec3)];
         storage.allocate_locals(&defs).unwrap();
@@ -560,7 +564,7 @@ mod tests {
 
     #[test]
     fn test_vec4_get_set() {
-        let mut storage = LocalStack::new(64).expect("local stack allocation");
+        let mut storage = LocalStack::new(64);
 
         let defs = vec![LocalVarDef::new("color".into(), Type::Vec4)];
         storage.allocate_locals(&defs).unwrap();
@@ -583,7 +587,7 @@ mod tests {
 
     #[test]
     fn test_multiple_locals_layout() {
-        let mut storage = LocalStack::new(1024).expect("local stack allocation");
+        let mut storage = LocalStack::new(1024);
 
         // Allocate: Fixed at offset 0, Vec2 at offset 1-2, Fixed at offset 3
         let defs = vec![
@@ -611,7 +615,7 @@ mod tests {
 
     #[test]
     fn test_type_mismatch() {
-        let mut storage = LocalStack::new(64).expect("local stack allocation");
+        let mut storage = LocalStack::new(64);
 
         let defs = vec![LocalVarDef::new("x".into(), Type::Fixed)];
         storage.allocate_locals(&defs).unwrap();
@@ -623,7 +627,7 @@ mod tests {
 
     #[test]
     fn test_out_of_bounds() {
-        let mut storage = LocalStack::new(64).expect("local stack allocation");
+        let mut storage = LocalStack::new(64);
 
         let defs = vec![LocalVarDef::new("x".into(), Type::Fixed)];
         storage.allocate_locals(&defs).unwrap();
@@ -641,7 +645,7 @@ mod tests {
 
     #[test]
     fn test_frame_simulation() {
-        let mut storage = LocalStack::new(1024).expect("local stack allocation");
+        let mut storage = LocalStack::new(1024);
 
         // Main function: Fixed, Vec2
         let main_defs = vec![
@@ -690,7 +694,7 @@ mod tests {
 
     #[test]
     fn test_debugging_api_by_name() {
-        let mut storage = LocalStack::new(1024).expect("local stack allocation");
+        let mut storage = LocalStack::new(1024);
 
         // Allocate locals with names
         let defs = vec![
@@ -738,7 +742,7 @@ mod tests {
 
     #[test]
     fn test_list_locals() {
-        let mut storage = LocalStack::new(1024).expect("local stack allocation");
+        let mut storage = LocalStack::new(1024);
 
         let defs = vec![
             LocalVarDef::new("x".into(), Type::Fixed),

@@ -46,7 +46,7 @@ mod tests {
 
     #[test]
     fn test_texture_sample_r_stub() {
-        let mut stack = ValueStack::new(64).expect("value stack allocation");
+        let mut stack = ValueStack::new(64);
 
         // Push UV coordinates
         stack.push_fixed(0.5.to_fixed()).unwrap(); // u
@@ -60,7 +60,7 @@ mod tests {
 
     #[test]
     fn test_texture_sample_rgba_stub() {
-        let mut stack = ValueStack::new(64).expect("value stack allocation");
+        let mut stack = ValueStack::new(64);
 
         // Push UV coordinates
         stack.push_fixed(0.5.to_fixed()).unwrap(); // u
@@ -77,7 +77,7 @@ mod tests {
 
     #[test]
     fn test_texture_sample_underflow() {
-        let mut stack = ValueStack::new(64).expect("value stack allocation");
+        let mut stack = ValueStack::new(64);
         stack.push_int32(1).unwrap(); // Only 1 value, need 2 (UV)
 
         let result = exec_texture_sample_r(&mut stack, 0);

@@ -123,7 +123,7 @@ pub fn compile_expr_with_options(
     options: &OptimizeOptions,
 ) -> Result<LpsProgram, CompileError> {
     const POOL_SIZE: usize = 128 * 1024;
-    let mut memory = vec![0u8; POOL_SIZE];
+    let mut memory = [0u8; POOL_SIZE];
     let memory_ptr =
         NonNull::new(memory.as_mut_ptr()).expect("Failed to get non-null pointer for pool");
     let pool = unsafe { LpMemoryPool::new(memory_ptr, POOL_SIZE).map_err(CompileError::from)? };
@@ -199,7 +199,7 @@ pub fn compile_script_with_options(
     options: &OptimizeOptions,
 ) -> Result<LpsProgram, CompileError> {
     const POOL_SIZE: usize = 512 * 1024;
-    let mut memory = vec![0u8; POOL_SIZE];
+    let mut memory = [0u8; POOL_SIZE];
     let memory_ptr =
         NonNull::new(memory.as_mut_ptr()).expect("Failed to get non-null pointer for pool");
     let pool = unsafe { LpMemoryPool::new(memory_ptr, POOL_SIZE).map_err(CompileError::from)? };

@@ -187,7 +187,7 @@ mod tests {
 
     #[test]
     fn test_add() {
-        let mut stack = ValueStack::new(64).expect("value stack allocation");
+        let mut stack = ValueStack::new(64);
         stack.push_int32(5).unwrap();
         stack.push_int32(3).unwrap();
         exec_add_int32(&mut stack).unwrap();
@@ -196,7 +196,7 @@ mod tests {
 
     #[test]
     fn test_sub() {
-        let mut stack = ValueStack::new(64).expect("value stack allocation");
+        let mut stack = ValueStack::new(64);
         stack.push_int32(10).unwrap();
         stack.push_int32(3).unwrap();
         exec_sub_int32(&mut stack).unwrap();
@@ -205,7 +205,7 @@ mod tests {
 
     #[test]
     fn test_mul() {
-        let mut stack = ValueStack::new(64).expect("value stack allocation");
+        let mut stack = ValueStack::new(64);
         stack.push_int32(4).unwrap();
         stack.push_int32(3).unwrap();
         exec_mul_int32(&mut stack).unwrap();
@@ -214,7 +214,7 @@ mod tests {
 
     #[test]
     fn test_div() {
-        let mut stack = ValueStack::new(64).expect("value stack allocation");
+        let mut stack = ValueStack::new(64);
         stack.push_int32(15).unwrap();
         stack.push_int32(3).unwrap();
         exec_div_int32(&mut stack).unwrap();
@@ -223,7 +223,7 @@ mod tests {
 
     #[test]
     fn test_div_by_zero() {
-        let mut stack = ValueStack::new(64).expect("value stack allocation");
+        let mut stack = ValueStack::new(64);
         stack.push_int32(10).unwrap();
         stack.push_int32(0).unwrap();
         let result = exec_div_int32(&mut stack);
@@ -232,7 +232,7 @@ mod tests {
 
     #[test]
     fn test_mod() {
-        let mut stack = ValueStack::new(64).expect("value stack allocation");
+        let mut stack = ValueStack::new(64);
         stack.push_int32(10).unwrap();
         stack.push_int32(3).unwrap();
         exec_mod_int32(&mut stack).unwrap();
@@ -241,7 +241,7 @@ mod tests {
 
     #[test]
     fn test_neg() {
-        let mut stack = ValueStack::new(64).expect("value stack allocation");
+        let mut stack = ValueStack::new(64);
         stack.push_int32(5).unwrap();
         exec_neg_int32(&mut stack).unwrap();
         assert_eq!(stack.pop_int32().unwrap(), -5);
@@ -249,7 +249,7 @@ mod tests {
 
     #[test]
     fn test_abs() {
-        let mut stack = ValueStack::new(64).expect("value stack allocation");
+        let mut stack = ValueStack::new(64);
         stack.push_int32(-7).unwrap();
         exec_abs_int32(&mut stack).unwrap();
         assert_eq!(stack.pop_int32().unwrap(), 7);
@@ -257,7 +257,7 @@ mod tests {
 
     #[test]
     fn test_min() {
-        let mut stack = ValueStack::new(64).expect("value stack allocation");
+        let mut stack = ValueStack::new(64);
         stack.push_int32(5).unwrap();
         stack.push_int32(3).unwrap();
         exec_min_int32(&mut stack).unwrap();
@@ -266,7 +266,7 @@ mod tests {
 
     #[test]
     fn test_max() {
-        let mut stack = ValueStack::new(64).expect("value stack allocation");
+        let mut stack = ValueStack::new(64);
         stack.push_int32(5).unwrap();
         stack.push_int32(3).unwrap();
         exec_max_int32(&mut stack).unwrap();
@@ -275,7 +275,7 @@ mod tests {
 
     #[test]
     fn test_greater() {
-        let mut stack = ValueStack::new(64).expect("value stack allocation");
+        let mut stack = ValueStack::new(64);
         stack.push_int32(5).unwrap();
         stack.push_int32(3).unwrap();
         exec_greater_int32(&mut stack).unwrap();
@@ -284,7 +284,7 @@ mod tests {
 
     #[test]
     fn test_less() {
-        let mut stack = ValueStack::new(64).expect("value stack allocation");
+        let mut stack = ValueStack::new(64);
         stack.push_int32(3).unwrap();
         stack.push_int32(5).unwrap();
         exec_less_int32(&mut stack).unwrap();
@@ -293,7 +293,7 @@ mod tests {
 
     #[test]
     fn test_bitwise_and() {
-        let mut stack = ValueStack::new(64).expect("value stack allocation");
+        let mut stack = ValueStack::new(64);
         stack.push_int32(0b1100).unwrap();
         stack.push_int32(0b1010).unwrap();
         exec_bitwise_and_int32(&mut stack).unwrap();
@@ -302,7 +302,7 @@ mod tests {
 
     #[test]
     fn test_bitwise_or() {
-        let mut stack = ValueStack::new(64).expect("value stack allocation");
+        let mut stack = ValueStack::new(64);
         stack.push_int32(0b1100).unwrap();
         stack.push_int32(0b1010).unwrap();
         exec_bitwise_or_int32(&mut stack).unwrap();
@@ -311,7 +311,7 @@ mod tests {
 
     #[test]
     fn test_bitwise_xor() {
-        let mut stack = ValueStack::new(64).expect("value stack allocation");
+        let mut stack = ValueStack::new(64);
         stack.push_int32(0b1100).unwrap();
         stack.push_int32(0b1010).unwrap();
         exec_bitwise_xor_int32(&mut stack).unwrap();
@@ -320,7 +320,7 @@ mod tests {
 
     #[test]
     fn test_bitwise_not() {
-        let mut stack = ValueStack::new(64).expect("value stack allocation");
+        let mut stack = ValueStack::new(64);
         stack.push_int32(0).unwrap();
         exec_bitwise_not_int32(&mut stack).unwrap();
         assert_eq!(stack.pop_int32().unwrap(), -1);
@@ -328,7 +328,7 @@ mod tests {
 
     #[test]
     fn test_left_shift() {
-        let mut stack = ValueStack::new(64).expect("value stack allocation");
+        let mut stack = ValueStack::new(64);
         stack.push_int32(5).unwrap();
         stack.push_int32(2).unwrap();
         exec_left_shift_int32(&mut stack).unwrap();

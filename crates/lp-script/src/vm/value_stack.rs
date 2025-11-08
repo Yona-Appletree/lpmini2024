@@ -19,7 +19,7 @@ pub struct ValueStack {
 
 impl ValueStack {
     /// Create a new stack with the given maximum size
-    pub fn new(max_size: usize) -> Result<Self, LpsVmError> {
+    pub fn try_new(max_size: usize) -> Result<Self, LpsVmError> {
         let mut data = LpVec::new();
         if max_size > 0 {
             data.try_reserve(max_size)?;
@@ -33,6 +33,11 @@ impl ValueStack {
             sp: 0,
             max_size,
         })
+    }
+
+    /// Create a new stack and panic if allocation fails.
+    pub fn new(max_size: usize) -> Self {
+        Self::try_new(max_size).expect("value stack allocation failed")
     }
 
     /// Reset the stack pointer to 0
@@ -581,14 +586,14 @@ mod tests {
 
     #[test]
     fn test_stack_creation() {
-        let stack = ValueStack::new(64).expect("value stack allocation");
+        let stack = ValueStack::new(64);
         assert_eq!(stack.sp(), 0);
         assert_eq!(stack.raw_slice().len(), 64);
     }
 
     #[test]
     fn test_push_pop_fixed() {
-        let mut stack = ValueStack::new(64).expect("value stack allocation");
+        let mut stack = ValueStack::new(64);
 
         stack.push_fixed(1.5.to_fixed()).unwrap();
         stack.push_fixed(2.5.to_fixed()).unwrap();
@@ -605,7 +610,7 @@ mod tests {
 
     #[test]
     fn test_push_pop_int32() {
-        let mut stack = ValueStack::new(64).expect("value stack allocation");
+        let mut stack = ValueStack::new(64);
 
         stack.push_int32(42).unwrap();
         stack.push_int32(99).unwrap();
@@ -622,7 +627,7 @@ mod tests {
 
     #[test]
     fn test_pop2() {
-        let mut stack = ValueStack::new(64).expect("value stack allocation");
+        let mut stack = ValueStack::new(64);
 
         stack.push_int32(10).unwrap();
         stack.push_int32(20).unwrap();
@@ -635,7 +640,7 @@ mod tests {
 
     #[test]
     fn test_pop3() {
-        let mut stack = ValueStack::new(64).expect("value stack allocation");
+        let mut stack = ValueStack::new(64);
 
         stack.push_int32(10).unwrap();
         stack.push_int32(20).unwrap();
@@ -650,7 +655,7 @@ mod tests {
 
     #[test]
     fn test_pop4() {
-        let mut stack = ValueStack::new(64).expect("value stack allocation");
+        let mut stack = ValueStack::new(64);
 
         stack.push_int32(10).unwrap();
         stack.push_int32(20).unwrap();
@@ -667,7 +672,7 @@ mod tests {
 
     #[test]
     fn test_push2() {
-        let mut stack = ValueStack::new(64).expect("value stack allocation");
+        let mut stack = ValueStack::new(64);
 
         stack.push2(10, 20).unwrap();
 
@@ -679,7 +684,7 @@ mod tests {
 
     #[test]
     fn test_push3() {
-        let mut stack = ValueStack::new(64).expect("value stack allocation");
+        let mut stack = ValueStack::new(64);
 
         stack.push3(10, 20, 30).unwrap();
 
@@ -692,7 +697,7 @@ mod tests {
 
     #[test]
     fn test_push4() {
-        let mut stack = ValueStack::new(64).expect("value stack allocation");
+        let mut stack = ValueStack::new(64);
 
         stack.push4(10, 20, 30, 40).unwrap();
 
@@ -706,7 +711,7 @@ mod tests {
 
     #[test]
     fn test_push_pop_vec2() {
-        let mut stack = ValueStack::new(64).expect("value stack allocation");
+        let mut stack = ValueStack::new(64);
 
         let v = Vec2::new(1.5.to_fixed(), 2.5.to_fixed());
         stack.push_vec2(v).unwrap();
@@ -721,7 +726,7 @@ mod tests {
 
     #[test]
     fn test_push_pop_vec3() {
-        let mut stack = ValueStack::new(64).expect("value stack allocation");
+        let mut stack = ValueStack::new(64);
 
         let v = Vec3::new(1.5.to_fixed(), 2.5.to_fixed(), 3.5.to_fixed());
         stack.push_vec3(v).unwrap();
@@ -737,7 +742,7 @@ mod tests {
 
     #[test]
     fn test_push_pop_vec4() {
-        let mut stack = ValueStack::new(64).expect("value stack allocation");
+        let mut stack = ValueStack::new(64);
 
         let v = Vec4::new(
             1.5.to_fixed(),
@@ -759,7 +764,7 @@ mod tests {
 
     #[test]
     fn test_stack_overflow() {
-        let mut stack = ValueStack::new(2).expect("value stack allocation");
+        let mut stack = ValueStack::new(2);
 
         stack.push_int32(1).unwrap();
         stack.push_int32(2).unwrap();
@@ -770,7 +775,7 @@ mod tests {
 
     #[test]
     fn test_stack_underflow() {
-        let mut stack = ValueStack::new(64).expect("value stack allocation");
+        let mut stack = ValueStack::new(64);
 
         let result = stack.pop_int32();
         assert!(matches!(
@@ -784,7 +789,7 @@ mod tests {
 
     #[test]
     fn test_reset() {
-        let mut stack = ValueStack::new(64).expect("value stack allocation");
+        let mut stack = ValueStack::new(64);
 
         stack.push_int32(1).unwrap();
         stack.push_int32(2).unwrap();
@@ -798,7 +803,7 @@ mod tests {
 
     #[test]
     fn test_dup1() {
-        let mut stack = ValueStack::new(64).expect("value stack allocation");
+        let mut stack = ValueStack::new(64);
 
         stack.push_int32(42).unwrap();
         stack.dup1().unwrap();
@@ -810,7 +815,7 @@ mod tests {
 
     #[test]
     fn test_dup2() {
-        let mut stack = ValueStack::new(64).expect("value stack allocation");
+        let mut stack = ValueStack::new(64);
 
         stack.push_int32(10).unwrap();
         stack.push_int32(20).unwrap();
@@ -825,7 +830,7 @@ mod tests {
 
     #[test]
     fn test_dup3() {
-        let mut stack = ValueStack::new(64).expect("value stack allocation");
+        let mut stack = ValueStack::new(64);
 
         stack.push_int32(10).unwrap();
         stack.push_int32(20).unwrap();
@@ -843,7 +848,7 @@ mod tests {
 
     #[test]
     fn test_dup4() {
-        let mut stack = ValueStack::new(64).expect("value stack allocation");
+        let mut stack = ValueStack::new(64);
 
         stack.push_int32(10).unwrap();
         stack.push_int32(20).unwrap();
@@ -864,7 +869,7 @@ mod tests {
 
     #[test]
     fn test_drop1() {
-        let mut stack = ValueStack::new(64).expect("value stack allocation");
+        let mut stack = ValueStack::new(64);
 
         stack.push_int32(10).unwrap();
         stack.push_int32(20).unwrap();
@@ -876,7 +881,7 @@ mod tests {
 
     #[test]
     fn test_drop2() {
-        let mut stack = ValueStack::new(64).expect("value stack allocation");
+        let mut stack = ValueStack::new(64);
 
         stack.push_int32(10).unwrap();
         stack.push_int32(20).unwrap();
@@ -889,7 +894,7 @@ mod tests {
 
     #[test]
     fn test_drop3() {
-        let mut stack = ValueStack::new(64).expect("value stack allocation");
+        let mut stack = ValueStack::new(64);
 
         stack.push_int32(10).unwrap();
         stack.push_int32(20).unwrap();
@@ -903,7 +908,7 @@ mod tests {
 
     #[test]
     fn test_drop4() {
-        let mut stack = ValueStack::new(64).expect("value stack allocation");
+        let mut stack = ValueStack::new(64);
 
         stack.push_int32(10).unwrap();
         stack.push_int32(20).unwrap();
@@ -918,7 +923,7 @@ mod tests {
 
     #[test]
     fn test_swap() {
-        let mut stack = ValueStack::new(64).expect("value stack allocation");
+        let mut stack = ValueStack::new(64);
 
         stack.push_int32(10).unwrap();
         stack.push_int32(20).unwrap();
@@ -931,7 +936,7 @@ mod tests {
 
     #[test]
     fn test_swizzle3to2_xy() {
-        let mut stack = ValueStack::new(64).expect("value stack allocation");
+        let mut stack = ValueStack::new(64);
 
         // Push vec3(10, 20, 30)
         stack.push3(10, 20, 30).unwrap();
@@ -946,7 +951,7 @@ mod tests {
 
     #[test]
     fn test_swizzle3to2_yz() {
-        let mut stack = ValueStack::new(64).expect("value stack allocation");
+        let mut stack = ValueStack::new(64);
 
         // Push vec3(10, 20, 30)
         stack.push3(10, 20, 30).unwrap();
@@ -961,7 +966,7 @@ mod tests {
 
     #[test]
     fn test_swizzle3to3_zyx() {
-        let mut stack = ValueStack::new(64).expect("value stack allocation");
+        let mut stack = ValueStack::new(64);
 
         // Push vec3(10, 20, 30)
         stack.push3(10, 20, 30).unwrap();
@@ -977,7 +982,7 @@ mod tests {
 
     #[test]
     fn test_swizzle4to2_xy() {
-        let mut stack = ValueStack::new(64).expect("value stack allocation");
+        let mut stack = ValueStack::new(64);
 
         // Push vec4(10, 20, 30, 40)
         stack.push4(10, 20, 30, 40).unwrap();
@@ -992,7 +997,7 @@ mod tests {
 
     #[test]
     fn test_swizzle4to2_zw() {
-        let mut stack = ValueStack::new(64).expect("value stack allocation");
+        let mut stack = ValueStack::new(64);
 
         // Push vec4(10, 20, 30, 40)
         stack.push4(10, 20, 30, 40).unwrap();
@@ -1007,7 +1012,7 @@ mod tests {
 
     #[test]
     fn test_swizzle4to3_xyz() {
-        let mut stack = ValueStack::new(64).expect("value stack allocation");
+        let mut stack = ValueStack::new(64);
 
         // Push vec4(10, 20, 30, 40)
         stack.push4(10, 20, 30, 40).unwrap();
@@ -1023,7 +1028,7 @@ mod tests {
 
     #[test]
     fn test_swizzle4to4_wzyx() {
-        let mut stack = ValueStack::new(64).expect("value stack allocation");
+        let mut stack = ValueStack::new(64);
 
         // Push vec4(10, 20, 30, 40)
         stack.push4(10, 20, 30, 40).unwrap();
@@ -1040,7 +1045,7 @@ mod tests {
 
     #[test]
     fn test_dup_underflow() {
-        let mut stack = ValueStack::new(64).expect("value stack allocation");
+        let mut stack = ValueStack::new(64);
 
         let result = stack.dup1();
         assert!(matches!(
@@ -1054,7 +1059,7 @@ mod tests {
 
     #[test]
     fn test_drop_underflow() {
-        let mut stack = ValueStack::new(64).expect("value stack allocation");
+        let mut stack = ValueStack::new(64);
 
         let result = stack.drop1();
         assert!(matches!(
@@ -1068,7 +1073,7 @@ mod tests {
 
     #[test]
     fn test_swizzle_underflow() {
-        let mut stack = ValueStack::new(64).expect("value stack allocation");
+        let mut stack = ValueStack::new(64);
 
         stack.push2(10, 20).unwrap(); // Only 2 values on stack
 

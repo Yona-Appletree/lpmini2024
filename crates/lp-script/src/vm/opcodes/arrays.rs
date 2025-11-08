@@ -37,7 +37,7 @@ mod tests {
 
     #[test]
     fn test_get_elem_int32_array_fixed_stub() {
-        let mut stack = ValueStack::new(64).expect("value stack allocation");
+        let mut stack = ValueStack::new(64);
 
         // Push array_ref and index
         stack.push_int32(123).unwrap(); // array_ref (stub)
@@ -51,7 +51,7 @@ mod tests {
 
     #[test]
     fn test_get_elem_int32_array_u8_stub() {
-        let mut stack = ValueStack::new(64).expect("value stack allocation");
+        let mut stack = ValueStack::new(64);
 
         // Push array_ref and index
         stack.push_int32(123).unwrap(); // array_ref (stub)
@@ -68,7 +68,7 @@ mod tests {
 
     #[test]
     fn test_array_access_underflow() {
-        let mut stack = ValueStack::new(64).expect("value stack allocation");
+        let mut stack = ValueStack::new(64);
         stack.push_int32(1).unwrap(); // Only 1 item, need 2
 
         let result = exec_get_elem_int32_array_fixed(&mut stack);

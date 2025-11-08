@@ -66,7 +66,7 @@ mod tests {
 
     #[test]
     fn test_greater() {
-        let mut stack = ValueStack::new(64).expect("value stack allocation");
+        let mut stack = ValueStack::new(64);
         stack.push_fixed(5.0.to_fixed()).unwrap();
         stack.push_fixed(3.0.to_fixed()).unwrap();
         exec_greater_fixed(&mut stack).unwrap();
@@ -75,7 +75,7 @@ mod tests {
 
     #[test]
     fn test_less() {
-        let mut stack = ValueStack::new(64).expect("value stack allocation");
+        let mut stack = ValueStack::new(64);
         stack.push_fixed(3.0.to_fixed()).unwrap();
         stack.push_fixed(5.0.to_fixed()).unwrap();
         exec_less_fixed(&mut stack).unwrap();
@@ -84,7 +84,7 @@ mod tests {
 
     #[test]
     fn test_eq() {
-        let mut stack = ValueStack::new(64).expect("value stack allocation");
+        let mut stack = ValueStack::new(64);
         stack.push_fixed(5.0.to_fixed()).unwrap();
         stack.push_fixed(5.0.to_fixed()).unwrap();
         exec_eq_fixed(&mut stack).unwrap();
@@ -93,7 +93,7 @@ mod tests {
 
     #[test]
     fn test_not_eq() {
-        let mut stack = ValueStack::new(64).expect("value stack allocation");
+        let mut stack = ValueStack::new(64);
         stack.push_fixed(5.0.to_fixed()).unwrap();
         stack.push_fixed(3.0.to_fixed()).unwrap();
         exec_not_eq_fixed(&mut stack).unwrap();

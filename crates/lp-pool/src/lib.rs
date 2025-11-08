@@ -48,6 +48,7 @@ pub mod allocator;
 pub mod block_header;
 pub mod collections;
 pub mod error;
+pub mod fmt;
 #[cfg(any(feature = "std", test))]
 mod guarded_alloc;
 pub mod memory_pool;
@@ -60,6 +61,7 @@ pub use collections::{
     LpVecIterMut,
 };
 pub use error::AllocError;
+pub use fmt::{lp_format, write_lp_string};
 #[cfg(any(feature = "std", test))]
 pub use guarded_alloc::{with_global_alloc, ScopedGlobalAllocGuard};
 pub use memory_pool::{LpMemoryPool, PoolStats};

@@ -42,7 +42,7 @@ impl CallStack {
     ///
     /// # Arguments
     /// * `max_depth` - Maximum call depth (e.g., 64)
-    pub fn new(max_depth: usize) -> Result<Self, LpsVmError> {
+    pub fn try_new(max_depth: usize) -> Result<Self, LpsVmError> {
         let mut frames = LpVec::new();
         if max_depth > 0 {
             frames.try_reserve(max_depth)?;
@@ -58,6 +58,10 @@ impl CallStack {
             frame_base: 0,
             current_fn_idx: 0,
         })
+    }
+
+    pub fn new(max_depth: usize) -> Self {
+        Self::try_new(max_depth).expect("call stack allocation failed")
     }
 
     /// Reset the call stack for a new execution
@@ -166,7 +170,7 @@ mod tests {
 
     #[test]
     fn test_call_stack_creation() {
-        let stack = CallStack::new(64).expect("call stack allocation");
+        let stack = CallStack::new(64);
         assert_eq!(stack.depth(), 0);
         assert_eq!(stack.frame_base(), 0);
         assert_eq!(stack.current_fn_idx(), 0);
@@ -175,7 +179,7 @@ mod tests {
 
     #[test]
     fn test_push_pop_frame() {
-        let mut stack = CallStack::new(64).expect("call stack allocation");
+        let mut stack = CallStack::new(64);
 
         // Main function has 3 locals (indices 0, 1, 2)
         // Push first frame - function 1 with locals starting at index 3
@@ -214,7 +218,7 @@ mod tests {
 
     #[test]
     fn test_reset() {
-        let mut stack = CallStack::new(64).expect("call stack allocation");
+        let mut stack = CallStack::new(64);
 
         // Push some frames
         stack.push_frame(100, 0, 3, 3, 1).unwrap();
@@ -232,7 +236,7 @@ mod tests {
 
     #[test]
     fn test_call_stack_overflow() {
-        let mut stack = CallStack::new(3).expect("call stack allocation"); // Only 3 frames max
+        let mut stack = CallStack::new(3); // Only 3 frames max
 
         // Push 3 frames should work
         stack.push_frame(100, 0, 3, 3, 1).unwrap();
@@ -249,7 +253,7 @@ mod tests {
 
     #[test]
     fn test_variable_sized_frames() {
-        let mut stack = CallStack::new(64).expect("call stack allocation");
+        let mut stack = CallStack::new(64);
 
         // Main: 2 locals (0-1), sp=2
         // Call func1: 3 locals (2-4), sp=5
@@ -282,7 +286,7 @@ mod tests {
 
     #[test]
     fn test_multiple_push_pop() {
-        let mut stack = CallStack::new(64).expect("call stack allocation");
+        let mut stack = CallStack::new(64);
 
         // Simulate multiple function calls with varying local counts
         let mut current_sp = 0;

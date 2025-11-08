@@ -133,8 +133,8 @@ mod tests {
 
     #[test]
     fn test_load_store_fixed() {
-        let mut stack = ValueStack::new(64).expect("value stack allocation");
-        let mut locals = LocalStack::new(64).expect("local stack allocation");
+        let mut stack = ValueStack::new(64);
+        let mut locals = LocalStack::new(64);
 
         // Allocate a Fixed local
         let defs = vec![LocalVarDef::new("x".into(), Type::Fixed)];
@@ -151,8 +151,8 @@ mod tests {
 
     #[test]
     fn test_load_store_int32() {
-        let mut stack = ValueStack::new(64).expect("value stack allocation");
-        let mut locals = LocalStack::new(64).expect("local stack allocation");
+        let mut stack = ValueStack::new(64);
+        let mut locals = LocalStack::new(64);
 
         // Allocate an Int32 local
         let defs = vec![LocalVarDef::new("count".into(), Type::Int32)];
@@ -169,8 +169,8 @@ mod tests {
 
     #[test]
     fn test_load_store_vec2() {
-        let mut stack = ValueStack::new(64).expect("value stack allocation");
-        let mut locals = LocalStack::new(64).expect("local stack allocation");
+        let mut stack = ValueStack::new(64);
+        let mut locals = LocalStack::new(64);
 
         // Allocate a Vec2 local
         let defs = vec![LocalVarDef::new("pos".into(), Type::Vec2)];
@@ -189,8 +189,8 @@ mod tests {
 
     #[test]
     fn test_load_store_vec3() {
-        let mut stack = ValueStack::new(64).expect("value stack allocation");
-        let mut locals = LocalStack::new(64).expect("local stack allocation");
+        let mut stack = ValueStack::new(64);
+        let mut locals = LocalStack::new(64);
 
         // Allocate a Vec3 local
         let defs = vec![LocalVarDef::new("pos".into(), Type::Vec3)];
@@ -212,8 +212,8 @@ mod tests {
 
     #[test]
     fn test_load_store_vec4() {
-        let mut stack = ValueStack::new(64).expect("value stack allocation");
-        let mut locals = LocalStack::new(64).expect("local stack allocation");
+        let mut stack = ValueStack::new(64);
+        let mut locals = LocalStack::new(64);
 
         // Allocate a Vec4 local
         let defs = vec![LocalVarDef::new("color".into(), Type::Vec4)];
@@ -241,8 +241,8 @@ mod tests {
 
     #[test]
     fn test_local_out_of_bounds() {
-        let mut stack = ValueStack::new(64).expect("value stack allocation");
-        let locals = LocalStack::new(64).expect("local stack allocation");
+        let mut stack = ValueStack::new(64);
+        let locals = LocalStack::new(64);
 
         // No locals allocated
         let result = exec_load_local_fixed(&mut stack, &locals, 0);
@@ -257,8 +257,8 @@ mod tests {
 
     #[test]
     fn test_type_mismatch() {
-        let mut stack = ValueStack::new(64).expect("value stack allocation");
-        let mut locals = LocalStack::new(64).expect("local stack allocation");
+        let mut stack = ValueStack::new(64);
+        let mut locals = LocalStack::new(64);
 
         // Allocate a Fixed local
         let defs = vec![LocalVarDef::new("x".into(), Type::Fixed)];
@@ -271,8 +271,8 @@ mod tests {
 
     #[test]
     fn test_multiple_locals() {
-        let mut stack = ValueStack::new(64).expect("value stack allocation");
-        let mut locals = LocalStack::new(64).expect("local stack allocation");
+        let mut stack = ValueStack::new(64);
+        let mut locals = LocalStack::new(64);
 
         // Allocate multiple locals of different types
         let defs = vec![
