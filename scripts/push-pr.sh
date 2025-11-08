@@ -52,6 +52,31 @@ else
   exit 1
 fi
 
+merge_pr=false
+
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+    --merge)
+      merge_pr=true
+      shift
+      ;;
+    --help|-h)
+      cat <<'EOF'
+Usage: scripts/push-pr.sh [OPTIONS]
+
+Options:
+  --merge   Merge the associated PR after checks pass.
+  -h, --help
+EOF
+      exit 0
+      ;;
+    *)
+      error "Unknown argument: $1"
+      exit 1
+      ;;
+  esac
+done
+
 run_step() {
   local description="$1"
   shift
@@ -114,6 +139,7 @@ fi
 
 pr_info_json="$(gh pr view --json url,state,number 2>/dev/null || true)"
 pr_url=""
+pr_number=""
 
 if [[ -z "${pr_info_json}" ]]; then
   info "No PR detected for ${current_branch}. Creating one."
@@ -138,7 +164,9 @@ if [[ -z "${pr_url}" ]]; then
     warn "Use \`gh pr create --fill --head ${current_branch}\` after resolving the issue."
     exit 1
   fi
-  pr_url="$(gh pr view --json url --jq '.url')"
+  pr_info_json="$(gh pr view --json url,state,number)"
+  pr_url="$(printf '%s' "${pr_info_json}" | jq -r '.url')"
+  pr_number="$(printf '%s' "${pr_info_json}" | jq -r '.number')"
   info "New PR created: ${pr_url}"
 fi
 
@@ -191,6 +219,24 @@ if gh run watch "${run_id}" --exit-status; then
   info "Workflow completed successfully for commit ${commit_sha}."
   if [[ -n "${pr_url}" ]]; then
     info "PR ready: ${pr_url}"
+  fi
+
+  if [[ "${merge_pr}" == "true" ]]; then
+    if [[ -z "${pr_number}" ]]; then
+      warn "PR number unavailable; skipping merge."
+    else
+      merge_state="$(gh pr view "${pr_number}" --json state --jq '.state' 2>/dev/null || true)"
+      if [[ "${merge_state}" != "OPEN" ]]; then
+        warn "Cannot merge PR #${pr_number}; state is ${merge_state}."
+      else
+        info "Merging PR #${pr_number}."
+        if gh pr merge "${pr_number}" --merge --auto; then
+          info "PR #${pr_number} merged."
+        else
+          warn "Failed to merge PR #${pr_number}. Review GitHub CLI output."
+        fi
+      fi
+    fi
   fi
   exit 0
 fi
