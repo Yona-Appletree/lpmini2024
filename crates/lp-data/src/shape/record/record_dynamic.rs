@@ -2,10 +2,12 @@
 
 use lp_pool::collections::{LpString, LpVec};
 use lp_pool::error::AllocError;
-
+use lp_pool::LpBTreeMap;
+use crate::LpValue;
 use crate::shape::kind::LpKind;
 use crate::shape::record::record_meta::RecordField;
-use crate::shape::shape::{LpShape, RecordShape};
+use crate::shape::record::{RecordShape, RecordValue};
+use crate::shape::shape::LpShape;
 
 /// Dynamic record shape (runtime-created structure).
 pub struct DynamicRecordShape {
@@ -52,4 +54,13 @@ impl core::fmt::Debug for DynamicRecordShape {
             .field("ui", &self.ui)
             .finish()
     }
+}
+
+pub struct RecordValueDyn {
+    pub shape: DynamicRecordShape,
+    pub fields: LpBTreeMap<LpString, LpValue>
+}
+
+impl RecordValue for RecordValueDyn {
+    // todo: implement
 }

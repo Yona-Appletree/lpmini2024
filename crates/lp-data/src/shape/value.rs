@@ -7,18 +7,6 @@ pub trait LpValueTrait: core::fmt::Debug + Clone {
     // Base operations can be added here if needed
 }
 
-/// Value operations for record/struct types.
-pub trait RecordValue: LpValueTrait {
-    /// Get a field by name.
-    fn get_field(&self, name: &str) -> Result<&LpValue, crate::value::RuntimeError>;
-
-    /// Get a mutable field by name.
-    fn get_field_mut(&mut self, name: &str) -> Result<&mut LpValue, crate::value::RuntimeError>;
-
-    /// Set a field value.
-    fn set_field(&mut self, name: &str, value: LpValue) -> Result<(), crate::value::RuntimeError>;
-}
-
 /// Value operations for array types.
 pub trait ArrayValue: LpValueTrait {
     /// Get an element by index.

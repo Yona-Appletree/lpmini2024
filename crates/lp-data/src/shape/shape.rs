@@ -9,15 +9,6 @@ pub trait LpShape: core::fmt::Debug {
     fn kind(&self) -> LpKind;
 }
 
-/// Shape for record/struct types.
-pub trait RecordShape: LpShape {
-    /// Returns the name of the record type.
-    fn name(&self) -> &str;
-
-    /// Returns the fields of the record.
-    fn fields(&self) -> &[crate::shape::record::RecordField];
-}
-
 /// Shape for array types.
 pub trait ArrayShape: LpShape {
     /// Returns the element shape reference.

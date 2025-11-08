@@ -2,7 +2,8 @@
 
 use crate::shape::kind::LpKind;
 use crate::shape::record::record_meta::RecordField;
-use crate::shape::shape::{LpShape, RecordShape};
+use crate::shape::record::RecordShape;
+use crate::shape::shape::LpShape;
 
 /// Static record shape (compile-time known structure).
 pub struct StaticRecordShape {

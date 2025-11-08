@@ -6,7 +6,7 @@ use alloc::string::String;
 use lp_pool::collections::vec::LpVec;
 use lp_pool::error::AllocError;
 
-use crate::shape::shape::RecordShape;
+use crate::shape::record::RecordShape;
 use crate::shape::shape_ref::{RecordShapeRef, ShapeRef};
 use crate::value::{LpValue, RuntimeError};
 

@@ -10,10 +10,12 @@ pub mod value;
 
 // Re-export core types
 pub use kind::LpKind;
-pub use shape::{ArrayShape, EnumShape, LpShape, MapShape, OptionShape, RecordShape, TupleShape};
+pub use record::RecordShape;
+pub use record::RecordValue;
+pub use shape::{ArrayShape, EnumShape, LpShape, MapShape, OptionShape, TupleShape};
 pub use shape_ref::ShapeRef;
 pub use value::{
-    ArrayValue, EnumValue, LpValueTrait, MapValue, OptionValue, RecordValue, TupleValue,
+    ArrayValue, EnumValue, LpValueTrait, MapValue, OptionValue, TupleValue,
 };
 
 // Re-export type-specific modules
