@@ -10,10 +10,12 @@ extern crate alloc;
 
 pub mod metadata;
 pub mod registry;
+pub mod registry_old;
+pub mod shape;
 pub mod types;
 pub mod value;
 
-// Re-export metadata (backwards compatibility)
+// Re-export metadata (backwards compatibility - will be removed)
 pub use metadata::{
     ArrayType, ArrayUi, BoolScalar, BoolUi, EnumType, EnumUi, EnumVariant, FixedScalar,
     Int32Scalar, LpType, LpTypeMeta, NumberUi, OptionType, RecordField, RecordType, RecordUi,
@@ -24,8 +26,11 @@ pub use metadata::{
 // Re-export MapType
 pub use types::MapType;
 
-// Re-export registry
-pub use registry::{LpDescribe, SchemaRegistration, TypeRegistry};
+// Re-export old registry (backwards compatibility - will be removed)
+pub use registry_old::{LpDescribe, SchemaRegistration, TypeRegistry};
+
+// Re-export new registries
+pub use registry::{RuntimeRegistry, StaticRegistry};
 
 // Re-export values
 pub use value::{LpValue, RuntimeError};
