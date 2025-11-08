@@ -250,6 +250,12 @@ log_file="${log_dir}/workflow.log"
 if NO_COLOR=1 gh run view "${run_id}" --log >"${log_file}" 2>&1; then
   error "GitHub Actions run failed. Logs saved at: ${log_file}"
   warn "Inspect the logs and iterate on the reported failures before re-running this script."
+  info "Extracting relevant log lines:"
+  if command -v rg >/dev/null 2>&1; then
+    rg --color=never --line-number --ignore-case --no-heading --regexp 'error' --regexp 'fail' --regexp 'panic' "${log_file}" || true
+  else
+    grep -n -i -E 'error|fail|panic' "${log_file}" || true
+  fi
 else
   warn "Failed to download logs automatically. Use \`NO_COLOR=1 gh run view ${run_id} --log > <path>\` to fetch them manually."
 fi
