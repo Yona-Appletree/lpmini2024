@@ -516,6 +516,8 @@ impl Lexer {
 
 #[cfg(test)]
 mod tests {
+    #![allow(clippy::approx_constant)]
+
     use super::*;
 
     fn tokenize(input: &str) -> Vec<TokenKind> {
@@ -640,7 +642,7 @@ mod tests {
         let tokens = tokenize("0.0 1.5 3.14159 .5 0.25");
         assert_eq!(tokens[0], TokenKind::FloatLiteral(0.0));
         assert_eq!(tokens[1], TokenKind::FloatLiteral(1.5));
-        assert_eq!(tokens[2], TokenKind::FloatLiteral(std::f32::consts::PI));
+        assert_eq!(tokens[2], TokenKind::FloatLiteral(3.14159));
         assert_eq!(tokens[3], TokenKind::FloatLiteral(0.5));
         assert_eq!(tokens[4], TokenKind::FloatLiteral(0.25));
         assert!(matches!(tokens[5], TokenKind::Eof));
@@ -751,7 +753,7 @@ mod tests {
         assert_eq!(tokens[0], TokenKind::Float);
         assert!(matches!(tokens[1], TokenKind::Ident(ref s) if s == "x"));
         assert_eq!(tokens[2], TokenKind::Eq);
-        assert_eq!(tokens[3], TokenKind::FloatLiteral(std::f32::consts::PI));
+        assert_eq!(tokens[3], TokenKind::FloatLiteral(3.14));
         assert_eq!(tokens[4], TokenKind::Semicolon);
         assert!(matches!(tokens[5], TokenKind::Eof));
     }

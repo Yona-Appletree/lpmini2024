@@ -54,7 +54,7 @@ jobs:
         run: cargo clippy --all-targets --all-features -- -D warnings
 
       - name: Run cargo test
-        run: cargo test --workspace
+        run: cargo test --workspace --exclude fw-esp32c3
 
       - name: Test lp-pool without alloc-meta
         run: cargo test -p lp-pool --lib --no-default-features

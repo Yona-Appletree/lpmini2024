@@ -16,7 +16,7 @@ pub mod conversions;
 /// # Conversions
 /// Use the `ToFixed` trait for ergonomic conversions:
 /// ```
-/// use engine_core::fixed::ToFixed;
+/// use lp_math::fixed::ToFixed;
 /// let a = 5i32.to_fixed();
 /// let b = 1.5f32.to_fixed();
 /// ```
