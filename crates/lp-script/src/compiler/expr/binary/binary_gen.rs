@@ -7,9 +7,9 @@ use crate::shared::Type;
 use crate::vm::opcodes::LpsOpCode;
 
 impl<'a> CodeGenerator<'a> {
-    pub(crate) fn gen_add_id(&mut self, pool: &AstPool, left: Expr, right: Expr, ty: &Type) {
-        self.gen_expr_id(pool, left);
-        self.gen_expr_id(pool, right);
+    pub(crate) fn gen_add(&mut self, left: &Expr, right: &Expr, ty: &Type) {
+        self.gen_expr(left);
+        self.gen_expr(right);
         self.code.push(match ty {
             Type::Fixed => LpsOpCode::AddFixed,
             Type::Int32 => LpsOpCode::AddInt32,
@@ -20,9 +20,9 @@ impl<'a> CodeGenerator<'a> {
         });
     }
 
-    pub(crate) fn gen_sub_id(&mut self, pool: &AstPool, left: Expr, right: Expr, ty: &Type) {
-        self.gen_expr_id(pool, left);
-        self.gen_expr_id(pool, right);
+    pub(crate) fn gen_sub(&mut self, left: &Expr, right: &Expr, ty: &Type) {
+        self.gen_expr(left);
+        self.gen_expr(right);
         self.code.push(match ty {
             Type::Fixed => LpsOpCode::SubFixed,
             Type::Int32 => LpsOpCode::SubInt32,
@@ -33,9 +33,9 @@ impl<'a> CodeGenerator<'a> {
         });
     }
 
-    pub(crate) fn gen_mul_id(&mut self, pool: &AstPool, left: Expr, right: Expr, ty: &Type) {
-        let left_ty = pool.expr(left).ty.as_ref().unwrap();
-        let right_ty = pool.expr(right).ty.as_ref().unwrap();
+    pub(crate) fn gen_mul(&mut self, left: &Expr, right: &Expr, ty: &Type) {
+        let left_ty = left.ty.as_ref().unwrap();
+        let right_ty = right.ty.as_ref().unwrap();
 
         // For scalar-vector operations, generate in reverse order to get correct stack layout
         let is_scalar_vector = matches!(
@@ -48,12 +48,12 @@ impl<'a> CodeGenerator<'a> {
 
         if is_scalar_vector {
             // Generate: scalar * vector -> [vec_components..., scalar]
-            self.gen_expr_id(pool, right); // Vector first
-            self.gen_expr_id(pool, left); // Scalar on top
+            self.gen_expr(right); // Vector first
+            self.gen_expr(left); // Scalar on top
         } else {
             // Normal order
-            self.gen_expr_id(pool, left);
-            self.gen_expr_id(pool, right);
+            self.gen_expr(left);
+            self.gen_expr(right);
         }
 
         // Emit appropriate opcode
@@ -83,12 +83,12 @@ impl<'a> CodeGenerator<'a> {
         self.code.push(opcode);
     }
 
-    pub(crate) fn gen_div_id(&mut self, pool: &AstPool, left: Expr, right: Expr, ty: &Type) {
-        let left_ty = pool.expr(left).ty.as_ref().unwrap();
-        let right_ty = pool.expr(right).ty.as_ref().unwrap();
+    pub(crate) fn gen_div(&mut self, left: &Expr, right: &Expr, ty: &Type) {
+        let left_ty = left.ty.as_ref().unwrap();
+        let right_ty = right.ty.as_ref().unwrap();
 
-        self.gen_expr_id(pool, left);
-        self.gen_expr_id(pool, right);
+        self.gen_expr(left);
+        self.gen_expr(right);
 
         // Emit appropriate opcode
         let opcode = match (left_ty, right_ty, ty) {
@@ -112,9 +112,9 @@ impl<'a> CodeGenerator<'a> {
         self.code.push(opcode);
     }
 
-    pub(crate) fn gen_mod_id(&mut self, pool: &AstPool, left: Expr, right: Expr, ty: &Type) {
-        self.gen_expr_id(pool, left);
-        self.gen_expr_id(pool, right);
+    pub(crate) fn gen_mod(&mut self, left: &Expr, right: &Expr, ty: &Type) {
+        self.gen_expr(left);
+        self.gen_expr(right);
         self.code.push(match ty {
             Type::Fixed => LpsOpCode::ModFixed,
             Type::Int32 => LpsOpCode::ModInt32,
