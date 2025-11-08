@@ -1,13 +1,14 @@
 /// Literal parsing (numbers, parenthesized expressions)
-use crate::compiler::ast::{ExprId, ExprKind};
+use crate::compiler::ast::{Expr, ExprKind};
 use crate::compiler::error::ParseError;
 use crate::compiler::lexer::TokenKind;
 use crate::compiler::parser::Parser;
 use crate::shared::Span;
+use lp_pool::LpBox;
 
 impl Parser {
     // Unary: - ! ~ ++ -- (between exponential and postfix in precedence)
-    pub(crate) fn unary(&mut self) -> Result<ExprId, ParseError> {
+    pub(crate) fn unary(&mut self) -> Result<Expr, ParseError> {
         self.enter_recursion()?;
         let token = self.current().clone();
 
@@ -19,21 +20,17 @@ impl Parser {
                     let name = name.clone();
                     let end = self.current().span.end;
                     self.advance();
-                    self.pool
-                        .alloc_expr(
-                            ExprKind::PreIncrement(name),
-                            Span::new(token.span.start, end),
-                        )
-                        .map_err(|e| self.pool_error_to_parse_error(e))
+                    Ok(Expr::new(
+                        ExprKind::PreIncrement(name),
+                        Span::new(token.span.start, end),
+                    ))
                 } else {
                     // Error: prefix increment requires an l-value
                     // For now, create a dummy expression (will be caught by type checker)
-                    self.pool
-                        .alloc_expr(
-                            ExprKind::Number(0.0),
-                            Span::new(token.span.start, self.current().span.end),
-                        )
-                        .map_err(|e| self.pool_error_to_parse_error(e))
+                    Ok(Expr::new(
+                        ExprKind::Number(0.0),
+                        Span::new(token.span.start, self.current().span.end),
+                    ))
                 }
             }
             TokenKind::MinusMinus => {
@@ -43,63 +40,57 @@ impl Parser {
                     let name = name.clone();
                     let end = self.current().span.end;
                     self.advance();
-                    self.pool
-                        .alloc_expr(
-                            ExprKind::PreDecrement(name),
-                            Span::new(token.span.start, end),
-                        )
-                        .map_err(|e| self.pool_error_to_parse_error(e))
+                    Ok(Expr::new(
+                        ExprKind::PreDecrement(name),
+                        Span::new(token.span.start, end),
+                    ))
                 } else {
                     // Error: prefix decrement requires an l-value
                     // For now, create a dummy expression (will be caught by type checker)
-                    self.pool
-                        .alloc_expr(
-                            ExprKind::Number(0.0),
-                            Span::new(token.span.start, self.current().span.end),
-                        )
-                        .map_err(|e| self.pool_error_to_parse_error(e))
+                    Ok(Expr::new(
+                        ExprKind::Number(0.0),
+                        Span::new(token.span.start, self.current().span.end),
+                    ))
                 }
             }
             TokenKind::Minus => {
                 self.advance();
-                let operand_id = self.unary()?; // Right-associative (can stack: --x)
-                let operand = self.pool.expr(operand_id);
+                let operand = self.unary()?; // Right-associative (can stack: --x)
                 let end = operand.span.end;
 
                 // Optimization: if operand is a literal, fold the negation
                 match &operand.kind {
-                    ExprKind::Number(n) => self
-                        .pool
-                        .alloc_expr(ExprKind::Number(-n), Span::new(token.span.start, end))
-                        .map_err(|e| self.pool_error_to_parse_error(e)),
-                    ExprKind::IntNumber(n) => self
-                        .pool
-                        .alloc_expr(ExprKind::IntNumber(-n), Span::new(token.span.start, end))
-                        .map_err(|e| self.pool_error_to_parse_error(e)),
-                    _ => self
-                        .pool
-                        .alloc_expr(ExprKind::Neg(operand_id), Span::new(token.span.start, end))
-                        .map_err(|e| self.pool_error_to_parse_error(e)),
+                    ExprKind::Number(n) => Ok(Expr::new(
+                        ExprKind::Number(-n),
+                        Span::new(token.span.start, end),
+                    )),
+                    ExprKind::IntNumber(n) => Ok(Expr::new(
+                        ExprKind::IntNumber(-n),
+                        Span::new(token.span.start, end),
+                    )),
+                    _ => Ok(Expr::new(
+                        ExprKind::Neg(LpBox::try_new(operand)?),
+                        Span::new(token.span.start, end),
+                    )),
                 }
             }
             TokenKind::Bang => {
                 self.advance();
-                let operand_id = self.unary()?;
-                let end = self.pool.expr(operand_id).span.end;
-                self.pool
-                    .alloc_expr(ExprKind::Not(operand_id), Span::new(token.span.start, end))
-                    .map_err(|e| self.pool_error_to_parse_error(e))
+                let operand = self.unary()?;
+                let end = operand.span.end;
+                Ok(Expr::new(
+                    ExprKind::Not(LpBox::try_new(operand)?),
+                    Span::new(token.span.start, end),
+                ))
             }
             TokenKind::Tilde => {
                 self.advance();
-                let operand_id = self.unary()?;
-                let end = self.pool.expr(operand_id).span.end;
-                self.pool
-                    .alloc_expr(
-                        ExprKind::BitwiseNot(operand_id),
-                        Span::new(token.span.start, end),
-                    )
-                    .map_err(|e| self.pool_error_to_parse_error(e))
+                let operand = self.unary()?;
+                let end = operand.span.end;
+                Ok(Expr::new(
+                    ExprKind::BitwiseNot(LpBox::try_new(operand)?),
+                    Span::new(token.span.start, end),
+                ))
             }
             _ => self.postfix(),
         };
@@ -109,38 +100,32 @@ impl Parser {
     }
 
     // Primary: number, variable, function call, constructor, or parenthesized expression
-    pub(crate) fn primary(&mut self) -> Result<ExprId, ParseError> {
+    pub(crate) fn primary(&mut self) -> Result<Expr, ParseError> {
         self.enter_recursion()?;
         let token = self.current().clone();
 
         let result = match &token.kind {
             TokenKind::FloatLiteral(n) => {
                 self.advance();
-                self.pool
-                    .alloc_expr(ExprKind::Number(*n), token.span)
-                    .map_err(|e| self.pool_error_to_parse_error(e))
+                Ok(Expr::new(ExprKind::Number(*n), token.span))
             }
             TokenKind::IntLiteral(n) => {
                 self.advance();
-                self.pool
-                    .alloc_expr(ExprKind::IntNumber(*n), token.span)
-                    .map_err(|e| self.pool_error_to_parse_error(e))
+                Ok(Expr::new(ExprKind::IntNumber(*n), token.span))
             }
             TokenKind::LParen => {
                 self.advance(); // consume '('
-                let expr_id = self.parse_assignment_expr()?;
+                let expr = self.parse_assignment_expr()?;
                 if matches!(self.current().kind, TokenKind::RParen) {
                     self.advance(); // consume ')'
                 }
-                Ok(expr_id)
+                Ok(expr)
             }
             TokenKind::Vec2 | TokenKind::Vec3 | TokenKind::Vec4 => self.parse_vec_constructor(),
             TokenKind::Ident(_) => self.parse_ident(),
             _ => {
                 // Error fallback
-                self.pool
-                    .alloc_expr(ExprKind::Number(0.0), token.span)
-                    .map_err(|e| self.pool_error_to_parse_error(e))
+                Ok(Expr::new(ExprKind::Number(0.0), token.span))
             }
         };
 
