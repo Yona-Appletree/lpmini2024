@@ -59,8 +59,9 @@ pub use memory_pool::{LpMemoryPool, PoolStats};
 
 #[cfg(test)]
 mod integration_tests {
-    use super::*;
     use core::ptr::NonNull;
+
+    use super::*;
 
     #[test]
     fn test_all_collections_together() {

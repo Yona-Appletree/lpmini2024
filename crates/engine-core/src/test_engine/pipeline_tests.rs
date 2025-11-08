@@ -1,12 +1,13 @@
 /// Tests for the rendering pipeline
 #[cfg(test)]
 mod pipeline_tests {
+    use lp_script::fixed::Fixed;
+    use lp_script::parse_expr;
+
     use crate::test_engine::{
         BufferFormat, BufferRef, FxPipeline, FxPipelineConfig, Palette, PipelineStep,
         RuntimeOptions,
     };
-    use lp_script::fixed::Fixed;
-    use lp_script::parse_expr;
 
     #[test]
     fn test_simple_pipeline() {

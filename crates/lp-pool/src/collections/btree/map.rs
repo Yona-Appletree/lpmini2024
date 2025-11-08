@@ -1,9 +1,9 @@
-use super::node::Node;
-use crate::error::AllocError;
 use core::ptr::NonNull;
 
 #[cfg(feature = "alloc-meta")]
 use super::super::alloc_meta::AllocationMeta;
+use super::node::Node;
+use crate::error::AllocError;
 
 /// Pool-backed BTreeMap implementation
 ///
@@ -308,10 +308,11 @@ where
 
 #[cfg(test)]
 mod tests {
-    use super::*;
-    use crate::memory_pool::LpMemoryPool;
     use alloc::string::String;
     use core::ptr::NonNull;
+
+    use super::*;
+    use crate::memory_pool::LpMemoryPool;
 
     fn setup_pool() -> LpMemoryPool {
         let mut memory = [0u8; 16384];

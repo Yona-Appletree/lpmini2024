@@ -91,11 +91,11 @@ pub use compiler::optimize::OptimizeOptions;
 use compiler::{codegen, lexer, optimize, parser, typechecker};
 use lp_pool::LpMemoryPool;
 pub use shared::{Span, Type};
-pub use vm::execute_program_lps;
 pub use vm::lps_vm::LpsVm;
 pub use vm::vm_limits::VmLimits;
 pub use vm::{
-    LocalStack, LocalVarDef, LpsOpCode, LpsProgram, LpsVmError, ParamDef, RuntimeErrorWithContext,
+    execute_program_lps, LocalStack, LocalVarDef, LpsOpCode, LpsProgram, LpsVmError, ParamDef,
+    RuntimeErrorWithContext,
 };
 
 /// Parse an expression string and generate a compiled LPS program

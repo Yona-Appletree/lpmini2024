@@ -5,9 +5,10 @@ mod pool_support {
 
     use alloc::boxed::Box;
     use core::ptr::NonNull;
-    use lp_pool::LpMemoryPool;
     use std::cell::RefCell;
     use std::thread_local;
+
+    use lp_pool::LpMemoryPool;
 
     thread_local! {
         static THREAD_POOL_STATE: RefCell<Option<&'static mut [u8]>> = RefCell::new(None);

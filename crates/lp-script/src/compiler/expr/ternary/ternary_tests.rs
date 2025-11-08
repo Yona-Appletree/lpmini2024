@@ -2,7 +2,6 @@
 #[cfg(test)]
 mod tests {
     use crate::compiler::expr::expr_test_util::ExprTest;
-
     use crate::fixed::ToFixed;
     use crate::shared::Type;
     use crate::vm::opcodes::LpsOpCode;

@@ -1,10 +1,11 @@
+use lp_pool::LpBox;
+
 /// Swizzle (postfix) operator parsing
 use crate::compiler::ast::{Expr, ExprKind};
 use crate::compiler::error::ParseError;
 use crate::compiler::lexer::TokenKind;
 use crate::compiler::parser::Parser;
 use crate::shared::Span;
-use lp_pool::LpBox;
 
 impl Parser {
     // Postfix: swizzle (.xyzw, .rgba, .stpq), postfix increment/decrement (++, --)

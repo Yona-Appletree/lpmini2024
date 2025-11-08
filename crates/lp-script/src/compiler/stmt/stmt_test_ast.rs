@@ -7,10 +7,11 @@ extern crate alloc;
 use alloc::string::String;
 use alloc::vec::Vec;
 
+use lp_pool::LpBox;
+
 use crate::compiler::ast::{Expr, ExprKind, Program, Stmt, StmtKind};
 use crate::compiler::test_ast::AstBuilder as ExprBuilder;
 use crate::shared::{Span, Type};
-use lp_pool::LpBox;
 
 /// Builder for creating statement/program ASTs for tests.
 #[derive(Default, Debug, Clone, Copy)]

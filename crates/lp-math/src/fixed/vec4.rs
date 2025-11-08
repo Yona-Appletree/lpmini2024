@@ -1,9 +1,10 @@
+use core::ops::{Add, Div, Mul, Neg, Sub};
+
 /// 4D vector for fixed-point fixed (useful for RGBA colors and homogeneous coordinates)
 use super::conversions::ToFixed;
 use super::fixed::Fixed;
 use super::vec2::Vec2;
 use super::vec3::Vec3;
-use core::ops::{Add, Div, Mul, Neg, Sub};
 
 #[derive(Copy, Clone, Debug, PartialEq)]
 pub struct Vec4 {
@@ -89,30 +90,37 @@ impl Vec4 {
     pub fn x(self) -> Fixed {
         self.x
     }
+
     #[inline(always)]
     pub fn y(self) -> Fixed {
         self.y
     }
+
     #[inline(always)]
     pub fn z(self) -> Fixed {
         self.z
     }
+
     #[inline(always)]
     pub fn w(self) -> Fixed {
         self.w
     }
+
     #[inline(always)]
     pub fn r(self) -> Fixed {
         self.x
     }
+
     #[inline(always)]
     pub fn g(self) -> Fixed {
         self.y
     }
+
     #[inline(always)]
     pub fn b(self) -> Fixed {
         self.z
     }
+
     #[inline(always)]
     pub fn a(self) -> Fixed {
         self.w
@@ -123,22 +131,27 @@ impl Vec4 {
     pub fn xy(self) -> Vec2 {
         Vec2::new(self.x, self.y)
     }
+
     #[inline(always)]
     pub fn xz(self) -> Vec2 {
         Vec2::new(self.x, self.z)
     }
+
     #[inline(always)]
     pub fn xw(self) -> Vec2 {
         Vec2::new(self.x, self.w)
     }
+
     #[inline(always)]
     pub fn yz(self) -> Vec2 {
         Vec2::new(self.y, self.z)
     }
+
     #[inline(always)]
     pub fn yw(self) -> Vec2 {
         Vec2::new(self.y, self.w)
     }
+
     #[inline(always)]
     pub fn zw(self) -> Vec2 {
         Vec2::new(self.z, self.w)
@@ -149,14 +162,17 @@ impl Vec4 {
     pub fn xyz(self) -> Vec3 {
         Vec3::new(self.x, self.y, self.z)
     }
+
     #[inline(always)]
     pub fn xyw(self) -> Vec3 {
         Vec3::new(self.x, self.y, self.w)
     }
+
     #[inline(always)]
     pub fn xzw(self) -> Vec3 {
         Vec3::new(self.x, self.z, self.w)
     }
+
     #[inline(always)]
     pub fn yzw(self) -> Vec3 {
         Vec3::new(self.y, self.z, self.w)
@@ -173,14 +189,17 @@ impl Vec4 {
     pub fn rg(self) -> Vec2 {
         self.xy()
     }
+
     #[inline(always)]
     pub fn rb(self) -> Vec2 {
         self.xz()
     }
+
     #[inline(always)]
     pub fn rgb(self) -> Vec3 {
         self.xyz()
     }
+
     #[inline(always)]
     pub fn rgba(self) -> Vec4 {
         self
@@ -223,6 +242,7 @@ impl Vec4 {
 // Vector + Vector
 impl Add for Vec4 {
     type Output = Self;
+
     #[inline(always)]
     fn add(self, rhs: Self) -> Self {
         Vec4::new(
@@ -237,6 +257,7 @@ impl Add for Vec4 {
 // Vector - Vector
 impl Sub for Vec4 {
     type Output = Self;
+
     #[inline(always)]
     fn sub(self, rhs: Self) -> Self {
         Vec4::new(
@@ -251,6 +272,7 @@ impl Sub for Vec4 {
 // Vector * Scalar
 impl Mul<Fixed> for Vec4 {
     type Output = Self;
+
     #[inline(always)]
     fn mul(self, rhs: Fixed) -> Self {
         Vec4::new(self.x * rhs, self.y * rhs, self.z * rhs, self.w * rhs)
@@ -260,6 +282,7 @@ impl Mul<Fixed> for Vec4 {
 // Vector / Scalar
 impl Div<Fixed> for Vec4 {
     type Output = Self;
+
     #[inline(always)]
     fn div(self, rhs: Fixed) -> Self {
         Vec4::new(self.x / rhs, self.y / rhs, self.z / rhs, self.w / rhs)
@@ -268,6 +291,7 @@ impl Div<Fixed> for Vec4 {
 
 impl Neg for Vec4 {
     type Output = Self;
+
     #[inline(always)]
     fn neg(self) -> Self {
         Vec4::new(-self.x, -self.y, -self.z, -self.w)

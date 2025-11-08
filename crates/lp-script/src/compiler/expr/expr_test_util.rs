@@ -2,23 +2,22 @@
 /// Test utilities for lp-script expressions - builder pattern for clean testing
 extern crate alloc;
 use alloc::boxed::Box;
-use alloc::format;
 use alloc::string::String;
-use alloc::vec;
 use alloc::vec::Vec;
+use alloc::{format, vec};
 use core::ptr::NonNull;
 
+use lp_pool::LpMemoryPool;
+
 use crate::compiler::ast::Expr;
-use crate::compiler::codegen;
 use crate::compiler::optimize::OptimizeOptions;
 use crate::compiler::test_ast::AstBuilder;
-use crate::compiler::{lexer, optimize, parser, typechecker};
+use crate::compiler::{codegen, lexer, optimize, parser, typechecker};
 use crate::fixed::{Fixed, ToFixed, Vec2, Vec3, Vec4};
 use crate::shared::Type;
 use crate::vm::lps_vm::LpsVm;
 use crate::vm::vm_limits::VmLimits;
 use crate::vm::{LpsOpCode, LpsProgram};
-use lp_pool::LpMemoryPool;
 
 /// Builder for testing expressions through the compilation pipeline
 ///
@@ -29,7 +28,7 @@ use lp_pool::LpMemoryPool;
 pub struct ExprTest {
     input: String,
     declared_locals: Vec<(String, Type)>, // For symbol table
-    local_initial_values: Vec<(String, Vec<i32>)>, // Initial values for locals (raw i32 representation)
+    local_initial_values: Vec<(String, Vec<i32>)>, /* Initial values for locals (raw i32 representation) */
     expected_ast_builder: Option<Box<dyn FnOnce(&mut AstBuilder) -> Expr>>,
     expected_opcodes: Option<Vec<LpsOpCode>>,
     expected_result: Option<TestResult>,

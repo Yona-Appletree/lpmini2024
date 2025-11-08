@@ -124,9 +124,10 @@ impl core::fmt::Display for LpString {
 
 #[cfg(test)]
 mod tests {
+    use core::ptr::NonNull;
+
     use super::*;
     use crate::memory_pool::LpMemoryPool;
-    use core::ptr::NonNull;
 
     fn setup_pool() -> LpMemoryPool {
         let mut memory = [0u8; 16384];

@@ -2,12 +2,13 @@
 extern crate alloc;
 use alloc::vec::Vec;
 
+use lp_script::execute_program_lps;
+use lp_script::fixed::Fixed;
+
 use super::super::palette::Palette;
 use super::config::FxPipelineConfig;
 use super::rgb_utils::{grey_to_i32, i32_to_grey, pack_rgb};
 use super::{Buffer, BufferFormat, BufferRef, PipelineError, PipelineStep, RuntimeOptions};
-use lp_script::execute_program_lps;
-use lp_script::fixed::Fixed;
 
 /// Runtime pipeline state
 pub struct FxPipeline {

@@ -1,8 +1,10 @@
-/// Spiral LED mappings
-use super::{LedMap, LedMapping};
 use core::cmp::{max, min};
+
 use lp_script::fixed::trig::{cos, sin};
 use lp_script::fixed::{Fixed, ToFixed, FIXED_ONE, FIXED_SHIFT};
+
+/// Spiral LED mappings
+use super::{LedMap, LedMapping};
 
 impl LedMapping {
     /// Create a spiral mapping with configurable number of arms

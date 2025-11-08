@@ -17,6 +17,13 @@
 mod tests {
     extern crate alloc;
 
+    use alloc::boxed::Box;
+    use core::ptr::NonNull;
+    use std::cell::RefCell;
+    use std::thread_local;
+
+    use lp_pool::LpMemoryPool;
+
     use crate::compiler::analyzer::FunctionAnalyzer;
     use crate::compiler::ast::Program;
     use crate::compiler::codegen::CodeGenerator;
@@ -26,11 +33,6 @@ mod tests {
     use crate::compiler::typechecker::TypeChecker;
     use crate::shared::Type;
     use crate::{compile_script_with_options, OptimizeOptions};
-    use alloc::boxed::Box;
-    use core::ptr::NonNull;
-    use lp_pool::LpMemoryPool;
-    use std::cell::RefCell;
-    use std::thread_local;
 
     thread_local! {
         static THREAD_POOL_STATE: RefCell<Option<&'static mut [u8]>> = RefCell::new(None);

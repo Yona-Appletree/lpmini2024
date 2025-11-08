@@ -1,10 +1,11 @@
+use alloc::vec::Vec;
+
 /// Block statement parsing
 use crate::compiler::ast::{Stmt, StmtKind};
 use crate::compiler::error::ParseError;
 use crate::compiler::lexer::TokenKind;
 use crate::compiler::parser::Parser;
 use crate::shared::Span;
-use alloc::vec::Vec;
 
 impl Parser {
     pub(crate) fn parse_block(&mut self) -> Result<Stmt, ParseError> {

@@ -1,9 +1,10 @@
+use std::time::Instant;
+
 /// Quick benchmark for test scene at multiple resolutions
 use engine_core::test_engine::demo_program::create_demo_scene;
 use engine_core::test_engine::scene::SceneRuntime;
 use engine_core::test_engine::RuntimeOptions;
 use lp_script::fixed::ToFixed;
-use std::time::Instant;
 
 const FRAME_COUNT: u32 = 1000;
 

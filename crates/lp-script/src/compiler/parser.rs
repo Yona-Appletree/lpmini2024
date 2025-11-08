@@ -155,11 +155,13 @@ impl Parser {
 
 #[cfg(test)]
 mod tests {
+    use core::ptr::NonNull;
+
+    use lp_pool::LpMemoryPool;
+
     use super::*;
     use crate::compiler::ast::ExprKind;
     use crate::compiler::lexer::Lexer;
-    use core::ptr::NonNull;
-    use lp_pool::LpMemoryPool;
 
     const POOL_SIZE: usize = 512 * 1024;
 

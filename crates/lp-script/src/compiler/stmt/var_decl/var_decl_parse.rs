@@ -1,10 +1,11 @@
+use alloc::string::String;
+
 /// Variable declaration parsing
 use crate::compiler::ast::{Stmt, StmtKind};
 use crate::compiler::error::ParseError;
 use crate::compiler::lexer::TokenKind;
 use crate::compiler::parser::Parser;
 use crate::shared::Span;
-use alloc::string::String;
 
 impl Parser {
     pub(crate) fn parse_var_decl(&mut self) -> Result<Stmt, ParseError> {

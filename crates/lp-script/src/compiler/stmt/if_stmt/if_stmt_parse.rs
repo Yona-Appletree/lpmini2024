@@ -1,10 +1,11 @@
+use lp_pool::LpBox;
+
 /// If statement parsing
 use crate::compiler::ast::{Stmt, StmtKind};
 use crate::compiler::error::ParseError;
 use crate::compiler::lexer::TokenKind;
 use crate::compiler::parser::Parser;
 use crate::shared::Span;
-use lp_pool::LpBox;
 
 impl Parser {
     pub(crate) fn parse_if_stmt(&mut self) -> Result<Stmt, ParseError> {

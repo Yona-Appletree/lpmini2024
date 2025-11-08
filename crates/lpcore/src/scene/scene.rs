@@ -1,10 +1,11 @@
 use core::error::Error;
 
+use indexmap::IndexMap;
+
 use crate::entity::entity_id::{EntityId, EntitySource};
 use crate::entity::entity_instance::EntityInstance;
 use crate::scene::scene_node::SceneNode;
 use crate::scene::SceneConfig;
-use indexmap::IndexMap;
 
 pub struct Scene {
     pub frame_counter: u64,
@@ -26,8 +27,8 @@ impl Scene {
         let parsed = EntityId::from_str(id_str)?;
         match parsed.source {
             EntitySource::BuiltIn => {
-                //let instance = EntityInstance::new(entity_id);
-                //Ok(Box::new(instance))
+                // let instance = EntityInstance::new(entity_id);
+                // Ok(Box::new(instance))
                 todo!("entity creation")
             }
             EntitySource::Scene => todo!(),

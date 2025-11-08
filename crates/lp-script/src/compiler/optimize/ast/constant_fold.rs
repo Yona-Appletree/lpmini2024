@@ -1,3 +1,8 @@
+use lp_math::fixed::{
+    ceil as fixed_ceil, cos as fixed_cos, floor as fixed_floor, lerp as fixed_lerp,
+    pow as fixed_pow, saturate as fixed_saturate, sin as fixed_sin, sqrt as fixed_sqrt, Fixed,
+};
+
 /// Constant folding optimization (LpBox AST)
 ///
 /// TODO: Re-implement full constant folding for the new recursive AST. For now
@@ -5,11 +10,6 @@
 /// was made. No actual folding is performed yet.
 use crate::compiler::ast::{Expr, ExprKind};
 use crate::shared::Type;
-use lp_math::fixed::cos as fixed_cos;
-use lp_math::fixed::{
-    ceil as fixed_ceil, floor as fixed_floor, lerp as fixed_lerp, pow as fixed_pow,
-    saturate as fixed_saturate, sin as fixed_sin, sqrt as fixed_sqrt, Fixed,
-};
 
 #[derive(Clone, Copy, Debug, PartialEq)]
 enum ConstValue {

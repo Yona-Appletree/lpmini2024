@@ -7,13 +7,14 @@ use alloc::string::String;
 use alloc::vec::Vec;
 use core::ptr::NonNull;
 
+use lp_pool::LpMemoryPool;
+
 use crate::compiler::ast::Expr;
 use crate::compiler::expr::expr_test_util::expr_eq_ignore_spans;
 use crate::compiler::{codegen, lexer, parser, typechecker};
 use crate::fixed::{Fixed, ToFixed, Vec2, Vec3, Vec4};
 use crate::shared::Type;
 use crate::vm::{FunctionDef, LpsProgram, LpsVm, VmLimits};
-use lp_pool::LpMemoryPool;
 
 /// Type alias for optimization pass functions. A pass mutates the expression in place
 /// and returns `true` when it performed any change.

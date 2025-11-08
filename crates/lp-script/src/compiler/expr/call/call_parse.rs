@@ -1,10 +1,11 @@
+use alloc::vec::Vec;
+
 /// Function call parsing
 use crate::compiler::ast::{Expr, ExprKind};
 use crate::compiler::error::ParseError;
 use crate::compiler::lexer::TokenKind;
 use crate::compiler::parser::Parser;
 use crate::shared::Span;
-use alloc::vec::Vec;
 
 impl Parser {
     // Parse function call

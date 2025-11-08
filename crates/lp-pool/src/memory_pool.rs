@@ -1,8 +1,10 @@
-use crate::error::AllocError;
-use crate::pool::LpAllocator;
 use core::cell::RefCell;
 use core::ptr::NonNull;
+
 use thread_local::ThreadLocal;
+
+use crate::error::AllocError;
+use crate::pool::LpAllocator;
 
 static ROOT_POOL: ThreadLocal<RefCell<Option<LpAllocator>>> = ThreadLocal::new();
 

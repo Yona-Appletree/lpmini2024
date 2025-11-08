@@ -2,6 +2,7 @@
 extern crate alloc;
 use alloc::format;
 use alloc::string::String;
+
 use lp_script::shared::Type;
 use lp_script::vm::opcodes::LpsOpCode;
 use lp_script::vm::{FunctionDef, LpsProgram};
@@ -216,8 +217,9 @@ fn type_to_string(ty: &Type) -> &'static str {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
     use lp_script::{parse_expr, parse_script};
+
+    use super::*;
 
     #[test]
     fn test_simple_expr_to_lpa() {

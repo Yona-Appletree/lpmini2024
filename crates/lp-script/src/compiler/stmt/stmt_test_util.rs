@@ -6,19 +6,19 @@ use alloc::string::String;
 use alloc::vec::Vec;
 use core::ptr::NonNull;
 
+use lp_pool::LpMemoryPool;
+
 use crate::compiler::ast::{Program, Stmt};
-use crate::compiler::codegen;
 use crate::compiler::expr::expr_test_util::expr_eq_ignore_spans;
 use crate::compiler::func::FunctionMetadata;
 use crate::compiler::optimize::{self, OptimizeOptions};
 use crate::compiler::stmt::stmt_test_ast::StmtBuilder;
-use crate::compiler::{lexer, parser, typechecker};
+use crate::compiler::{codegen, lexer, parser, typechecker};
 use crate::fixed::{Fixed, ToFixed, Vec2, Vec3, Vec4};
 use crate::shared::Type;
 use crate::vm::lps_vm::LpsVm;
 use crate::vm::vm_limits::VmLimits;
 use crate::vm::{FunctionDef, LpsOpCode, LpsProgram};
-use lp_pool::LpMemoryPool;
 
 /// Function metadata assertion helper
 pub struct FunctionMetadataAssertion {

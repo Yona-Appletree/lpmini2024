@@ -7,9 +7,10 @@ extern crate alloc;
 use alloc::string::String;
 use alloc::vec::Vec;
 
+use lp_pool::LpBox;
+
 use crate::compiler::ast::{Expr, ExprKind, Stmt, StmtKind};
 use crate::shared::{Span, Type};
-use lp_pool::LpBox;
 
 /// Zero-sized builder that provides ergonomic helpers for constructing AST
 /// nodes. Each method returns a fully-formed `Expr`/`Stmt` with spans set to

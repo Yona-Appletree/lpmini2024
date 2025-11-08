@@ -1,10 +1,11 @@
+use lp_pool::LpBox;
+
 /// Ternary expression parsing
 use crate::compiler::ast::{Expr, ExprKind};
 use crate::compiler::error::ParseError;
 use crate::compiler::lexer::TokenKind;
 use crate::compiler::parser::Parser;
 use crate::shared::Span;
-use lp_pool::LpBox;
 
 impl Parser {
     // Ternary: condition ? true_expr : false_expr
