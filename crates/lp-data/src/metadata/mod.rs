@@ -1,5 +1,6 @@
 pub mod array;
 pub mod r#enum;
+pub mod option;
 pub mod record;
 pub mod scalar;
 pub mod vec2;
@@ -7,6 +8,7 @@ pub mod vec3;
 pub mod vec4;
 
 pub use array::{ArrayType, ArrayUi};
+pub use option::OptionType;
 pub use r#enum::{EnumType, EnumUi, EnumVariant};
 pub use record::{RecordField, RecordType, RecordUi};
 pub use scalar::{
@@ -30,6 +32,7 @@ pub enum LpType {
     Array(ArrayType<TypeRef>),
     Record(RecordType<TypeRef>),
     Enum(EnumType<TypeRef>),
+    Option(OptionType<TypeRef>),
 }
 
 impl LpType {
@@ -59,6 +62,10 @@ impl LpType {
 
     pub const fn vec4() -> Self {
         Self::Vec4(Vec4Type::raw())
+    }
+
+    pub const fn option(inner: TypeRef) -> Self {
+        Self::Option(OptionType::new(inner))
     }
 }
 

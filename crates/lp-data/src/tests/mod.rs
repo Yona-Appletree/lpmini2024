@@ -1,4 +1,7 @@
 mod config_test;
+mod nodes;
+mod runtime_scene_test;
+mod value_test;
 
 use crate::metadata::{
     ArrayType, EnumType, EnumUi, EnumVariant, LpScalarType, LpType, LpTypeMeta, NumberUi,

@@ -10,13 +10,15 @@ extern crate alloc;
 
 pub mod metadata;
 pub mod registry;
+pub mod value;
 pub use metadata::{
     ArrayType, ArrayUi, BoolScalar, BoolUi, EnumType, EnumUi, EnumVariant, FixedScalar,
-    Int32Scalar, LpScalarType, LpType, LpTypeMeta, NumberUi, RecordField, RecordType, RecordUi,
-    SliderUi, StringScalar, StringUi, TypeRef, Vec2Type, Vec2Ui, Vec3Type, Vec3Ui, Vec4Type,
-    Vec4Ui,
+    Int32Scalar, LpScalarType, LpType, LpTypeMeta, NumberUi, OptionType, RecordField, RecordType,
+    RecordUi, SliderUi, StringScalar, StringUi, TypeRef, Vec2Type, Vec2Ui, Vec3Type, Vec3Ui,
+    Vec4Type, Vec4Ui,
 };
 pub use registry::{LpDescribe, SchemaRegistration, TypeRegistry};
+pub use value::{LpValue, RuntimeError};
 
 #[cfg(feature = "derive")]
 pub use lp_data_derive::LpSchema;
