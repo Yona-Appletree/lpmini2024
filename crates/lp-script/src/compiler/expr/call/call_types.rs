@@ -29,14 +29,24 @@ pub(in crate::compiler) fn check_call(
 
     // Try component-wise expansion for built-in functions with vector args
     if expand_componentwise::is_componentwise_function(name) {
-        if let Some(expanded_id) = expand_componentwise::expand_componentwise_call(name, args, span)
+        if let Some(mut expanded_expr) =
+            expand_componentwise::expand_componentwise_call(name, args, span)
         {
             // Recursively type-check the expanded expression
-            TypeChecker::infer_type(expanded_id, symbols, func_table)?;
+            TypeChecker::infer_type(&mut expanded_expr, symbols, func_table)?;
 
-            let return_ty = pool.expr(expanded_id).ty.clone().unwrap();
-            // Return both the type and the expanded expression ID so caller can replace
-            return Ok((return_ty, Some(expanded_id)));
+            if let Some(return_ty) = expanded_expr.ty.clone() {
+                // Return both the type and the expanded expression so caller can replace
+                return Ok((return_ty, Some(expanded_expr)));
+            } else {
+                return Err(TypeError {
+                    kind: TypeErrorKind::InvalidOperation {
+                        op: "componentwise expansion".into(),
+                        types: alloc::vec![],
+                    },
+                    span,
+                });
+            }
         }
     }
 
@@ -54,15 +64,21 @@ pub(in crate::compiler) fn check_call(
         }
 
         // Validate argument types
-        for (&arg_id, expected_ty) in args.iter().zip(sig.params.iter()) {
-            let arg_ty = pool.expr(arg_id).ty.as_ref().unwrap();
+        for (arg, expected_ty) in args.iter().zip(sig.params.iter()) {
+            let arg_ty = arg.ty.as_ref().ok_or_else(|| TypeError {
+                kind: TypeErrorKind::InvalidOperation {
+                    op: "call".into(),
+                    types: alloc::vec![],
+                },
+                span: arg.span,
+            })?;
             if arg_ty != expected_ty {
                 return Err(TypeError {
                     kind: TypeErrorKind::Mismatch {
                         expected: expected_ty.clone(),
                         found: arg_ty.clone(),
                     },
-                    span: pool.expr(arg_id).span,
+                    span: arg.span,
                 });
             }
         }

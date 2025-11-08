@@ -2,7 +2,7 @@
 extern crate alloc;
 use alloc::string::ToString;
 
-use crate::compiler::ast::{Program, Stmt, StmtKind};
+use crate::compiler::ast::{Expr, Program, Stmt, StmtKind};
 use crate::compiler::error::{TypeError, TypeErrorKind};
 use crate::compiler::typechecker::{FunctionTable, SymbolTable, TypeChecker};
 use crate::shared::Type;

@@ -5,7 +5,7 @@ use alloc::vec::Vec;
 use crate::compiler::ast::{Expr, Program, Stmt};
 use crate::compiler::error::{ParseError, ParseErrorKind};
 use crate::compiler::lexer::{Token, TokenKind};
-use crate::shared::Span;
+use crate::shared::{Span, Type};
 
 // Function parsing is now in compiler::func::func_parse
 // Include it here to add impl methods to Parser

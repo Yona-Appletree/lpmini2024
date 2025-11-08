@@ -6,7 +6,7 @@ mod call_parse;
 mod call_types;
 mod expand_componentwise;
 
-pub(in crate::compiler) use call_types::check_call_id;
+pub(in crate::compiler) use call_types::check_call;
 
 #[cfg(test)]
 mod call_tests;
