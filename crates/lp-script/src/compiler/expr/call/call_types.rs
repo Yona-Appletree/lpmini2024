@@ -15,26 +15,24 @@ use super::expand_componentwise;
 /// Infers the return type based on the function signature.
 /// Handles both user-defined and built-in functions.
 /// May transform the expression via component-wise expansion.
-pub(in crate::compiler) fn check_call_id(
-    pool: &mut AstPool,
+pub(in crate::compiler) fn check_call(
     name: &str,
-    args: &[Expr],
+    args: &mut [Expr],
     symbols: &mut SymbolTable,
     func_table: &FunctionTable,
     span: crate::shared::Span,
 ) -> Result<(Type, Option<Expr>), TypeError> {
     // Type check all arguments
-    for &arg_id in args {
-        TypeChecker::infer_type_id(pool, arg_id, symbols, func_table)?;
+    for arg in args.iter_mut() {
+        TypeChecker::infer_type(arg, symbols, func_table)?;
     }
 
     // Try component-wise expansion for built-in functions with vector args
     if expand_componentwise::is_componentwise_function(name) {
-        if let Some(expanded_id) =
-            expand_componentwise::expand_componentwise_call(pool, name, args, span)
+        if let Some(expanded_id) = expand_componentwise::expand_componentwise_call(name, args, span)
         {
             // Recursively type-check the expanded expression
-            TypeChecker::infer_type_id(pool, expanded_id, symbols, func_table)?;
+            TypeChecker::infer_type(expanded_id, symbols, func_table)?;
 
             let return_ty = pool.expr(expanded_id).ty.clone().unwrap();
             // Return both the type and the expanded expression ID so caller can replace
@@ -72,15 +70,14 @@ pub(in crate::compiler) fn check_call_id(
         Ok((sig.return_type.clone(), None))
     } else {
         // Built-in function - determine return type
-        let ty = builtin_function_return_type_id(pool, name, args, span)?;
+        let ty = builtin_function_return_type(name, args, span)?;
         Ok((ty, None))
     }
 }
 
-fn builtin_function_return_type_id(
-    pool: &AstPool,
+fn builtin_function_return_type(
     name: &str,
-    args: &[Expr],
+    args: &mut [Expr],
     span: crate::shared::Span,
 ) -> Result<Type, TypeError> {
     match name {
@@ -124,7 +121,7 @@ fn builtin_function_return_type_id(
                     span,
                 });
             }
-            let arg_ty = pool.expr(args[0]).ty.as_ref().unwrap();
+            let arg_ty = args[0].ty.as_ref().unwrap();
             match arg_ty {
                 Type::Vec2 | Type::Vec3 | Type::Vec4 => Ok(Type::Fixed),
                 _ => Err(TypeError {
@@ -132,7 +129,7 @@ fn builtin_function_return_type_id(
                         op: "length".to_string(),
                         types: alloc::vec![arg_ty.clone()],
                     },
-                    span: pool.expr(args[0]).span,
+                    span: args[0].span,
                 }),
             }
         }
@@ -148,7 +145,7 @@ fn builtin_function_return_type_id(
                     span,
                 });
             }
-            let arg_ty = pool.expr(args[0]).ty.as_ref().unwrap();
+            let arg_ty = args[0].ty.as_ref().unwrap();
             match arg_ty {
                 Type::Vec2 | Type::Vec3 | Type::Vec4 => Ok(arg_ty.clone()),
                 _ => Err(TypeError {
@@ -156,7 +153,7 @@ fn builtin_function_return_type_id(
                         op: "normalize".to_string(),
                         types: alloc::vec![arg_ty.clone()],
                     },
-                    span: pool.expr(args[0]).span,
+                    span: args[0].span,
                 }),
             }
         }
@@ -172,15 +169,15 @@ fn builtin_function_return_type_id(
                     span,
                 });
             }
-            let left_ty = pool.expr(args[0]).ty.as_ref().unwrap();
-            let right_ty = pool.expr(args[1]).ty.as_ref().unwrap();
+            let left_ty = args[0].ty.as_ref().unwrap();
+            let right_ty = args[1].ty.as_ref().unwrap();
             if left_ty != right_ty {
                 return Err(TypeError {
                     kind: TypeErrorKind::Mismatch {
                         expected: left_ty.clone(),
                         found: right_ty.clone(),
                     },
-                    span: pool.expr(args[1]).span,
+                    span: args[1].span,
                 });
             }
             match left_ty {
@@ -190,7 +187,7 @@ fn builtin_function_return_type_id(
                         op: "dot".to_string(),
                         types: alloc::vec![left_ty.clone()],
                     },
-                    span: pool.expr(args[0]).span,
+                    span: args[0].span,
                 }),
             }
         }
@@ -206,15 +203,15 @@ fn builtin_function_return_type_id(
                     span,
                 });
             }
-            let left_ty = pool.expr(args[0]).ty.as_ref().unwrap();
-            let right_ty = pool.expr(args[1]).ty.as_ref().unwrap();
+            let left_ty = args[0].ty.as_ref().unwrap();
+            let right_ty = args[1].ty.as_ref().unwrap();
             if left_ty != right_ty {
                 return Err(TypeError {
                     kind: TypeErrorKind::Mismatch {
                         expected: left_ty.clone(),
                         found: right_ty.clone(),
                     },
-                    span: pool.expr(args[1]).span,
+                    span: args[1].span,
                 });
             }
             match left_ty {
@@ -224,7 +221,7 @@ fn builtin_function_return_type_id(
                         op: "distance".to_string(),
                         types: alloc::vec![left_ty.clone()],
                     },
-                    span: pool.expr(args[0]).span,
+                    span: args[0].span,
                 }),
             }
         }
@@ -240,8 +237,8 @@ fn builtin_function_return_type_id(
                     span,
                 });
             }
-            let left_ty = pool.expr(args[0]).ty.as_ref().unwrap();
-            let right_ty = pool.expr(args[1]).ty.as_ref().unwrap();
+            let left_ty = args[0].ty.as_ref().unwrap();
+            let right_ty = args[1].ty.as_ref().unwrap();
             if left_ty != &Type::Vec3 || right_ty != &Type::Vec3 {
                 return Err(TypeError {
                     kind: TypeErrorKind::InvalidOperation {
@@ -293,14 +290,14 @@ fn builtin_function_return_type_id(
                     span,
                 });
             }
-            let arg_ty = pool.expr(args[0]).ty.as_ref().unwrap();
+            let arg_ty = args[0].ty.as_ref().unwrap();
             if arg_ty != &Type::Vec3 {
                 return Err(TypeError {
                     kind: TypeErrorKind::Mismatch {
                         expected: Type::Vec3,
                         found: arg_ty.clone(),
                     },
-                    span: pool.expr(args[0]).span,
+                    span: args[0].span,
                 });
             }
             Ok(Type::Fixed)
