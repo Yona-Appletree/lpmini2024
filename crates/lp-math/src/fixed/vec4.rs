@@ -1,5 +1,4 @@
 /// 4D vector for fixed-point fixed (useful for RGBA colors and homogeneous coordinates)
-use core::cmp::Ord;
 use core::ops::{Add, Div, Mul, Neg, Sub};
 
 use super::conversions::ToFixed;

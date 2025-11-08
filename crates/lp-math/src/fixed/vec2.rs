@@ -1,5 +1,4 @@
 /// 2D vector for fixed-point coordinates
-use core::cmp::Ord;
 use core::ops::{Add, Div, Mul, Neg, Sub};
 
 use super::conversions::ToFixed;

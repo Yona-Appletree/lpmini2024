@@ -1,5 +1,4 @@
 /// 3D vector for fixed-point fixed
-use core::cmp::Ord;
 use core::ops::{Add, Div, Mul, Neg, Sub};
 
 use super::conversions::ToFixed;
