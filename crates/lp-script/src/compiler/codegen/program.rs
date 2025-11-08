@@ -13,12 +13,10 @@ use crate::vm::opcodes::LpsOpCode;
 use crate::vm::{FunctionDef as VmFunctionDef, LocalVarDef};
 
 /// Infer return type from typed statements (after type checking)
-fn infer_main_return_type(stmts: &[Stmt], pool: &AstPool) -> Type {
+fn infer_main_return_type(stmts: &[Stmt]) -> Type {
     // Look for the last return statement to determine type
-    for stmt_id in stmts.iter().rev() {
-        let stmt = pool.stmt(*stmt_id);
-        if let StmtKind::Return(expr_id) = stmt.kind {
-            let expr = pool.expr(expr_id);
+    for stmt in stmts.iter().rev() {
+        if let StmtKind::Return(expr) = &stmt.kind {
             // After type checking, expr.ty should be Some
             if let Some(ty) = &expr.ty {
                 return ty.clone();
@@ -33,11 +31,9 @@ fn infer_main_return_type(stmts: &[Stmt], pool: &AstPool) -> Type {
 /// Generate a complete program with functions (new API with FunctionTable)
 /// Returns a vector of FunctionDef with main at index 0
 pub fn gen_program_with_functions(
-    pool: &AstPool,
     program: &Program,
     func_table: &FunctionTable,
-    _gen_stmt: impl Fn(&AstPool, Stmt, &mut Vec<LpsOpCode>, &mut LocalAllocator, &BTreeMap<String, u32>)
-        + Copy,
+    _gen_stmt: impl Fn(&Stmt, &mut Vec<LpsOpCode>, &mut LocalAllocator, &BTreeMap<String, u32>) + Copy,
 ) -> Vec<VmFunctionDef> {
     // Build function index map: function name -> final index in output
     // Main will always be at index 0, other functions follow in order (excluding main)
@@ -58,7 +54,6 @@ pub fn gen_program_with_functions(
     // Generate user-defined functions first (we'll reorder later)
     for ast_func in &program.functions {
         let vm_func = crate::compiler::func::func_gen::gen_user_function(
-            pool,
             ast_func,
             func_table,
             &function_indices,
@@ -72,8 +67,8 @@ pub fn gen_program_with_functions(
     {
         let mut gen =
             super::CodeGenerator::new(&mut main_code, &mut main_locals, &function_indices);
-        for &stmt_id in &program.stmts {
-            gen.gen_stmt_id(pool, stmt_id);
+        for stmt in &program.stmts {
+            gen.gen_stmt(stmt);
         }
 
         // Add return if missing
@@ -99,7 +94,7 @@ pub fn gen_program_with_functions(
         .lookup("main")
         .map(|meta| meta.return_type.clone())
         .unwrap_or_else(|| {
-            let inferred = infer_main_return_type(&program.stmts, pool);
+            let inferred = infer_main_return_type(&program.stmts);
             inferred
         });
 
@@ -124,10 +119,8 @@ pub fn gen_program_with_functions(
 /// Returns (opcodes, local_count, local_types) tuple
 #[cfg(test)]
 pub fn gen_program(
-    pool: &AstPool,
     program: &Program,
-    _gen_stmt: impl Fn(&AstPool, Stmt, &mut Vec<LpsOpCode>, &mut LocalAllocator, &BTreeMap<String, u32>)
-        + Copy,
+    _gen_stmt: impl Fn(&Stmt, &mut Vec<LpsOpCode>, &mut LocalAllocator, &BTreeMap<String, u32>) + Copy,
 ) -> (Vec<LpsOpCode>, u32, BTreeMap<u32, crate::shared::Type>) {
     let mut code = Vec::new();
     let function_offsets = BTreeMap::new();
@@ -136,8 +129,8 @@ pub fn gen_program(
     let mut locals = LocalAllocator::new();
     let (local_count, local_types) = {
         let mut gen = super::CodeGenerator::new(&mut code, &mut locals, &function_offsets);
-        for &stmt_id in &program.stmts {
-            gen.gen_stmt_id(pool, stmt_id);
+        for stmt in &program.stmts {
+            gen.gen_stmt(stmt);
         }
 
         // If no explicit return, add one
