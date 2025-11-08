@@ -1,12 +1,13 @@
 /// If statement parsing
-use crate::compiler::ast::{StmtId, StmtKind};
+use crate::compiler::ast::{Stmt, StmtKind};
 use crate::compiler::error::ParseError;
 use crate::compiler::lexer::TokenKind;
 use crate::compiler::parser::Parser;
 use crate::shared::Span;
+use lp_pool::LpBox;
 
 impl Parser {
-    pub(crate) fn parse_if_stmt(&mut self) -> Result<StmtId, ParseError> {
+    pub(crate) fn parse_if_stmt(&mut self) -> Result<Stmt, ParseError> {
         self.enter_recursion()?;
         let start = self.current().span.start;
         self.advance(); // consume 'if'
@@ -19,26 +20,25 @@ impl Parser {
 
         let else_stmt = if matches!(self.current().kind, TokenKind::Else) {
             self.advance(); // consume 'else'
-            Some(self.parse_stmt()?)
+            let stmt = self.parse_stmt()?;
+            Some(LpBox::try_new(stmt)?)
         } else {
             None
         };
 
         let end = else_stmt
-            .map(|s| self.pool.stmt(s).span.end)
-            .unwrap_or_else(|| self.pool.stmt(then_stmt).span.end);
+            .as_ref()
+            .map(|s| s.span.end)
+            .unwrap_or(then_stmt.span.end);
 
-        let result = self
-            .pool
-            .alloc_stmt(
-                StmtKind::If {
-                    condition,
-                    then_stmt,
-                    else_stmt,
-                },
-                Span::new(start, end),
-            )
-            .map_err(|e| self.pool_error_to_parse_error(e));
+        let result = Ok(Stmt::new(
+            StmtKind::If {
+                condition,
+                then_stmt: LpBox::try_new(then_stmt)?,
+                else_stmt,
+            },
+            Span::new(start, end),
+        ));
 
         self.exit_recursion();
         result

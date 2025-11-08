@@ -1,12 +1,13 @@
 /// For loop parsing
-use crate::compiler::ast::{StmtId, StmtKind};
+use crate::compiler::ast::{Stmt, StmtKind};
 use crate::compiler::error::ParseError;
 use crate::compiler::lexer::TokenKind;
 use crate::compiler::parser::Parser;
 use crate::shared::Span;
+use lp_pool::LpBox;
 
 impl Parser {
-    pub(crate) fn parse_for_stmt(&mut self) -> Result<StmtId, ParseError> {
+    pub(crate) fn parse_for_stmt(&mut self) -> Result<Stmt, ParseError> {
         self.enter_recursion()?;
         let start = self.current().span.start;
         self.advance(); // consume 'for'
@@ -19,19 +20,16 @@ impl Parser {
             None
         } else if matches!(self.current().kind, TokenKind::Float | TokenKind::Int) {
             // Parse var decl inline without consuming semicolon
-            let decl_id = self.parse_var_decl_no_semicolon()?;
+            let decl = self.parse_var_decl_no_semicolon()?;
             self.expect(TokenKind::Semicolon);
-            Some(decl_id)
+            Some(LpBox::try_new(decl)?)
         } else {
             // Parse expression and consume its semicolon
-            let expr_id = self.ternary()?;
+            let expr = self.ternary()?;
             self.expect(TokenKind::Semicolon);
-            let span = self.pool.expr(expr_id).span;
-            let stmt_id = self
-                .pool
-                .alloc_stmt(StmtKind::Expr(expr_id), span)
-                .map_err(|e| self.pool_error_to_parse_error(e))?;
-            Some(stmt_id)
+            let span = expr.span;
+            let stmt = Stmt::new(StmtKind::Expr(expr), span);
+            Some(LpBox::try_new(stmt)?)
         };
 
         // Parse condition
@@ -54,20 +52,17 @@ impl Parser {
         self.expect(TokenKind::RParen);
 
         let body = self.parse_stmt()?;
-        let end = self.pool.stmt(body).span.end;
+        let end = body.span.end;
 
-        let result = self
-            .pool
-            .alloc_stmt(
-                StmtKind::For {
-                    init,
-                    condition,
-                    increment,
-                    body,
-                },
-                Span::new(start, end),
-            )
-            .map_err(|e| self.pool_error_to_parse_error(e));
+        let result = Ok(Stmt::new(
+            StmtKind::For {
+                init,
+                condition,
+                increment,
+                body: LpBox::try_new(body)?,
+            },
+            Span::new(start, end),
+        ));
 
         self.exit_recursion();
         result

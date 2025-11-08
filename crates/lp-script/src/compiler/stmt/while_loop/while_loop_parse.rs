@@ -1,12 +1,13 @@
 /// While loop parsing
-use crate::compiler::ast::{StmtId, StmtKind};
+use crate::compiler::ast::{Stmt, StmtKind};
 use crate::compiler::error::ParseError;
 use crate::compiler::lexer::TokenKind;
 use crate::compiler::parser::Parser;
 use crate::shared::Span;
+use lp_pool::LpBox;
 
 impl Parser {
-    pub(crate) fn parse_while_stmt(&mut self) -> Result<StmtId, ParseError> {
+    pub(crate) fn parse_while_stmt(&mut self) -> Result<Stmt, ParseError> {
         self.enter_recursion()?;
         let start = self.current().span.start;
         self.advance(); // consume 'while'
@@ -16,12 +17,15 @@ impl Parser {
         self.expect(TokenKind::RParen);
 
         let body = self.parse_stmt()?;
-        let end = self.pool.stmt(body).span.end;
+        let end = body.span.end;
 
-        let result = self
-            .pool
-            .alloc_stmt(StmtKind::While { condition, body }, Span::new(start, end))
-            .map_err(|e| self.pool_error_to_parse_error(e));
+        let result = Ok(Stmt::new(
+            StmtKind::While {
+                condition,
+                body: LpBox::try_new(body)?,
+            },
+            Span::new(start, end),
+        ));
 
         self.exit_recursion();
         result
