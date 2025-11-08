@@ -340,11 +340,12 @@ impl<'a> LpsVm<'a> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use lp_pool::with_global_alloc;
 
     #[test]
     fn test_vm_creation() {
         use crate::parse_expr;
-        let program = parse_expr("1.0 + 2.0");
+        let program = with_global_alloc(|| parse_expr("1.0 + 2.0"));
         let vm = LpsVm::new(&program, VmLimits::default()).unwrap();
 
         // Verify VM can be created with correct initialization

@@ -18,6 +18,9 @@ impl LocalStack {
     /// Example: if max depth is 64 and average function uses 20 i32s of locals,
     /// capacity should be at least 64 * 20 = 1280.
     pub fn try_new(capacity: usize) -> Result<Self, LpsVmError> {
+        #[cfg(test)]
+        crate::vm::test_pool::ensure_initialized();
+
         let mut data = LpVec::new();
         if capacity > 0 {
             data.try_reserve(capacity)?;

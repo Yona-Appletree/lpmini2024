@@ -20,6 +20,33 @@ pub use vm_limits::VmLimits;
 
 use crate::fixed::Fixed;
 
+#[cfg(test)]
+pub(crate) mod test_pool {
+    use core::ptr::NonNull;
+    use lp_pool::LpMemoryPool;
+    use std::cell::RefCell;
+    use std::thread_local;
+
+    const POOL_SIZE: usize = 256 * 1024;
+    thread_local! {
+        static THREAD_POOL_MEMORY: RefCell<Option<Box<[u8; POOL_SIZE]>>> =
+            const { RefCell::new(None) };
+    }
+
+    pub(crate) fn ensure_initialized() {
+        THREAD_POOL_MEMORY.with(|cell| {
+            if cell.borrow().is_none() {
+                let mut memory = Box::new([0u8; POOL_SIZE]);
+                let ptr = NonNull::new(memory.as_mut_ptr()).expect("test pool memory pointer");
+                unsafe {
+                    LpMemoryPool::new(ptr, POOL_SIZE).expect("failed to create test thread pool");
+                }
+                cell.replace(Some(memory));
+            }
+        });
+    }
+}
+
 /// Execute a program on all pixels in the buffer
 ///
 /// This is the main entry point for executing LPS programs on pixel buffers.
