@@ -34,15 +34,15 @@ impl LpShape for DynamicEnumShape {
 
 impl EnumShape for DynamicEnumShape {
     fn variants(&self) -> &[EnumVariant] {
-        &self.variants
+        self.variants.as_slice()
     }
 }
 
 impl core::fmt::Debug for DynamicEnumShape {
     fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
         f.debug_struct("DynamicEnumShape")
-            .field("name", self.name.as_str())
-            .field("variants", &self.variants)
+            .field("name", &self.name)
+            .field("variants_len", &self.variants.len())
             .field("ui", &self.ui)
             .finish()
     }

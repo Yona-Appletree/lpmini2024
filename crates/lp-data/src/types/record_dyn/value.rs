@@ -3,29 +3,30 @@
 #[cfg(feature = "alloc")]
 use alloc::string::String;
 
-use lp_pool::collections::{LpBTreeMap, LpBox, LpString};
+use lp_pool::collections::{LpBTreeMap, LpString};
 use lp_pool::error::AllocError;
 
-use crate::metadata::LpTypeMeta;
+use crate::shape::shape_ref::ShapeRef;
 use crate::value::RuntimeError;
 
 /// Dynamic map value storage (runtime-created records).
 pub struct MapValue {
-    pub map_type: LpBox<LpTypeMeta>,
+    pub shape: ShapeRef,
     pub fields: LpBTreeMap<LpString, crate::value::LpValue>,
 }
 
 impl MapValue {
     /// Create a new empty map.
     pub fn try_new() -> Result<Self, AllocError> {
-        use crate::metadata::LpType;
-        use crate::types::MapType;
+        use crate::shape::map::StaticMapShape;
+        use crate::shape::shape_ref::{MapShapeRef, ShapeRef};
 
-        let map_type_meta = LpTypeMeta::new(LpType::Map(MapType::new()));
-        let map_type = LpBox::try_new(map_type_meta)?;
+        // Create a static map shape (maps don't have additional metadata)
+        static MAP_SHAPE: StaticMapShape = StaticMapShape;
+        let shape = ShapeRef::Map(MapShapeRef::Static(&MAP_SHAPE));
 
         Ok(Self {
-            map_type,
+            shape,
             fields: LpBTreeMap::new(),
         })
     }

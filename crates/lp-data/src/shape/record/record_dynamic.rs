@@ -38,15 +38,17 @@ impl RecordShape for DynamicRecordShape {
     }
 
     fn fields(&self) -> &[RecordField] {
-        &self.fields
+        self.fields.as_slice()
     }
 }
 
 impl core::fmt::Debug for DynamicRecordShape {
     fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+        // Can't format LpVec directly, so we show the length
+        // Can't use as_str() directly in Debug, so we format it
         f.debug_struct("DynamicRecordShape")
-            .field("name", self.name.as_str())
-            .field("fields", &self.fields)
+            .field("name", &self.name)
+            .field("fields_len", &self.fields.len())
             .field("ui", &self.ui)
             .finish()
     }

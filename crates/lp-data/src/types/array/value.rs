@@ -3,26 +3,23 @@
 use lp_pool::collections::vec::LpVec;
 use lp_pool::error::AllocError;
 
-use crate::metadata::TypeRef;
+use crate::shape::shape_ref::ShapeRef;
 use crate::value::{LpValue, RuntimeError};
 
 /// Array value storage.
 pub struct ArrayValue {
-    pub element_type: TypeRef,
+    pub shape: ShapeRef,
     pub values: LpVec<LpValue>,
 }
 
 impl ArrayValue {
     /// Create a new empty array.
-    pub fn try_new(element_type: TypeRef, capacity: usize) -> Result<Self, AllocError> {
+    pub fn try_new(shape: ShapeRef, capacity: usize) -> Result<Self, AllocError> {
         let mut values = LpVec::new();
         if capacity > 0 {
             values.try_reserve(capacity)?;
         }
-        Ok(Self {
-            element_type,
-            values,
-        })
+        Ok(Self { shape, values })
     }
 
     /// Get an element by index.

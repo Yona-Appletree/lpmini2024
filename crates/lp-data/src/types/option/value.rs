@@ -2,32 +2,29 @@
 
 use lp_pool::collections::LpBox;
 
-use crate::metadata::TypeRef;
+use crate::shape::shape_ref::ShapeRef;
 use crate::value::RuntimeError;
 
 /// Option value storage.
 pub struct OptionValue {
-    pub inner_type: TypeRef,
+    pub shape: ShapeRef,
     pub value: Option<LpBox<crate::value::LpValue>>,
 }
 
 impl OptionValue {
     /// Create an Option::None value.
-    pub fn try_none(inner_type: TypeRef) -> Result<Self, lp_pool::error::AllocError> {
-        Ok(Self {
-            inner_type,
-            value: None,
-        })
+    pub fn try_none(shape: ShapeRef) -> Result<Self, lp_pool::error::AllocError> {
+        Ok(Self { shape, value: None })
     }
 
     /// Create an Option::Some value.
     pub fn try_some(
-        inner_type: TypeRef,
+        shape: ShapeRef,
         value: crate::value::LpValue,
     ) -> Result<Self, lp_pool::error::AllocError> {
         let boxed = LpBox::try_new(value)?;
         Ok(Self {
-            inner_type,
+            shape,
             value: Some(boxed),
         })
     }

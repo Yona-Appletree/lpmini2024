@@ -4,7 +4,7 @@ use crate::shape::record::RecordField;
 use crate::shape::shape_ref::ShapeRef;
 
 /// Description of an enum variant.
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug)]
 pub enum EnumVariant {
     Unit {
         name: &'static str,

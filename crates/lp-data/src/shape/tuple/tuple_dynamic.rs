@@ -27,14 +27,14 @@ impl LpShape for DynamicTupleShape {
 
 impl TupleShape for DynamicTupleShape {
     fn elements(&self) -> &[ShapeRef] {
-        &self.elements
+        self.elements.as_slice()
     }
 }
 
 impl core::fmt::Debug for DynamicTupleShape {
     fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
         f.debug_struct("DynamicTupleShape")
-            .field("elements", &self.elements)
+            .field("elements_len", &self.elements.len())
             .finish()
     }
 }

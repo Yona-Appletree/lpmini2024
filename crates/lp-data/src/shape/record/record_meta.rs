@@ -3,7 +3,7 @@
 use crate::shape::shape_ref::ShapeRef;
 
 /// Metadata for an individual record field.
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug)]
 pub struct RecordField {
     pub name: &'static str,
     pub shape: ShapeRef,
