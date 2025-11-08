@@ -55,7 +55,7 @@ async fn main(_spawner: Spawner) {
     let num_leds = scene_config.led_count();
 
     // Power limiting configuration
-    let power_config = engine_core::power_limit::PowerLimitConfig {
+    let power_config = engine_core::test_engine::power_limit::PowerLimitConfig {
         brightness_256: 255,   // ~12.5% brightness (32/256)
         power_budget_ma: 1000, // 1A budget
         led_white_power_ma: 50,

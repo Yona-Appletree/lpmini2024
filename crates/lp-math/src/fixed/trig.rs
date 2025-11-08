@@ -1,4 +1,5 @@
 /// Trigonometric functions using lookup tables
+use core::cmp::Ord;
 use super::fixed::Fixed;
 use crate::fixed::sin_table::SIN_TABLE_I32 as SIN_TABLE;
 

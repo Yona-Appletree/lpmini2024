@@ -1,7 +1,8 @@
 /// 2D vector for fixed-point coordinates
+use core::cmp::Ord;
+use core::ops::{Add, Div, Mul, Neg, Sub};
 use super::conversions::ToFixed;
 use super::fixed::Fixed;
-use core::ops::{Add, Div, Mul, Neg, Sub};
 
 #[derive(Copy, Clone, Debug, PartialEq)]
 pub struct Vec2 {
