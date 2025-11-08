@@ -79,31 +79,23 @@ impl Default for OptimizeOptions {
 ///
 /// Applies AST-level optimizations based on the provided options.
 /// Runs multiple passes until a fixed point is reached or max iterations exceeded.
-pub fn optimize_ast_expr(
-    expr_id: crate::compiler::ast::Expr,
-    pool: crate::compiler::ast::AstPool,
-    options: &OptimizeOptions,
-) -> (crate::compiler::ast::Expr, crate::compiler::ast::AstPool) {
+pub fn optimize_ast_expr(expr: &mut crate::compiler::ast::Expr, options: &OptimizeOptions) {
     if options.max_ast_passes == 0 {
-        return (expr_id, pool);
+        return;
     }
 
-    ast::optimize_expr_id(expr_id, pool, options)
+    ast::optimize_expr(expr, options)
 }
 
 /// Optimize a program AST (with statements)
 ///
 /// Applies AST-level optimizations to the full program.
-pub fn optimize_ast_program(
-    program: Program,
-    pool: crate::compiler::ast::AstPool,
-    options: &OptimizeOptions,
-) -> (Program, crate::compiler::ast::AstPool) {
+pub fn optimize_ast_program(program: &mut Program, options: &OptimizeOptions) {
     if options.max_ast_passes == 0 {
-        return (program, pool);
+        return;
     }
 
-    ast::optimize_program_id(program, pool, options)
+    ast::optimize_program(program, options)
 }
 
 /// Optimize a sequence of opcodes
