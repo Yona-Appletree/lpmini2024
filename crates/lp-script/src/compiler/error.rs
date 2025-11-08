@@ -66,6 +66,7 @@ pub enum ParseErrorKind {
     RecursionLimitExceeded { max: usize },
     ExprLimitExceeded { max: usize },
     StmtLimitExceeded { max: usize },
+    AllocationFailed(String),
 }
 
 impl fmt::Display for ParseError {
