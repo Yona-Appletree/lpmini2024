@@ -7,12 +7,12 @@ use crate::shared::Type;
 use crate::vm::opcodes::LpsOpCode;
 
 impl<'a> CodeGenerator<'a> {
-    pub(crate) fn gen_function_call_id(&mut self, pool: &AstPool, name: &str, args: &[ExprId]) {
+    pub(crate) fn gen_function_call(&mut self, name: &str, args: &[Expr]) {
         // Check if it's a user-defined function
         if let Some(&offset) = self.func_offsets.get(name) {
             // Generate code for arguments (push onto stack)
-            for arg_id in args {
-                self.gen_expr_id(pool, *arg_id);
+            for arg in args {
+                self.gen_expr(arg);
             }
             // Emit Call opcode with function offset
             self.code.push(LpsOpCode::Call(offset));
@@ -23,12 +23,11 @@ impl<'a> CodeGenerator<'a> {
         // Octaves is embedded in opcode, not pushed to stack
         if name == "perlin3" {
             // First arg is vec3, generate code to push its 3 components
-            self.gen_expr_id(pool, args[0]);
+            self.gen_expr(&args[0]);
 
             // Extract octaves from 2nd arg or use default
             let octaves = if args.len() >= 2 {
-                let arg_expr = pool.expr(args[1]);
-                match &arg_expr.kind {
+                match &args[1].kind {
                     ExprKind::Number(n) => *n as u8,
                     ExprKind::IntNumber(n) => *n as u8,
                     _ => 3,
@@ -42,15 +41,15 @@ impl<'a> CodeGenerator<'a> {
         }
 
         // For all other functions, generate code for all arguments first
-        for arg_id in args {
-            self.gen_expr_id(pool, *arg_id);
+        for arg in args {
+            self.gen_expr(arg);
         }
 
         // Emit the appropriate instruction
-        self.gen_builtin_function_id(pool, name, args);
+        self.gen_builtin_function(name, args);
     }
 
-    fn gen_builtin_function_id(&mut self, pool: &AstPool, name: &str, args: &[ExprId]) {
+    fn gen_builtin_function(&mut self, name: &str, args: &[Expr]) {
         match name {
             "sin" => self.code.push(LpsOpCode::SinFixed),
             "cos" => self.code.push(LpsOpCode::CosFixed),
@@ -85,7 +84,7 @@ impl<'a> CodeGenerator<'a> {
             // Vector functions - use typed opcodes based on argument type
             "length" => {
                 if !args.is_empty() {
-                    let arg_ty = pool.expr(args[0]).ty.as_ref().unwrap();
+                    let arg_ty = args[0].ty.as_ref().unwrap();
                     match arg_ty {
                         Type::Vec2 => self.code.push(LpsOpCode::Length2),
                         Type::Vec3 => self.code.push(LpsOpCode::Length3),
@@ -96,7 +95,7 @@ impl<'a> CodeGenerator<'a> {
             }
             "normalize" => {
                 if !args.is_empty() {
-                    let arg_ty = pool.expr(args[0]).ty.as_ref().unwrap();
+                    let arg_ty = args[0].ty.as_ref().unwrap();
                     match arg_ty {
                         Type::Vec2 => self.code.push(LpsOpCode::Normalize2),
                         Type::Vec3 => self.code.push(LpsOpCode::Normalize3),
@@ -107,7 +106,7 @@ impl<'a> CodeGenerator<'a> {
             }
             "dot" => {
                 if !args.is_empty() {
-                    let arg_ty = pool.expr(args[0]).ty.as_ref().unwrap();
+                    let arg_ty = args[0].ty.as_ref().unwrap();
                     match arg_ty {
                         Type::Vec2 => self.code.push(LpsOpCode::Dot2),
                         Type::Vec3 => self.code.push(LpsOpCode::Dot3),
@@ -118,7 +117,7 @@ impl<'a> CodeGenerator<'a> {
             }
             "distance" => {
                 if !args.is_empty() {
-                    let arg_ty = pool.expr(args[0]).ty.as_ref().unwrap();
+                    let arg_ty = args[0].ty.as_ref().unwrap();
                     match arg_ty {
                         Type::Vec2 => self.code.push(LpsOpCode::Distance2),
                         Type::Vec3 => self.code.push(LpsOpCode::Distance3),
