@@ -5,11 +5,12 @@ use alloc::vec::Vec;
 use serde_json::{json, Map, Value};
 
 use crate::annotation::{AnnotationValue, Annotations};
-use crate::ty::{LpArrayType, LpEnumType, LpPrimitive, LpStructType, LpType};
-
 #[cfg(feature = "serde_json")]
 use crate::annotation::{AnnotationValue, Annotations};
-use crate::ty::{LpArrayType, LpEnumType, LpPrimitive, LpStructType, LpType};
+use crate::ty::{
+    LpArrayType, LpArrayType, LpEnumType, LpEnumType, LpPrimitive, LpPrimitive, LpStructType,
+    LpStructType, LpType, LpType,
+};
 
 #[cfg(feature = "serde_json")]
 pub fn to_json_schema(ty: &LpType) -> Value {

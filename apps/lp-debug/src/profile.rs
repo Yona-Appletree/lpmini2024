@@ -1,7 +1,8 @@
-/// Profile the demo program using pprof
-use engine_core::test_engine::demo_program::run_demo_with_profiling;
 use std::env;
 use std::path::Path;
+
+/// Profile the demo program using pprof
+use engine_core::test_engine::demo_program::run_demo_with_profiling;
 
 fn main() {
     let args: Vec<String> = env::args().collect();

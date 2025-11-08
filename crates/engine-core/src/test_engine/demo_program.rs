@@ -95,11 +95,13 @@ pub fn run_demo_with_profiling(
     output_path: &str,
 ) -> Result<(), Box<dyn std::error::Error>> {
     extern crate std;
-    use crate::test_engine::scene::SceneRuntime;
-    use crate::test_engine::RuntimeOptions;
+    use std::time::Instant;
+
     use lp_script::fixed::ToFixed;
     use pprof::ProfilerGuard;
-    use std::time::Instant;
+
+    use crate::test_engine::scene::SceneRuntime;
+    use crate::test_engine::RuntimeOptions;
 
     // Create the demo scene
     let config = create_demo_scene(width, height);
