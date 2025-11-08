@@ -180,11 +180,11 @@ fi
 
 warn "Workflow failed for commit ${commit_sha}. Downloading logs."
 log_dir="$(mktemp -d "${LOG_ROOT}/run_${commit_sha}_XXXXXX")"
-if gh run download "${run_id}" --dir "${log_dir}"; then
+if gh run download "${run_id}" --dir "${log_dir}" --log; then
   error "GitHub Actions run failed. Logs saved at: ${log_dir}"
   warn "Inspect the logs and iterate on the reported failures before re-running this script."
 else
-  warn "Failed to download logs automatically. Use \`gh run download ${run_id} --dir <path>\` to fetch them manually."
+  warn "Failed to download logs automatically. Use \`gh run download ${run_id} --dir <path> --log\` to fetch them manually."
 fi
 
 exit 1
