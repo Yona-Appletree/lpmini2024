@@ -1,21 +1,5 @@
 /// Test utilities for lp-script expressions - builder pattern for clean testing
 extern crate alloc;
-use alloc::boxed::Box;
-use alloc::format;
-use alloc::string::String;
-use alloc::vec;
-use alloc::vec::Vec;
-
-use crate::compiler::ast::{AstPool, ExprId};
-use crate::compiler::codegen;
-use crate::compiler::optimize::OptimizeOptions;
-use crate::compiler::test_ast::AstBuilder;
-use crate::compiler::{lexer, optimize, parser, typechecker};
-use crate::fixed::{Fixed, ToFixed, Vec2, Vec3, Vec4};
-use crate::shared::Type;
-use crate::vm::lps_vm::LpsVm;
-use crate::vm::vm_limits::VmLimits;
-use crate::vm::{LpsOpCode, LpsProgram};
 
 /// Builder for testing expressions through the compilation pipeline
 ///

@@ -129,7 +129,10 @@ pub fn apply_power_limit(leds: &mut [RGB8], config: &PowerLimitConfig) {
 /// * `bytes` - Input/output LED buffer as raw RGB bytes
 /// * `config` - Power limiting configuration
 pub fn apply_power_limit_to_bytes(bytes: &mut [u8], config: &PowerLimitConfig) {
-    assert!(bytes.len() % 3 == 0, "Buffer length must be multiple of 3");
+    assert!(
+        bytes.len().is_multiple_of(3),
+        "Buffer length must be multiple of 3"
+    );
 
     // Step 1: Apply brightness scaling
     for byte in bytes.iter_mut() {

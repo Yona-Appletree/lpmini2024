@@ -284,7 +284,7 @@ fn builtin_function_return_type_id(
 
         // Perlin noise: vec3 -> float
         "perlin3" => {
-            if args.len() < 1 || args.len() > 2 {
+            if args.is_empty() || args.len() > 2 {
                 return Err(TypeError {
                     kind: TypeErrorKind::InvalidArgumentCount {
                         expected: 1,

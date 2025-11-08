@@ -12,14 +12,20 @@ pub struct SceneData {
     runtime: SceneRuntime,
 }
 
-impl SceneData {
-    /// Create a new scene with the standard demo configuration
-    pub fn new() -> Self {
+impl Default for SceneData {
+    fn default() -> Self {
         let config = create_demo_scene(WIDTH, HEIGHT);
         let options = RuntimeOptions::new(WIDTH, HEIGHT);
         let runtime = SceneRuntime::new(config, options).expect("Valid scene config");
 
         SceneData { runtime }
+    }
+}
+
+impl SceneData {
+    /// Create a new scene with the standard demo configuration
+    pub fn new() -> Self {
+        Self::default()
     }
 
     /// Create from an existing SceneRuntime

@@ -1,4 +1,3 @@
-use core::cmp::{max, min};
 /// Image sampling with bilinear interpolation
 use lp_script::fixed::{Fixed, FIXED_SHIFT};
 
@@ -30,13 +29,13 @@ pub fn bilinear_interp_channel(
     let y_frac = y_frac.0 as i64;
 
     // Lerp in x direction
-    let top = c00 + ((c10 - c00) * x_frac >> FIXED_SHIFT);
-    let bottom = c01 + ((c11 - c01) * x_frac >> FIXED_SHIFT);
+    let top = c00 + (((c10 - c00) * x_frac) >> FIXED_SHIFT);
+    let bottom = c01 + (((c11 - c01) * x_frac) >> FIXED_SHIFT);
 
     // Lerp in y direction
-    let result = top + ((bottom - top) * y_frac >> FIXED_SHIFT);
+    let result = top + (((bottom - top) * y_frac) >> FIXED_SHIFT);
 
-    min(255, max(0, result)) as u8
+    result.clamp(0, 255) as u8
 }
 
 /// Bilinear interpolation of an RGB pixel

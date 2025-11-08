@@ -18,14 +18,13 @@ pub fn optimize(opcodes: Vec<LpsOpCode>) -> Vec<LpsOpCode> {
 
     while i < opcodes.len() {
         // Pattern: Push followed by Drop1
-        if i + 1 < opcodes.len() {
-            if matches!(opcodes[i], LpsOpCode::Push(_) | LpsOpCode::PushInt32(_))
-                && matches!(opcodes[i + 1], LpsOpCode::Drop1)
-            {
-                // Skip both instructions
-                i += 2;
-                continue;
-            }
+        if i + 1 < opcodes.len()
+            && matches!(opcodes[i], LpsOpCode::Push(_) | LpsOpCode::PushInt32(_))
+            && matches!(opcodes[i + 1], LpsOpCode::Drop1)
+        {
+            // Skip both instructions
+            i += 2;
+            continue;
         }
 
         // Pattern: LoadLocal(x) followed by StoreLocal(x) with same index
@@ -62,7 +61,7 @@ pub fn optimize(opcodes: Vec<LpsOpCode>) -> Vec<LpsOpCode> {
         }
 
         // No pattern matched, keep the instruction
-        result.push(opcodes[i].clone());
+        result.push(opcodes[i]);
         i += 1;
     }
 
@@ -81,7 +80,7 @@ fn remove_unreachable_after_jumps(opcodes: Vec<LpsOpCode>) -> Vec<LpsOpCode> {
     let mut i = 0;
     while i < opcodes.len() {
         index_mapping[i] = Some(result.len());
-        result.push(opcodes[i].clone());
+        result.push(opcodes[i]);
 
         // If this is an unconditional jump or return, skip instructions until next jump target
         if matches!(opcodes[i], LpsOpCode::Jump(_) | LpsOpCode::Return) {
@@ -105,8 +104,8 @@ fn patch_jump_offsets(
     mut opcodes: Vec<LpsOpCode>,
     index_mapping: &[Option<usize>],
 ) -> Vec<LpsOpCode> {
-    for i in 0..opcodes.len() {
-        match &mut opcodes[i] {
+    for (i, opcode) in opcodes.iter_mut().enumerate() {
+        match opcode {
             LpsOpCode::Jump(offset)
             | LpsOpCode::JumpIfZero(offset)
             | LpsOpCode::JumpIfNonZero(offset) => {

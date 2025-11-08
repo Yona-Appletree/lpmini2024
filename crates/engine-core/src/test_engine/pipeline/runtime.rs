@@ -4,9 +4,8 @@ use alloc::vec::Vec;
 
 use super::super::palette::Palette;
 use super::config::FxPipelineConfig;
-use super::rgb_utils::{grey_to_i32, i32_to_grey, pack_rgb};
+use super::rgb_utils::{i32_to_grey, pack_rgb};
 use super::{Buffer, BufferFormat, BufferRef, PipelineError, PipelineStep, RuntimeOptions};
-use lp_script::execute_program_lps;
 use lp_script::fixed::Fixed;
 
 /// Runtime pipeline state
@@ -123,8 +122,8 @@ impl FxPipeline {
 
         // Apply palette to each pixel
         let output_buf = &mut self.buffers[output.buffer_idx];
-        for i in 0..grey_values.len() {
-            let rgb = palette.get_color(grey_values[i]);
+        for (i, &grey_val) in grey_values.iter().enumerate() {
+            let rgb = palette.get_color(grey_val);
             output_buf.data[i] = pack_rgb(rgb.r, rgb.g, rgb.b);
         }
         output_buf.set_format(BufferFormat::ImageRgb);

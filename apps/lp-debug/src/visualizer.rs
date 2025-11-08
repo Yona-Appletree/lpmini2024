@@ -488,6 +488,7 @@ fn draw_led_debug_overlay(
     }
 }
 
+#[allow(clippy::too_many_arguments)]
 fn draw_stats_bar(
     buffer: &mut [u32],
     engine_us: f32,

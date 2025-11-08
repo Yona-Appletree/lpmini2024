@@ -89,7 +89,6 @@ impl Parser {
 
     /// Parse an expression (expression mode) - delegated to expr module
     // pub fn parse(&mut self) -> Result<ExprId, ParseError> is implemented in expr/mod.rs
-
     /// Parse a full program (script mode)
     /// Consumes the parser and returns the program along with the AST pool
     pub fn parse_program(mut self) -> Result<(Program, AstPool), ParseError> {

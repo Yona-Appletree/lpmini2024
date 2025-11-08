@@ -1,6 +1,7 @@
 /// Local variable storage for LPS VM (optimized with raw i32 array)
 extern crate alloc;
 use alloc::string::String;
+use alloc::vec;
 use alloc::vec::Vec;
 
 use super::error::LpsVmError;
@@ -15,8 +16,7 @@ impl LocalStack {
     /// Example: if max depth is 64 and average function uses 20 i32s of locals,
     /// capacity should be at least 64 * 20 = 1280.
     pub fn new(capacity: usize) -> Self {
-        let mut data = Vec::new();
-        data.resize(capacity, 0);
+        let data = vec![0; capacity];
 
         LocalStack {
             data,
@@ -111,8 +111,7 @@ impl LocalStack {
 
         // Then re-initialize the values for all remaining locals
         let count = target_local_count.min(defs.len()).min(self.local_count);
-        for idx in 0..count {
-            let def = &defs[idx];
+        for (idx, def) in defs.iter().enumerate().take(count) {
             let meta = self.get_metadata(idx)?;
             let offset = meta.offset;
             let size = meta.size;

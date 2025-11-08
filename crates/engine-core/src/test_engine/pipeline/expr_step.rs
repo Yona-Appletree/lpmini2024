@@ -1,7 +1,7 @@
 /// Expression step execution with type validation
 extern crate alloc;
 use super::rgb_utils::grey_to_i32;
-use super::{BufferFormat, BufferRef, PipelineError};
+use super::{BufferFormat, PipelineError};
 use alloc::vec;
 use lp_script::fixed::Fixed;
 use lp_script::shared::Type;
