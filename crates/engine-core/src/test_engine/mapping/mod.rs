@@ -81,9 +81,8 @@ pub fn apply_2d_mapping(
 #[cfg(all(test, not(feature = "use-libm")))]
 mod tests {
     extern crate alloc;
-    use alloc::vec;
-
     use super::*;
+    use alloc::vec;
 
     #[test]
     fn test_grid_mapping() {

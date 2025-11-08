@@ -1,10 +1,10 @@
+use crate::error::AllocError;
+use crate::memory_pool::with_active_pool;
 use core::alloc::Layout;
 use core::ptr::NonNull;
 
 #[cfg(feature = "alloc-meta")]
 use super::super::alloc_meta::{record_allocation_meta, remove_allocation_meta, AllocationMeta};
-use crate::error::AllocError;
-use crate::memory_pool::with_active_pool;
 
 /// A node in the B-tree
 pub struct Node<K, V> {

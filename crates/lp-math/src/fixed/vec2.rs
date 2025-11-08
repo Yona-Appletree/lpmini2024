@@ -1,7 +1,6 @@
 /// 2D vector for fixed-point coordinates
 use core::cmp::Ord;
 use core::ops::{Add, Div, Mul, Neg, Sub};
-
 use super::conversions::ToFixed;
 use super::fixed::Fixed;
 
@@ -93,27 +92,22 @@ impl Vec2 {
     pub fn x(self) -> Fixed {
         self.x
     }
-
     #[inline(always)]
     pub fn y(self) -> Fixed {
         self.y
     }
-
     #[inline(always)]
     pub fn r(self) -> Fixed {
         self.x
     }
-
     #[inline(always)]
     pub fn g(self) -> Fixed {
         self.y
     }
-
     #[inline(always)]
     pub fn s(self) -> Fixed {
         self.x
     }
-
     #[inline(always)]
     pub fn t(self) -> Fixed {
         self.y
@@ -124,18 +118,14 @@ impl Vec2 {
     pub fn xx(self) -> Vec2 {
         Vec2::new(self.x, self.x)
     }
-
     #[inline(always)]
     pub fn xy(self) -> Vec2 {
         self
-    }
-
-    // identity
+    } // identity
     #[inline(always)]
     pub fn yx(self) -> Vec2 {
         Vec2::new(self.y, self.x)
     }
-
     #[inline(always)]
     pub fn yy(self) -> Vec2 {
         Vec2::new(self.y, self.y)
@@ -146,17 +136,14 @@ impl Vec2 {
     pub fn rr(self) -> Vec2 {
         self.xx()
     }
-
     #[inline(always)]
     pub fn rg(self) -> Vec2 {
         self.xy()
     }
-
     #[inline(always)]
     pub fn gr(self) -> Vec2 {
         self.yx()
     }
-
     #[inline(always)]
     pub fn gg(self) -> Vec2 {
         self.yy()
@@ -167,17 +154,14 @@ impl Vec2 {
     pub fn ss(self) -> Vec2 {
         self.xx()
     }
-
     #[inline(always)]
     pub fn st(self) -> Vec2 {
         self.xy()
     }
-
     #[inline(always)]
     pub fn ts(self) -> Vec2 {
         self.yx()
     }
-
     #[inline(always)]
     pub fn tt(self) -> Vec2 {
         self.yy()
@@ -198,7 +182,6 @@ impl Vec2 {
 
 impl Add for Vec2 {
     type Output = Self;
-
     #[inline(always)]
     fn add(self, rhs: Self) -> Self {
         Vec2::new(self.x + rhs.x, self.y + rhs.y)
@@ -207,7 +190,6 @@ impl Add for Vec2 {
 
 impl Sub for Vec2 {
     type Output = Self;
-
     #[inline(always)]
     fn sub(self, rhs: Self) -> Self {
         Vec2::new(self.x - rhs.x, self.y - rhs.y)
@@ -217,7 +199,6 @@ impl Sub for Vec2 {
 // Vector * Scalar
 impl Mul<Fixed> for Vec2 {
     type Output = Self;
-
     #[inline(always)]
     fn mul(self, rhs: Fixed) -> Self {
         Vec2::new(self.x * rhs, self.y * rhs)
@@ -227,7 +208,6 @@ impl Mul<Fixed> for Vec2 {
 // Vector / Scalar
 impl Div<Fixed> for Vec2 {
     type Output = Self;
-
     #[inline(always)]
     fn div(self, rhs: Fixed) -> Self {
         Vec2::new(self.x / rhs, self.y / rhs)
@@ -236,7 +216,6 @@ impl Div<Fixed> for Vec2 {
 
 impl Neg for Vec2 {
     type Output = Self;
-
     #[inline(always)]
     fn neg(self) -> Self {
         Vec2::new(-self.x, -self.y)

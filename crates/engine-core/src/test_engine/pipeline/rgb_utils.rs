@@ -40,9 +40,8 @@ pub fn grey_to_rgb_i32(grey: Fixed) -> i32 {
 
 #[cfg(all(test, not(feature = "use-libm")))]
 mod tests {
-    use lp_script::fixed::ToFixed;
-
     use super::*;
+    use lp_script::fixed::ToFixed;
 
     #[test]
     fn test_pack_unpack_rgb() {

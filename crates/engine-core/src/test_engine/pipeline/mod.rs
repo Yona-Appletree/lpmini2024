@@ -2,11 +2,10 @@
 extern crate alloc;
 use alloc::vec::Vec;
 
-use lp_script::fixed::Fixed;
-use lp_script::LpsProgram;
-
 use super::palette::Palette;
 use super::power_limit::PowerLimitConfig;
+use lp_script::fixed::Fixed;
+use lp_script::LpsProgram;
 
 pub mod config;
 pub mod expr_step;

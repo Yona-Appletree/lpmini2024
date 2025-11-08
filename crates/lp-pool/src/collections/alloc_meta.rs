@@ -4,7 +4,6 @@ use alloc::collections::BTreeMap as MetaMap;
 use alloc::format;
 #[cfg(feature = "alloc-meta")]
 use core::cell::RefCell;
-
 #[cfg(feature = "alloc-meta")]
 use thread_local::ThreadLocal;
 
@@ -128,10 +127,9 @@ where
 
 #[cfg(all(test, feature = "alloc-meta"))]
 mod tests {
-    use core::ptr::NonNull;
-
     use super::*;
     use crate::{LpBox, LpMemoryPool, LpVec};
+    use core::ptr::NonNull;
 
     fn setup_pool() -> LpMemoryPool {
         let mut memory = [0u8; 16384];
@@ -259,9 +257,8 @@ mod tests {
 
 #[cfg(all(test, not(feature = "alloc-meta")))]
 mod tests_no_meta {
-    use core::ptr::NonNull;
-
     use crate::{LpBox, LpMemoryPool};
+    use core::ptr::NonNull;
 
     #[test]
     fn test_no_meta_features_work() {

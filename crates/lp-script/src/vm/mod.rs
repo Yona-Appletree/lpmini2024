@@ -9,6 +9,7 @@ pub mod value_stack;
 pub mod vm_dispatch;
 pub mod vm_limits;
 
+use crate::fixed::Fixed;
 pub use call_stack::{CallFrame, CallStack};
 pub use error::{LpsVmError, RuntimeErrorWithContext};
 pub use local_stack::LocalStack;
@@ -17,8 +18,6 @@ pub use lps_vm::LpsVm;
 pub use opcodes::LpsOpCode;
 pub use value_stack::ValueStack;
 pub use vm_limits::VmLimits;
-
-use crate::fixed::Fixed;
 
 /// Execute a program on all pixels in the buffer
 ///

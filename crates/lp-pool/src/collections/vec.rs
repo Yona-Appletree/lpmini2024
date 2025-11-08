@@ -1,8 +1,7 @@
-use core::alloc::Layout;
-use core::ptr::NonNull;
-
 use crate::error::AllocError;
 use crate::memory_pool::with_active_pool;
+use core::alloc::Layout;
+use core::ptr::NonNull;
 
 /// Iterator over LpVec
 pub struct LpVecIter<'a, T> {
@@ -354,10 +353,9 @@ impl<T> core::ops::IndexMut<usize> for LpVec<T> {
 
 #[cfg(test)]
 mod tests {
-    use core::ptr::NonNull;
-
     use super::*;
     use crate::memory_pool::LpMemoryPool;
+    use core::ptr::NonNull;
 
     fn setup_pool() -> LpMemoryPool {
         let mut memory = [0u8; 16384];

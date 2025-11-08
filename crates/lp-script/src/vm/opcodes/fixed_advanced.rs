@@ -1,7 +1,6 @@
 use crate::fixed::noise::perlin3;
-use crate::fixed::{
-    atan, atan2, fract, lerp, modulo, pow, saturate, sign, smoothstep, step, tan, Fixed,
-};
+use crate::fixed::Fixed;
+use crate::fixed::{atan, atan2, fract, lerp, modulo, pow, saturate, sign, smoothstep, step, tan};
 /// Advanced fixed-point fixed opcodes
 use crate::vm::error::LpsVmError;
 use crate::vm::value_stack::ValueStack;

@@ -1,17 +1,15 @@
-use std::collections::HashMap;
-
+use crate::expr::Expr;
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 use serde_json::Value as JsonValue;
-
-use crate::expr::Expr;
+use std::collections::HashMap;
 
 #[derive(Serialize, Deserialize, JsonSchema, Debug, Clone)]
 pub struct SceneConfig {
     pub meta: SceneMeta,
     pub nodes: HashMap<String, NodeConfig>,
     // future: add support for scene-defined entities
-    // pub entity_defs: HashMap<String, EntityDef>,
+    //pub entity_defs: HashMap<String, EntityDef>,
 }
 
 #[derive(Serialize, Deserialize, JsonSchema, Debug, Clone)]
@@ -21,6 +19,7 @@ pub struct SceneMeta {
 
 #[derive(Serialize, Deserialize, JsonSchema, Debug, Clone)]
 pub struct NodeConfig {
+    ///
     /// ID of the entity to be used for this node
     ///
     /// A URI-style identifier like:

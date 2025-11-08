@@ -1,9 +1,7 @@
-use std::error::Error;
-
-use serde_json::Value as JsonValue;
-
 use crate::expr::Expr;
 use crate::scene::context::FrameInfo;
+use serde_json::Value as JsonValue;
+use std::error::Error;
 
 /// Trait for runtime instances of entities.
 ///

@@ -1,6 +1,5 @@
-use serde_json::Value as JsonValue;
-
 use crate::registry::SchemaRegistry;
+use serde_json::Value as JsonValue;
 
 /// Generate Zod schema TypeScript code from a schema registry
 pub fn generate_zod_schemas(registry: &SchemaRegistry) -> String {

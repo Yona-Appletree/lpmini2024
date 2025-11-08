@@ -1,5 +1,6 @@
 use crate::fixed::trig::{cos, sin};
-use crate::fixed::{ceil, floor, sqrt, Fixed};
+use crate::fixed::Fixed;
+use crate::fixed::{ceil, floor, sqrt};
 /// Basic fixed-point arithmetic opcodes with error handling
 use crate::vm::error::LpsVmError;
 use crate::vm::value_stack::ValueStack;

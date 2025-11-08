@@ -1,7 +1,6 @@
 /// Grayscale image buffer
 extern crate alloc;
 use alloc::vec::Vec;
-
 use lp_script::fixed::Fixed;
 
 pub struct ImageGrey {

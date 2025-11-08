@@ -59,9 +59,8 @@ pub use memory_pool::{LpMemoryPool, PoolStats};
 
 #[cfg(test)]
 mod integration_tests {
-    use core::ptr::NonNull;
-
     use super::*;
+    use core::ptr::NonNull;
 
     #[test]
     fn test_all_collections_together() {
@@ -443,9 +442,8 @@ mod integration_tests {
 
 #[cfg(test)]
 mod panic_safety_tests {
-    use core::ptr::NonNull;
-
     use super::*;
+    use core::ptr::NonNull;
 
     // Note: Most drop safety tests are in individual collection test modules
     // These tests focus on cross-collection drop order and panic safety

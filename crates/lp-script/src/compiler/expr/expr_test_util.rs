@@ -35,7 +35,7 @@ type AstBuilderFn = Box<dyn FnOnce(&mut AstBuilder) -> ExprId>;
 pub struct ExprTest {
     input: String,
     declared_locals: Vec<(String, Type)>, // For symbol table
-    local_initial_values: Vec<(String, Vec<i32>)>, /* Initial values for locals (raw i32 representation) */
+    local_initial_values: Vec<(String, Vec<i32>)>, // Initial values for locals (raw i32 representation)
     expected_ast_builder: Option<AstBuilderFn>,
     expected_opcodes: Option<Vec<LpsOpCode>>,
     expected_result: Option<TestResult>,

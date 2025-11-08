@@ -1,10 +1,9 @@
 /// Local variable allocation state
 extern crate alloc;
+use crate::shared::Type;
 use alloc::collections::BTreeMap;
 use alloc::string::String;
 use alloc::vec::Vec;
-
-use crate::shared::Type;
 
 pub struct LocalAllocator {
     pub(crate) locals: BTreeMap<String, u32>,

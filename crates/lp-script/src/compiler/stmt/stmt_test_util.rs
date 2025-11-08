@@ -6,9 +6,10 @@ use alloc::string::String;
 use alloc::vec::Vec;
 
 use crate::compiler::ast::{AstPool, Program};
+use crate::compiler::codegen;
 use crate::compiler::func::FunctionMetadata;
 use crate::compiler::stmt::stmt_test_ast::StmtBuilder;
-use crate::compiler::{codegen, lexer, parser, typechecker};
+use crate::compiler::{lexer, parser, typechecker};
 use crate::fixed::{Fixed, ToFixed, Vec2, Vec3, Vec4};
 use crate::shared::Type;
 use crate::vm::lps_vm::LpsVm;

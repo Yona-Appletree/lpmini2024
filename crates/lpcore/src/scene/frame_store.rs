@@ -1,6 +1,5 @@
-use indexmap::IndexMap;
-
 use super::frame_entity::FrameEntity;
+use indexmap::IndexMap;
 
 pub struct FrameStore {
     pub frame_entities: IndexMap<String, FrameEntity>,

@@ -1,12 +1,13 @@
+use crate::ty::{LpArrayType, LpEnumType, LpPrimitive, LpStructType, LpType};
+
 #[cfg(feature = "serde_json")]
 use alloc::vec::Vec;
 
 #[cfg(feature = "serde_json")]
-use serde_json::{json, Map, Value};
+use crate::annotation::{AnnotationValue, Annotations};
 
 #[cfg(feature = "serde_json")]
-use crate::annotation::{AnnotationValue, Annotations};
-use crate::ty::{LpArrayType, LpEnumType, LpPrimitive, LpStructType, LpType};
+use serde_json::{json, Map, Value};
 
 #[cfg(feature = "serde_json")]
 pub fn to_json_schema(ty: &LpType) -> Value {

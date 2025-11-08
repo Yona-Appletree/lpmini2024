@@ -1,5 +1,4 @@
-use std::error::Error;
-use std::hash::Hash;
+use std::{error::Error, hash::Hash};
 
 use serde_json::{self, Value};
 
@@ -13,11 +12,13 @@ impl JsonPath {
         Self { elems }
     }
 
+    ///
     /// Parse a path into a list of path elements.
     ///
     /// The path is a string of dot-separated property names and indices.
     ///
     /// The path elements are either a property name or an index.
+    ///
     pub fn parse(path: &str) -> Result<Self, Box<dyn Error>> {
         let elems = path
             .split('.')
@@ -33,9 +34,11 @@ impl JsonPath {
         Ok(Self { elems })
     }
 
+    ///
     /// Get the value at the end of the path from the given object.
     ///
     /// Returns the value at the end of the path.
+    ///
     pub fn get_from(&self, obj: &Value) -> Result<Value, Box<dyn Error>> {
         let mut current = obj;
 
@@ -57,8 +60,10 @@ impl JsonPath {
         Ok(current.clone())
     }
 
+    ///
     /// Set the value at the end of the path in the given object.
     /// Creates intermediate objects and arrays as needed.
+    ///
     pub fn set_in(&self, obj: &mut Value, value: Value) -> Result<(), Box<dyn Error>> {
         if self.elems.is_empty() {
             *obj = value;
@@ -119,9 +124,11 @@ impl JsonPath {
         Ok(())
     }
 
+    ///
     /// Removes a path prefix from this path.
     ///
     /// Returns `None` if the prefix is not a prefix of this path.
+    ///
     pub fn without_prefix(&self, prefix: &JsonPath) -> Option<JsonPath> {
         // Check if prefix is longer than the path
         if prefix.elems.len() > self.elems.len() {
@@ -150,7 +157,9 @@ impl JsonPath {
     }
 }
 
+///
 /// A path element is either a property name or an index.
+///
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub enum PathElem {
     Prop(String),
@@ -159,9 +168,8 @@ pub enum PathElem {
 
 #[cfg(test)]
 mod tests {
-    use serde_json::json;
-
     use super::*;
+    use serde_json::json;
 
     #[test]
     fn test_parse_path() {

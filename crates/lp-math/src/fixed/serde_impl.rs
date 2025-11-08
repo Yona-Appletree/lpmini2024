@@ -1,6 +1,5 @@
-use serde::{Deserialize, Deserializer, Serialize, Serializer};
-
 use super::Fixed;
+use serde::{Deserialize, Deserializer, Serialize, Serializer};
 
 impl Serialize for Fixed {
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>

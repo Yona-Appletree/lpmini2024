@@ -1,9 +1,8 @@
+use crate::block_header::{BlockHeader, MIN_BLOCK_SIZE};
+use crate::error::AllocError;
 use core::alloc::Layout;
 use core::mem;
 use core::ptr::{null_mut, NonNull};
-
-use crate::block_header::{BlockHeader, MIN_BLOCK_SIZE};
-use crate::error::AllocError;
 
 /// Pool allocator with variable-size blocks and free list management
 pub struct LpAllocator {
@@ -467,9 +466,8 @@ impl LpAllocator {
 
 #[cfg(test)]
 mod tests {
-    use core::alloc::Layout;
-
     use super::*;
+    use core::alloc::Layout;
 
     #[test]
     fn test_pool_creation() {

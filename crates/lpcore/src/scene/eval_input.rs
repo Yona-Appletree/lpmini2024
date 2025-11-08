@@ -1,14 +1,15 @@
-use std::collections::HashMap;
-use std::error::Error;
+use std::{collections::HashMap, error::Error};
 
-use crate::expr::{Expr, ExprEvaluator};
-use crate::path::JsonPath;
+use crate::expr::ExprEvaluator;
+use crate::{expr::Expr, path::JsonPath};
 
+///
 /// Evaluate the input of a node at the given path.
 ///
 /// - Starts by getting the base value from the initial value.
 /// - Then applies any input bindings relevant to the path.
 /// - Then returns the final value.
+///
 #[allow(dead_code)]
 pub fn eval_input(
     initial_value: serde_json::Value,
@@ -53,9 +54,8 @@ pub fn eval_input(
 
 #[cfg(test)]
 mod tests {
-    use std::collections::HashMap;
-
     use super::*;
+    use std::collections::HashMap;
 
     /// Helper function to create a binding from input path to a node's output
     fn bind(input_path: &str, node_id: &str, output_path: &str) -> (JsonPath, Expr) {

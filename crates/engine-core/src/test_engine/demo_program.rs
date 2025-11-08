@@ -1,12 +1,11 @@
 extern crate alloc;
 use alloc::vec;
 
-use lp_script::{parse_expr, parse_script};
-
 use crate::test_engine::scene::SceneConfig;
 use crate::test_engine::{
     BufferFormat, BufferRef, FxPipelineConfig, MappingConfig, Palette, PipelineStep,
 };
+use lp_script::{parse_expr, parse_script};
 
 /// Create a test pattern with a rotating white line from the center
 pub fn create_test_line_scene(width: usize, height: usize) -> SceneConfig {
@@ -87,9 +86,8 @@ pub fn create_demo_scene(width: usize, height: usize) -> SceneConfig {
 
 #[cfg(test)]
 mod tests {
-    use lp_script::fixed::Fixed;
-
     use super::*;
+    use lp_script::fixed::Fixed;
 
     #[test]
     fn test_simple_white() {

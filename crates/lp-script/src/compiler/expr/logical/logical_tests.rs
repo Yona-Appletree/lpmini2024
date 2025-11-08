@@ -2,6 +2,7 @@
 #[cfg(test)]
 mod tests {
     use crate::compiler::expr::expr_test_util::ExprTest;
+
     use crate::fixed::ToFixed;
     use crate::vm::opcodes::LpsOpCode;
 

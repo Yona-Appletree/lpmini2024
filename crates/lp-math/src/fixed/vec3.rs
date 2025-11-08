@@ -1,7 +1,6 @@
 /// 3D vector for fixed-point fixed
 use core::cmp::Ord;
 use core::ops::{Add, Div, Mul, Neg, Sub};
-
 use super::conversions::ToFixed;
 use super::fixed::Fixed;
 use super::vec2::Vec2;
@@ -97,27 +96,22 @@ impl Vec3 {
     pub fn x(self) -> Fixed {
         self.x
     }
-
     #[inline(always)]
     pub fn y(self) -> Fixed {
         self.y
     }
-
     #[inline(always)]
     pub fn z(self) -> Fixed {
         self.z
     }
-
     #[inline(always)]
     pub fn r(self) -> Fixed {
         self.x
     }
-
     #[inline(always)]
     pub fn g(self) -> Fixed {
         self.y
     }
-
     #[inline(always)]
     pub fn b(self) -> Fixed {
         self.z
@@ -128,27 +122,22 @@ impl Vec3 {
     pub fn xy(self) -> Vec2 {
         Vec2::new(self.x, self.y)
     }
-
     #[inline(always)]
     pub fn xz(self) -> Vec2 {
         Vec2::new(self.x, self.z)
     }
-
     #[inline(always)]
     pub fn yz(self) -> Vec2 {
         Vec2::new(self.y, self.z)
     }
-
     #[inline(always)]
     pub fn yx(self) -> Vec2 {
         Vec2::new(self.y, self.x)
     }
-
     #[inline(always)]
     pub fn zx(self) -> Vec2 {
         Vec2::new(self.z, self.x)
     }
-
     #[inline(always)]
     pub fn zy(self) -> Vec2 {
         Vec2::new(self.z, self.y)
@@ -158,29 +147,23 @@ impl Vec3 {
     #[inline(always)]
     pub fn xyz(self) -> Vec3 {
         self
-    }
-
-    // identity
+    } // identity
     #[inline(always)]
     pub fn xzy(self) -> Vec3 {
         Vec3::new(self.x, self.z, self.y)
     }
-
     #[inline(always)]
     pub fn yxz(self) -> Vec3 {
         Vec3::new(self.y, self.x, self.z)
     }
-
     #[inline(always)]
     pub fn yzx(self) -> Vec3 {
         Vec3::new(self.y, self.z, self.x)
     }
-
     #[inline(always)]
     pub fn zxy(self) -> Vec3 {
         Vec3::new(self.z, self.x, self.y)
     }
-
     #[inline(always)]
     pub fn zyx(self) -> Vec3 {
         Vec3::new(self.z, self.y, self.x)
@@ -191,17 +174,14 @@ impl Vec3 {
     pub fn rg(self) -> Vec2 {
         self.xy()
     }
-
     #[inline(always)]
     pub fn rb(self) -> Vec2 {
         self.xz()
     }
-
     #[inline(always)]
     pub fn gb(self) -> Vec2 {
         self.yz()
     }
-
     #[inline(always)]
     pub fn rgb(self) -> Vec3 {
         self
@@ -241,7 +221,6 @@ impl Vec3 {
 // Vector + Vector
 impl Add for Vec3 {
     type Output = Self;
-
     #[inline(always)]
     fn add(self, rhs: Self) -> Self {
         Vec3::new(self.x + rhs.x, self.y + rhs.y, self.z + rhs.z)
@@ -251,7 +230,6 @@ impl Add for Vec3 {
 // Vector - Vector
 impl Sub for Vec3 {
     type Output = Self;
-
     #[inline(always)]
     fn sub(self, rhs: Self) -> Self {
         Vec3::new(self.x - rhs.x, self.y - rhs.y, self.z - rhs.z)
@@ -261,7 +239,6 @@ impl Sub for Vec3 {
 // Vector * Scalar
 impl Mul<Fixed> for Vec3 {
     type Output = Self;
-
     #[inline(always)]
     fn mul(self, rhs: Fixed) -> Self {
         Vec3::new(self.x * rhs, self.y * rhs, self.z * rhs)
@@ -271,7 +248,6 @@ impl Mul<Fixed> for Vec3 {
 // Vector / Scalar
 impl Div<Fixed> for Vec3 {
     type Output = Self;
-
     #[inline(always)]
     fn div(self, rhs: Fixed) -> Self {
         Vec3::new(self.x / rhs, self.y / rhs, self.z / rhs)
@@ -280,7 +256,6 @@ impl Div<Fixed> for Vec3 {
 
 impl Neg for Vec3 {
     type Output = Self;
-
     #[inline(always)]
     fn neg(self) -> Self {
         Vec3::new(-self.x, -self.y, -self.z)
