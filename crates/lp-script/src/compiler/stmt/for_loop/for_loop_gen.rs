@@ -6,26 +6,25 @@ use crate::compiler::codegen::CodeGenerator;
 use crate::vm::opcodes::LpsOpCode;
 
 impl<'a> CodeGenerator<'a> {
-    pub(crate) fn gen_for_stmt_id(
+    pub(crate) fn gen_for_stmt(
         &mut self,
-        pool: &AstPool,
-        init: &Option<Stmt>,
-        condition: &Option<Expr>,
-        increment: &Option<Expr>,
-        body: Stmt,
+        init: Option<&Stmt>,
+        condition: Option<&Expr>,
+        increment: Option<&Expr>,
+        body: &Stmt,
     ) {
         self.locals.push_scope();
 
         // Init
-        if let Some(init_id) = init {
-            self.gen_stmt_id(pool, *init_id);
+        if let Some(init_stmt) = init {
+            self.gen_stmt(init_stmt);
         }
 
         let loop_start = self.code.len();
 
         // Condition (defaults to true if omitted)
-        let jump_to_end = if let Some(cond_id) = condition {
-            self.gen_expr_id(pool, *cond_id);
+        let jump_to_end = if let Some(cond) = condition {
+            self.gen_expr(cond);
             let jump_idx = self.code.len();
             self.code.push(LpsOpCode::JumpIfZero(0)); // Placeholder
             Some(jump_idx)
@@ -34,11 +33,11 @@ impl<'a> CodeGenerator<'a> {
         };
 
         // Body
-        self.gen_stmt_id(pool, body);
+        self.gen_stmt(body);
 
         // Increment
-        if let Some(inc_id) = increment {
-            self.gen_expr_id(pool, *inc_id);
+        if let Some(inc) = increment {
+            self.gen_expr(inc);
             self.code.push(LpsOpCode::Drop1); // Discard result
         }
 

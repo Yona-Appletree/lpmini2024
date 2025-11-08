@@ -8,19 +8,13 @@ use crate::shared::Type;
 use crate::vm::opcodes::LpsOpCode;
 
 impl<'a> CodeGenerator<'a> {
-    pub(crate) fn gen_var_decl_id(
-        &mut self,
-        pool: &AstPool,
-        ty: &Type,
-        name: &str,
-        init: &Option<Expr>,
-    ) {
+    pub(crate) fn gen_var_decl(&mut self, ty: &Type, name: &str, init: Option<&Expr>) {
         // Allocate a local for this variable
         // This will allocate in the same order as the analyzer did
         let local_idx = self.locals.allocate_typed(name.to_string(), ty.clone());
 
-        if let Some(init_id) = init {
-            self.gen_expr_id(pool, *init_id);
+        if let Some(init_expr) = init {
+            self.gen_expr(init_expr);
             // Use type-specific StoreLocal opcode
             self.code.push(match ty {
                 Type::Fixed | Type::Bool => LpsOpCode::StoreLocalFixed(local_idx),

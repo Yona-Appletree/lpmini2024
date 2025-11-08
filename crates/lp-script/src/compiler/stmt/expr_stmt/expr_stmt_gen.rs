@@ -7,11 +7,11 @@ use crate::shared::Type;
 use crate::vm::opcodes::LpsOpCode;
 
 impl<'a> CodeGenerator<'a> {
-    pub(crate) fn gen_expr_stmt_id(&mut self, pool: &AstPool, expr_id: ExprId) {
-        self.gen_expr_id(pool, expr_id);
+    pub(crate) fn gen_expr_stmt(&mut self, expr: &Expr) {
+        self.gen_expr(expr);
         // Expression statements discard their result
         // Drop appropriate number of stack values based on expression type
-        let expr_ty = pool.expr(expr_id).ty.as_ref();
+        let expr_ty = expr.ty.as_ref();
         let drop_op = match expr_ty {
             Some(Type::Vec2) => LpsOpCode::Drop2,
             Some(Type::Vec3) => LpsOpCode::Drop3,
