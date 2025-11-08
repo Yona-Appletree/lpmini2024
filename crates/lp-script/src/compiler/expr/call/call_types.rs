@@ -3,7 +3,7 @@ extern crate alloc;
 
 use alloc::string::ToString;
 
-use crate::compiler::ast::{AstPool, ExprId};
+use crate::compiler::ast::Expr;
 use crate::compiler::error::{TypeError, TypeErrorKind};
 use crate::compiler::typechecker::{FunctionTable, SymbolTable, TypeChecker};
 use crate::shared::Type;
@@ -18,11 +18,11 @@ use super::expand_componentwise;
 pub(in crate::compiler) fn check_call_id(
     pool: &mut AstPool,
     name: &str,
-    args: &[ExprId],
+    args: &[Expr],
     symbols: &mut SymbolTable,
     func_table: &FunctionTable,
     span: crate::shared::Span,
-) -> Result<(Type, Option<ExprId>), TypeError> {
+) -> Result<(Type, Option<Expr>), TypeError> {
     // Type check all arguments
     for &arg_id in args {
         TypeChecker::infer_type_id(pool, arg_id, symbols, func_table)?;
@@ -80,7 +80,7 @@ pub(in crate::compiler) fn check_call_id(
 fn builtin_function_return_type_id(
     pool: &AstPool,
     name: &str,
-    args: &[ExprId],
+    args: &[Expr],
     span: crate::shared::Span,
 ) -> Result<Type, TypeError> {
     match name {

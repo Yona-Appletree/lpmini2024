@@ -1,7 +1,7 @@
 /// If statement code generation
 extern crate alloc;
 
-use crate::compiler::ast::{AstPool, ExprId, StmtId};
+use crate::compiler::ast::{Expr, Stmt};
 use crate::compiler::codegen::CodeGenerator;
 use crate::vm::opcodes::LpsOpCode;
 
@@ -9,9 +9,9 @@ impl<'a> CodeGenerator<'a> {
     pub(crate) fn gen_if_stmt_id(
         &mut self,
         pool: &AstPool,
-        condition: ExprId,
-        then_stmt: StmtId,
-        else_stmt: Option<StmtId>,
+        condition: Expr,
+        then_stmt: Stmt,
+        else_stmt: Option<Stmt>,
     ) {
         // Generate condition
         self.gen_expr_id(pool, condition);

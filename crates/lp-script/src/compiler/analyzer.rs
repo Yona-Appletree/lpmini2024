@@ -2,7 +2,7 @@
 extern crate alloc;
 use alloc::vec::Vec;
 
-use crate::compiler::ast::{AstPool, Parameter, Program, StmtId, StmtKind};
+use crate::compiler::ast::{Parameter, Program, Stmt, StmtKind};
 use crate::compiler::codegen::LocalAllocator;
 use crate::compiler::error::{TypeError, TypeErrorKind};
 use crate::compiler::func::{FunctionMetadata, FunctionTable, LocalVarInfo};
@@ -44,7 +44,7 @@ impl FunctionAnalyzer {
 
     /// Analyze a single function body to discover all local variables
     fn analyze_function_body(
-        body: &[StmtId],
+        body: &[Stmt],
         params: &[Parameter],
         pool: &AstPool,
     ) -> Result<(Vec<LocalVarInfo>, u32), TypeError> {
@@ -72,7 +72,7 @@ impl FunctionAnalyzer {
 
     /// Recursively discover all VarDecl statements with tracking
     fn discover_locals_with_tracking(
-        stmt_id: StmtId,
+        stmt_id: Stmt,
         pool: &AstPool,
         locals: &mut LocalAllocator,
         local_infos: &mut Vec<LocalVarInfo>,
@@ -137,7 +137,7 @@ impl FunctionAnalyzer {
     /// Recursively discover all VarDecl statements (legacy version without tracking)
     #[allow(dead_code)]
     fn discover_locals(
-        stmt_id: StmtId,
+        stmt_id: Stmt,
         pool: &AstPool,
         locals: &mut LocalAllocator,
     ) -> Result<(), TypeError> {

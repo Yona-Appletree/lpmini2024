@@ -6,7 +6,7 @@ use alloc::string::String;
 use alloc::vec;
 use alloc::vec::Vec;
 
-use crate::compiler::ast::{AstPool, ExprId};
+use crate::compiler::ast::Expr;
 use crate::compiler::codegen;
 use crate::compiler::optimize::OptimizeOptions;
 use crate::compiler::test_ast::AstBuilder;
@@ -27,7 +27,7 @@ pub struct ExprTest {
     input: String,
     declared_locals: Vec<(String, Type)>, // For symbol table
     local_initial_values: Vec<(String, Vec<i32>)>, // Initial values for locals (raw i32 representation)
-    expected_ast_builder: Option<Box<dyn FnOnce(&mut AstBuilder) -> ExprId>>,
+    expected_ast_builder: Option<Box<dyn FnOnce(&mut AstBuilder) -> Expr>>,
     expected_opcodes: Option<Vec<LpsOpCode>>,
     expected_result: Option<TestResult>,
     expected_locals: Vec<(String, Fixed)>, // Expected local values after execution
@@ -144,7 +144,7 @@ impl ExprTest {
     /// The closure receives an AstBuilder and returns the root ExprId
     pub fn expect_ast<F>(mut self, builder_fn: F) -> Self
     where
-        F: FnOnce(&mut AstBuilder) -> ExprId + 'static,
+        F: FnOnce(&mut AstBuilder) -> Expr + 'static,
     {
         self.expected_ast_builder = Some(Box::new(builder_fn));
         self
@@ -452,9 +452,9 @@ impl ExprTest {
 #[cfg(test)]
 pub(crate) fn ast_eq_ignore_spans_with_pool(
     actual_pool: &AstPool,
-    actual_id: ExprId,
+    actual_id: Expr,
     expected_pool: &AstPool,
-    expected_id: ExprId,
+    expected_id: Expr,
 ) -> bool {
     use crate::compiler::ast::ExprKind;
 

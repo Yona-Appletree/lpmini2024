@@ -9,7 +9,7 @@ extern crate alloc;
 use alloc::string::String;
 use alloc::vec::Vec;
 
-use crate::compiler::ast::{AstPool, ExprId, ExprKind};
+use crate::compiler::ast::{Expr, ExprKind};
 use crate::shared::{Span, Type};
 
 /// Builder for creating test AST nodes with a pool
@@ -72,11 +72,11 @@ impl AstBuilder {
     }
 
     // ============================================================================
-    // Comparison operators (return ExprId, auto-typed to Bool)
+    // Comparison operators (return Expr, auto-typed to Bool)
     // ============================================================================
 
     /// Less than: left < right
-    pub fn less(&mut self, left: ExprId, right: ExprId) -> ExprId {
+    pub fn less(&mut self, left: Expr, right: ExprId) -> ExprId {
         let id = self
             .pool
             .alloc_expr(ExprKind::Less(left, right), Span::EMPTY)
@@ -86,7 +86,7 @@ impl AstBuilder {
     }
 
     /// Greater than: left > right
-    pub fn greater(&mut self, left: ExprId, right: ExprId) -> ExprId {
+    pub fn greater(&mut self, left: Expr, right: ExprId) -> ExprId {
         let id = self
             .pool
             .alloc_expr(ExprKind::Greater(left, right), Span::EMPTY)
@@ -96,7 +96,7 @@ impl AstBuilder {
     }
 
     /// Less than or equal: left <= right
-    pub fn less_eq(&mut self, left: ExprId, right: ExprId) -> ExprId {
+    pub fn less_eq(&mut self, left: Expr, right: ExprId) -> ExprId {
         let id = self
             .pool
             .alloc_expr(ExprKind::LessEq(left, right), Span::EMPTY)
@@ -106,7 +106,7 @@ impl AstBuilder {
     }
 
     /// Greater than or equal: left >= right
-    pub fn greater_eq(&mut self, left: ExprId, right: ExprId) -> ExprId {
+    pub fn greater_eq(&mut self, left: Expr, right: ExprId) -> ExprId {
         let id = self
             .pool
             .alloc_expr(ExprKind::GreaterEq(left, right), Span::EMPTY)
@@ -116,7 +116,7 @@ impl AstBuilder {
     }
 
     /// Equal: left == right
-    pub fn eq(&mut self, left: ExprId, right: ExprId) -> ExprId {
+    pub fn eq(&mut self, left: Expr, right: ExprId) -> ExprId {
         let id = self
             .pool
             .alloc_expr(ExprKind::Eq(left, right), Span::EMPTY)
@@ -126,7 +126,7 @@ impl AstBuilder {
     }
 
     /// Not equal: left != right
-    pub fn not_eq(&mut self, left: ExprId, right: ExprId) -> ExprId {
+    pub fn not_eq(&mut self, left: Expr, right: ExprId) -> ExprId {
         let id = self
             .pool
             .alloc_expr(ExprKind::NotEq(left, right), Span::EMPTY)
@@ -136,11 +136,11 @@ impl AstBuilder {
     }
 
     // ============================================================================
-    // Arithmetic operators (return ExprId, type parameter required)
+    // Arithmetic operators (return Expr, type parameter required)
     // ============================================================================
 
     /// Addition: left + right
-    pub fn add(&mut self, left: ExprId, right: ExprId, ty: Type) -> ExprId {
+    pub fn add(&mut self, left: Expr, right: Expr, ty: Type) -> ExprId {
         let id = self
             .pool
             .alloc_expr(ExprKind::Add(left, right), Span::EMPTY)
@@ -150,7 +150,7 @@ impl AstBuilder {
     }
 
     /// Subtraction: left - right
-    pub fn sub(&mut self, left: ExprId, right: ExprId, ty: Type) -> ExprId {
+    pub fn sub(&mut self, left: Expr, right: Expr, ty: Type) -> ExprId {
         let id = self
             .pool
             .alloc_expr(ExprKind::Sub(left, right), Span::EMPTY)
@@ -160,7 +160,7 @@ impl AstBuilder {
     }
 
     /// Multiplication: left * right
-    pub fn mul(&mut self, left: ExprId, right: ExprId, ty: Type) -> ExprId {
+    pub fn mul(&mut self, left: Expr, right: Expr, ty: Type) -> ExprId {
         let id = self
             .pool
             .alloc_expr(ExprKind::Mul(left, right), Span::EMPTY)
@@ -170,7 +170,7 @@ impl AstBuilder {
     }
 
     /// Division: left / right
-    pub fn div(&mut self, left: ExprId, right: ExprId, ty: Type) -> ExprId {
+    pub fn div(&mut self, left: Expr, right: Expr, ty: Type) -> ExprId {
         let id = self
             .pool
             .alloc_expr(ExprKind::Div(left, right), Span::EMPTY)
@@ -180,7 +180,7 @@ impl AstBuilder {
     }
 
     /// Modulo: left % right
-    pub fn modulo(&mut self, left: ExprId, right: ExprId, ty: Type) -> ExprId {
+    pub fn modulo(&mut self, left: Expr, right: Expr, ty: Type) -> ExprId {
         let id = self
             .pool
             .alloc_expr(ExprKind::Mod(left, right), Span::EMPTY)
@@ -194,7 +194,7 @@ impl AstBuilder {
     // ============================================================================
 
     /// Bitwise AND: left & right
-    pub fn bitwise_and(&mut self, left: ExprId, right: ExprId, ty: Type) -> ExprId {
+    pub fn bitwise_and(&mut self, left: Expr, right: Expr, ty: Type) -> ExprId {
         let id = self
             .pool
             .alloc_expr(ExprKind::BitwiseAnd(left, right), Span::EMPTY)
@@ -204,7 +204,7 @@ impl AstBuilder {
     }
 
     /// Bitwise OR: left | right
-    pub fn bitwise_or(&mut self, left: ExprId, right: ExprId, ty: Type) -> ExprId {
+    pub fn bitwise_or(&mut self, left: Expr, right: Expr, ty: Type) -> ExprId {
         let id = self
             .pool
             .alloc_expr(ExprKind::BitwiseOr(left, right), Span::EMPTY)
@@ -214,7 +214,7 @@ impl AstBuilder {
     }
 
     /// Bitwise XOR: left ^ right
-    pub fn bitwise_xor(&mut self, left: ExprId, right: ExprId, ty: Type) -> ExprId {
+    pub fn bitwise_xor(&mut self, left: Expr, right: Expr, ty: Type) -> ExprId {
         let id = self
             .pool
             .alloc_expr(ExprKind::BitwiseXor(left, right), Span::EMPTY)
@@ -224,7 +224,7 @@ impl AstBuilder {
     }
 
     /// Bitwise NOT: ~operand
-    pub fn bitwise_not(&mut self, operand: ExprId, ty: Type) -> ExprId {
+    pub fn bitwise_not(&mut self, operand: Expr, ty: Type) -> ExprId {
         let id = self
             .pool
             .alloc_expr(ExprKind::BitwiseNot(operand), Span::EMPTY)
@@ -234,7 +234,7 @@ impl AstBuilder {
     }
 
     /// Left shift: left << right
-    pub fn left_shift(&mut self, left: ExprId, right: ExprId, ty: Type) -> ExprId {
+    pub fn left_shift(&mut self, left: Expr, right: Expr, ty: Type) -> ExprId {
         let id = self
             .pool
             .alloc_expr(ExprKind::LeftShift(left, right), Span::EMPTY)
@@ -244,7 +244,7 @@ impl AstBuilder {
     }
 
     /// Right shift: left >> right
-    pub fn right_shift(&mut self, left: ExprId, right: ExprId, ty: Type) -> ExprId {
+    pub fn right_shift(&mut self, left: Expr, right: Expr, ty: Type) -> ExprId {
         let id = self
             .pool
             .alloc_expr(ExprKind::RightShift(left, right), Span::EMPTY)
@@ -258,7 +258,7 @@ impl AstBuilder {
     // ============================================================================
 
     /// Logical AND: left && right
-    pub fn logical_and(&mut self, left: ExprId, right: ExprId) -> ExprId {
+    pub fn logical_and(&mut self, left: Expr, right: ExprId) -> ExprId {
         let id = self
             .pool
             .alloc_expr(ExprKind::And(left, right), Span::EMPTY)
@@ -268,7 +268,7 @@ impl AstBuilder {
     }
 
     /// Logical OR: left || right
-    pub fn logical_or(&mut self, left: ExprId, right: ExprId) -> ExprId {
+    pub fn logical_or(&mut self, left: Expr, right: ExprId) -> ExprId {
         let id = self
             .pool
             .alloc_expr(ExprKind::Or(left, right), Span::EMPTY)
@@ -292,7 +292,7 @@ impl AstBuilder {
     // ============================================================================
 
     /// Negation: -operand
-    pub fn neg(&mut self, operand: ExprId, ty: Type) -> ExprId {
+    pub fn neg(&mut self, operand: Expr, ty: Type) -> ExprId {
         let id = self
             .pool
             .alloc_expr(ExprKind::Neg(operand), Span::EMPTY)
@@ -308,9 +308,9 @@ impl AstBuilder {
     /// Ternary: condition ? true_expr : false_expr
     pub fn ternary(
         &mut self,
-        condition: ExprId,
-        true_expr: ExprId,
-        false_expr: ExprId,
+        condition: Expr,
+        true_expr: Expr,
+        false_expr: Expr,
         ty: Type,
     ) -> ExprId {
         let id = self
@@ -329,7 +329,7 @@ impl AstBuilder {
     }
 
     /// Assignment: target = value
-    pub fn assign(&mut self, target: &str, value: ExprId, ty: Type) -> ExprId {
+    pub fn assign(&mut self, target: &str, value: Expr, ty: Type) -> ExprId {
         let id = self
             .pool
             .alloc_expr(
@@ -345,7 +345,7 @@ impl AstBuilder {
     }
 
     /// Function call: name(args...)
-    pub fn call(&mut self, name: &str, args: Vec<ExprId>, ty: Type) -> ExprId {
+    pub fn call(&mut self, name: &str, args: Vec<Expr>, ty: Type) -> ExprId {
         let id = self
             .pool
             .alloc_expr(
@@ -391,7 +391,7 @@ impl AstBuilder {
     }
 
     /// Swizzle: expr.components
-    pub fn swizzle(&mut self, expr: ExprId, components: &str, ty: Type) -> ExprId {
+    pub fn swizzle(&mut self, expr: Expr, components: &str, ty: Type) -> ExprId {
         let id = self
             .pool
             .alloc_expr(

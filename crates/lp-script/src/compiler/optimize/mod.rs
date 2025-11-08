@@ -80,10 +80,10 @@ impl Default for OptimizeOptions {
 /// Applies AST-level optimizations based on the provided options.
 /// Runs multiple passes until a fixed point is reached or max iterations exceeded.
 pub fn optimize_ast_expr(
-    expr_id: crate::compiler::ast::ExprId,
+    expr_id: crate::compiler::ast::Expr,
     pool: crate::compiler::ast::AstPool,
     options: &OptimizeOptions,
-) -> (crate::compiler::ast::ExprId, crate::compiler::ast::AstPool) {
+) -> (crate::compiler::ast::Expr, crate::compiler::ast::AstPool) {
     if options.max_ast_passes == 0 {
         return (expr_id, pool);
     }

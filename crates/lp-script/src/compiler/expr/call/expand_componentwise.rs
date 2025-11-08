@@ -6,7 +6,7 @@ extern crate alloc;
 use alloc::string::String;
 use alloc::vec::Vec;
 
-use crate::compiler::ast::{AstPool, ExprId, ExprKind};
+use crate::compiler::ast::{Expr, ExprKind};
 use crate::shared::{Span, Type};
 
 /// Check if a function supports component-wise expansion
@@ -30,7 +30,7 @@ pub(crate) fn is_componentwise_function(name: &str) -> bool {
 pub(crate) fn expand_componentwise_call(
     pool: &mut AstPool,
     name: &str,
-    args: &[ExprId],
+    args: &[Expr],
     span: Span,
 ) -> Option<ExprId> {
     // Check if any argument is a vector type

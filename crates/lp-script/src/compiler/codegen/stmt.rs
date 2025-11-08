@@ -2,7 +2,7 @@
 extern crate alloc;
 
 use super::CodeGenerator;
-use crate::compiler::ast::{AstPool, Stmt, StmtId};
+use crate::compiler::ast::{Stmt, Stmt};
 
 impl<'a> CodeGenerator<'a> {
     // Statement code generation by ID - main dispatcher

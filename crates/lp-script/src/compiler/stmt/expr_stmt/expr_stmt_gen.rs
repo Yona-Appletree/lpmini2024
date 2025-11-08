@@ -1,7 +1,7 @@
 /// Expression statement code generation
 extern crate alloc;
 
-use crate::compiler::ast::{AstPool, ExprId};
+use crate::compiler::ast::Expr;
 use crate::compiler::codegen::CodeGenerator;
 use crate::shared::Type;
 use crate::vm::opcodes::LpsOpCode;

@@ -3,7 +3,7 @@
 /// Evaluates expressions with constant operands at compile time.
 extern crate alloc;
 
-use crate::compiler::ast::{AstPool, ExprId, ExprKind};
+use crate::compiler::ast::{Expr, ExprKind};
 
 // Import fixed-point fixed for compile-time constant evaluation
 use crate::fixed::{ceil, cos, floor, saturate, sin, sqrt, tan, Fixed};
@@ -12,7 +12,7 @@ use crate::fixed::{ceil, cos, floor, saturate, sin, sqrt, tan, Fixed};
 use libm::powf;
 
 /// Fold constants in an expression tree
-pub fn fold_constants(expr_id: ExprId, pool: AstPool) -> (ExprId, AstPool) {
+pub fn fold_constants(expr_id: Expr, pool: AstPool) -> (Expr, AstPool) {
     let expr = pool.expr(expr_id);
     let span = expr.span;
     let ty = expr.ty.clone();

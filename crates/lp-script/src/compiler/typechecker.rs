@@ -8,7 +8,7 @@
 ///
 /// Each expression and statement type has its own dedicated _types.rs file
 /// in the expr/ and stmt/ subdirectories respectively.
-use crate::compiler::ast::{AstPool, ExprId};
+use crate::compiler::ast::Expr;
 use crate::compiler::error::TypeError;
 
 // Import function-related types from compiler::func
@@ -28,7 +28,7 @@ use crate::compiler::stmt::stmt_types;
 
 impl TypeChecker {
     /// Type check an expression (expression mode)
-    pub fn check(expr_id: ExprId, pool: AstPool) -> Result<(ExprId, AstPool), TypeError> {
+    pub fn check(expr_id: Expr, pool: AstPool) -> Result<(Expr, AstPool), TypeError> {
         let mut pool = pool;
         let mut symbols = SymbolTable::new();
         let func_table = FunctionTable::new(); // Empty for expression mode

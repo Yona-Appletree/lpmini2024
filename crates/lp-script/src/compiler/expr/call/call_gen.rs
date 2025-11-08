@@ -1,7 +1,7 @@
 /// Function call code generation
 extern crate alloc;
 
-use crate::compiler::ast::{AstPool, ExprId, ExprKind};
+use crate::compiler::ast::{Expr, ExprKind};
 use crate::compiler::codegen::CodeGenerator;
 use crate::shared::Type;
 use crate::vm::opcodes::LpsOpCode;

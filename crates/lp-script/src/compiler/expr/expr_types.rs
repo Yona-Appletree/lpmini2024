@@ -2,7 +2,7 @@
 extern crate alloc;
 use alloc::vec;
 
-use crate::compiler::ast::{AstPool, ExprId, ExprKind};
+use crate::compiler::ast::{Expr, ExprKind};
 use crate::compiler::error::{TypeError, TypeErrorKind};
 use crate::compiler::typechecker::{FunctionTable, SymbolTable, TypeChecker};
 use crate::shared::Type;
@@ -11,7 +11,7 @@ impl TypeChecker {
     /// Type check an expression by ID, mutating the pool
     pub(crate) fn infer_type_id(
         pool: &mut AstPool,
-        expr_id: ExprId,
+        expr_id: Expr,
         symbols: &mut SymbolTable,
         func_table: &FunctionTable,
     ) -> Result<(), TypeError> {
@@ -193,8 +193,8 @@ impl TypeChecker {
 
     fn check_bitwise_binary_id(
         pool: &mut AstPool,
-        left_id: ExprId,
-        right_id: ExprId,
+        left_id: Expr,
+        right_id: Expr,
         symbols: &mut SymbolTable,
         func_table: &FunctionTable,
         _span: crate::shared::Span,
@@ -206,7 +206,7 @@ impl TypeChecker {
 
     fn check_bitwise_not_id(
         pool: &mut AstPool,
-        operand_id: ExprId,
+        operand_id: Expr,
         symbols: &mut SymbolTable,
         func_table: &FunctionTable,
         _span: crate::shared::Span,
@@ -217,8 +217,8 @@ impl TypeChecker {
 
     fn check_comparison_id(
         pool: &mut AstPool,
-        left_id: ExprId,
-        right_id: ExprId,
+        left_id: Expr,
+        right_id: Expr,
         symbols: &mut SymbolTable,
         func_table: &FunctionTable,
     ) -> Result<Type, TypeError> {
@@ -229,8 +229,8 @@ impl TypeChecker {
 
     fn check_logical_id(
         pool: &mut AstPool,
-        left_id: ExprId,
-        right_id: ExprId,
+        left_id: Expr,
+        right_id: Expr,
         symbols: &mut SymbolTable,
         func_table: &FunctionTable,
     ) -> Result<Type, TypeError> {
@@ -241,9 +241,9 @@ impl TypeChecker {
 
     fn check_ternary_id(
         pool: &mut AstPool,
-        condition_id: ExprId,
-        true_id: ExprId,
-        false_id: ExprId,
+        condition_id: Expr,
+        true_id: Expr,
+        false_id: Expr,
         symbols: &mut SymbolTable,
         func_table: &FunctionTable,
     ) -> Result<Type, TypeError> {
@@ -258,7 +258,7 @@ impl TypeChecker {
     fn check_assign_id(
         pool: &mut AstPool,
         target: &str,
-        value_id: ExprId,
+        value_id: Expr,
         symbols: &mut SymbolTable,
         func_table: &FunctionTable,
     ) -> Result<Type, TypeError> {
@@ -275,7 +275,7 @@ impl TypeChecker {
 
     fn check_vec_constructor_id(
         pool: &mut AstPool,
-        args: &[ExprId],
+        args: &[Expr],
         _dim: usize,
         symbols: &mut SymbolTable,
         func_table: &FunctionTable,
@@ -296,7 +296,7 @@ impl TypeChecker {
 
     fn check_swizzle_id(
         pool: &mut AstPool,
-        expr_id: ExprId,
+        expr_id: Expr,
         components: &str,
         symbols: &mut SymbolTable,
         func_table: &FunctionTable,

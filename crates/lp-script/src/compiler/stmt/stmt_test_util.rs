@@ -5,7 +5,7 @@ use alloc::format;
 use alloc::string::String;
 use alloc::vec::Vec;
 
-use crate::compiler::ast::{AstPool, Program};
+use crate::compiler::ast::Program;
 use crate::compiler::codegen;
 use crate::compiler::func::FunctionMetadata;
 use crate::compiler::stmt::stmt_test_ast::StmtBuilder;
@@ -526,9 +526,9 @@ fn program_eq_ignore_spans_with_pool(
 
 /// Compare Expression AST ignoring spans with pools
 fn expr_eq_ignore_spans_with_pool(
-    actual_id: crate::compiler::ast::ExprId,
+    actual_id: crate::compiler::ast::Expr,
     actual_pool: &AstPool,
-    expected_id: crate::compiler::ast::ExprId,
+    expected_id: crate::compiler::ast::Expr,
     expected_pool: &AstPool,
 ) -> bool {
     use crate::compiler::ast::ExprKind;
@@ -579,9 +579,9 @@ fn expr_eq_ignore_spans_with_pool(
 }
 
 fn stmt_eq_ignore_spans_with_pool(
-    actual_id: crate::compiler::ast::StmtId,
+    actual_id: crate::compiler::ast::Stmt,
     actual_pool: &AstPool,
-    expected_id: crate::compiler::ast::StmtId,
+    expected_id: crate::compiler::ast::Stmt,
     expected_pool: &AstPool,
 ) -> bool {
     use crate::compiler::ast::StmtKind;

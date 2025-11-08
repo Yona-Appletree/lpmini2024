@@ -4,7 +4,7 @@ use alloc::collections::BTreeMap;
 use alloc::string::String;
 use alloc::vec::Vec;
 
-use crate::compiler::ast::{AstPool, FunctionDef as AstFunctionDef};
+use crate::compiler::ast::FunctionDef as AstFunctionDef;
 use crate::compiler::codegen::{CodeGenerator, LocalAllocator};
 use crate::compiler::func::{FunctionMetadata, FunctionTable};
 use crate::shared::Type;

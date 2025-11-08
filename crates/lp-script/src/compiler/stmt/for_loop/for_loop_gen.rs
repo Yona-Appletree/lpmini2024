@@ -1,7 +1,7 @@
 /// For loop code generation
 extern crate alloc;
 
-use crate::compiler::ast::{AstPool, ExprId, StmtId};
+use crate::compiler::ast::{Expr, Stmt};
 use crate::compiler::codegen::CodeGenerator;
 use crate::vm::opcodes::LpsOpCode;
 
@@ -9,10 +9,10 @@ impl<'a> CodeGenerator<'a> {
     pub(crate) fn gen_for_stmt_id(
         &mut self,
         pool: &AstPool,
-        init: &Option<StmtId>,
-        condition: &Option<ExprId>,
-        increment: &Option<ExprId>,
-        body: StmtId,
+        init: &Option<Stmt>,
+        condition: &Option<Expr>,
+        increment: &Option<Expr>,
+        body: Stmt,
     ) {
         self.locals.push_scope();
 

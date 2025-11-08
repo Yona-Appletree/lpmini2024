@@ -39,7 +39,7 @@ impl<'a> CodeGenerator<'a> {
     /// Generate opcodes for an expression (expression mode)
     pub fn generate(
         pool: &crate::compiler::ast::AstPool,
-        expr_id: crate::compiler::ast::ExprId,
+        expr_id: crate::compiler::ast::Expr,
     ) -> Vec<LpsOpCode> {
         Self::generate_with_locals(pool, expr_id, Vec::new())
     }
@@ -50,7 +50,7 @@ impl<'a> CodeGenerator<'a> {
     /// The locals should be ordered by index (e.g., [("x", 0), ("y", 1), ...])
     pub fn generate_with_locals(
         pool: &crate::compiler::ast::AstPool,
-        expr_id: crate::compiler::ast::ExprId,
+        expr_id: crate::compiler::ast::Expr,
         predeclared: Vec<(String, u32, crate::shared::Type)>,
     ) -> Vec<LpsOpCode> {
         let mut code = Vec::new();

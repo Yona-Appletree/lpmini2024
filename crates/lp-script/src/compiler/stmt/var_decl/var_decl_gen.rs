@@ -2,7 +2,7 @@
 extern crate alloc;
 use alloc::string::ToString;
 
-use crate::compiler::ast::{AstPool, ExprId};
+use crate::compiler::ast::Expr;
 use crate::compiler::codegen::CodeGenerator;
 use crate::shared::Type;
 use crate::vm::opcodes::LpsOpCode;
@@ -13,7 +13,7 @@ impl<'a> CodeGenerator<'a> {
         pool: &AstPool,
         ty: &Type,
         name: &str,
-        init: &Option<ExprId>,
+        init: &Option<Expr>,
     ) {
         // Allocate a local for this variable
         // This will allocate in the same order as the analyzer did

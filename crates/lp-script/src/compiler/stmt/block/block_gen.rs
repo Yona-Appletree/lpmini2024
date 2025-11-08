@@ -1,7 +1,7 @@
 /// Block statement code generation
 extern crate alloc;
 
-use crate::compiler::ast::{AstPool, StmtId};
+use crate::compiler::ast::Stmt;
 use crate::compiler::codegen::CodeGenerator;
 
 impl<'a> CodeGenerator<'a> {

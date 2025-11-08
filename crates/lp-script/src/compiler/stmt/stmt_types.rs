@@ -1,7 +1,7 @@
 /// Statement type checking
 extern crate alloc;
 
-use crate::compiler::ast::{AstPool, StmtId, StmtKind};
+use crate::compiler::ast::{Stmt, StmtKind};
 use crate::compiler::error::TypeError;
 use crate::compiler::typechecker::{FunctionTable, SymbolTable, TypeChecker};
 
@@ -9,7 +9,7 @@ impl TypeChecker {
     /// Type check a statement by ID
     pub(crate) fn check_stmt_id(
         pool: &mut AstPool,
-        stmt_id: StmtId,
+        stmt_id: Stmt,
         symbols: &mut SymbolTable,
         func_table: &FunctionTable,
     ) -> Result<(), TypeError> {

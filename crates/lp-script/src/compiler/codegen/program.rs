@@ -6,14 +6,14 @@ use alloc::vec;
 use alloc::vec::Vec;
 
 use super::local_allocator::LocalAllocator;
-use crate::compiler::ast::{AstPool, Program, StmtId, StmtKind};
+use crate::compiler::ast::{Program, Stmt, StmtKind};
 use crate::compiler::func::FunctionTable;
 use crate::shared::Type;
 use crate::vm::opcodes::LpsOpCode;
 use crate::vm::{FunctionDef as VmFunctionDef, LocalVarDef};
 
 /// Infer return type from typed statements (after type checking)
-fn infer_main_return_type(stmts: &[StmtId], pool: &AstPool) -> Type {
+fn infer_main_return_type(stmts: &[Stmt], pool: &AstPool) -> Type {
     // Look for the last return statement to determine type
     for stmt_id in stmts.iter().rev() {
         let stmt = pool.stmt(*stmt_id);
@@ -36,7 +36,7 @@ pub fn gen_program_with_functions(
     pool: &AstPool,
     program: &Program,
     func_table: &FunctionTable,
-    _gen_stmt: impl Fn(&AstPool, StmtId, &mut Vec<LpsOpCode>, &mut LocalAllocator, &BTreeMap<String, u32>)
+    _gen_stmt: impl Fn(&AstPool, Stmt, &mut Vec<LpsOpCode>, &mut LocalAllocator, &BTreeMap<String, u32>)
         + Copy,
 ) -> Vec<VmFunctionDef> {
     // Build function index map: function name -> final index in output
@@ -126,7 +126,7 @@ pub fn gen_program_with_functions(
 pub fn gen_program(
     pool: &AstPool,
     program: &Program,
-    _gen_stmt: impl Fn(&AstPool, StmtId, &mut Vec<LpsOpCode>, &mut LocalAllocator, &BTreeMap<String, u32>)
+    _gen_stmt: impl Fn(&AstPool, Stmt, &mut Vec<LpsOpCode>, &mut LocalAllocator, &BTreeMap<String, u32>)
         + Copy,
 ) -> (Vec<LpsOpCode>, u32, BTreeMap<u32, crate::shared::Type>) {
     let mut code = Vec::new();

@@ -2,7 +2,7 @@
 extern crate alloc;
 use alloc::string::ToString;
 
-use crate::compiler::ast::{AstPool, ExprId, Program, StmtId, StmtKind};
+use crate::compiler::ast::{Expr, Program, Stmt, StmtKind};
 use crate::compiler::error::{TypeError, TypeErrorKind};
 use crate::compiler::typechecker::{FunctionTable, SymbolTable, TypeChecker};
 use crate::shared::Type;
@@ -38,7 +38,7 @@ impl TypeChecker {
 
     /// Type check a function body
     fn check_function_body(
-        body: &[StmtId],
+        body: &[Stmt],
         expected_return_type: &Type,
         params: &[crate::compiler::ast::Parameter],
         func_span: crate::shared::Span,
@@ -84,7 +84,7 @@ impl TypeChecker {
 
     /// Check if a return expression matches the expected return type
     fn check_return_type(
-        expr_id: ExprId,
+        expr_id: Expr,
         expected: &Type,
         pool: &AstPool,
         _func_table: &FunctionTable,
@@ -117,14 +117,14 @@ impl TypeChecker {
     }
 
     /// Check if all code paths in a statement list return (using StmtId)
-    fn all_paths_return_id(stmts: &[StmtId], pool: &AstPool) -> bool {
+    fn all_paths_return_id(stmts: &[Stmt], pool: &AstPool) -> bool {
         stmts
             .iter()
             .any(|&stmt_id| Self::stmt_always_returns_id(stmt_id, pool))
     }
 
     /// Check if a statement always returns (using StmtId)
-    fn stmt_always_returns_id(stmt_id: StmtId, pool: &AstPool) -> bool {
+    fn stmt_always_returns_id(stmt_id: Stmt, pool: &AstPool) -> bool {
         let stmt = pool.stmt(stmt_id);
         match &stmt.kind {
             StmtKind::Return(_) => true,

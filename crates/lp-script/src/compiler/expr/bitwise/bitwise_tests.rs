@@ -80,7 +80,7 @@ mod tests {
         ExprTest::new("5 << 2")
             .expect_ast(|b| {
                 let left = b.int32(5);
-                let right: crate::compiler::ast::ExprId = b.int32(2);
+                let right: crate::compiler::ast::Expr = b.int32(2);
                 b.left_shift(left, right, Type::Int32)
             })
             .expect_opcodes(vec![

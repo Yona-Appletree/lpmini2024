@@ -1,7 +1,7 @@
 /// AST-level optimizations
 extern crate alloc;
 
-use crate::compiler::ast::{AstPool, ExprId, Program, StmtId};
+use crate::compiler::ast::{Expr, Program, Stmt};
 use crate::compiler::optimize::OptimizeOptions;
 
 pub mod algebraic;
@@ -15,10 +15,10 @@ mod constant_fold_tests;
 
 /// Optimize an expression using pool-based API
 pub fn optimize_expr_id(
-    mut expr_id: ExprId,
+    mut expr_id: Expr,
     mut pool: AstPool,
     options: &OptimizeOptions,
-) -> (ExprId, AstPool) {
+) -> (Expr, AstPool) {
     for _ in 0..options.max_ast_passes {
         let initial_expr_count = pool.exprs.len();
 
@@ -70,7 +70,7 @@ pub fn optimize_program_id(
 }
 
 /// Optimize a statement (recursive, mutates pool)
-fn optimize_stmt_id(stmt_id: StmtId, mut pool: AstPool, options: &OptimizeOptions) -> AstPool {
+fn optimize_stmt_id(stmt_id: Stmt, mut pool: AstPool, options: &OptimizeOptions) -> AstPool {
     use crate::compiler::ast::StmtKind;
 
     let stmt = pool.stmt(stmt_id);

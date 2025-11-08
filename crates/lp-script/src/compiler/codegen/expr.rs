@@ -2,7 +2,7 @@
 extern crate alloc;
 
 use super::CodeGenerator;
-use crate::compiler::ast::{AstPool, Expr, ExprId};
+use crate::compiler::ast::{Expr, Expr};
 use crate::vm::opcodes::LpsOpCode;
 
 impl<'a> CodeGenerator<'a> {

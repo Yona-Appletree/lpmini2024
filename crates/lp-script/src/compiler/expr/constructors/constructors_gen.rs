@@ -1,7 +1,7 @@
 /// Vector constructor code generation
 extern crate alloc;
 
-use crate::compiler::ast::{AstPool, ExprId};
+use crate::compiler::ast::Expr;
 use crate::compiler::codegen::CodeGenerator;
 
 impl<'a> CodeGenerator<'a> {

@@ -1,13 +1,13 @@
 /// Binary operation code generation
 extern crate alloc;
 
-use crate::compiler::ast::{AstPool, ExprId};
+use crate::compiler::ast::Expr;
 use crate::compiler::codegen::CodeGenerator;
 use crate::shared::Type;
 use crate::vm::opcodes::LpsOpCode;
 
 impl<'a> CodeGenerator<'a> {
-    pub(crate) fn gen_add_id(&mut self, pool: &AstPool, left: ExprId, right: ExprId, ty: &Type) {
+    pub(crate) fn gen_add_id(&mut self, pool: &AstPool, left: Expr, right: Expr, ty: &Type) {
         self.gen_expr_id(pool, left);
         self.gen_expr_id(pool, right);
         self.code.push(match ty {
@@ -20,7 +20,7 @@ impl<'a> CodeGenerator<'a> {
         });
     }
 
-    pub(crate) fn gen_sub_id(&mut self, pool: &AstPool, left: ExprId, right: ExprId, ty: &Type) {
+    pub(crate) fn gen_sub_id(&mut self, pool: &AstPool, left: Expr, right: Expr, ty: &Type) {
         self.gen_expr_id(pool, left);
         self.gen_expr_id(pool, right);
         self.code.push(match ty {
@@ -33,7 +33,7 @@ impl<'a> CodeGenerator<'a> {
         });
     }
 
-    pub(crate) fn gen_mul_id(&mut self, pool: &AstPool, left: ExprId, right: ExprId, ty: &Type) {
+    pub(crate) fn gen_mul_id(&mut self, pool: &AstPool, left: Expr, right: Expr, ty: &Type) {
         let left_ty = pool.expr(left).ty.as_ref().unwrap();
         let right_ty = pool.expr(right).ty.as_ref().unwrap();
 
@@ -83,7 +83,7 @@ impl<'a> CodeGenerator<'a> {
         self.code.push(opcode);
     }
 
-    pub(crate) fn gen_div_id(&mut self, pool: &AstPool, left: ExprId, right: ExprId, ty: &Type) {
+    pub(crate) fn gen_div_id(&mut self, pool: &AstPool, left: Expr, right: Expr, ty: &Type) {
         let left_ty = pool.expr(left).ty.as_ref().unwrap();
         let right_ty = pool.expr(right).ty.as_ref().unwrap();
 
@@ -112,7 +112,7 @@ impl<'a> CodeGenerator<'a> {
         self.code.push(opcode);
     }
 
-    pub(crate) fn gen_mod_id(&mut self, pool: &AstPool, left: ExprId, right: ExprId, ty: &Type) {
+    pub(crate) fn gen_mod_id(&mut self, pool: &AstPool, left: Expr, right: Expr, ty: &Type) {
         self.gen_expr_id(pool, left);
         self.gen_expr_id(pool, right);
         self.code.push(match ty {

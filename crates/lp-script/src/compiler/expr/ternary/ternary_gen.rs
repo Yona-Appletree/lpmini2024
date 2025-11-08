@@ -1,7 +1,7 @@
 /// Ternary conditional code generation
 extern crate alloc;
 
-use crate::compiler::ast::{AstPool, ExprId};
+use crate::compiler::ast::Expr;
 use crate::compiler::codegen::CodeGenerator;
 use crate::vm::opcodes::LpsOpCode;
 
@@ -9,9 +9,9 @@ impl<'a> CodeGenerator<'a> {
     pub(crate) fn gen_ternary_id(
         &mut self,
         pool: &AstPool,
-        condition: ExprId,
-        true_expr: ExprId,
-        false_expr: ExprId,
+        condition: Expr,
+        true_expr: Expr,
+        false_expr: Expr,
     ) {
         // Generate condition
         self.gen_expr_id(pool, condition);

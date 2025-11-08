@@ -7,7 +7,7 @@ use alloc::format;
 use alloc::string::String;
 use alloc::vec::Vec;
 
-use crate::compiler::ast::{AstPool, ExprId};
+use crate::compiler::ast::Expr;
 use crate::compiler::expr::expr_test_util::ast_eq_ignore_spans_with_pool;
 use crate::compiler::{codegen, lexer, parser, typechecker};
 use crate::fixed::{Fixed, ToFixed};
@@ -16,7 +16,7 @@ use crate::vm::{FunctionDef, LpsProgram, LpsVm, VmLimits};
 
 /// Type alias for optimization pass functions (pool-based)
 /// Takes ownership of pool and returns both new ExprId and pool
-pub type OptPassFn = fn(ExprId, AstPool) -> (ExprId, AstPool);
+pub type OptPassFn = fn(Expr, AstPool) -> (Expr, AstPool);
 
 /// Builder for testing AST optimization passes
 ///
@@ -48,7 +48,7 @@ pub struct AstOptTest {
     input: String,
     pass: Option<OptPassFn>,
     expected_ast_builder:
-        Option<Box<dyn FnOnce(&mut crate::compiler::test_ast::AstBuilder) -> ExprId>>,
+        Option<Box<dyn FnOnce(&mut crate::compiler::test_ast::AstBuilder) -> Expr>>,
     check_semantics: bool,
     x: Fixed,
     y: Fixed,
@@ -78,7 +78,7 @@ impl AstOptTest {
     /// Expect a specific AST structure after optimization (using builder closure)
     pub fn expect_ast<F>(mut self, builder_fn: F) -> Self
     where
-        F: FnOnce(&mut crate::compiler::test_ast::AstBuilder) -> ExprId + 'static,
+        F: FnOnce(&mut crate::compiler::test_ast::AstBuilder) -> Expr + 'static,
     {
         self.expected_ast_builder = Some(Box::new(builder_fn));
         self
@@ -188,8 +188,8 @@ impl AstOptTest {
     /// Check that optimized AST produces same runtime result as original
     fn check_semantic_preservation(
         &self,
-        original_id: ExprId,
-        optimized_id: ExprId,
+        original_id: Expr,
+        optimized_id: Expr,
         pool: &AstPool,
     ) -> Result<(), String> {
         // Generate opcodes for both versions (no optimization at opcode level)

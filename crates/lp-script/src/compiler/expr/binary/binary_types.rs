@@ -1,7 +1,7 @@
 /// Binary arithmetic type checking
 extern crate alloc;
 
-use crate::compiler::ast::{AstPool, ExprId};
+use crate::compiler::ast::Expr;
 use crate::compiler::error::{TypeError, TypeErrorKind};
 use crate::compiler::typechecker::{FunctionTable, SymbolTable, TypeChecker};
 use crate::shared::Type;
@@ -12,8 +12,8 @@ use crate::shared::Type;
 /// Returns the result type.
 pub(in crate::compiler) fn check_binary_arithmetic_id(
     pool: &mut AstPool,
-    left_id: ExprId,
-    right_id: ExprId,
+    left_id: Expr,
+    right_id: Expr,
     symbols: &mut SymbolTable,
     func_table: &FunctionTable,
     span: crate::shared::Span,

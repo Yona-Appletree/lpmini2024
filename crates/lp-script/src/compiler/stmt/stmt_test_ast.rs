@@ -6,7 +6,7 @@ extern crate alloc;
 use alloc::string::String;
 use alloc::vec::Vec;
 
-use crate::compiler::ast::{AstPool, ExprId, ExprKind, Program, StmtId, StmtKind};
+use crate::compiler::ast::{Expr, ExprKind, Program, Stmt, StmtKind};
 use crate::shared::{Span, Type};
 
 /// Builder for creating test statement ASTs with a pool
@@ -72,7 +72,7 @@ impl StmtBuilder {
     }
 
     /// Addition: left + right
-    pub fn add(&mut self, left: ExprId, right: ExprId, ty: Type) -> ExprId {
+    pub fn add(&mut self, left: Expr, right: Expr, ty: Type) -> ExprId {
         let id = self
             .pool
             .alloc_expr(ExprKind::Add(left, right), Span::EMPTY)
@@ -82,7 +82,7 @@ impl StmtBuilder {
     }
 
     /// Subtraction: left - right
-    pub fn sub(&mut self, left: ExprId, right: ExprId, ty: Type) -> ExprId {
+    pub fn sub(&mut self, left: Expr, right: Expr, ty: Type) -> ExprId {
         let id = self
             .pool
             .alloc_expr(ExprKind::Sub(left, right), Span::EMPTY)
@@ -92,7 +92,7 @@ impl StmtBuilder {
     }
 
     /// Multiplication: left * right
-    pub fn mul(&mut self, left: ExprId, right: ExprId, ty: Type) -> ExprId {
+    pub fn mul(&mut self, left: Expr, right: Expr, ty: Type) -> ExprId {
         let id = self
             .pool
             .alloc_expr(ExprKind::Mul(left, right), Span::EMPTY)
@@ -102,7 +102,7 @@ impl StmtBuilder {
     }
 
     /// Assignment: target = value
-    pub fn assign(&mut self, target: &str, value: ExprId, ty: Type) -> ExprId {
+    pub fn assign(&mut self, target: &str, value: Expr, ty: Type) -> ExprId {
         let id = self
             .pool
             .alloc_expr(
@@ -118,7 +118,7 @@ impl StmtBuilder {
     }
 
     /// Function call: name(args...)
-    pub fn call(&mut self, name: &str, args: Vec<ExprId>, ty: Type) -> ExprId {
+    pub fn call(&mut self, name: &str, args: Vec<Expr>, ty: Type) -> ExprId {
         let id = self
             .pool
             .alloc_expr(
@@ -173,12 +173,7 @@ impl StmtBuilder {
     }
 
     /// Create an if statement
-    pub fn if_stmt(
-        &mut self,
-        condition: ExprId,
-        then_stmt: StmtId,
-        else_stmt: Option<StmtId>,
-    ) -> StmtId {
+    pub fn if_stmt(&mut self, condition: Expr, then_stmt: Stmt, else_stmt: Option<Stmt>) -> StmtId {
         self.pool
             .alloc_stmt(
                 StmtKind::If {
@@ -192,7 +187,7 @@ impl StmtBuilder {
     }
 
     /// Create a while statement
-    pub fn while_stmt(&mut self, condition: ExprId, body: StmtId) -> StmtId {
+    pub fn while_stmt(&mut self, condition: Expr, body: StmtId) -> StmtId {
         self.pool
             .alloc_stmt(StmtKind::While { condition, body }, Span::EMPTY)
             .unwrap()
@@ -201,10 +196,10 @@ impl StmtBuilder {
     /// Create a for statement
     pub fn for_stmt(
         &mut self,
-        init: Option<StmtId>,
-        condition: Option<ExprId>,
-        increment: Option<ExprId>,
-        body: StmtId,
+        init: Option<Stmt>,
+        condition: Option<Expr>,
+        increment: Option<Expr>,
+        body: Stmt,
     ) -> StmtId {
         self.pool
             .alloc_stmt(
@@ -231,7 +226,7 @@ impl StmtBuilder {
 
 impl StmtBuilder {
     /// Build a program and return it with the pool (consumes the builder)
-    pub fn build_program(self, stmts: Vec<StmtId>) -> (Program, AstPool) {
+    pub fn build_program(self, stmts: Vec<Stmt>) -> (Program, AstPool) {
         let program = Program {
             functions: Vec::new(),
             stmts,

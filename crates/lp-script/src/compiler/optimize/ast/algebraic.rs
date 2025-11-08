@@ -3,10 +3,10 @@
 /// Applies algebraic identities to simplify expressions.
 extern crate alloc;
 
-use crate::compiler::ast::{AstPool, ExprId, ExprKind};
+use crate::compiler::ast::{Expr, ExprKind};
 
 /// Simplify an expression tree using algebraic identities
-pub fn simplify_expr(expr_id: ExprId, pool: AstPool) -> (ExprId, AstPool) {
+pub fn simplify_expr(expr_id: Expr, pool: AstPool) -> (Expr, AstPool) {
     let kind = pool.expr(expr_id).kind.clone();
     let _span = pool.expr(expr_id).span;
 
