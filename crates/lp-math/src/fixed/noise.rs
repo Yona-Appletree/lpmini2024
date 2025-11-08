@@ -165,7 +165,6 @@ mod tests {
     fn test_perlin3_basic() {
         let result = perlin3(0i32.to_fixed(), 0i32.to_fixed(), 0i32.to_fixed(), 3);
         let f = result.to_f32();
-        println!("perlin3(0, 0, 0, 3) = {}", f);
         assert!(f >= -2.0 && f <= 2.0, "Perlin output {} out of range", f);
     }
 
@@ -175,14 +174,6 @@ mod tests {
         let p2 = perlin3(0.9f32.to_fixed(), 0.9f32.to_fixed(), 0i32.to_fixed(), 3);
         let p3 = perlin3(1.5f32.to_fixed(), 2.3f32.to_fixed(), 0.7f32.to_fixed(), 3);
         let p4 = perlin3(10.5f32.to_fixed(), 5.2f32.to_fixed(), 3.1f32.to_fixed(), 3);
-
-        println!(
-            "p1 = {}, p2 = {}, p3 = {}, p4 = {}",
-            p1.to_f32(),
-            p2.to_f32(),
-            p3.to_f32(),
-            p4.to_f32()
-        );
 
         // At least one pair should be different
         let has_variation = p1 != p2 || p2 != p3 || p3 != p4;
@@ -197,7 +188,6 @@ mod tests {
         // Test single octave to isolate the issue
         let p = perlin3(0.5f32.to_fixed(), 0.5f32.to_fixed(), 0.5f32.to_fixed(), 1);
         let f = p.to_f32();
-        println!("Single octave perlin3(0.5, 0.5, 0.5) = {}", f);
         assert!(
             f.abs() > 0.001 || f == 0.0,
             "Perlin should produce non-zero values or be legitimately zero"
@@ -211,32 +201,15 @@ mod tests {
         let y = 0.5f32.to_fixed();
         let z = 0.5f32.to_fixed();
 
-        println!(
-            "Input: x={}, y={}, z={}",
-            x.to_f32(),
-            y.to_f32(),
-            z.to_f32()
-        );
-
         // Manually compute what should happen
         let xi = (x.to_i32() & 255) as usize;
         let yi = (y.to_i32() & 255) as usize;
         let zi = (z.to_i32() & 255) as usize;
-        println!("Cube indices: xi={}, yi={}, zi={}", xi, yi, zi);
-
         let xf = x.frac();
         let yf = y.frac();
         let zf = z.frac();
-        println!(
-            "Fractional: xf={}, yf={}, zf={}",
-            xf.to_f32(),
-            yf.to_f32(),
-            zf.to_f32()
-        );
-
         let result = perlin3_single(x, y, z);
-        let f = result.to_f32();
-        println!("perlin3_single result = {}", f);
+        let _f = result.to_f32();
     }
 
     #[test]
@@ -247,7 +220,6 @@ mod tests {
         let t = 0.5f32.to_fixed();
         let result = lerp(a, b, t);
         let f = result.to_f32();
-        println!("lerp(0, 1, 0.5) = {}", f);
         assert!((f - 0.5).abs() < 0.01, "lerp should give 0.5, got {}", f);
     }
 
@@ -255,10 +227,8 @@ mod tests {
     fn test_grad_function() {
         // Test that grad produces non-zero output
         let g = grad(1, 1i32.to_fixed(), 1i32.to_fixed(), 1i32.to_fixed());
-        println!("grad(1, 1, 1, 1) = {}", g.to_f32());
         // Grad can be zero for some hashes, but test a few
         let g2 = grad(5, 1i32.to_fixed(), 0i32.to_fixed(), 0i32.to_fixed());
-        println!("grad(5, 1, 0, 0) = {}", g2.to_f32());
     }
 
     #[test]
