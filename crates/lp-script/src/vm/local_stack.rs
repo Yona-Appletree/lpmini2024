@@ -492,9 +492,11 @@ mod tests {
         let defs = vec![LocalVarDef::new("x".into(), Type::Fixed)];
         storage.allocate_locals(&defs).unwrap();
 
-        storage.set_fixed(0, 3.14.to_fixed()).unwrap();
+        storage
+            .set_fixed(0, std::f32::consts::PI.to_fixed())
+            .unwrap();
         let val = storage.get_fixed(0).unwrap();
-        assert!((val.to_f32() - 3.14).abs() < 0.01);
+        assert!((val.to_f32() - std::f32::consts::PI).abs() < 0.01);
     }
 
     #[test]

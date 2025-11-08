@@ -232,6 +232,7 @@ impl Expr {
     }
 
     #[cfg(test)]
+    #[allow(dead_code)]
     pub fn with_type(mut self, ty: Type) -> Self {
         self.ty = Some(ty);
         self

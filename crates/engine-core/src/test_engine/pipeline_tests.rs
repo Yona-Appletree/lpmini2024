@@ -1,5 +1,6 @@
 /// Tests for the rendering pipeline
 #[cfg(test)]
+#[allow(clippy::module_inception)]
 mod pipeline_tests {
     use crate::test_engine::{
         BufferFormat, BufferRef, FxPipeline, FxPipelineConfig, Palette, PipelineStep,

@@ -342,7 +342,7 @@ mod tests {
         let vm = LpsVm::new(&program, VmLimits::default()).unwrap();
 
         // Verify VM can be created with correct initialization
-        assert!(vm.program.main_function().unwrap().opcodes.len() > 0);
+        assert!(!vm.program.main_function().unwrap().opcodes.is_empty());
         assert_eq!(vm.stack.sp(), 0);
         assert_eq!(vm.pc, 0);
         assert_eq!(vm.call_stack.depth(), 0);

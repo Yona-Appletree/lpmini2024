@@ -1,5 +1,6 @@
 /// Comprehensive tests for LED mappings
 #[cfg(test)]
+#[allow(clippy::module_inception)]
 mod mapping_tests {
     use crate::test_engine::{apply_2d_mapping, MappingConfig};
 

@@ -1,20 +1,26 @@
 /// Test utilities for lp-script expressions - builder pattern for clean testing
-extern crate alloc;
-use alloc::boxed::Box;
-use alloc::format;
+#[cfg(test)]
 use alloc::string::String;
-use alloc::vec;
+#[cfg(test)]
 use alloc::vec::Vec;
 
+#[cfg(test)]
 use crate::compiler::ast::{AstPool, ExprId};
-use crate::compiler::codegen;
+#[cfg(test)]
 use crate::compiler::optimize::OptimizeOptions;
+#[cfg(test)]
 use crate::compiler::test_ast::AstBuilder;
-use crate::compiler::{lexer, optimize, parser, typechecker};
+#[cfg(test)]
+use crate::compiler::{codegen, lexer, optimize, parser, typechecker};
+#[cfg(test)]
 use crate::fixed::{Fixed, ToFixed, Vec2, Vec3, Vec4};
+#[cfg(test)]
 use crate::shared::Type;
+#[cfg(test)]
 use crate::vm::lps_vm::LpsVm;
+#[cfg(test)]
 use crate::vm::vm_limits::VmLimits;
+#[cfg(test)]
 use crate::vm::{LpsOpCode, LpsProgram};
 
 /// Builder for testing expressions through the compilation pipeline
@@ -23,11 +29,14 @@ use crate::vm::{LpsOpCode, LpsProgram};
 /// that derive their values from the VM's run() parameters. Use `.with_vm_params()`
 /// to set these. For script mode tests, you would use `.local_*()` methods instead.
 #[cfg(test)]
+type AstBuilderFn = Box<dyn FnOnce(&mut AstBuilder) -> ExprId>;
+
+#[cfg(test)]
 pub struct ExprTest {
     input: String,
     declared_locals: Vec<(String, Type)>, // For symbol table
     local_initial_values: Vec<(String, Vec<i32>)>, // Initial values for locals (raw i32 representation)
-    expected_ast_builder: Option<Box<dyn FnOnce(&mut AstBuilder) -> ExprId>>,
+    expected_ast_builder: Option<AstBuilderFn>,
     expected_opcodes: Option<Vec<LpsOpCode>>,
     expected_result: Option<TestResult>,
     expected_locals: Vec<(String, Fixed)>, // Expected local values after execution
@@ -269,8 +278,7 @@ impl ExprTest {
         let local_defs: Vec<crate::LocalVarDef> = self
             .declared_locals
             .iter()
-            .enumerate()
-            .map(|(_idx, (name, ty))| {
+            .map(|(name, ty)| {
                 let mut def = crate::LocalVarDef::new(name.clone(), ty.clone());
                 // Set initial value if provided
                 if let Some((_, init_val)) =
@@ -289,7 +297,7 @@ impl ExprTest {
 
         let program = LpsProgram::new("test".into())
             .with_functions(vec![main_function])
-            .with_source(self.input.clone().into());
+            .with_source(self.input.clone());
 
         // Check opcodes if expected
         if let Some(expected_opcodes) = &self.expected_opcodes {

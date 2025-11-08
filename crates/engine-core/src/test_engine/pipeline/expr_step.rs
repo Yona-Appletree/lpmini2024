@@ -90,7 +90,6 @@ pub fn execute_expr_step(
 mod tests {
     use super::*;
     use lp_script::parse_expr;
-    use lp_script::parse_script;
 
     #[test]
     fn test_validate_type_fixed_to_grey_succeeds() {
