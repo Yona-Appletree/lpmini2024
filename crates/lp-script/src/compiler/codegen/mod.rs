@@ -4,7 +4,7 @@ use alloc::collections::BTreeMap;
 use alloc::string::String;
 use alloc::vec::Vec;
 
-use crate::compiler::ast::Program;
+use crate::compiler::ast::{Expr, Program, Stmt};
 use crate::LpsOpCode;
 
 mod expr;
@@ -37,11 +37,8 @@ impl<'a> CodeGenerator<'a> {
     }
 
     /// Generate opcodes for an expression (expression mode)
-    pub fn generate(
-        pool: &crate::compiler::ast::AstPool,
-        expr_id: crate::compiler::ast::Expr,
-    ) -> Vec<LpsOpCode> {
-        Self::generate_with_locals(pool, expr_id, Vec::new())
+    pub fn generate(expr: &Expr) -> Vec<LpsOpCode> {
+        Self::generate_with_locals(expr, Vec::new())
     }
 
     /// Generate opcodes for an expression with pre-declared local variables
@@ -49,8 +46,7 @@ impl<'a> CodeGenerator<'a> {
     /// This is useful for testing assignment expressions which need mutable locals.
     /// The locals should be ordered by index (e.g., [("x", 0), ("y", 1), ...])
     pub fn generate_with_locals(
-        pool: &crate::compiler::ast::AstPool,
-        expr_id: crate::compiler::ast::Expr,
+        expr: &Expr,
         predeclared: Vec<(String, u32, crate::shared::Type)>,
     ) -> Vec<LpsOpCode> {
         let mut code = Vec::new();
@@ -68,7 +64,7 @@ impl<'a> CodeGenerator<'a> {
         }
 
         let mut gen = CodeGenerator::new(&mut code, &mut locals, &func_offsets);
-        gen.gen_expr_id(pool, expr_id);
+        gen.gen_expr(expr);
         gen.code.push(LpsOpCode::Return);
 
         code
@@ -76,17 +72,15 @@ impl<'a> CodeGenerator<'a> {
 
     /// Generate functions for a program (new API with FunctionTable)
     pub fn generate_program_with_functions(
-        pool: &crate::compiler::ast::AstPool,
         program: &Program,
         func_table: &crate::compiler::func::FunctionTable,
     ) -> Vec<crate::vm::FunctionDef> {
         program::gen_program_with_functions(
-            pool,
             program,
             func_table,
-            |pool, stmt_id, code, locals, func_offsets| {
+            |stmt, code, locals, func_offsets| {
                 let mut gen = CodeGenerator::new(code, locals, func_offsets);
-                gen.gen_stmt_id(pool, stmt_id);
+                gen.gen_stmt(stmt);
             },
         )
     }
@@ -95,24 +89,19 @@ impl<'a> CodeGenerator<'a> {
     /// Returns (opcodes, local_count, local_types) tuple
     #[cfg(test)]
     pub fn generate_program(
-        pool: &crate::compiler::ast::AstPool,
         program: &Program,
     ) -> (
         Vec<LpsOpCode>,
         u32,
         alloc::collections::BTreeMap<u32, crate::shared::Type>,
     ) {
-        program::gen_program(
-            pool,
-            program,
-            |pool, stmt_id, code, locals, func_offsets| {
-                let mut gen = CodeGenerator::new(code, locals, func_offsets);
-                gen.gen_stmt_id(pool, stmt_id);
-            },
-        )
+        program::gen_program(program, |stmt, code, locals, func_offsets| {
+            let mut gen = CodeGenerator::new(code, locals, func_offsets);
+            gen.gen_stmt(stmt);
+        })
     }
 
-    // ID-based codegen methods are now implemented in their respective organized modules
+    // Codegen methods are implemented in their respective organized modules
     // Expression dispatcher: codegen/expr.rs
     // Statement dispatcher: codegen/stmt.rs
     // Individual generators: expr/*/..._gen.rs, stmt/*/..._gen.rs
