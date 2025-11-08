@@ -2,3 +2,13 @@
 
 Communicate concisely, like a senior engineer or compiler output. Prioritize information over fluff. Be direct and technical.
 
+# Branches
+
+All feature branches should be named `feature/name-of-feature`
+
+
+# Pushing code
+
+To push and validate code on ci, use the following command:
+
+    scripts/push-pr.sh
