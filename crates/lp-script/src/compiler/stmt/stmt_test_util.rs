@@ -20,6 +20,8 @@ use crate::vm::lps_vm::LpsVm;
 use crate::vm::vm_limits::VmLimits;
 use crate::vm::{FunctionDef, LpsOpCode, LpsProgram};
 
+type ProgramBuilder = Box<dyn FnOnce(&mut StmtBuilder) -> Program>;
+
 /// Function metadata assertion helper
 pub struct FunctionMetadataAssertion {
     pub function_name: String,
@@ -40,7 +42,7 @@ pub struct FunctionMetadataAssertion {
 /// - Execution: Runtime behavior
 pub struct ScriptTest {
     input: String,
-    expected_ast_builder: Option<Box<dyn FnOnce(&mut StmtBuilder) -> Program>>,
+    expected_ast_builder: Option<ProgramBuilder>,
     expected_opcodes: Option<Vec<LpsOpCode>>,
     expected_result: Option<TestResult>,
     expected_function_metadata: Vec<FunctionMetadataAssertion>,
@@ -348,7 +350,7 @@ Actual:   {:#?}",
 
             let program_obj = LpsProgram::new("test".into())
                 .with_functions(vm_functions)
-                .with_source(input.clone().into());
+                .with_source(input.clone());
 
             if let Some(expected) = &expected_opcodes {
                 if let Some(main_fn) = program_obj.main_function() {

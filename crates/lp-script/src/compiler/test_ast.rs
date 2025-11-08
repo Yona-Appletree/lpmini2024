@@ -42,53 +42,38 @@ impl AstBuilder {
     // Arithmetic helpers
     // ---------------------------------------------------------------------
     pub fn add(&mut self, left: Expr, right: Expr, ty: Type) -> Expr {
-        self.binary(|l, r| ExprKind::Add(l, r), left, right, Some(ty))
+        self.binary(ExprKind::Add, left, right, Some(ty))
     }
 
     pub fn sub(&mut self, left: Expr, right: Expr, ty: Type) -> Expr {
-        self.binary(|l, r| ExprKind::Sub(l, r), left, right, Some(ty))
+        self.binary(ExprKind::Sub, left, right, Some(ty))
     }
 
     pub fn mul(&mut self, left: Expr, right: Expr, ty: Type) -> Expr {
-        self.binary(|l, r| ExprKind::Mul(l, r), left, right, Some(ty))
+        self.binary(ExprKind::Mul, left, right, Some(ty))
     }
 
     pub fn div(&mut self, left: Expr, right: Expr, ty: Type) -> Expr {
-        self.binary(|l, r| ExprKind::Div(l, r), left, right, Some(ty))
+        self.binary(ExprKind::Div, left, right, Some(ty))
     }
 
     pub fn modulo(&mut self, left: Expr, right: Expr, ty: Type) -> Expr {
-        self.binary(|l, r| ExprKind::Mod(l, r), left, right, Some(ty))
+        self.binary(ExprKind::Mod, left, right, Some(ty))
     }
 
     // ---------------------------------------------------------------------
     // Bitwise helpers
     // ---------------------------------------------------------------------
     pub fn bitwise_and(&mut self, left: Expr, right: Expr) -> Expr {
-        self.binary(
-            |l, r| ExprKind::BitwiseAnd(l, r),
-            left,
-            right,
-            Some(Type::Int32),
-        )
+        self.binary(ExprKind::BitwiseAnd, left, right, Some(Type::Int32))
     }
 
     pub fn bitwise_or(&mut self, left: Expr, right: Expr) -> Expr {
-        self.binary(
-            |l, r| ExprKind::BitwiseOr(l, r),
-            left,
-            right,
-            Some(Type::Int32),
-        )
+        self.binary(ExprKind::BitwiseOr, left, right, Some(Type::Int32))
     }
 
     pub fn bitwise_xor(&mut self, left: Expr, right: Expr) -> Expr {
-        self.binary(
-            |l, r| ExprKind::BitwiseXor(l, r),
-            left,
-            right,
-            Some(Type::Int32),
-        )
+        self.binary(ExprKind::BitwiseXor, left, right, Some(Type::Int32))
     }
 
     pub fn bitwise_not(&mut self, value: Expr) -> Expr {
@@ -96,69 +81,49 @@ impl AstBuilder {
     }
 
     pub fn left_shift(&mut self, left: Expr, right: Expr) -> Expr {
-        self.binary(
-            |l, r| ExprKind::LeftShift(l, r),
-            left,
-            right,
-            Some(Type::Int32),
-        )
+        self.binary(ExprKind::LeftShift, left, right, Some(Type::Int32))
     }
 
     pub fn right_shift(&mut self, left: Expr, right: Expr) -> Expr {
-        self.binary(
-            |l, r| ExprKind::RightShift(l, r),
-            left,
-            right,
-            Some(Type::Int32),
-        )
+        self.binary(ExprKind::RightShift, left, right, Some(Type::Int32))
     }
 
     // ---------------------------------------------------------------------
     // Comparison helpers (return Bool)
     // ---------------------------------------------------------------------
     pub fn less(&mut self, left: Expr, right: Expr) -> Expr {
-        self.binary(|l, r| ExprKind::Less(l, r), left, right, Some(Type::Bool))
+        self.binary(ExprKind::Less, left, right, Some(Type::Bool))
     }
 
     pub fn greater(&mut self, left: Expr, right: Expr) -> Expr {
-        self.binary(
-            |l, r| ExprKind::Greater(l, r),
-            left,
-            right,
-            Some(Type::Bool),
-        )
+        self.binary(ExprKind::Greater, left, right, Some(Type::Bool))
     }
 
     pub fn less_eq(&mut self, left: Expr, right: Expr) -> Expr {
-        self.binary(|l, r| ExprKind::LessEq(l, r), left, right, Some(Type::Bool))
+        self.binary(ExprKind::LessEq, left, right, Some(Type::Bool))
     }
 
     pub fn greater_eq(&mut self, left: Expr, right: Expr) -> Expr {
-        self.binary(
-            |l, r| ExprKind::GreaterEq(l, r),
-            left,
-            right,
-            Some(Type::Bool),
-        )
+        self.binary(ExprKind::GreaterEq, left, right, Some(Type::Bool))
     }
 
     pub fn eq(&mut self, left: Expr, right: Expr) -> Expr {
-        self.binary(|l, r| ExprKind::Eq(l, r), left, right, Some(Type::Bool))
+        self.binary(ExprKind::Eq, left, right, Some(Type::Bool))
     }
 
     pub fn not_eq(&mut self, left: Expr, right: Expr) -> Expr {
-        self.binary(|l, r| ExprKind::NotEq(l, r), left, right, Some(Type::Bool))
+        self.binary(ExprKind::NotEq, left, right, Some(Type::Bool))
     }
 
     // ---------------------------------------------------------------------
     // Logical helpers
     // ---------------------------------------------------------------------
     pub fn and(&mut self, left: Expr, right: Expr) -> Expr {
-        self.binary(|l, r| ExprKind::And(l, r), left, right, Some(Type::Bool))
+        self.binary(ExprKind::And, left, right, Some(Type::Bool))
     }
 
     pub fn or(&mut self, left: Expr, right: Expr) -> Expr {
-        self.binary(|l, r| ExprKind::Or(l, r), left, right, Some(Type::Bool))
+        self.binary(ExprKind::Or, left, right, Some(Type::Bool))
     }
 
     pub fn not(&mut self, value: Expr) -> Expr {

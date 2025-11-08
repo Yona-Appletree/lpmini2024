@@ -35,7 +35,7 @@ mod tests {
     use crate::{compile_script_with_options, OptimizeOptions};
 
     thread_local! {
-        static THREAD_POOL_STATE: RefCell<Option<&'static mut [u8]>> = RefCell::new(None);
+        static THREAD_POOL_STATE: RefCell<Option<&'static mut [u8]>> = const { RefCell::new(None) };
     }
 
     fn ensure_pool() {

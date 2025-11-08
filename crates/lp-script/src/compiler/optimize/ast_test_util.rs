@@ -16,6 +16,8 @@ use crate::fixed::{Fixed, ToFixed, Vec2, Vec3, Vec4};
 use crate::shared::Type;
 use crate::vm::{FunctionDef, LpsProgram, LpsVm, VmLimits};
 
+type ExprBuilder = Box<dyn FnOnce(&mut crate::compiler::test_ast::AstBuilder) -> Expr>;
+
 /// Type alias for optimization pass functions. A pass mutates the expression in place
 /// and returns `true` when it performed any change.
 pub type OptPassFn = fn(&mut Expr) -> bool;
@@ -28,8 +30,7 @@ pub type OptPassFn = fn(&mut Expr) -> bool;
 pub struct AstOptTest {
     input: String,
     pass: Option<OptPassFn>,
-    expected_ast_builder:
-        Option<Box<dyn FnOnce(&mut crate::compiler::test_ast::AstBuilder) -> Expr>>,
+    expected_ast_builder: Option<ExprBuilder>,
     check_semantics: bool,
     x: Fixed,
     y: Fixed,
