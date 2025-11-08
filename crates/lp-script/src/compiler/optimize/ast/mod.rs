@@ -6,101 +6,81 @@ use crate::compiler::optimize::OptimizeOptions;
 
 pub mod algebraic;
 pub mod constant_fold;
-// pub mod dead_code; // TODO: Update to pool-based API
+// pub mod dead_code; // TODO: Update to new API
 
 #[cfg(test)]
 mod algebraic_tests;
 #[cfg(test)]
 mod constant_fold_tests;
 
-/// Optimize an expression using pool-based API
-pub fn optimize_expr_id(
-    mut expr_id: Expr,
-    mut pool: AstPool,
-    options: &OptimizeOptions,
-) -> (Expr, AstPool) {
+/// Optimize an expression
+pub fn optimize_expr(expr: &mut Expr, options: &OptimizeOptions) {
     for _ in 0..options.max_ast_passes {
-        let initial_expr_count = pool.exprs.len();
+        let mut changed = false;
 
         // Apply constant folding if enabled
         if options.constant_folding {
-            (expr_id, pool) = constant_fold::fold_constants(expr_id, pool);
+            changed |= constant_fold::fold_constants(expr);
         }
 
         // Apply algebraic simplification if enabled
         if options.algebraic_simplification {
-            (expr_id, pool) = algebraic::simplify_expr(expr_id, pool);
+            changed |= algebraic::simplify_expr(expr);
         }
 
         // Stop if no changes (fixed point reached)
-        if pool.exprs.len() == initial_expr_count {
+        if !changed {
             break;
         }
     }
-
-    (expr_id, pool)
 }
 
-/// Optimize a program using pool-based API
-pub fn optimize_program_id(
-    program: Program,
-    mut pool: AstPool,
-    options: &OptimizeOptions,
-) -> (Program, AstPool) {
+/// Optimize a program
+pub fn optimize_program(program: &mut Program, options: &OptimizeOptions) {
     if options.max_ast_passes == 0 {
-        return (program, pool);
+        return;
     }
 
     // Optimize each statement in the program
     for _ in 0..options.max_ast_passes {
-        let initial_count = pool.exprs.len() + pool.stmts.len();
+        let mut changed = false;
 
         // Optimize all statements
-        for &stmt_id in &program.stmts {
-            (pool) = optimize_stmt_id(stmt_id, pool, options);
+        for stmt in &mut program.stmts {
+            changed |= optimize_stmt(stmt, options);
         }
 
         // Stop if no changes
-        if pool.exprs.len() + pool.stmts.len() == initial_count {
+        if !changed {
             break;
         }
     }
-
-    (program, pool)
 }
 
-/// Optimize a statement (recursive, mutates pool)
-fn optimize_stmt_id(stmt_id: Stmt, mut pool: AstPool, options: &OptimizeOptions) -> AstPool {
+/// Optimize a statement (recursive)
+fn optimize_stmt(stmt: &mut Stmt, options: &OptimizeOptions) -> bool {
     use crate::compiler::ast::StmtKind;
 
-    let stmt = pool.stmt(stmt_id);
-    let kind = stmt.kind.clone();
+    let mut changed = false;
 
-    match kind {
-        StmtKind::VarDecl { ty, name, init } => {
-            if let Some(init_id) = init {
-                let (new_init, new_pool) = optimize_expr_id(init_id, pool, options);
-                pool = new_pool;
-                pool.stmt_mut(stmt_id).kind = StmtKind::VarDecl {
-                    ty,
-                    name,
-                    init: Some(new_init),
-                };
+    match &mut stmt.kind {
+        StmtKind::VarDecl { init, .. } => {
+            if let Some(init_expr) = init {
+                optimize_expr(init_expr, options);
+                changed = true;
             }
         }
-        StmtKind::Return(expr_id) => {
-            let (new_expr, new_pool) = optimize_expr_id(expr_id, pool, options);
-            pool = new_pool;
-            pool.stmt_mut(stmt_id).kind = StmtKind::Return(new_expr);
+        StmtKind::Return(expr) => {
+            optimize_expr(expr, options);
+            changed = true;
         }
-        StmtKind::Expr(expr_id) => {
-            let (new_expr, new_pool) = optimize_expr_id(expr_id, pool, options);
-            pool = new_pool;
-            pool.stmt_mut(stmt_id).kind = StmtKind::Expr(new_expr);
+        StmtKind::Expr(expr) => {
+            optimize_expr(expr, options);
+            changed = true;
         }
         StmtKind::Block(stmts) => {
-            for &s_id in &stmts {
-                pool = optimize_stmt_id(s_id, pool, options);
+            for s in stmts {
+                changed |= optimize_stmt(s, options);
             }
         }
         StmtKind::If {
@@ -108,26 +88,15 @@ fn optimize_stmt_id(stmt_id: Stmt, mut pool: AstPool, options: &OptimizeOptions)
             then_stmt,
             else_stmt,
         } => {
-            let (new_cond, new_pool) = optimize_expr_id(condition, pool, options);
-            pool = new_pool;
-            pool = optimize_stmt_id(then_stmt, pool, options);
-            if let Some(else_id) = else_stmt {
-                pool = optimize_stmt_id(else_id, pool, options);
+            optimize_expr(condition, options);
+            changed |= optimize_stmt(then_stmt.as_mut(), options);
+            if let Some(else_s) = else_stmt {
+                changed |= optimize_stmt(else_s.as_mut(), options);
             }
-            pool.stmt_mut(stmt_id).kind = StmtKind::If {
-                condition: new_cond,
-                then_stmt,
-                else_stmt,
-            };
         }
         StmtKind::While { condition, body } => {
-            let (new_cond, new_pool) = optimize_expr_id(condition, pool, options);
-            pool = new_pool;
-            pool = optimize_stmt_id(body, pool, options);
-            pool.stmt_mut(stmt_id).kind = StmtKind::While {
-                condition: new_cond,
-                body,
-            };
+            optimize_expr(condition, options);
+            changed |= optimize_stmt(body.as_mut(), options);
         }
         StmtKind::For {
             init,
@@ -135,32 +104,18 @@ fn optimize_stmt_id(stmt_id: Stmt, mut pool: AstPool, options: &OptimizeOptions)
             increment,
             body,
         } => {
-            if let Some(init_id) = init {
-                pool = optimize_stmt_id(init_id, pool, options);
+            if let Some(init_stmt) = init {
+                changed |= optimize_stmt(init_stmt.as_mut(), options);
             }
-            let new_cond = if let Some(cond_id) = condition {
-                let (new_cond, new_pool) = optimize_expr_id(cond_id, pool, options);
-                pool = new_pool;
-                Some(new_cond)
-            } else {
-                None
-            };
-            let new_inc = if let Some(inc_id) = increment {
-                let (new_inc, new_pool) = optimize_expr_id(inc_id, pool, options);
-                pool = new_pool;
-                Some(new_inc)
-            } else {
-                None
-            };
-            pool = optimize_stmt_id(body, pool, options);
-            pool.stmt_mut(stmt_id).kind = StmtKind::For {
-                init,
-                condition: new_cond,
-                increment: new_inc,
-                body,
-            };
+            if let Some(cond) = condition {
+                optimize_expr(cond, options);
+            }
+            if let Some(inc) = increment {
+                optimize_expr(inc, options);
+            }
+            changed |= optimize_stmt(body.as_mut(), options);
         }
     }
 
-    pool
+    changed
 }
