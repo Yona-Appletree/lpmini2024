@@ -2,86 +2,7 @@ use core::ptr::NonNull;
 
 use crate::error::AllocError;
 use crate::pool::LpAllocator;
-
-#[cfg(feature = "std")]
-mod storage {
-    use std::cell::RefCell;
-    use std::thread_local;
-
-    use super::*;
-
-    thread_local! {
-        static ROOT_POOL: RefCell<Option<LpAllocator>> = const { RefCell::new(None) };
-    }
-
-    pub(super) fn set(pool: LpAllocator) {
-        ROOT_POOL.with(|cell| {
-            cell.replace(Some(pool));
-        });
-    }
-
-    pub(super) fn exists() -> bool {
-        ROOT_POOL.with(|cell| cell.borrow().is_some())
-    }
-
-    pub(super) fn with_ref<R, F>(f: F) -> Result<R, AllocError>
-    where
-        F: FnOnce(&LpAllocator) -> Result<R, AllocError>,
-    {
-        ROOT_POOL.with(|cell| {
-            let borrow = cell.borrow();
-            let pool = borrow.as_ref().ok_or(AllocError::PoolExhausted)?;
-            f(pool)
-        })
-    }
-
-    pub(super) fn with_mut<R, F>(f: F) -> Result<R, AllocError>
-    where
-        F: FnOnce(&mut LpAllocator) -> Result<R, AllocError>,
-    {
-        ROOT_POOL.with(|cell| {
-            let mut borrow = cell.borrow_mut();
-            let pool = borrow.as_mut().ok_or(AllocError::PoolExhausted)?;
-            f(pool)
-        })
-    }
-}
-
-#[cfg(not(feature = "std"))]
-mod storage {
-    use spin::Mutex;
-
-    use super::*;
-
-    static ROOT_POOL: Mutex<Option<LpAllocator>> = Mutex::new(None);
-
-    pub(super) fn set(pool: LpAllocator) {
-        let mut guard = ROOT_POOL.lock();
-        *guard = Some(pool);
-    }
-
-    pub(super) fn exists() -> bool {
-        ROOT_POOL.lock().is_some()
-    }
-
-    pub(super) fn with_ref<R, F>(f: F) -> Result<R, AllocError>
-    where
-        F: FnOnce(&LpAllocator) -> Result<R, AllocError>,
-    {
-        let guard = ROOT_POOL.lock();
-        let pool = guard.as_ref().ok_or(AllocError::PoolExhausted)?;
-        f(pool)
-    }
-
-    pub(super) fn with_mut<R, F>(f: F) -> Result<R, AllocError>
-    where
-        F: FnOnce(&mut LpAllocator) -> Result<R, AllocError>,
-    {
-        let mut guard = ROOT_POOL.lock();
-        let pool = guard.as_mut().ok_or(AllocError::PoolExhausted)?;
-        f(pool)
-    }
-}
+use crate::state;
 
 /// Main memory pool interface with thread-local allocator
 pub struct LpMemoryPool;
@@ -94,7 +15,7 @@ impl LpMemoryPool {
     /// - Memory must remain valid for the lifetime of the pool
     pub unsafe fn new(memory: NonNull<u8>, size: usize) -> Result<Self, AllocError> {
         let root_pool = LpAllocator::new(memory, size)?;
-        storage::set(root_pool);
+        state::set_allocator(root_pool);
         Ok(LpMemoryPool)
     }
 
@@ -104,7 +25,7 @@ impl LpMemoryPool {
         F: FnOnce() -> Result<R, E>,
         E: From<AllocError>,
     {
-        if !storage::exists() {
+        if !state::allocator_exists() {
             return Err(E::from(AllocError::PoolExhausted));
         }
         // Execute closure - it will access pool via with_active_pool()
@@ -113,7 +34,7 @@ impl LpMemoryPool {
 
     /// Get current memory usage statistics
     pub fn stats(&self) -> Result<PoolStats, AllocError> {
-        storage::with_ref(|pool| {
+        state::with_allocator(|pool| {
             Ok(PoolStats {
                 used_bytes: pool.used_bytes(),
                 capacity: pool.capacity(),
@@ -163,7 +84,7 @@ pub(crate) fn with_active_pool<F, R>(f: F) -> Result<R, AllocError>
 where
     F: FnOnce(&mut LpAllocator) -> Result<R, AllocError>,
 {
-    storage::with_mut(f)
+    state::with_allocator_mut(f)
 }
 
 #[cfg(test)]

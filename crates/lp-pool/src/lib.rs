@@ -41,7 +41,7 @@
 //! - **Coalescing overhead**: Block coalescing requires scanning memory, which has O(n) complexity for finding previous blocks
 
 extern crate alloc;
-#[cfg(feature = "std")]
+#[cfg(any(feature = "std", test))]
 extern crate std;
 
 pub mod allocator;
@@ -50,6 +50,7 @@ pub mod collections;
 pub mod error;
 pub mod memory_pool;
 pub mod pool;
+mod state;
 
 pub use allocator::LpAllocatorWrapper;
 pub use collections::{

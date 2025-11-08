@@ -1,14 +1,8 @@
 #[cfg(feature = "alloc-meta")]
-use alloc::collections::BTreeMap as MetaMap;
-#[cfg(feature = "alloc-meta")]
-use alloc::format;
-#[cfg(all(feature = "alloc-meta", feature = "std"))]
-use std::cell::RefCell as StdRefCell;
-#[cfg(all(feature = "alloc-meta", feature = "std"))]
-use std::thread_local;
+use alloc::{collections::BTreeMap, format};
 
-#[cfg(all(feature = "alloc-meta", not(feature = "std")))]
-use spin::Mutex;
+#[cfg(feature = "alloc-meta")]
+use crate::state;
 
 #[cfg(feature = "alloc-meta")]
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
@@ -25,57 +19,12 @@ pub(crate) struct AllocationStats {
 }
 
 #[cfg(feature = "alloc-meta")]
-mod storage {
-    use super::*;
-
-    #[cfg(feature = "std")]
-    thread_local! {
-        static ALLOCATION_META_STATS: StdRefCell<MetaMap<AllocationMeta, AllocationStats>> =
-            const { StdRefCell::new(MetaMap::new()) };
-    }
-
-    #[cfg(feature = "std")]
-    pub(super) fn with_stats_mut<F, R>(f: F) -> R
-    where
-        F: FnOnce(&mut MetaMap<AllocationMeta, AllocationStats>) -> R,
-    {
-        ALLOCATION_META_STATS.with(|cell| f(&mut cell.borrow_mut()))
-    }
-
-    #[cfg(feature = "std")]
-    pub(super) fn with_stats<F, R>(f: F) -> R
-    where
-        F: FnOnce(&MetaMap<AllocationMeta, AllocationStats>) -> R,
-    {
-        ALLOCATION_META_STATS.with(|cell| f(&cell.borrow()))
-    }
-
-    #[cfg(not(feature = "std"))]
-    static ALLOCATION_META_STATS: Mutex<MetaMap<AllocationMeta, AllocationStats>> =
-        Mutex::new(MetaMap::new());
-
-    #[cfg(not(feature = "std"))]
-    pub(super) fn with_stats_mut<F, R>(f: F) -> R
-    where
-        F: FnOnce(&mut MetaMap<AllocationMeta, AllocationStats>) -> R,
-    {
-        let mut guard = ALLOCATION_META_STATS.lock();
-        f(&mut *guard)
-    }
-
-    #[cfg(not(feature = "std"))]
-    pub(super) fn with_stats<F, R>(f: F) -> R
-    where
-        F: FnOnce(&MetaMap<AllocationMeta, AllocationStats>) -> R,
-    {
-        let guard = ALLOCATION_META_STATS.lock();
-        f(&*guard)
-    }
-}
+#[allow(clippy::module_name_repetitions)]
+pub(crate) type AllocationMetaMap = BTreeMap<AllocationMeta, AllocationStats>;
 
 #[cfg(feature = "alloc-meta")]
 pub(crate) fn record_allocation_meta(meta: AllocationMeta, size: usize) {
-    storage::with_stats_mut(|stats| {
+    state::with_meta_mut(|stats| {
         let entry = stats.entry(meta).or_insert(AllocationStats {
             count: 0,
             total_bytes: 0,
@@ -87,7 +36,7 @@ pub(crate) fn record_allocation_meta(meta: AllocationMeta, size: usize) {
 
 #[cfg(feature = "alloc-meta")]
 pub(crate) fn remove_allocation_meta(meta: AllocationMeta, size: usize) {
-    storage::with_stats_mut(|stats| {
+    state::with_meta_mut(|stats| {
         if let Some(entry) = stats.get_mut(&meta) {
             entry.count = entry.count.saturating_sub(1);
             entry.total_bytes = entry.total_bytes.saturating_sub(size);
@@ -107,7 +56,7 @@ pub fn print_memory_stats_with<F>(print: F)
 where
     F: Fn(&str),
 {
-    storage::with_stats(|stats| {
+    state::with_meta(|stats| {
         print("Memory Statistics by Type and Scope:");
         print(
             "----------------------------------------------------------------------------------------",
@@ -174,7 +123,7 @@ where
 mod tests {
     use core::ptr::NonNull;
 
-    use super::{storage, *};
+    use super::*;
     use crate::{LpBox, LpMemoryPool, LpVec};
 
     fn setup_pool() -> LpMemoryPool {
@@ -189,13 +138,13 @@ mod tests {
 
         pool.run(|| {
             // Clear any previous metadata
-            let initial_count = storage::with_stats(|stats| stats.len());
+            let initial_count = crate::state::with_meta(|stats| stats.len());
 
             // Allocate with scope
             let _box1 = LpBox::try_new_with_scope(42i32, Some("test_scope"))?;
 
             // Check metadata was recorded
-            let len_after = storage::with_stats(|stats| stats.len());
+            let len_after = crate::state::with_meta(|stats| stats.len());
             assert!(len_after >= initial_count);
 
             Ok::<(), crate::AllocError>(())
@@ -213,14 +162,14 @@ mod tests {
                 let _box2 = LpBox::try_new_with_scope([0u8; 64], Some("scope2"))?;
 
                 // Metadata should be tracked
-                let count_during = storage::with_stats(|stats| stats.len());
+                let count_during = crate::state::with_meta(|stats| stats.len());
                 assert!(count_during > 0);
             }
 
             // After drop, metadata should be cleaned up
             // All scoped allocations should be removed
             let entries: alloc::vec::Vec<(AllocationMeta, AllocationStats)> =
-                storage::with_stats(|stats| {
+                crate::state::with_meta(|stats| {
                     stats.iter().map(|(meta, stat)| (*meta, *stat)).collect()
                 });
 
@@ -253,7 +202,7 @@ mod tests {
             // Metadata should reflect vec allocations
             // Note: metadata tracking is best-effort, so we don't assert
             // Just verify it doesn't crash and that we can iterate metadata
-            storage::with_stats(|stats| {
+            crate::state::with_meta(|stats| {
                 for _ in stats.iter() {
                     // no-op
                 }
