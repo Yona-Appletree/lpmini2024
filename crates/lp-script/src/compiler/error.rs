@@ -87,6 +87,17 @@ impl fmt::Display for ParseError {
             ParseErrorKind::StmtLimitExceeded { max } => {
                 write!(f, "statement node limit exceeded (max: {})", max)
             }
+            ParseErrorKind::AllocationFailed(msg) => write!(f, "allocation failed: {}", msg),
+        }
+    }
+}
+
+impl From<lp_pool::AllocError> for ParseError {
+    fn from(e: lp_pool::AllocError) -> Self {
+        use alloc::format;
+        ParseError {
+            kind: ParseErrorKind::AllocationFailed(format!("{}", e)),
+            span: Span::new(0, 0),
         }
     }
 }
