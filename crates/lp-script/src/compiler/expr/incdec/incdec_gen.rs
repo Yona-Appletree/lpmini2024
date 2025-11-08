@@ -1,8 +1,4 @@
 /// Increment/Decrement operation code generation
-extern crate alloc;
-
-use alloc::string::String;
-
 use crate::compiler::codegen::CodeGenerator;
 use crate::fixed::ToFixed;
 use crate::shared::Type;
