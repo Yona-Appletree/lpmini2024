@@ -1,7 +1,7 @@
 /// Integration tests for the analyzer + type checker + codegen pipeline
 ///
 /// These tests verify the multi-pass compilation architecture:
-/// 1. Parse: AST + AstPool construction
+/// 1. Parse: AST construction
 /// 2. Analyze: Build function metadata table (signatures + locals)
 /// 3. Type Check: Validate types using metadata (includes return type validation)
 /// 4. Codegen: Generate bytecode using pre-analyzed locals
@@ -15,13 +15,55 @@
 /// - Multi-function programs
 #[cfg(test)]
 mod tests {
+    extern crate alloc;
+
     use crate::compiler::analyzer::FunctionAnalyzer;
+    use crate::compiler::ast::Program;
     use crate::compiler::codegen::CodeGenerator;
+    use crate::compiler::func::FunctionTable;
     use crate::compiler::lexer::Lexer;
     use crate::compiler::parser::Parser;
     use crate::compiler::typechecker::TypeChecker;
     use crate::shared::Type;
     use crate::{compile_script_with_options, OptimizeOptions};
+    use alloc::boxed::Box;
+    use core::ptr::NonNull;
+    use lp_pool::LpMemoryPool;
+    use std::cell::RefCell;
+    use std::thread_local;
+
+    thread_local! {
+        static THREAD_POOL_STATE: RefCell<Option<&'static mut [u8]>> = RefCell::new(None);
+    }
+
+    fn ensure_pool() {
+        const POOL_SIZE: usize = 512 * 1024;
+
+        THREAD_POOL_STATE.with(|state| {
+            if state.borrow().is_none() {
+                let boxed = vec![0u8; POOL_SIZE].into_boxed_slice();
+                let leaked = Box::leak(boxed);
+                let memory_ptr = NonNull::new(leaked.as_mut_ptr())
+                    .expect("pool memory pointer must be non-null");
+                unsafe {
+                    LpMemoryPool::new(memory_ptr, POOL_SIZE).expect("failed to initialize lp-pool");
+                }
+                state.borrow_mut().replace(leaked);
+            }
+        });
+    }
+
+    fn parse_and_analyze(source: &str) -> (Program, FunctionTable) {
+        ensure_pool();
+
+        let mut lexer = Lexer::new(source);
+        let tokens = lexer.tokenize();
+        let parser = Parser::new(tokens);
+        let mut program = parser.parse_program().expect("parse should succeed");
+        let func_table =
+            FunctionAnalyzer::analyze_program(&program).expect("analysis should succeed");
+        (program, func_table)
+    }
 
     #[test]
     fn test_pipeline_simple_function_no_params() {
@@ -32,32 +74,17 @@ mod tests {
             return getPi();
         ";
 
-        // Parse
-        let mut lexer = Lexer::new(program_text);
-        let tokens = lexer.tokenize();
-        let parser = Parser::new(tokens);
-        let (program, pool) = parser.parse_program().expect("parse should succeed");
+        let (mut program, func_table) = parse_and_analyze(program_text);
 
-        // Analyze
-        let func_table =
-            FunctionAnalyzer::analyze_program(&program, &pool).expect("analysis should succeed");
-
-        // Verify function metadata
         let get_pi_meta = func_table.lookup("getPi").expect("getPi should exist");
         assert_eq!(get_pi_meta.params.len(), 0);
         assert_eq!(get_pi_meta.return_type, Type::Fixed);
         assert_eq!(get_pi_meta.local_count, 0);
 
-        // Type check
-        let (typed_program, pool) = TypeChecker::check_program(program, pool, &func_table)
-            .expect("type check should succeed");
+        TypeChecker::check_program(&mut program, &func_table).expect("type check should succeed");
 
-        // Codegen
-        let functions =
-            CodeGenerator::generate_program_with_functions(&pool, &typed_program, &func_table);
-
-        // Verify we have main + getPi
-        assert_eq!(functions.len(), 2);
+        let functions = CodeGenerator::generate_program_with_functions(&program, &func_table);
+        assert_eq!(functions.len(), 2); // main + getPi
         assert_eq!(functions[0].name, "main");
         assert_eq!(functions[1].name, "getPi");
     }
@@ -71,24 +98,15 @@ mod tests {
             return add(1.0, 2.0);
         ";
 
-        let mut lexer = Lexer::new(program_text);
-        let tokens = lexer.tokenize();
-        let parser = Parser::new(tokens);
-        let (program, pool) = parser.parse_program().expect("parse should succeed");
-
-        let func_table =
-            FunctionAnalyzer::analyze_program(&program, &pool).expect("analysis should succeed");
+        let (mut program, func_table) = parse_and_analyze(program_text);
 
         let add_meta = func_table.lookup("add").expect("add should exist");
         assert_eq!(add_meta.params.len(), 2);
         assert_eq!(add_meta.local_count, 2); // 2 params = 2 locals
 
-        let (_typed_program, pool) = TypeChecker::check_program(program, pool, &func_table)
-            .expect("type check should succeed");
+        TypeChecker::check_program(&mut program, &func_table).expect("type check should succeed");
 
-        // Make sure we can generate code
-        let _functions =
-            CodeGenerator::generate_program_with_functions(&pool, &_typed_program, &func_table);
+        let _functions = CodeGenerator::generate_program_with_functions(&program, &func_table);
     }
 
     #[test]
@@ -102,22 +120,13 @@ mod tests {
             return calculate(5.0);
         ";
 
-        let mut lexer = Lexer::new(program_text);
-        let tokens = lexer.tokenize();
-        let parser = Parser::new(tokens);
-        let (program, pool) = parser.parse_program().expect("parse should succeed");
-
-        let func_table =
-            FunctionAnalyzer::analyze_program(&program, &pool).expect("analysis should succeed");
+        let (mut program, func_table) = parse_and_analyze(program_text);
 
         let calc_meta = func_table
             .lookup("calculate")
             .expect("calculate should exist");
-        // 1 param + 2 locals = 3 total
-        assert_eq!(calc_meta.local_count, 3);
+        assert_eq!(calc_meta.local_count, 3); // 1 param + 2 locals = 3 total
         assert_eq!(calc_meta.locals.len(), 3);
-
-        // Verify ordering: param first, then locals in declaration order
         assert_eq!(calc_meta.locals[0].name, "x");
         assert_eq!(calc_meta.locals[0].index, 0);
         assert_eq!(calc_meta.locals[1].name, "temp");
@@ -125,13 +134,9 @@ mod tests {
         assert_eq!(calc_meta.locals[2].name, "result");
         assert_eq!(calc_meta.locals[2].index, 2);
 
-        let (_typed_program, pool) = TypeChecker::check_program(program, pool, &func_table)
-            .expect("type check should succeed");
+        TypeChecker::check_program(&mut program, &func_table).expect("type check should succeed");
 
-        let functions =
-            CodeGenerator::generate_program_with_functions(&pool, &_typed_program, &func_table);
-
-        // Verify codegen produced correct locals
+        let functions = CodeGenerator::generate_program_with_functions(&program, &func_table);
         let calc_func = functions.iter().find(|f| f.name == "calculate").unwrap();
         assert_eq!(calc_func.locals.len(), 3);
     }
@@ -145,13 +150,7 @@ mod tests {
             return sumVec2(vec2(3.0, 4.0));
         ";
 
-        let mut lexer = Lexer::new(program_text);
-        let tokens = lexer.tokenize();
-        let parser = Parser::new(tokens);
-        let (program, pool) = parser.parse_program().expect("parse should succeed");
-
-        let func_table =
-            FunctionAnalyzer::analyze_program(&program, &pool).expect("analysis should succeed");
+        let (mut program, func_table) = parse_and_analyze(program_text);
 
         let sum_meta = func_table.lookup("sumVec2").expect("sumVec2 should exist");
         assert_eq!(sum_meta.params.len(), 1);
@@ -159,11 +158,9 @@ mod tests {
         assert_eq!(sum_meta.local_count, 1);
         assert_eq!(sum_meta.locals[0].ty, Type::Vec2);
 
-        let (_typed_program, pool) = TypeChecker::check_program(program, pool, &func_table)
-            .expect("type check should succeed");
+        TypeChecker::check_program(&mut program, &func_table).expect("type check should succeed");
 
-        let _functions =
-            CodeGenerator::generate_program_with_functions(&pool, &_typed_program, &func_table);
+        let _functions = CodeGenerator::generate_program_with_functions(&program, &func_table);
     }
 
     #[test]
@@ -211,13 +208,7 @@ mod tests {
             return test();
         ";
 
-        let mut lexer = Lexer::new(program_text);
-        let tokens = lexer.tokenize();
-        let parser = Parser::new(tokens);
-        let (program, pool) = parser.parse_program().expect("parse should succeed");
-
-        let func_table =
-            FunctionAnalyzer::analyze_program(&program, &pool).expect("analysis should succeed");
+        let (program, func_table) = parse_and_analyze(program_text);
 
         let test_meta = func_table.lookup("test").expect("test should exist");
         // Outer x + inner x = 2 locals
@@ -229,6 +220,9 @@ mod tests {
         assert_eq!(test_meta.locals[0].index, 0);
         assert_eq!(test_meta.locals[1].name, "x");
         assert_eq!(test_meta.locals[1].index, 1);
+
+        drop(func_table);
+        drop(program);
 
         let result = compile_script_with_options(program_text, &OptimizeOptions::none());
         assert!(result.is_ok(), "Shadowing should compile successfully");
@@ -246,25 +240,14 @@ mod tests {
             return double(5.0) + triple(3.0);
         ";
 
-        let mut lexer = Lexer::new(program_text);
-        let tokens = lexer.tokenize();
-        let parser = Parser::new(tokens);
-        let (program, pool) = parser.parse_program().expect("parse should succeed");
-
-        let func_table =
-            FunctionAnalyzer::analyze_program(&program, &pool).expect("analysis should succeed");
-
+        let (mut program, func_table) = parse_and_analyze(program_text);
         assert!(func_table.lookup("double").is_some());
         assert!(func_table.lookup("triple").is_some());
 
-        let (_typed_program, pool) = TypeChecker::check_program(program, pool, &func_table)
-            .expect("type check should succeed");
+        TypeChecker::check_program(&mut program, &func_table).expect("type check should succeed");
 
-        let functions =
-            CodeGenerator::generate_program_with_functions(&pool, &_typed_program, &func_table);
-
-        // main + double + triple
-        assert_eq!(functions.len(), 3);
+        let functions = CodeGenerator::generate_program_with_functions(&program, &func_table);
+        assert_eq!(functions.len(), 3); // main + double + triple
     }
 
     #[test]
@@ -303,17 +286,14 @@ mod tests {
             return test();
         ";
 
-        let mut lexer = Lexer::new(program_text);
-        let tokens = lexer.tokenize();
-        let parser = Parser::new(tokens);
-        let (program, pool) = parser.parse_program().expect("parse should succeed");
-
-        let func_table =
-            FunctionAnalyzer::analyze_program(&program, &pool).expect("analysis should succeed");
+        let (program, func_table) = parse_and_analyze(program_text);
 
         let test_meta = func_table.lookup("test").expect("test should exist");
         // a, b, c = 3 locals
         assert_eq!(test_meta.local_count, 3);
+
+        drop(func_table);
+        drop(program);
 
         let result = compile_script_with_options(program_text, &OptimizeOptions::none());
         assert!(result.is_ok(), "Nested blocks should compile successfully");

@@ -514,10 +514,10 @@ mod tests {
         let mut lexer = Lexer::new(program_text);
         let tokens = lexer.tokenize();
         let parser = Parser::new(tokens);
-        let (program, pool) = parser.parse_program().expect("parse should succeed");
+        let program = parser.parse_program().expect("parse should succeed");
 
         let func_table =
-            FunctionAnalyzer::analyze_program(&program, &pool).expect("analysis should succeed");
+            FunctionAnalyzer::analyze_program(&program).expect("analysis should succeed");
 
         let metadata = func_table.lookup("test").expect("function should exist");
 

@@ -94,6 +94,24 @@ impl AstBuilder {
         self.unary(ExprKind::BitwiseNot, value, Some(Type::Int32))
     }
 
+    pub fn left_shift(&mut self, left: Expr, right: Expr) -> Expr {
+        self.binary(
+            |l, r| ExprKind::LeftShift(l, r),
+            left,
+            right,
+            Some(Type::Int32),
+        )
+    }
+
+    pub fn right_shift(&mut self, left: Expr, right: Expr) -> Expr {
+        self.binary(
+            |l, r| ExprKind::RightShift(l, r),
+            left,
+            right,
+            Some(Type::Int32),
+        )
+    }
+
     // ---------------------------------------------------------------------
     // Comparison helpers (return Bool)
     // ---------------------------------------------------------------------
@@ -146,6 +164,14 @@ impl AstBuilder {
         self.unary(ExprKind::Not, value, Some(Type::Bool))
     }
 
+    pub fn logical_and(&mut self, left: Expr, right: Expr) -> Expr {
+        self.and(left, right)
+    }
+
+    pub fn logical_or(&mut self, left: Expr, right: Expr) -> Expr {
+        self.or(left, right)
+    }
+
     // ---------------------------------------------------------------------
     // Unary helpers
     // ---------------------------------------------------------------------
@@ -171,7 +197,15 @@ impl AstBuilder {
     // ---------------------------------------------------------------------
     // Function call helpers
     // ---------------------------------------------------------------------
-    pub fn call(&mut self, name: &str, args: Vec<Expr>, ty: Option<Type>) -> Expr {
+    pub fn call(&mut self, name: &str, args: Vec<Expr>, ty: Type) -> Expr {
+        self.call_with_type(name, args, Some(ty))
+    }
+
+    pub fn call_untyped(&mut self, name: &str, args: Vec<Expr>) -> Expr {
+        self.call_with_type(name, args, None)
+    }
+
+    fn call_with_type(&mut self, name: &str, args: Vec<Expr>, ty: Option<Type>) -> Expr {
         let mut expr = Expr::new(
             ExprKind::Call {
                 name: String::from(name),
@@ -211,6 +245,19 @@ impl AstBuilder {
         );
         result.ty = ty;
         result
+    }
+
+    pub fn ternary(&mut self, condition: Expr, then_expr: Expr, else_expr: Expr, ty: Type) -> Expr {
+        let mut expr = Expr::new(
+            ExprKind::Ternary {
+                condition: self.box_expr(condition),
+                true_expr: self.box_expr(then_expr),
+                false_expr: self.box_expr(else_expr),
+            },
+            Span::EMPTY,
+        );
+        expr.ty = Some(ty);
+        expr
     }
 
     // ---------------------------------------------------------------------

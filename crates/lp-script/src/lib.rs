@@ -132,7 +132,7 @@ pub fn compile_expr_with_options(
         let mut lexer = lexer::Lexer::new(input);
         let tokens = lexer.tokenize();
 
-        let parser = parser::Parser::new(tokens);
+        let mut parser = parser::Parser::new(tokens);
         let mut expr = parser.parse()?;
 
         // Type check the AST (in-place, mutating types on nodes)
@@ -208,7 +208,7 @@ pub fn compile_script_with_options(
         let mut lexer = lexer::Lexer::new(input);
         let tokens = lexer.tokenize();
 
-        let mut parser = parser::Parser::new(tokens);
+        let parser = parser::Parser::new(tokens);
         let mut program = parser.parse_program()?;
 
         // Analyze program to build function metadata table

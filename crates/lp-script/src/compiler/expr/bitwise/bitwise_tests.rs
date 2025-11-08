@@ -2,7 +2,6 @@
 #[cfg(test)]
 mod tests {
     use crate::compiler::expr::expr_test_util::ExprTest;
-    use crate::shared::Type;
     use crate::vm::opcodes::LpsOpCode;
 
     #[test]
@@ -11,7 +10,7 @@ mod tests {
             .expect_ast(|b| {
                 let left = b.int32(12);
                 let right = b.int32(10);
-                b.bitwise_and(left, right, Type::Int32)
+                b.bitwise_and(left, right)
             })
             .expect_opcodes(vec![
                 LpsOpCode::PushInt32(12),
@@ -29,7 +28,7 @@ mod tests {
             .expect_ast(|b| {
                 let left = b.int32(12);
                 let right = b.int32(10);
-                b.bitwise_or(left, right, Type::Int32)
+                b.bitwise_or(left, right)
             })
             .expect_opcodes(vec![
                 LpsOpCode::PushInt32(12),
@@ -47,7 +46,7 @@ mod tests {
             .expect_ast(|b| {
                 let left = b.int32(12);
                 let right = b.int32(10);
-                b.bitwise_xor(left, right, Type::Int32)
+                b.bitwise_xor(left, right)
             })
             .expect_opcodes(vec![
                 LpsOpCode::PushInt32(12),
@@ -64,7 +63,7 @@ mod tests {
         ExprTest::new("~42")
             .expect_ast(|b| {
                 let operand = b.int32(42);
-                b.bitwise_not(operand, Type::Int32)
+                b.bitwise_not(operand)
             })
             .expect_opcodes(vec![
                 LpsOpCode::PushInt32(42),
@@ -80,8 +79,8 @@ mod tests {
         ExprTest::new("5 << 2")
             .expect_ast(|b| {
                 let left = b.int32(5);
-                let right: crate::compiler::ast::Expr = b.int32(2);
-                b.left_shift(left, right, Type::Int32)
+                let right = b.int32(2);
+                b.left_shift(left, right)
             })
             .expect_opcodes(vec![
                 LpsOpCode::PushInt32(5),
@@ -99,7 +98,7 @@ mod tests {
             .expect_ast(|b| {
                 let left = b.int32(20);
                 let right = b.int32(2);
-                b.right_shift(left, right, Type::Int32)
+                b.right_shift(left, right)
             })
             .expect_opcodes(vec![
                 LpsOpCode::PushInt32(20),
@@ -117,7 +116,7 @@ mod tests {
             .expect_ast(|b| {
                 let neg_eight = b.int32(-8); // Parser optimizes -8 to a single literal
                 let one = b.int32(1);
-                b.right_shift(neg_eight, one, Type::Int32)
+                b.right_shift(neg_eight, one)
             })
             .expect_opcodes(vec![
                 LpsOpCode::PushInt32(-8),
@@ -137,9 +136,9 @@ mod tests {
             .expect_ast(|b| {
                 let eight = b.int32(8);
                 let four = b.int32(4);
-                let and_result = b.bitwise_and(eight, four, Type::Int32);
+                let and_result = b.bitwise_and(eight, four);
                 let twelve = b.int32(12);
-                b.bitwise_or(twelve, and_result, Type::Int32)
+                b.bitwise_or(twelve, and_result)
             })
             .expect_result_int(12)
             .run()
@@ -153,11 +152,11 @@ mod tests {
             .expect_ast(|b| {
                 let twelve = b.int32(12);
                 let ten = b.int32(10);
-                let left = b.bitwise_and(twelve, ten, Type::Int32);
+                let left = b.bitwise_and(twelve, ten);
                 let five = b.int32(5);
                 let three = b.int32(3);
-                let right = b.bitwise_xor(five, three, Type::Int32);
-                b.bitwise_or(left, right, Type::Int32)
+                let right = b.bitwise_xor(five, three);
+                b.bitwise_or(left, right)
             })
             .expect_result_int(14)
             .run()
