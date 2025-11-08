@@ -105,7 +105,7 @@ impl TypeChecker {
 
     /// Check if all code paths in a statement list return
     fn all_paths_return(stmts: &[Stmt]) -> bool {
-        stmts.iter().any(|stmt| Self::stmt_always_returns(stmt))
+        stmts.iter().any(Self::stmt_always_returns)
     }
 
     /// Check if a statement always returns
