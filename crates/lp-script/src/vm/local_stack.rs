@@ -58,7 +58,7 @@ impl LocalStack {
                 });
             }
 
-            // Add metadata
+            // Add types
             let name = LpString::try_from_str(def.name.as_str())?;
             self.metadata.try_push(LocalMetadata {
                 name,
@@ -105,7 +105,7 @@ impl LocalStack {
                 self.sp = meta.offset;
             }
 
-            // Remove metadata for deallocated locals
+            // Remove types for deallocated locals
             while self.metadata.len() > local_idx {
                 self.metadata.pop();
             }
@@ -315,7 +315,7 @@ impl LocalStack {
         Ok(())
     }
 
-    /// Get metadata for a local (private helper)
+    /// Get types for a local (private helper)
     #[inline(always)]
     fn get_metadata(&self, idx: usize) -> Result<&LocalMetadata, LpsVmError> {
         self.metadata.get(idx).ok_or(LpsVmError::LocalOutOfBounds {

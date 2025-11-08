@@ -33,7 +33,7 @@ pub struct Program {
     pub span: Span,
 }
 
-/// Statement with metadata
+/// Statement with types
 #[derive(Debug, Clone)]
 pub struct Stmt {
     pub kind: StmtKind,
@@ -84,7 +84,7 @@ pub enum StmtKind {
     },
 }
 
-/// Expression with metadata (span and optional type)
+/// Expression with types (span and optional type)
 #[derive(Debug, Clone)]
 pub struct Expr {
     pub kind: ExprKind,

@@ -7,20 +7,16 @@ pub struct Vec3Type {
 }
 
 impl Vec3Type {
-    pub const fn new(ui: Vec3Ui) -> Self {
-        Self { ui }
-    }
-
     pub const fn raw() -> Self {
-        Self::new(Vec3Ui::Raw)
+        Self { ui: Vec3Ui::Raw }
     }
 
     pub const fn color() -> Self {
-        Self::new(Vec3Ui::Color)
+        Self { ui: Vec3Ui::Color }
     }
 }
 
-/// UI hints for vec3 fields.
+/// UI hints for Vec3.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Vec3Ui {
     Raw,

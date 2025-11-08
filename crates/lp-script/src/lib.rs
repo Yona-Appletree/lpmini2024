@@ -216,7 +216,7 @@ pub fn compile_script_with_options(
             let parser = parser::Parser::new(tokens);
             let mut program = parser.parse_program()?;
 
-            // Analyze program to build function metadata table
+            // Analyze program to build function types table
             let func_table = compiler::analyzer::FunctionAnalyzer::analyze_program(&program)?;
 
             // Type check the program with the analyzed function table

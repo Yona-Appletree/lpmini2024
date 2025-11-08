@@ -7,9 +7,9 @@ use lp_pool::collections::string::LpString;
 use lp_pool::error::AllocError;
 use lp_pool::memory_pool::LpMemoryPool;
 
-use crate::metadata::{LpTypeMeta, RecordField, RecordType};
-use crate::value::{LpValue, RuntimeError};
-use crate::TypeRef;
+use crate::metadata::{LpTypeMeta, TypeRef};
+use crate::types::{RecordField, RecordType};
+use crate::value::LpValue;
 
 #[test]
 fn test_scalar_values() {

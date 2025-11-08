@@ -103,7 +103,7 @@ impl LpAllocator {
                 self.used_bytes += alloc_size;
 
                 let metadata_ptr = alloc_block_ptr.add(aligned_data_offset);
-                // Store metadata (offset back to header)
+                // Store types (offset back to header)
                 core::ptr::write_unaligned(metadata_ptr as *mut usize, alloc_block_ptr as usize);
 
                 let user_ptr = aligned_user_addr as *mut u8;

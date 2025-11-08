@@ -97,7 +97,7 @@ impl ParamDef {
     }
 }
 
-/// Local variable definition (metadata only, for compiled functions)
+/// Local variable definition (types only, for compiled functions)
 #[derive(Debug, Clone)]
 pub struct LocalVarDef {
     pub name: String,

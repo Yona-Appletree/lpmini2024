@@ -1,4 +1,4 @@
-/// Function analysis pass - discovers locals and builds function metadata
+/// Function analysis pass - discovers locals and builds function types
 extern crate alloc;
 use alloc::vec::Vec;
 
@@ -8,11 +8,11 @@ use crate::compiler::error::{TypeError, TypeErrorKind};
 use crate::compiler::func::{FunctionMetadata, FunctionTable, LocalVarInfo};
 use crate::shared::Type;
 
-/// Function analyzer for discovering locals and building metadata
+/// Function analyzer for discovering locals and building types
 pub struct FunctionAnalyzer;
 
 impl FunctionAnalyzer {
-    /// Analyze a program and build function metadata table
+    /// Analyze a program and build function types table
     pub fn analyze_program(program: &Program) -> Result<FunctionTable, TypeError> {
         let mut func_table = FunctionTable::new();
 

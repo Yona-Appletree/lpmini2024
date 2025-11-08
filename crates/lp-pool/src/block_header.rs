@@ -113,7 +113,7 @@ impl BlockHeader {
 
         let metadata_addr = data_addr
             .checked_sub(metadata_size)
-            .expect("data pointer lacks metadata region");
+            .expect("data pointer lacks types region");
         let stored_ptr = core::ptr::read_unaligned(metadata_addr as *const usize);
         let block_addr = stored_ptr;
 

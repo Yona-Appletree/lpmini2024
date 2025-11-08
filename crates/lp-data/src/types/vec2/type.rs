@@ -7,22 +7,25 @@ pub struct Vec2Type {
 }
 
 impl Vec2Type {
-    pub const fn new(ui: Vec2Ui) -> Self {
-        Self { ui }
-    }
-
     pub const fn raw() -> Self {
-        Self::new(Vec2Ui::Raw)
+        Self { ui: Vec2Ui::Raw }
     }
 
     pub const fn position() -> Self {
-        Self::new(Vec2Ui::Position)
+        Self {
+            ui: Vec2Ui::Position,
+        }
+    }
+
+    pub const fn color() -> Self {
+        Self { ui: Vec2Ui::Color }
     }
 }
 
-/// UI hints for vec2 fields.
+/// UI hints for Vec2.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Vec2Ui {
     Raw,
     Position,
+    Color,
 }

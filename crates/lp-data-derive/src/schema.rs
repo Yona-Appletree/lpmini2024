@@ -840,11 +840,9 @@ fn primitive_meta_expr(
                 Ok(quote! { lp_data::LpTypeMeta::new(lp_data::LpType::string()) })
             }
             Some(UiAttr::StringMultiline) => Ok(quote! {
-                lp_data::LpTypeMeta::new(lp_data::LpType::Scalar(
-                    lp_data::LpScalarType::String(lp_data::StringScalar {
-                        ui: lp_data::StringUi::MultiLine,
-                    })
-                ))
+                lp_data::LpTypeMeta::new(lp_data::LpType::String(lp_data::StringScalar {
+                    ui: lp_data::StringUi::MultiLine,
+                }))
             }),
             Some(other) => Err(Error::new(
                 span,
@@ -856,7 +854,7 @@ fn primitive_meta_expr(
         },
         PrimitiveKind::Int32 => match ui {
             None | Some(UiAttr::NumberTextbox) => Ok(quote! {
-                lp_data::LpTypeMeta::new(lp_data::LpType::Scalar(lp_data::LpScalarType::int32()))
+                lp_data::LpTypeMeta::new(lp_data::LpType::int32())
             }),
             Some(UiAttr::NumberSlider { min, max, step }) => {
                 let slider = if let Some(step) = step {
@@ -865,11 +863,9 @@ fn primitive_meta_expr(
                     quote! { lp_data::SliderUi::new((#min) as f64, (#max) as f64) }
                 };
                 Ok(quote! {
-                    lp_data::LpTypeMeta::new(lp_data::LpType::Scalar(
-                        lp_data::LpScalarType::Int32(lp_data::Int32Scalar {
-                            ui: lp_data::NumberUi::Slider(#slider),
-                        })
-                    ))
+                    lp_data::LpTypeMeta::new(lp_data::LpType::Int32(lp_data::Int32Scalar {
+                        ui: lp_data::NumberUi::Slider(#slider),
+                    }))
                 })
             }
             Some(other) => Err(Error::new(
@@ -882,7 +878,7 @@ fn primitive_meta_expr(
         },
         PrimitiveKind::Fixed => match ui {
             None | Some(UiAttr::NumberTextbox) => Ok(quote! {
-                lp_data::LpTypeMeta::new(lp_data::LpType::Scalar(lp_data::LpScalarType::fixed()))
+                lp_data::LpTypeMeta::new(lp_data::LpType::fixed())
             }),
             Some(UiAttr::NumberSlider { min, max, step }) => {
                 let slider = if let Some(step) = step {
@@ -891,11 +887,9 @@ fn primitive_meta_expr(
                     quote! { lp_data::SliderUi::new((#min) as f64, (#max) as f64) }
                 };
                 Ok(quote! {
-                    lp_data::LpTypeMeta::new(lp_data::LpType::Scalar(
-                        lp_data::LpScalarType::Fixed(lp_data::FixedScalar {
-                            ui: lp_data::NumberUi::Slider(#slider),
-                        })
-                    ))
+                    lp_data::LpTypeMeta::new(lp_data::LpType::Fixed(lp_data::FixedScalar {
+                        ui: lp_data::NumberUi::Slider(#slider),
+                    }))
                 })
             }
             Some(other) => Err(Error::new(
@@ -963,12 +957,12 @@ fn vector_meta_expr(
 fn bool_meta_expr(ui: &Option<UiAttr>, span: Span) -> Result<TokenStream2, Error> {
     match ui {
         None | Some(UiAttr::BoolCheckbox) | Some(UiAttr::NumberTextbox) => Ok(quote! {
-            lp_data::LpTypeMeta::new(lp_data::LpType::Scalar(lp_data::LpScalarType::boolean()))
+            lp_data::LpTypeMeta::new(lp_data::LpType::boolean())
         }),
         Some(UiAttr::BoolToggle) => Ok(quote! {
-            lp_data::LpTypeMeta::new(lp_data::LpType::Scalar(lp_data::LpScalarType::Bool(lp_data::BoolScalar {
+            lp_data::LpTypeMeta::new(lp_data::LpType::Bool(lp_data::BoolScalar {
                 ui: lp_data::BoolUi::Toggle,
-            })))
+            }))
         }),
         Some(other) => Err(Error::new(
             span,

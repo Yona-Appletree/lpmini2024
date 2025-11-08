@@ -12,7 +12,7 @@ impl LpString {
         LpString { vec: LpVec::new() }
     }
 
-    /// Create a new LpString with a scope identifier for metadata tracking
+    /// Create a new LpString with a scope identifier for types tracking
     #[cfg(feature = "alloc-meta")]
     pub fn new_with_scope(scope: Option<&'static str>) -> Self {
         LpString {
@@ -20,7 +20,7 @@ impl LpString {
         }
     }
 
-    /// Create a new LpString with a scope identifier for metadata tracking
+    /// Create a new LpString with a scope identifier for types tracking
     #[cfg(not(feature = "alloc-meta"))]
     pub fn new_with_scope(_scope: Option<&'static str>) -> Self {
         Self::new()

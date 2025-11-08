@@ -14,12 +14,12 @@ pub struct LpBox<T> {
 }
 
 impl<T> LpBox<T> {
-    /// Create a new LpBox with optional scope for metadata tracking
+    /// Create a new LpBox with optional scope for types tracking
     pub fn try_new(value: T) -> Result<Self, AllocError> {
         Self::try_new_with_scope(value, None)
     }
 
-    /// Create a new LpBox with a scope identifier for metadata tracking
+    /// Create a new LpBox with a scope identifier for types tracking
     pub fn try_new_with_scope(value: T, scope: Option<&'static str>) -> Result<Self, AllocError> {
         let layout = Layout::new::<T>();
 

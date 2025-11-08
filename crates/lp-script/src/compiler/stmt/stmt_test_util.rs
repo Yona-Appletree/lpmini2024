@@ -19,7 +19,7 @@ use crate::vm::{FunctionDef, LpsOpCode, LpsProgram};
 
 type ProgramBuilder = Box<dyn FnOnce(&mut StmtBuilder) -> Program>;
 
-/// Function metadata assertion helper
+/// Function types assertion helper
 pub struct FunctionMetadataAssertion {
     pub function_name: String,
     pub expected_param_count: Option<usize>,
@@ -33,7 +33,7 @@ pub struct FunctionMetadataAssertion {
 ///
 /// Supports testing all compilation phases:
 /// - Parse: AST construction
-/// - Analyze: Function metadata and local discovery
+/// - Analyze: Function types and local discovery
 /// - Type Check: Type validation and return type checking
 /// - Codegen: Bytecode generation
 /// - Execution: Runtime behavior
@@ -269,7 +269,7 @@ impl ScriptTest {
                 Self::check_metadata_assertion(metadata, assertion, &mut errors);
             } else {
                 errors.push(format!(
-                    "Function metadata check: Function '{}' not found in function table",
+                    "Function types check: Function '{}' not found in function table",
                     assertion.function_name
                 ));
             }

@@ -2,8 +2,8 @@
 ///
 /// These tests verify the multi-pass compilation architecture:
 /// 1. Parse: AST construction
-/// 2. Analyze: Build function metadata table (signatures + locals)
-/// 3. Type Check: Validate types using metadata (includes return type validation)
+/// 2. Analyze: Build function types table (signatures + locals)
+/// 3. Type Check: Validate types using types (includes return type validation)
 /// 4. Codegen: Generate bytecode using pre-analyzed locals
 ///
 /// Key features tested:

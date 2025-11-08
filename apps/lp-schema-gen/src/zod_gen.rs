@@ -1,7 +1,9 @@
-use lp_data::{
-    ArrayType, EnumType, EnumVariant, LpScalarType, LpType, LpTypeMeta, NumberUi, RecordType,
-    TypeRef, TypeRegistry, Vec2Type, Vec3Type, Vec4Type,
-};
+use lp_data::types::meta::{LpType, LpTypeMeta, TypeRef};
+use lp_data::types::scalar::meta::{LpScalarType, NumberUi};
+use lp_data::types::vec2::meta::Vec2Type;
+use lp_data::types::vec3::meta::Vec3Type;
+use lp_data::types::vec4::meta::Vec4Type;
+use lp_data::{ArrayType, EnumType, EnumVariant, RecordType, TypeRegistry};
 
 /// Generate Zod schema TypeScript code from a TypeRegistry
 pub fn generate_zod_schemas(registry: &TypeRegistry) -> String {

@@ -33,7 +33,7 @@ impl<T> LpVec<T> {
         }
     }
 
-    /// Create a new LpVec with a scope identifier for metadata tracking
+    /// Create a new LpVec with a scope identifier for types tracking
     #[cfg(feature = "alloc-meta")]
     pub fn new_with_scope(scope: Option<&'static str>) -> Self {
         LpVec {
@@ -45,7 +45,7 @@ impl<T> LpVec<T> {
         }
     }
 
-    /// Create a new LpVec with a scope identifier for metadata tracking
+    /// Create a new LpVec with a scope identifier for types tracking
     #[cfg(not(feature = "alloc-meta"))]
     pub fn new_with_scope(_scope: Option<&'static str>) -> Self {
         Self::new()

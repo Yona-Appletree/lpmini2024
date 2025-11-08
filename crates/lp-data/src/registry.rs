@@ -8,7 +8,7 @@ pub trait LpDescribe {
     /// Canonical name for the described type.
     const TYPE_NAME: &'static str;
 
-    /// Returns the schema metadata for this type.
+    /// Returns the schema types for this type.
     /// Implementations should be const to allow use in const contexts.
     fn lp_schema() -> &'static LpTypeMeta;
 }

@@ -10,7 +10,7 @@
 //! - **Grow/shrink support**: Dynamic resizing of allocations
 //! - **allocator-api2 compatible**: Implements `Allocator` trait for use with standard collections
 //! - **Pool-backed collections**: Custom `LpVec`, `LpString`, `LpBTreeMap`, and `LpBox`
-//! - **Allocation metadata tracking**: Optional tracking of allocation types and scopes (via `alloc-meta` feature)
+//! - **Allocation types tracking**: Optional tracking of allocation types and scopes (via `alloc-meta` feature)
 //!
 //! ## Example
 //!

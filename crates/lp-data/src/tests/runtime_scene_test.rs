@@ -6,13 +6,10 @@ use lp_math::fixed::{Fixed, Vec3};
 use lp_pool::error::AllocError;
 use lp_pool::memory_pool::LpMemoryPool;
 
-use crate::metadata::{LpTypeMeta, RecordField, RecordType};
+use crate::metadata::{LpTypeMeta, TypeRef};
+use crate::types::{RecordField, RecordType};
 use crate::value::LpValue;
-use crate::{LpDescribe, TypeRef};
-
-use super::nodes::{lfo::LfoConfig, perlin3::Perlin3Input};
-
-// Static type metadata for runtime scene graph
+// Static type types for runtime scene graph
 const FIXED_META: LpTypeMeta = LpTypeMeta::new(crate::LpType::fixed());
 const VEC3_META: LpTypeMeta = LpTypeMeta::new(crate::LpType::vec3());
 

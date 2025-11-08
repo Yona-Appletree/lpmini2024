@@ -108,7 +108,7 @@ pub fn print_memory_stats() {
 
 #[cfg(not(feature = "alloc-meta"))]
 pub fn print_memory_stats() {
-    // No-op when metadata tracking is disabled
+    // No-op when types tracking is disabled
 }
 
 #[cfg(not(feature = "alloc-meta"))]
@@ -116,7 +116,7 @@ pub fn print_memory_stats_with<F>(_print: F)
 where
     F: Fn(&str),
 {
-    // No-op when metadata tracking is disabled
+    // No-op when types tracking is disabled
 }
 
 #[cfg(all(test, feature = "alloc-meta"))]
@@ -137,13 +137,13 @@ mod tests {
         let pool = setup_pool();
 
         pool.run(|| {
-            // Clear any previous metadata
+            // Clear any previous types
             let initial_count = crate::allocator_store::with_meta(|stats| stats.len());
 
             // Allocate with scope
             let _box1 = LpBox::try_new_with_scope(42i32, Some("test_scope"))?;
 
-            // Check metadata was recorded
+            // Check types was recorded
             let len_after = crate::allocator_store::with_meta(|stats| stats.len());
             assert!(len_after >= initial_count);
 
@@ -166,7 +166,7 @@ mod tests {
                 assert!(count_during > 0);
             }
 
-            // After drop, metadata should be cleaned up
+            // After drop, types should be cleaned up
             // All scoped allocations should be removed
             let entries = allow_global_alloc(|| {
                 crate::allocator_store::with_meta(|stats| {
@@ -204,8 +204,8 @@ mod tests {
             }
 
             // Metadata should reflect vec allocations
-            // Note: metadata tracking is best-effort, so we don't assert
-            // Just verify it doesn't crash and that we can iterate metadata
+            // Note: types tracking is best-effort, so we don't assert
+            // Just verify it doesn't crash and that we can iterate types
             crate::allocator_store::with_meta(|stats| {
                 for _ in stats.iter() {
                     // no-op

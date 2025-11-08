@@ -8,10 +8,9 @@ use serde::{Deserialize, Serialize};
 // Import lp_data for macro-generated code
 use crate as lp_data;
 
-use crate::{
-    register_lp_schemas, BoolUi, LpDescribe, LpScalarType, LpSchema, LpType, NumberUi, RecordField,
-    RecordType, StringUi, TypeRef, Vec2Ui, Vec3Ui,
-};
+use crate::metadata::{BoolUi, LpType, NumberUi, StringUi, TypeRef};
+use crate::types::{Vec2Ui, Vec3Ui};
+use crate::{register_lp_schemas, LpDescribe, LpSchema, RecordField, RecordType};
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize, LpSchema)]
 #[lp(schema(
@@ -83,11 +82,11 @@ fn color_stop_schema_reflects_slider_metadata() {
 
     let position = find_field(record, "position");
     let scalar = match &position.ty.ty {
-        LpType::Scalar(LpScalarType::Fixed(metadata)) => metadata,
-        other => panic!("expected fixed scalar metadata, found {other:?}"),
+        LpType::Fixed(metadata) => metadata,
+        other => panic!("expected fixed scalar types, found {other:?}"),
     };
     let NumberUi::Slider(slider) = &scalar.ui else {
-        panic!("expected slider ui metadata");
+        panic!("expected slider ui types");
     };
     assert_eq!(slider.min, 0.0);
     assert_eq!(slider.max, 1.0);
@@ -127,7 +126,7 @@ fn lfo_config_schema_composes_nested_metadata() {
 
     let period = find_field(record, "period_ms");
     let period_scalar = match &period.ty.ty {
-        LpType::Scalar(LpScalarType::Int32(meta)) => meta,
+        LpType::Int32(meta) => meta,
         _ => panic!("period_ms should be int32"),
     };
     let NumberUi::Slider(slider) = &period_scalar.ui else {
@@ -139,7 +138,7 @@ fn lfo_config_schema_composes_nested_metadata() {
 
     let notes = find_field(record, "notes");
     let notes_scalar = match &notes.ty.ty {
-        LpType::Scalar(LpScalarType::String(meta)) => meta,
+        LpType::String(meta) => meta,
         _ => panic!("notes should be a string scalar"),
     };
     assert!(matches!(notes_scalar.ui, StringUi::MultiLine));
@@ -147,21 +146,21 @@ fn lfo_config_schema_composes_nested_metadata() {
     let tint = find_field(record, "tint");
     let tint_vec3 = match &tint.ty.ty {
         LpType::Vec3(meta) => meta,
-        _ => panic!("tint should be vec3 metadata"),
+        _ => panic!("tint should be vec3 types"),
     };
     assert!(matches!(tint_vec3.ui, Vec3Ui::Color));
 
     let offset = find_field(record, "offset");
     let offset_vec2 = match &offset.ty.ty {
         LpType::Vec2(meta) => meta,
-        _ => panic!("offset should be vec2 metadata"),
+        _ => panic!("offset should be vec2 types"),
     };
     assert!(matches!(offset_vec2.ui, Vec2Ui::Position));
 
     let enabled = find_field(record, "enabled");
     let enabled_bool = match &enabled.ty.ty {
-        LpType::Scalar(LpScalarType::Bool(meta)) => meta,
-        _ => panic!("enabled should be bool metadata"),
+        LpType::Bool(meta) => meta,
+        _ => panic!("enabled should be bool types"),
     };
     assert!(matches!(enabled_bool.ui, BoolUi::Checkbox));
 

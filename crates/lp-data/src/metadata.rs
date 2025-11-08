@@ -1,23 +1,24 @@
-pub mod array;
-pub mod r#enum;
-pub mod option;
-pub mod record;
-pub mod scalar;
-pub mod vec2;
-pub mod vec3;
-pub mod vec4;
+//! Type metadata re-exports.
+//!
+//! This module provides backwards-compatible re-exports from the new
+//! feature-based type system structure.
 
-pub use array::{ArrayType, ArrayUi};
-pub use option::OptionType;
-pub use r#enum::{EnumType, EnumUi, EnumVariant};
-pub use record::{RecordField, RecordType, RecordUi};
-pub use scalar::{
-    BoolScalar, BoolUi, FixedScalar, Int32Scalar, LpScalarType, NumberUi, SliderUi, StringScalar,
-    StringUi,
+pub use crate::types;
+
+// Re-export individual scalar types
+pub use types::bool::{BoolScalar, BoolUi};
+pub use types::fixed::{FixedScalar, NumberUi, SliderUi};
+pub use types::int32::Int32Scalar;
+pub use types::string::{StringScalar, StringUi};
+
+// Re-export type metadata from types modules
+pub use types::{
+    ArrayType, ArrayUi, EnumType, EnumUi, EnumVariant, OptionType, RecordField, RecordType,
+    RecordUi, Vec2Type, Vec2Ui, Vec3Type, Vec3Ui, Vec4Type, Vec4Ui,
 };
-pub use vec2::{Vec2Type, Vec2Ui};
-pub use vec3::{Vec3Type, Vec3Ui};
-pub use vec4::{Vec4Type, Vec4Ui};
+
+// Re-export MapType (dynamic records)
+pub use types::record_dyn::MapType;
 
 /// Reference to another schema type metadata node.
 pub type TypeRef = &'static LpTypeMeta;
@@ -25,7 +26,10 @@ pub type TypeRef = &'static LpTypeMeta;
 /// Rich type information with UI hints.
 #[derive(Debug, Clone, PartialEq)]
 pub enum LpType {
-    Scalar(LpScalarType),
+    String(StringScalar),
+    Fixed(FixedScalar),
+    Int32(Int32Scalar),
+    Bool(BoolScalar),
     Vec2(Vec2Type),
     Vec3(Vec3Type),
     Vec4(Vec4Type),
@@ -33,23 +37,32 @@ pub enum LpType {
     Record(RecordType<TypeRef>),
     Enum(EnumType<TypeRef>),
     Option(OptionType<TypeRef>),
+    Map(MapType),
 }
 
 impl LpType {
     pub const fn string() -> Self {
-        Self::Scalar(LpScalarType::string())
+        Self::String(StringScalar {
+            ui: StringUi::SingleLine,
+        })
     }
 
     pub const fn fixed() -> Self {
-        Self::Scalar(LpScalarType::fixed())
+        Self::Fixed(FixedScalar {
+            ui: NumberUi::Textbox,
+        })
     }
 
     pub const fn int32() -> Self {
-        Self::Scalar(LpScalarType::int32())
+        Self::Int32(Int32Scalar {
+            ui: NumberUi::Textbox,
+        })
     }
 
     pub const fn boolean() -> Self {
-        Self::Scalar(LpScalarType::boolean())
+        Self::Bool(BoolScalar {
+            ui: BoolUi::Checkbox,
+        })
     }
 
     pub const fn vec2() -> Self {
@@ -66,6 +79,10 @@ impl LpType {
 
     pub const fn option(inner: TypeRef) -> Self {
         Self::Option(OptionType::new(inner))
+    }
+
+    pub const fn map() -> Self {
+        Self::Map(MapType::new())
     }
 }
 

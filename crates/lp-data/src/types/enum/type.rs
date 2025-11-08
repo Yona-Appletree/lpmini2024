@@ -1,6 +1,6 @@
 //! Enum metadata and UI hints.
 
-use crate::metadata::record::RecordField;
+use crate::types::record::r#type::RecordField;
 
 /// Metadata for an enum type.
 #[derive(Debug, Clone, PartialEq)]
