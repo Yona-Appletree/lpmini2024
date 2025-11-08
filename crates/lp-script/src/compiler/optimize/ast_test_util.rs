@@ -1,3 +1,4 @@
+#![cfg(test)]
 /// Test utilities for AST-level optimizations
 ///
 /// Provides a builder pattern for testing individual optimization passes

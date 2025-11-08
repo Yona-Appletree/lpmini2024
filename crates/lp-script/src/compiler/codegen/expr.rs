@@ -111,27 +111,4 @@ impl<'a> CodeGenerator<'a> {
             ExprKind::Swizzle { expr, components } => self.gen_swizzle(&**expr, components),
         }
     }
-
-    fn gen_number(&mut self, n: f32) {
-        use crate::fixed::ToFixed;
-        self.code.push(LpsOpCode::Push(n.to_fixed()));
-    }
-
-    fn gen_int_number(&mut self, n: i32) {
-        self.code.push(LpsOpCode::PushInt32(n));
-    }
-
-    fn gen_variable(&mut self, name: &str, ty: &crate::shared::Type) {
-        if let Some(local_idx) = self.locals.get(name) {
-            use crate::shared::Type;
-            let opcode = match ty {
-                Type::Fixed => LpsOpCode::GetLocalFixed(local_idx as u8),
-                Type::Int32 => LpsOpCode::GetLocalInt32(local_idx as u8),
-                Type::Vec2 => LpsOpCode::GetLocalVec2(local_idx as u8),
-                Type::Vec3 => LpsOpCode::GetLocalVec3(local_idx as u8),
-                Type::Vec4 => LpsOpCode::GetLocalVec4(local_idx as u8),
-            };
-            self.code.push(opcode);
-        }
-    }
 }

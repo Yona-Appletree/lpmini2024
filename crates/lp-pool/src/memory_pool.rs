@@ -25,15 +25,16 @@ impl LpMemoryPool {
     }
 
     /// Execute a closure with the pool active
-    pub fn run<F, R>(&self, f: F) -> Result<R, AllocError>
+    pub fn run<F, R, E>(&self, f: F) -> Result<R, E>
     where
-        F: FnOnce() -> Result<R, AllocError>,
+        F: FnOnce() -> Result<R, E>,
+        E: From<AllocError>,
     {
         // Check pool exists but don't hold borrow
         {
             let pool_ref = ROOT_POOL.get_or(|| RefCell::new(None)).borrow();
             if pool_ref.is_none() {
-                return Err(AllocError::PoolExhausted);
+                return Err(E::from(AllocError::PoolExhausted));
             }
         }
         // Execute closure - it will access pool via with_active_pool()

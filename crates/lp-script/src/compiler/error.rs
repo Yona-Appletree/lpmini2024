@@ -165,6 +165,7 @@ pub enum CodegenErrorKind {
     UnsupportedFeature(String),
     TooManyLocals,
     TooManyOpcodes,
+    AllocationFailed(String),
 }
 
 impl fmt::Display for CodegenError {
@@ -180,6 +181,7 @@ impl fmt::Display for CodegenError {
             }
             CodegenErrorKind::TooManyLocals => write!(f, "too many local variables"),
             CodegenErrorKind::TooManyOpcodes => write!(f, "program too large"),
+            CodegenErrorKind::AllocationFailed(msg) => write!(f, "allocation failed: {}", msg),
         }
     }
 }
@@ -199,6 +201,16 @@ impl From<ParseError> for CompileError {
 impl From<TypeError> for CompileError {
     fn from(e: TypeError) -> Self {
         CompileError::TypeCheck(e)
+    }
+}
+
+impl From<lp_pool::AllocError> for CompileError {
+    fn from(e: lp_pool::AllocError) -> Self {
+        use alloc::format;
+        CompileError::Codegen(CodegenError {
+            kind: CodegenErrorKind::AllocationFailed(format!("{}", e)),
+            span: Span::new(0, 0),
+        })
     }
 }
 

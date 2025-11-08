@@ -75,7 +75,7 @@ impl Parser {
         loop {
             let start = expr.span.start;
             match &self.current().kind {
-                TokenKind::LeftShift => {
+                TokenKind::LShift => {
                     self.advance();
                     let right = self.additive()?;
                     let end = right.span.end;
@@ -84,7 +84,7 @@ impl Parser {
                         Span::new(start, end),
                     );
                 }
-                TokenKind::RightShift => {
+                TokenKind::RShift => {
                     self.advance();
                     let right = self.additive()?;
                     let end = right.span.end;

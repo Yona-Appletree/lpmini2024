@@ -4,7 +4,7 @@ use alloc::collections::BTreeMap;
 use alloc::string::String;
 use alloc::vec::Vec;
 
-use crate::compiler::ast::{Expr, Program, Stmt};
+use crate::compiler::ast::{Expr, Program};
 use crate::LpsOpCode;
 
 mod expr;

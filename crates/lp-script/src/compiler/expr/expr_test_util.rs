@@ -1,3 +1,4 @@
+#![cfg(test)]
 /// Test utilities for lp-script expressions - builder pattern for clean testing
 extern crate alloc;
 use alloc::boxed::Box;
