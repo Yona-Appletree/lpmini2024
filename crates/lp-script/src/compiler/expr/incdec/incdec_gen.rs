@@ -11,7 +11,7 @@ use crate::vm::opcodes::LpsOpCode;
 impl<'a> CodeGenerator<'a> {
     /// Generate code for prefix increment: ++var
     /// Returns the incremented value
-    pub(crate) fn gen_pre_increment(&mut self, var_name: &String, var_ty: &Type) {
+    pub(crate) fn gen_pre_increment(&mut self, var_name: &str, var_ty: &Type) {
         // Load variable
         self.gen_load_variable(var_name, var_ty);
 
@@ -37,7 +37,7 @@ impl<'a> CodeGenerator<'a> {
 
     /// Generate code for prefix decrement: --var
     /// Returns the decremented value
-    pub(crate) fn gen_pre_decrement(&mut self, var_name: &String, var_ty: &Type) {
+    pub(crate) fn gen_pre_decrement(&mut self, var_name: &str, var_ty: &Type) {
         // Load variable
         self.gen_load_variable(var_name, var_ty);
 
@@ -63,7 +63,7 @@ impl<'a> CodeGenerator<'a> {
 
     /// Generate code for postfix increment: var++
     /// Returns the original value (before increment)
-    pub(crate) fn gen_post_increment(&mut self, var_name: &String, var_ty: &Type) {
+    pub(crate) fn gen_post_increment(&mut self, var_name: &str, var_ty: &Type) {
         // Load variable (original value)
         self.gen_load_variable(var_name, var_ty);
 
@@ -89,7 +89,7 @@ impl<'a> CodeGenerator<'a> {
 
     /// Generate code for postfix decrement: var--
     /// Returns the original value (before decrement)
-    pub(crate) fn gen_post_decrement(&mut self, var_name: &String, var_ty: &Type) {
+    pub(crate) fn gen_post_decrement(&mut self, var_name: &str, var_ty: &Type) {
         // Load variable (original value)
         self.gen_load_variable(var_name, var_ty);
 
@@ -114,7 +114,7 @@ impl<'a> CodeGenerator<'a> {
     }
 
     /// Helper to load a variable onto the stack
-    fn gen_load_variable(&mut self, var_name: &String, var_ty: &Type) {
+    fn gen_load_variable(&mut self, var_name: &str, var_ty: &Type) {
         if let Some(local_idx) = self.locals.get(var_name) {
             match var_ty {
                 Type::Fixed => self.code.push(LpsOpCode::LoadLocalFixed(local_idx)),
@@ -128,7 +128,7 @@ impl<'a> CodeGenerator<'a> {
     }
 
     /// Helper to store a value from the stack into a variable
-    fn gen_store_variable(&mut self, var_name: &String, var_ty: &Type) {
+    fn gen_store_variable(&mut self, var_name: &str, var_ty: &Type) {
         if let Some(local_idx) = self.locals.get(var_name) {
             match var_ty {
                 Type::Fixed => self.code.push(LpsOpCode::StoreLocalFixed(local_idx)),

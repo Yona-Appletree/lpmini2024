@@ -8,7 +8,7 @@ use lp_script::vm::{execute_program_lps, execute_program_lps_vec3};
 use lp_script::LpsProgram;
 
 use super::rgb_utils::grey_to_i32;
-use super::{BufferFormat, BufferRef, PipelineError};
+use super::{BufferFormat, PipelineError};
 
 /// Validate that the program's return type matches the expected buffer format
 pub fn validate_expr_program_type(
@@ -90,7 +90,7 @@ pub fn execute_expr_step(
 
 #[cfg(test)]
 mod tests {
-    use lp_script::{parse_expr, parse_script};
+    use lp_script::parse_expr;
 
     use super::*;
 

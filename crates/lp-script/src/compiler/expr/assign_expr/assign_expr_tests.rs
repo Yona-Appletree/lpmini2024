@@ -1,5 +1,4 @@
 /// Assignment expression tests using full compilation pipeline
-
 #[cfg(test)]
 mod tests {
     use crate::compiler::expr::expr_test_util::ExprTest;

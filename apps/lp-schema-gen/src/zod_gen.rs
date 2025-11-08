@@ -129,13 +129,7 @@ fn generate_enum_schema_from_json(name: &str, obj: &serde_json::Map<String, Json
     if let Some(enum_values) = obj.get("enum").and_then(|v| v.as_array()) {
         let variants: Vec<String> = enum_values
             .iter()
-            .filter_map(|v| {
-                if let Some(s) = v.as_str() {
-                    Some(format!("'{}'", s))
-                } else {
-                    None
-                }
-            })
+            .filter_map(|v| v.as_str().map(|s| format!("'{}'", s)))
             .collect();
 
         format!(
@@ -196,13 +190,7 @@ fn schema_json_to_zod(
                     if let Some(enum_values) = obj.get("enum").and_then(|v| v.as_array()) {
                         let variants: Vec<String> = enum_values
                             .iter()
-                            .filter_map(|v| {
-                                if let Some(s) = v.as_str() {
-                                    Some(format!("'{}'", s))
-                                } else {
-                                    None
-                                }
-                            })
+                            .filter_map(|v| v.as_str().map(|s| format!("'{}'", s)))
                             .collect();
                         return format!("z.enum([{}])", variants.join(", "));
                     }

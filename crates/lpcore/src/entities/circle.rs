@@ -8,16 +8,17 @@ use crate::entity::entity_instance::{EntityInstance, UpdateContext};
 use crate::values::size_int::SizeInt;
 use crate::values::texture_ref::TextureRef;
 
+#[derive(Default)]
 pub struct CircleEntity {}
 
 impl CircleEntity {
     pub fn new() -> Self {
-        Self {}
+        Self::default()
     }
 }
 
 impl EntityInstance for CircleEntity {
-    fn update(&mut self, context: &dyn UpdateContext) -> Result<JsonValue, Box<dyn Error>> {
+    fn update(&mut self, _context: &dyn UpdateContext) -> Result<JsonValue, Box<dyn Error>> {
         Ok(json!({
             "texture": TextureRef::new(0)
         }))
@@ -30,10 +31,14 @@ struct Input {
     radius: f32,
 }
 
+// WIP: Output struct for future use
+#[allow(dead_code)]
 #[derive(Serialize, Deserialize, Debug)]
 struct Output {
     texture: TextureRef,
 }
+
+#[allow(dead_code)]
 impl Output {
     fn new(texture: TextureRef) -> Self {
         Self { texture }

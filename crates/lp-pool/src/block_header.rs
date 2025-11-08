@@ -75,19 +75,64 @@ impl BlockHeader {
 
     /// Get pointer to the data area (after the header)
     /// With 32-byte aligned header, this provides natural alignment up to 32 bytes
+    ///
+    /// # Safety
+    /// - block_ptr must be a valid pointer to a block header
     #[inline]
-    pub fn data_ptr(block_ptr: *mut u8) -> *mut u8 {
-        unsafe { block_ptr.add(mem::size_of::<BlockHeader>()) }
+    pub unsafe fn data_ptr(block_ptr: *mut u8) -> *mut u8 {
+        let header = Self::read(block_ptr);
+        block_ptr.add(header.data_offset as usize)
     }
 
     /// Get pointer to the block header from a data pointer
     ///
     /// # Safety
-    /// - data_ptr must be a valid data pointer returned from allocate
+    /// - `data_ptr` must originate from this pool via `allocate`
+    /// - `pool_base` and `pool_size` must describe the full memory region backing the pool
     #[inline]
-    pub unsafe fn block_ptr_from_data(data_ptr: *mut u8) -> *mut u8 {
-        // With no padding support, data is always at header_size offset
-        data_ptr.sub(mem::size_of::<BlockHeader>())
+    pub unsafe fn block_ptr_from_data(
+        data_ptr: *mut u8,
+        pool_base: *mut u8,
+        pool_size: usize,
+    ) -> *mut u8 {
+        let header_size = mem::size_of::<BlockHeader>();
+        let metadata_size = core::mem::size_of::<usize>();
+        let base_addr = pool_base as usize;
+        let end_addr = base_addr
+            .checked_add(pool_size)
+            .expect("pool size overflow");
+        let data_addr = data_ptr as usize;
+
+        debug_assert!(
+            data_addr >= base_addr && data_addr <= end_addr,
+            "data pointer {:p} out of pool bounds {:p}..{:p}",
+            data_ptr,
+            pool_base,
+            end_addr as *const u8
+        );
+
+        let metadata_addr = data_addr
+            .checked_sub(metadata_size)
+            .expect("data pointer lacks metadata region");
+        let stored_ptr = core::ptr::read_unaligned(metadata_addr as *const usize) as usize;
+        let block_addr = stored_ptr;
+
+        debug_assert!(
+            block_addr >= base_addr && block_addr + header_size <= end_addr,
+            "calculated header {:p} out of pool bounds {:p}..{:p}",
+            block_addr as *mut u8,
+            pool_base,
+            end_addr as *const u8
+        );
+
+        let header = core::ptr::read(block_addr as *const BlockHeader);
+        debug_assert!(
+            header.is_valid(),
+            "invalid header recovered from data pointer {:p}",
+            data_ptr
+        );
+
+        block_addr as *mut u8
     }
 
     /// Get the size of the data area (excluding header)
@@ -162,7 +207,7 @@ mod tests {
             BlockHeader::write(ptr, header);
             let read_header = BlockHeader::read(ptr);
             assert_eq!(read_header.size, 32);
-            assert_eq!(read_header.is_allocated, false);
+            assert!(!read_header.is_allocated);
         }
     }
 
@@ -170,7 +215,11 @@ mod tests {
     fn test_data_ptr() {
         let mut memory = [0u8; 64];
         let block_ptr = memory.as_mut_ptr();
-        let data_ptr = BlockHeader::data_ptr(block_ptr);
+        let header = BlockHeader::new(64, true);
+        unsafe {
+            BlockHeader::write(block_ptr, header);
+        }
+        let data_ptr = unsafe { BlockHeader::data_ptr(block_ptr) };
 
         let offset = unsafe { data_ptr.offset_from(block_ptr) };
         assert_eq!(offset as usize, mem::size_of::<BlockHeader>());
@@ -185,8 +234,10 @@ mod tests {
         let header = BlockHeader::new(64, true);
         unsafe {
             BlockHeader::write(block_ptr, header);
-            let data_ptr = BlockHeader::data_ptr(block_ptr);
-            let recovered_ptr = BlockHeader::block_ptr_from_data(data_ptr);
+            let metadata_ptr = BlockHeader::data_ptr(block_ptr);
+            core::ptr::write_unaligned(metadata_ptr as *mut usize, block_ptr as usize);
+            let user_ptr = metadata_ptr.add(mem::size_of::<usize>());
+            let recovered_ptr = BlockHeader::block_ptr_from_data(user_ptr, block_ptr, memory.len());
             assert_eq!(block_ptr, recovered_ptr);
         }
     }

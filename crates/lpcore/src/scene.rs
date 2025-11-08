@@ -2,6 +2,8 @@ pub mod context;
 mod eval_input;
 pub mod frame_entity;
 pub mod frame_store;
+
+#[allow(clippy::module_inception)]
 pub mod scene;
 pub mod scene_config;
 pub mod scene_node;

@@ -54,9 +54,9 @@ impl Palette {
     /// Create a grayscale palette (black to white)
     pub fn grayscale() -> Self {
         let mut colors = [Rgb::new(0, 0, 0); 16];
-        for i in 0..16 {
+        for (i, color) in colors.iter_mut().enumerate() {
             let val = (i * 255 / 15) as u8;
-            colors[i] = Rgb::new(val, val, val);
+            *color = Rgb::new(val, val, val);
         }
         Palette { colors }
     }
@@ -65,13 +65,7 @@ impl Palette {
     #[inline(always)]
     pub fn get_color(&self, value: Fixed) -> Rgb {
         // Clamp value to 0..1 range
-        let clamped = if value.0 < 0 {
-            0
-        } else if value.0 > FIXED_ONE {
-            FIXED_ONE
-        } else {
-            value.0
-        };
+        let clamped = value.0.clamp(0, FIXED_ONE);
 
         // Map to palette range [0, 15]
         // value * 15.0 in fixed-point

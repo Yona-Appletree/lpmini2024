@@ -1,7 +1,5 @@
 use core::ptr::NonNull;
 
-#[cfg(feature = "alloc-meta")]
-use super::super::alloc_meta::AllocationMeta;
 use super::node::Node;
 use crate::error::AllocError;
 
@@ -21,6 +19,7 @@ where
     root: Option<NonNull<Node<K, V>>>,
     len: usize,
     #[cfg(feature = "alloc-meta")]
+    #[allow(dead_code)]
     scope: Option<&'static str>,
 }
 
@@ -306,6 +305,47 @@ where
     }
 }
 
+// Default implementation
+impl<K, V> Default for LpBTreeMap<K, V>
+where
+    K: Ord,
+{
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+// Drop implementation
+impl<K, V> Drop for LpBTreeMap<K, V>
+where
+    K: Ord,
+{
+    fn drop(&mut self) {
+        if let Some(root) = self.root {
+            unsafe {
+                Self::drop_tree(root);
+            }
+        }
+    }
+}
+
+// Additional methods
+impl<K, V> LpBTreeMap<K, V>
+where
+    K: Ord,
+{
+    unsafe fn drop_tree(node_ptr: NonNull<Node<K, V>>) {
+        let node = &*node_ptr.as_ptr();
+        if let Some(left) = node.left() {
+            Self::drop_tree(left);
+        }
+        if let Some(right) = node.right() {
+            Self::drop_tree(right);
+        }
+        Node::deallocate(node_ptr);
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use alloc::string::String;
@@ -532,42 +572,360 @@ mod tests {
         let final_order = ORDER.load(Ordering::SeqCst);
         assert_eq!(final_order, 1, "Value should have been dropped");
     }
-}
 
-impl<K, V> Default for LpBTreeMap<K, V>
-where
-    K: Ord,
-{
-    fn default() -> Self {
-        Self::new()
-    }
-}
+    // === Comprehensive Edge Case Tests ===
 
-impl<K, V> Drop for LpBTreeMap<K, V>
-where
-    K: Ord,
-{
-    fn drop(&mut self) {
-        if let Some(root) = self.root {
-            unsafe {
-                Self::drop_tree(root);
+    #[test]
+    fn test_btree_map_complex_keys_with_drop() {
+        use core::sync::atomic::{AtomicUsize, Ordering};
+
+        static KEY_DROP_COUNT: AtomicUsize = AtomicUsize::new(0);
+        static VAL_DROP_COUNT: AtomicUsize = AtomicUsize::new(0);
+
+        #[derive(PartialEq, Eq, PartialOrd, Ord)]
+        struct KeyWithDrop(i32);
+
+        impl Drop for KeyWithDrop {
+            fn drop(&mut self) {
+                KEY_DROP_COUNT.fetch_add(1, Ordering::SeqCst);
             }
         }
-    }
-}
 
-impl<K, V> LpBTreeMap<K, V>
-where
-    K: Ord,
-{
-    unsafe fn drop_tree(node_ptr: NonNull<Node<K, V>>) {
-        let node = &*node_ptr.as_ptr();
-        if let Some(left) = node.left() {
-            Self::drop_tree(left);
+        struct ValWithDrop(#[allow(dead_code)] i32);
+
+        impl Drop for ValWithDrop {
+            fn drop(&mut self) {
+                VAL_DROP_COUNT.fetch_add(1, Ordering::SeqCst);
+            }
         }
-        if let Some(right) = node.right() {
-            Self::drop_tree(right);
-        }
-        Node::deallocate(node_ptr);
+
+        let pool = setup_pool();
+        KEY_DROP_COUNT.store(0, Ordering::SeqCst);
+        VAL_DROP_COUNT.store(0, Ordering::SeqCst);
+
+        pool.run(|| {
+            {
+                let mut map = LpBTreeMap::new();
+                map.try_insert(KeyWithDrop(1), ValWithDrop(10))?;
+                map.try_insert(KeyWithDrop(2), ValWithDrop(20))?;
+                map.try_insert(KeyWithDrop(3), ValWithDrop(30))?;
+                // Map dropped here - all keys and values should be dropped
+            }
+
+            assert_eq!(KEY_DROP_COUNT.load(Ordering::SeqCst), 3);
+            assert_eq!(VAL_DROP_COUNT.load(Ordering::SeqCst), 3);
+
+            Ok::<(), AllocError>(())
+        })
+        .unwrap();
+    }
+
+    #[test]
+    fn test_btree_map_degenerate_sorted_insertion() {
+        // Worst case: sorted insertions create unbalanced tree
+        let pool = setup_pool();
+        pool.run(|| {
+            let mut map = LpBTreeMap::new();
+
+            // Insert in sorted order (creates right-heavy tree)
+            for i in 1..=20 {
+                map.try_insert(i, i * 10)?;
+            }
+
+            // Verify all values accessible
+            assert_eq!(map.len(), 20);
+            for i in 1..=20 {
+                assert_eq!(map.get(&i), Some(&(i * 10)));
+            }
+
+            Ok::<(), AllocError>(())
+        })
+        .unwrap();
+    }
+
+    #[test]
+    fn test_btree_map_reverse_sorted_insertion() {
+        // Insert in reverse order (creates left-heavy tree)
+        let pool = setup_pool();
+        pool.run(|| {
+            let mut map = LpBTreeMap::new();
+
+            // Insert in reverse sorted order
+            for i in (1..=20).rev() {
+                map.try_insert(i, i * 10)?;
+            }
+
+            // Verify all values accessible
+            assert_eq!(map.len(), 20);
+            for i in 1..=20 {
+                assert_eq!(map.get(&i), Some(&(i * 10)));
+            }
+
+            Ok::<(), AllocError>(())
+        })
+        .unwrap();
+    }
+
+    #[test]
+    fn test_btree_map_remove_all_verify_memory() {
+        let pool = setup_pool();
+        let before = pool.used_bytes().unwrap();
+
+        pool.run(|| {
+            {
+                let mut map = LpBTreeMap::new();
+
+                // Insert multiple items
+                for i in 1..=10 {
+                    map.try_insert(i, i * 100)?;
+                }
+
+                // Remove all items
+                for i in 1..=10 {
+                    let removed = map.try_remove(&i)?;
+                    assert_eq!(removed, Some(i * 100));
+                }
+
+                assert_eq!(map.len(), 0);
+                // Map dropped here
+            }
+
+            let after = pool.used_bytes().unwrap();
+            assert_eq!(after, before, "All memory should be freed");
+
+            Ok::<(), AllocError>(())
+        })
+        .unwrap();
+    }
+
+    #[test]
+    fn test_btree_map_clear_verify_memory() {
+        let pool = setup_pool();
+        let before = pool.used_bytes().unwrap();
+
+        pool.run(|| {
+            {
+                let mut map = LpBTreeMap::new();
+
+                for i in 1..=15 {
+                    map.try_insert(i, i)?;
+                }
+                assert_eq!(map.len(), 15);
+
+                map.clear();
+                assert_eq!(map.len(), 0);
+                // Cleared map dropped here
+            }
+
+            let after = pool.used_bytes().unwrap();
+            assert_eq!(after, before, "All memory should be freed after clear");
+
+            Ok::<(), AllocError>(())
+        })
+        .unwrap();
+    }
+
+    #[test]
+    fn test_btree_map_duplicate_key_replacement() {
+        let pool = setup_pool();
+        pool.run(|| {
+            let mut map = LpBTreeMap::new();
+
+            map.try_insert(1, 10)?;
+            assert_eq!(map.get(&1), Some(&10));
+            assert_eq!(map.len(), 1);
+
+            // Insert again with same key
+            let old_value = map.try_insert(1, 20)?;
+            assert_eq!(old_value, Some(10));
+            assert_eq!(map.get(&1), Some(&20));
+            assert_eq!(map.len(), 1); // Length shouldn't change
+
+            Ok::<(), AllocError>(())
+        })
+        .unwrap();
+    }
+
+    #[test]
+    fn test_btree_map_get_mut_multiple() {
+        let pool = setup_pool();
+        pool.run(|| {
+            let mut map = LpBTreeMap::new();
+            map.try_insert(1, 10)?;
+            map.try_insert(2, 20)?;
+
+            if let Some(val) = map.get_mut(&1) {
+                *val = 100;
+            }
+
+            assert_eq!(map.get(&1), Some(&100));
+            assert_eq!(map.get(&2), Some(&20));
+
+            Ok::<(), AllocError>(())
+        })
+        .unwrap();
+    }
+
+    #[test]
+    fn test_btree_map_many_insertions() {
+        let pool = setup_pool();
+        pool.run(|| {
+            let mut map = LpBTreeMap::new();
+
+            // Insert many items
+            for i in 0..50 {
+                map.try_insert(i, i * 2)?;
+            }
+
+            assert_eq!(map.len(), 50);
+
+            // Verify random access works
+            assert_eq!(map.get(&0), Some(&0));
+            assert_eq!(map.get(&25), Some(&50));
+            assert_eq!(map.get(&49), Some(&98));
+            assert_eq!(map.get(&50), None);
+
+            Ok::<(), AllocError>(())
+        })
+        .unwrap();
+    }
+
+    #[test]
+    fn test_btree_map_remove_from_various_positions() {
+        let pool = setup_pool();
+        pool.run(|| {
+            let mut map = LpBTreeMap::new();
+
+            // Insert 10 items
+            for i in 1..=10 {
+                map.try_insert(i, i)?;
+            }
+
+            // Remove from middle
+            assert_eq!(map.try_remove(&5)?, Some(5));
+            assert_eq!(map.len(), 9);
+
+            // Remove from beginning (leftmost)
+            assert_eq!(map.try_remove(&1)?, Some(1));
+            assert_eq!(map.len(), 8);
+
+            // Remove from end (rightmost)
+            assert_eq!(map.try_remove(&10)?, Some(10));
+            assert_eq!(map.len(), 7);
+
+            // Verify remaining items
+            for i in [2, 3, 4, 6, 7, 8, 9] {
+                assert_eq!(map.get(&i), Some(&i));
+            }
+
+            Ok::<(), AllocError>(())
+        })
+        .unwrap();
+    }
+
+    #[test]
+    fn test_btree_map_empty_operations() {
+        let pool = setup_pool();
+        pool.run(|| {
+            let mut map = LpBTreeMap::<i32, i32>::new();
+
+            // Operations on empty map
+            assert_eq!(map.get(&1), None);
+            assert_eq!(map.get_mut(&1), None);
+            assert_eq!(map.try_remove(&1)?, None);
+            assert!(!map.contains_key(&1));
+            assert!(map.is_empty());
+            assert_eq!(map.len(), 0);
+
+            // Clear empty map
+            map.clear();
+            assert_eq!(map.len(), 0);
+
+            Ok::<(), AllocError>(())
+        })
+        .unwrap();
+    }
+
+    #[test]
+    fn test_btree_map_single_element_operations() {
+        let pool = setup_pool();
+        pool.run(|| {
+            let mut map = LpBTreeMap::new();
+            map.try_insert(1, 100)?;
+
+            assert_eq!(map.len(), 1);
+            assert_eq!(map.get(&1), Some(&100));
+
+            // Remove the only element
+            assert_eq!(map.try_remove(&1)?, Some(100));
+            assert_eq!(map.len(), 0);
+            assert!(map.is_empty());
+
+            // Can still insert after removing all
+            map.try_insert(2, 200)?;
+            assert_eq!(map.len(), 1);
+
+            Ok::<(), AllocError>(())
+        })
+        .unwrap();
+    }
+
+    #[test]
+    fn test_btree_map_interleaved_insert_remove() {
+        let pool = setup_pool();
+        pool.run(|| {
+            let mut map = LpBTreeMap::new();
+
+            // Insert, remove, insert pattern
+            map.try_insert(1, 10)?;
+            map.try_insert(2, 20)?;
+            assert_eq!(map.len(), 2);
+
+            map.try_remove(&1)?;
+            assert_eq!(map.len(), 1);
+
+            map.try_insert(3, 30)?;
+            map.try_insert(4, 40)?;
+            assert_eq!(map.len(), 3);
+
+            map.try_remove(&2)?;
+            map.try_remove(&3)?;
+            assert_eq!(map.len(), 1);
+
+            assert_eq!(map.get(&4), Some(&40));
+
+            Ok::<(), AllocError>(())
+        })
+        .unwrap();
+    }
+
+    #[test]
+    fn test_btree_map_reinsert_after_clear() {
+        let pool = setup_pool();
+        pool.run(|| {
+            let mut map = LpBTreeMap::new();
+
+            // First round
+            for i in 1..=5 {
+                map.try_insert(i, i * 10)?;
+            }
+            assert_eq!(map.len(), 5);
+
+            map.clear();
+            assert_eq!(map.len(), 0);
+
+            // Second round - reuse same map
+            for i in 10..=15 {
+                map.try_insert(i, i * 100)?;
+            }
+            assert_eq!(map.len(), 6);
+
+            for i in 10..=15 {
+                assert_eq!(map.get(&i), Some(&(i * 100)));
+            }
+
+            Ok::<(), AllocError>(())
+        })
+        .unwrap();
     }
 }

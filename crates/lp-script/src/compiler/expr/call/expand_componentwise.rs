@@ -62,9 +62,7 @@ pub(crate) fn expand_componentwise_call(name: &str, args: &[Expr], span: Span) -
     let components = ["x", "y", "z", "w"];
     let mut expanded_args = Vec::new();
 
-    for i in 0..result_vec_type {
-        let component = components[i];
-
+    for &component in components.iter().take(result_vec_type) {
         // Build args for this component
         let mut component_call_args = Vec::new();
         for arg in args {

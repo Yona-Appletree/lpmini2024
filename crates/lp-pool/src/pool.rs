@@ -56,7 +56,9 @@ impl LpAllocator {
     /// Allocate a block using first-fit strategy with block splitting
     pub fn allocate(&mut self, layout: Layout) -> Result<NonNull<[u8]>, AllocError> {
         let requested_size = layout.size();
-        let align = layout.align();
+        let align = layout.align().max(1);
+        let header_size = mem::size_of::<BlockHeader>();
+        let metadata_size = core::mem::size_of::<usize>();
 
         // Walk the free list to find a suitable block (first-fit)
         let mut current_ptr = self.free_list;
@@ -73,70 +75,88 @@ impl LpAllocator {
                     continue;
                 }
 
-                // With 32-byte header, data is naturally aligned to 8, 16, 32
-                // For larger alignments, we'd need padding (not currently supported)
-                let data_ptr = BlockHeader::data_ptr(current_ptr);
-                let data_addr = data_ptr as usize;
+                let block_base = current_ptr as usize;
+                let min_user_addr = block_base
+                    .checked_add(header_size + metadata_size)
+                    .ok_or(AllocError::InvalidLayout)?;
 
-                // Check if naturally aligned (works for align <= 32)
-                if data_addr % align == 0 {
-                    // Calculate total size needed
-                    let total_needed = mem::size_of::<BlockHeader>() + requested_size;
+                let align_mask = align - 1;
+                let aligned_user_addr = if align > 1 {
+                    (min_user_addr
+                        .checked_add(align_mask)
+                        .ok_or(AllocError::InvalidLayout)?)
+                        & !align_mask
+                } else {
+                    min_user_addr
+                };
 
-                    // Check if this block is large enough
-                    if header.size >= total_needed {
-                        // Found a suitable block!
-                        // Remove from free list
-                        let next_free = BlockHeader::read_next_free(current_ptr);
-                        if prev_ptr.is_null() {
-                            self.free_list = next_free;
-                        } else {
-                            BlockHeader::write_next_free(prev_ptr, next_free);
-                        }
+                let metadata_addr = aligned_user_addr
+                    .checked_sub(metadata_size)
+                    .ok_or(AllocError::InvalidLayout)?;
+                let aligned_data_offset = metadata_addr
+                    .checked_sub(block_base)
+                    .ok_or(AllocError::InvalidLayout)?;
 
-                        // Calculate remaining size after allocation
-                        let remaining_size = header.size - total_needed;
-                        let min_leftover = MIN_BLOCK_SIZE;
+                let total_needed = match aligned_user_addr
+                    .checked_sub(block_base)
+                    .and_then(|offset| offset.checked_add(requested_size))
+                {
+                    Some(val) => val,
+                    None => return Err(AllocError::InvalidLayout),
+                };
 
-                        let (alloc_block_ptr, alloc_size) = if remaining_size >= min_leftover {
-                            // Split: current block becomes allocated, remainder becomes free
-                            let alloc_size = total_needed;
-                            let remainder_ptr = current_ptr.add(alloc_size);
-
-                            // Write remainder block header
-                            let remainder_header = BlockHeader::new(remaining_size, false);
-                            BlockHeader::write(remainder_ptr, remainder_header);
-
-                            // Add remainder to free list
-                            BlockHeader::write_next_free(remainder_ptr, self.free_list);
-                            self.free_list = remainder_ptr;
-
-                            (current_ptr, alloc_size)
-                        } else {
-                            // No split - use entire block
-                            (current_ptr, header.size)
-                        };
-
-                        // Mark block as allocated
-                        let alloc_header = BlockHeader::new(alloc_size, true);
-                        BlockHeader::write(alloc_block_ptr, alloc_header);
-
-                        // Update used bytes
-                        self.used_bytes += alloc_size;
-
-                        // Return pointer to data area
-                        let data_ptr = BlockHeader::data_ptr(alloc_block_ptr);
-
-                        return Ok(NonNull::slice_from_raw_parts(
-                            NonNull::new_unchecked(data_ptr),
-                            requested_size,
-                        ));
-                    }
+                if total_needed > header.size {
+                    prev_ptr = current_ptr;
+                    current_ptr = BlockHeader::read_next_free(current_ptr);
+                    continue;
                 }
 
-                // Move to next block in free list
-                prev_ptr = current_ptr;
-                current_ptr = BlockHeader::read_next_free(current_ptr);
+                // Found a suitable block!
+                let next_free = BlockHeader::read_next_free(current_ptr);
+                if prev_ptr.is_null() {
+                    self.free_list = next_free;
+                } else {
+                    BlockHeader::write_next_free(prev_ptr, next_free);
+                }
+
+                let remaining_size = header.size - total_needed;
+                let min_leftover = MIN_BLOCK_SIZE;
+
+                let (alloc_block_ptr, alloc_size) = if remaining_size >= min_leftover {
+                    let alloc_size = total_needed;
+                    let remainder_ptr = current_ptr.add(alloc_size);
+
+                    let remainder_header = BlockHeader::new(remaining_size, false);
+                    BlockHeader::write(remainder_ptr, remainder_header);
+
+                    BlockHeader::write_next_free(remainder_ptr, self.free_list);
+                    self.free_list = remainder_ptr;
+
+                    (current_ptr, alloc_size)
+                } else {
+                    (current_ptr, header.size)
+                };
+
+                if aligned_data_offset > u16::MAX as usize {
+                    return Err(AllocError::InvalidLayout);
+                }
+
+                let alloc_header =
+                    BlockHeader::new_with_offset(alloc_size, true, aligned_data_offset as u16);
+                BlockHeader::write(alloc_block_ptr, alloc_header);
+
+                self.used_bytes += alloc_size;
+
+                let metadata_ptr = alloc_block_ptr.add(aligned_data_offset);
+                // Store metadata (offset back to header)
+                core::ptr::write_unaligned(metadata_ptr as *mut usize, alloc_block_ptr as usize);
+
+                let user_ptr = aligned_user_addr as *mut u8;
+
+                return Ok(NonNull::slice_from_raw_parts(
+                    NonNull::new_unchecked(user_ptr),
+                    requested_size,
+                ));
             }
         }
 
@@ -154,7 +174,8 @@ impl LpAllocator {
     /// In debug builds, panics if `ptr` is not within the pool's memory region
     pub unsafe fn deallocate(&mut self, ptr: NonNull<u8>, _layout: Layout) {
         // Convert data pointer to block pointer using stored offset
-        let block_ptr = BlockHeader::block_ptr_from_data(ptr.as_ptr());
+        let block_ptr =
+            BlockHeader::block_ptr_from_data(ptr.as_ptr(), self.memory.as_ptr(), self.capacity);
 
         // Validation: check that block_ptr is within our memory region
         #[cfg(debug_assertions)]
@@ -194,6 +215,7 @@ impl LpAllocator {
 
         // Mark block as free
         header.is_allocated = false;
+        header.data_offset = mem::size_of::<BlockHeader>() as u16;
         BlockHeader::write(block_ptr, header);
 
         // Try to coalesce with next block
@@ -468,7 +490,8 @@ mod tests {
 
         unsafe {
             let mut pool = LpAllocator::new(memory_ptr, 1024).unwrap();
-            let layout = Layout::from_size_align(32, 8).unwrap();
+            let allocation_overhead = mem::size_of::<BlockHeader>() + mem::size_of::<usize>();
+            let layout = Layout::from_size_align(64 - allocation_overhead, 8).unwrap();
 
             let ptr1 = pool.allocate(layout).unwrap();
             assert_eq!(pool.used_blocks(), 1);
@@ -491,7 +514,14 @@ mod tests {
 
         unsafe {
             let mut pool = LpAllocator::new(memory_ptr, 128).unwrap();
-            let layout = Layout::from_size_align(32, 8).unwrap();
+            let align = 8;
+            let header_size = mem::size_of::<BlockHeader>();
+            let metadata_size = mem::size_of::<usize>();
+            let max_padding = align - 1;
+            let max_data_capacity =
+                64usize.saturating_sub(header_size + metadata_size + max_padding);
+            let layout_size = (max_data_capacity / align).max(1) * align;
+            let layout = Layout::from_size_align(layout_size, align).unwrap();
 
             // Should get 2 blocks (128 / 64 = 2)
             let _ptr1 = pool.allocate(layout).unwrap();
@@ -1033,9 +1063,7 @@ mod tests {
             // Allocate three blocks
             let ptr1 = pool.allocate(layout_32).unwrap();
             let ptr2 = pool.allocate(layout_32).unwrap();
-            let ptr3 = pool.allocate(layout_32).unwrap();
-
-            let used_before = pool.used_bytes();
+            let _ptr3 = pool.allocate(layout_32).unwrap();
 
             // Deallocate middle block
             pool.deallocate(NonNull::new(ptr2.as_ptr() as *mut u8).unwrap(), layout_32);
@@ -1123,11 +1151,8 @@ mod tests {
             let layout = Layout::from_size_align(16, 8).unwrap();
             let mut count = 0;
 
-            loop {
-                match pool.allocate(layout) {
-                    Ok(_) => count += 1,
-                    Err(_) => break,
-                }
+            while pool.allocate(layout).is_ok() {
+                count += 1;
             }
 
             // With variable-size allocator, we should be able to fit many 16-byte allocations
@@ -1137,6 +1162,381 @@ mod tests {
                 count > 70,
                 "Should fit at least 70 small allocations, got {}",
                 count
+            );
+        }
+    }
+
+    // === Core Allocator Safety Tests ===
+
+    #[test]
+    fn test_data_preservation_during_grow() {
+        let mut memory = [0u8; 4096];
+        let memory_ptr = NonNull::new(memory.as_mut_ptr()).unwrap();
+
+        unsafe {
+            let mut pool = LpAllocator::new(memory_ptr, 4096).unwrap();
+
+            let old_layout = Layout::from_size_align(32, 8).unwrap();
+            let ptr = pool.allocate(old_layout).unwrap();
+            let data_ptr = NonNull::new(ptr.as_ptr() as *mut u8).unwrap();
+
+            // Write test data
+            let test_data: &[u8] = &[1, 2, 3, 4, 5, 6, 7, 8];
+            core::ptr::copy_nonoverlapping(test_data.as_ptr(), data_ptr.as_ptr(), test_data.len());
+
+            // Grow allocation
+            let grown = pool.grow(data_ptr, old_layout, 64).unwrap();
+            let grown_ptr = grown.as_ptr() as *const u8;
+
+            // Verify data was preserved
+            for (i, &expected_val) in test_data.iter().enumerate() {
+                assert_eq!(
+                    *grown_ptr.add(i),
+                    expected_val,
+                    "Data corrupted at byte {}",
+                    i
+                );
+            }
+
+            // Clean up
+            let new_layout = Layout::from_size_align(64, 8).unwrap();
+            pool.deallocate(NonNull::new(grown_ptr as *mut u8).unwrap(), new_layout);
+        }
+    }
+
+    #[test]
+    fn test_data_preservation_during_shrink() {
+        let mut memory = [0u8; 4096];
+        let memory_ptr = NonNull::new(memory.as_mut_ptr()).unwrap();
+
+        unsafe {
+            let mut pool = LpAllocator::new(memory_ptr, 4096).unwrap();
+
+            let old_layout = Layout::from_size_align(128, 8).unwrap();
+            let ptr = pool.allocate(old_layout).unwrap();
+            let data_ptr = NonNull::new(ptr.as_ptr() as *mut u8).unwrap();
+
+            // Write test data (more than new size to test partial copy)
+            let test_data: &[u8] = &[1, 2, 3, 4, 5, 6, 7, 8, 9, 10];
+            core::ptr::copy_nonoverlapping(test_data.as_ptr(), data_ptr.as_ptr(), test_data.len());
+
+            // Shrink allocation
+            let shrunk = pool.shrink(data_ptr, old_layout, 16).unwrap();
+            let shrunk_ptr = shrunk.as_ptr() as *const u8;
+
+            // Verify data was preserved (up to new size)
+            for (i, &expected_val) in test_data.iter().enumerate().take(16) {
+                assert_eq!(
+                    *shrunk_ptr.add(i),
+                    expected_val,
+                    "Data corrupted at byte {}",
+                    i
+                );
+            }
+
+            // Clean up
+            let new_layout = Layout::from_size_align(16, 8).unwrap();
+            pool.deallocate(NonNull::new(shrunk_ptr as *mut u8).unwrap(), new_layout);
+        }
+    }
+
+    #[test]
+    fn test_invalid_grow_same_size() {
+        let mut memory = [0u8; 1024];
+        let memory_ptr = NonNull::new(memory.as_mut_ptr()).unwrap();
+
+        unsafe {
+            let mut pool = LpAllocator::new(memory_ptr, 1024).unwrap();
+
+            let layout = Layout::from_size_align(32, 8).unwrap();
+            let ptr = pool.allocate(layout).unwrap();
+            let data_ptr = NonNull::new(ptr.as_ptr() as *mut u8).unwrap();
+
+            // Try to "grow" to same size
+            let result = pool.grow(data_ptr, layout, 32);
+            assert!(result.is_err(), "Growing to same size should fail");
+
+            // Clean up
+            pool.deallocate(data_ptr, layout);
+        }
+    }
+
+    #[test]
+    fn test_invalid_shrink_same_size() {
+        let mut memory = [0u8; 1024];
+        let memory_ptr = NonNull::new(memory.as_mut_ptr()).unwrap();
+
+        unsafe {
+            let mut pool = LpAllocator::new(memory_ptr, 1024).unwrap();
+
+            let layout = Layout::from_size_align(32, 8).unwrap();
+            let ptr = pool.allocate(layout).unwrap();
+            let data_ptr = NonNull::new(ptr.as_ptr() as *mut u8).unwrap();
+
+            // Try to "shrink" to same size
+            let result = pool.shrink(data_ptr, layout, 32);
+            assert!(result.is_err(), "Shrinking to same size should fail");
+
+            // Clean up
+            pool.deallocate(data_ptr, layout);
+        }
+    }
+
+    #[test]
+    fn test_pool_exhaustion_and_recovery() {
+        let mut memory = [0u8; 1024];
+        let memory_ptr = NonNull::new(memory.as_mut_ptr()).unwrap();
+
+        unsafe {
+            let mut pool = LpAllocator::new(memory_ptr, 1024).unwrap();
+
+            let layout = Layout::from_size_align(256, 8).unwrap();
+
+            // Allocate until exhausted
+            let ptr1 = pool.allocate(layout).unwrap();
+            let ptr2 = pool.allocate(layout).unwrap();
+            let ptr3 = pool.allocate(layout).unwrap();
+
+            // Next allocation should fail (pool exhausted)
+            let result = pool.allocate(layout);
+            assert!(result.is_err(), "Should fail when pool exhausted");
+
+            // Deallocate one block
+            pool.deallocate(NonNull::new(ptr2.as_ptr() as *mut u8).unwrap(), layout);
+
+            // Should be able to allocate again
+            let ptr4 = pool.allocate(layout);
+            assert!(ptr4.is_ok(), "Should succeed after freeing memory");
+
+            // Clean up
+            pool.deallocate(NonNull::new(ptr1.as_ptr() as *mut u8).unwrap(), layout);
+            pool.deallocate(NonNull::new(ptr3.as_ptr() as *mut u8).unwrap(), layout);
+            pool.deallocate(
+                NonNull::new(ptr4.unwrap().as_ptr() as *mut u8).unwrap(),
+                layout,
+            );
+        }
+    }
+
+    #[test]
+    fn test_zero_size_allocation() {
+        let mut memory = [0u8; 1024];
+        let memory_ptr = NonNull::new(memory.as_mut_ptr()).unwrap();
+
+        unsafe {
+            let mut pool = LpAllocator::new(memory_ptr, 1024).unwrap();
+
+            let layout = Layout::from_size_align(0, 1).unwrap();
+            let result = pool.allocate(layout);
+
+            // Zero-size allocations should either succeed (with a valid pointer)
+            // or fail gracefully - both are acceptable behaviors
+            if let Ok(ptr) = result {
+                // If it succeeds, pointer should be non-null
+                // Verify NonNull invariant (always non-null by construction)
+                // And deallocate should work
+                pool.deallocate(NonNull::new(ptr.as_ptr() as *mut u8).unwrap(), layout);
+            }
+            // If it fails, that's also acceptable
+        }
+    }
+
+    #[test]
+    fn test_memory_leak_detection() {
+        let mut memory = [0u8; 2048];
+        let memory_ptr = NonNull::new(memory.as_mut_ptr()).unwrap();
+
+        unsafe {
+            let mut pool = LpAllocator::new(memory_ptr, 2048).unwrap();
+
+            let initial_used = pool.used_bytes();
+            assert_eq!(initial_used, 0, "Pool should start empty");
+
+            // Allocate and deallocate
+            let layout = Layout::from_size_align(64, 8).unwrap();
+            let ptr1 = pool.allocate(layout).unwrap();
+            let used_after_alloc = pool.used_bytes();
+            assert!(used_after_alloc > 0, "Should track used bytes");
+
+            pool.deallocate(NonNull::new(ptr1.as_ptr() as *mut u8).unwrap(), layout);
+            let used_after_dealloc = pool.used_bytes();
+
+            assert_eq!(
+                used_after_dealloc, initial_used,
+                "All memory should be freed after deallocation"
+            );
+        }
+    }
+
+    #[test]
+    fn test_fragmentation_handling() {
+        let mut memory = [0u8; 2048];
+        let memory_ptr = NonNull::new(memory.as_mut_ptr()).unwrap();
+
+        unsafe {
+            let mut pool = LpAllocator::new(memory_ptr, 2048).unwrap();
+
+            let layout_small = Layout::from_size_align(32, 8).unwrap();
+            let layout_medium = Layout::from_size_align(64, 8).unwrap();
+
+            // Create fragmentation pattern: alloc, alloc, dealloc first, alloc
+            let ptr1 = pool.allocate(layout_small).unwrap();
+            let ptr2 = pool.allocate(layout_small).unwrap();
+            let ptr3 = pool.allocate(layout_small).unwrap();
+
+            // Free middle block
+            pool.deallocate(
+                NonNull::new(ptr2.as_ptr() as *mut u8).unwrap(),
+                layout_small,
+            );
+
+            // Try to allocate medium - should work despite fragmentation
+            let ptr_medium = pool.allocate(layout_medium);
+            assert!(ptr_medium.is_ok(), "Should handle fragmentation");
+
+            // Clean up
+            pool.deallocate(
+                NonNull::new(ptr1.as_ptr() as *mut u8).unwrap(),
+                layout_small,
+            );
+            pool.deallocate(
+                NonNull::new(ptr3.as_ptr() as *mut u8).unwrap(),
+                layout_small,
+            );
+            if let Ok(pm) = ptr_medium {
+                pool.deallocate(NonNull::new(pm.as_ptr() as *mut u8).unwrap(), layout_medium);
+            }
+        }
+    }
+
+    #[test]
+    fn test_allocate_entire_pool() {
+        let mut memory = [0u8; 2048];
+        let memory_ptr = NonNull::new(memory.as_mut_ptr()).unwrap();
+
+        unsafe {
+            let mut pool = LpAllocator::new(memory_ptr, 2048).unwrap();
+
+            // Try to allocate entire pool capacity (minus header overhead)
+            let allocation_overhead = mem::size_of::<BlockHeader>() + mem::size_of::<usize>();
+            let layout = Layout::from_size_align(2048 - allocation_overhead, 8).unwrap();
+            let result = pool.allocate(layout);
+
+            assert!(
+                result.is_ok(),
+                "Should be able to allocate most of the pool"
+            );
+
+            if let Ok(ptr) = result {
+                // Verify no more allocations possible
+                let layout_small = Layout::from_size_align(32, 8).unwrap();
+                let result2 = pool.allocate(layout_small);
+                assert!(
+                    result2.is_err(),
+                    "Should not be able to allocate when pool is full"
+                );
+
+                // Clean up
+                pool.deallocate(NonNull::new(ptr.as_ptr() as *mut u8).unwrap(), layout);
+
+                // Now small allocation should work
+                let result3 = pool.allocate(layout_small);
+                assert!(result3.is_ok(), "Should work after freeing large block");
+            }
+        }
+    }
+
+    #[test]
+    fn test_block_header_validation() {
+        let mut memory = [0u8; 1024];
+        let memory_ptr = NonNull::new(memory.as_mut_ptr()).unwrap();
+
+        unsafe {
+            let mut pool = LpAllocator::new(memory_ptr, 1024).unwrap();
+
+            let layout = Layout::from_size_align(64, 8).unwrap();
+            let ptr = pool.allocate(layout).unwrap();
+
+            // Get block pointer and verify header is valid
+            let block_ptr = BlockHeader::block_ptr_from_data(
+                ptr.as_ptr() as *mut u8,
+                pool.memory.as_ptr(),
+                pool.capacity,
+            );
+            let header = BlockHeader::read(block_ptr);
+
+            assert!(header.is_valid(), "Block header should be valid");
+            assert!(header.is_allocated, "Block should be marked as allocated");
+            assert!(
+                header.size >= layout.size(),
+                "Block size should accommodate requested size"
+            );
+
+            // Clean up
+            pool.deallocate(NonNull::new(ptr.as_ptr() as *mut u8).unwrap(), layout);
+
+            // After deallocation, block should be marked as free
+            let header_after = BlockHeader::read(block_ptr);
+            assert!(header_after.is_valid(), "Header should still be valid");
+            assert!(!header_after.is_allocated, "Block should be marked as free");
+        }
+    }
+
+    #[test]
+    fn test_allocation_alignment_boundary() {
+        let mut memory = [0u8; 2048];
+        let memory_ptr = NonNull::new(memory.as_mut_ptr()).unwrap();
+
+        unsafe {
+            let mut pool = LpAllocator::new(memory_ptr, 2048).unwrap();
+
+            // Test allocation at various alignment boundaries
+            for align_power in 0..5 {
+                let align = 1 << align_power; // 1, 2, 4, 8, 16
+                let layout = Layout::from_size_align(32, align).unwrap();
+
+                let ptr = pool
+                    .allocate(layout)
+                    .expect("Should allocate with various alignments");
+                let addr = ptr.as_ptr() as *const u8 as usize;
+
+                assert_eq!(
+                    addr % align,
+                    0,
+                    "Allocation should be aligned to {} bytes",
+                    align
+                );
+
+                pool.deallocate(NonNull::new(ptr.as_ptr() as *mut u8).unwrap(), layout);
+            }
+        }
+    }
+
+    #[test]
+    fn test_rapid_alloc_dealloc_cycles() {
+        let mut memory = [0u8; 4096];
+        let memory_ptr = NonNull::new(memory.as_mut_ptr()).unwrap();
+
+        unsafe {
+            let mut pool = LpAllocator::new(memory_ptr, 4096).unwrap();
+
+            let layout = Layout::from_size_align(64, 8).unwrap();
+
+            // Rapid allocation/deallocation cycles
+            for _ in 0..100 {
+                let ptr = pool.allocate(layout).expect("Should allocate");
+                pool.deallocate(NonNull::new(ptr.as_ptr() as *mut u8).unwrap(), layout);
+            }
+
+            // Pool should be in consistent state
+            let used = pool.used_bytes();
+            assert_eq!(used, 0, "All memory should be freed after cycles");
+
+            // Should still be able to allocate
+            let final_ptr = pool.allocate(layout);
+            assert!(
+                final_ptr.is_ok(),
+                "Pool should still work after many cycles"
             );
         }
     }

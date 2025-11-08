@@ -22,7 +22,7 @@ impl<'a> CodeGenerator<'a> {
         };
 
         // Call the helper function
-        gen_swizzle_opcodes(components, source_size, &mut self.code);
+        gen_swizzle_opcodes(components, source_size, self.code);
     }
 }
 

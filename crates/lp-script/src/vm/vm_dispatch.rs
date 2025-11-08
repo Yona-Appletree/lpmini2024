@@ -18,6 +18,7 @@ impl<'a> LpsVm<'a> {
     ///
     /// Executes the given opcode and updates PC as needed.
     /// Returns Some(result) if the program should exit, None to continue.
+    #[allow(clippy::too_many_arguments)]
     pub(super) fn dispatch_opcode(
         &mut self,
         opcode: &LpsOpCode,
@@ -205,7 +206,7 @@ impl<'a> LpsVm<'a> {
 
             // === Local Variables ===
             LpsOpCode::LoadLocalFixed(idx) => {
-                let local_idx = (self.call_stack.frame_base() + *idx as usize) as usize;
+                let local_idx = self.call_stack.frame_base() + *idx as usize;
                 locals::exec_load_local_fixed(&mut self.stack, &self.locals, local_idx)
                     .map_err(|e| self.runtime_error(e))?;
                 self.pc += 1;
@@ -213,7 +214,7 @@ impl<'a> LpsVm<'a> {
             }
 
             LpsOpCode::StoreLocalFixed(idx) => {
-                let local_idx = (self.call_stack.frame_base() + *idx as usize) as usize;
+                let local_idx = self.call_stack.frame_base() + *idx as usize;
                 locals::exec_store_local_fixed(&mut self.stack, &mut self.locals, local_idx)
                     .map_err(|e| self.runtime_error(e))?;
                 self.pc += 1;
@@ -221,7 +222,7 @@ impl<'a> LpsVm<'a> {
             }
 
             LpsOpCode::LoadLocalInt32(idx) => {
-                let local_idx = (self.call_stack.frame_base() + *idx as usize) as usize;
+                let local_idx = self.call_stack.frame_base() + *idx as usize;
                 locals::exec_load_local_int32(&mut self.stack, &self.locals, local_idx)
                     .map_err(|e| self.runtime_error(e))?;
                 self.pc += 1;
@@ -229,7 +230,7 @@ impl<'a> LpsVm<'a> {
             }
 
             LpsOpCode::StoreLocalInt32(idx) => {
-                let local_idx = (self.call_stack.frame_base() + *idx as usize) as usize;
+                let local_idx = self.call_stack.frame_base() + *idx as usize;
                 locals::exec_store_local_int32(&mut self.stack, &mut self.locals, local_idx)
                     .map_err(|e| self.runtime_error(e))?;
                 self.pc += 1;
@@ -237,7 +238,7 @@ impl<'a> LpsVm<'a> {
             }
 
             LpsOpCode::LoadLocalVec2(idx) => {
-                let local_idx = (self.call_stack.frame_base() + *idx as usize) as usize;
+                let local_idx = self.call_stack.frame_base() + *idx as usize;
                 locals::exec_load_local_vec2(&mut self.stack, &self.locals, local_idx)
                     .map_err(|e| self.runtime_error(e))?;
                 self.pc += 1;
@@ -245,7 +246,7 @@ impl<'a> LpsVm<'a> {
             }
 
             LpsOpCode::StoreLocalVec2(idx) => {
-                let local_idx = (self.call_stack.frame_base() + *idx as usize) as usize;
+                let local_idx = self.call_stack.frame_base() + *idx as usize;
                 locals::exec_store_local_vec2(&mut self.stack, &mut self.locals, local_idx)
                     .map_err(|e| self.runtime_error(e))?;
                 self.pc += 1;
@@ -253,7 +254,7 @@ impl<'a> LpsVm<'a> {
             }
 
             LpsOpCode::LoadLocalVec3(idx) => {
-                let local_idx = (self.call_stack.frame_base() + *idx as usize) as usize;
+                let local_idx = self.call_stack.frame_base() + *idx as usize;
                 locals::exec_load_local_vec3(&mut self.stack, &self.locals, local_idx)
                     .map_err(|e| self.runtime_error(e))?;
                 self.pc += 1;
@@ -261,7 +262,7 @@ impl<'a> LpsVm<'a> {
             }
 
             LpsOpCode::StoreLocalVec3(idx) => {
-                let local_idx = (self.call_stack.frame_base() + *idx as usize) as usize;
+                let local_idx = self.call_stack.frame_base() + *idx as usize;
                 locals::exec_store_local_vec3(&mut self.stack, &mut self.locals, local_idx)
                     .map_err(|e| self.runtime_error(e))?;
                 self.pc += 1;
@@ -269,7 +270,7 @@ impl<'a> LpsVm<'a> {
             }
 
             LpsOpCode::LoadLocalVec4(idx) => {
-                let local_idx = (self.call_stack.frame_base() + *idx as usize) as usize;
+                let local_idx = self.call_stack.frame_base() + *idx as usize;
                 locals::exec_load_local_vec4(&mut self.stack, &self.locals, local_idx)
                     .map_err(|e| self.runtime_error(e))?;
                 self.pc += 1;
@@ -277,7 +278,7 @@ impl<'a> LpsVm<'a> {
             }
 
             LpsOpCode::StoreLocalVec4(idx) => {
-                let local_idx = (self.call_stack.frame_base() + *idx as usize) as usize;
+                let local_idx = self.call_stack.frame_base() + *idx as usize;
                 locals::exec_store_local_vec4(&mut self.stack, &mut self.locals, local_idx)
                     .map_err(|e| self.runtime_error(e))?;
                 self.pc += 1;

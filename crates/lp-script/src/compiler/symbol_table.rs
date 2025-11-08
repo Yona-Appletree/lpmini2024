@@ -58,8 +58,9 @@ impl SymbolTable {
     pub(crate) fn set(&mut self, name: String, ty: Type) {
         // Update in the most recent scope that has this variable
         for scope in self.scopes.iter_mut().rev() {
-            if scope.contains_key(&name) {
-                scope.insert(name, ty);
+            use alloc::collections::btree_map::Entry;
+            if let Entry::Occupied(mut entry) = scope.entry(name.clone()) {
+                entry.insert(ty);
                 return;
             }
         }

@@ -23,16 +23,19 @@ impl SchemaRegistry {
     }
 
     /// Register a type with a custom name
+    #[allow(dead_code)]
     pub fn register_with_name(&mut self, name: String, schema: Schema) {
         self.schemas.insert(name, schema);
     }
 
     /// Get a schema by type name
+    #[allow(dead_code)]
     pub fn get(&self, name: &str) -> Option<&Schema> {
         self.schemas.get(name)
     }
 
     /// Get all registered type names
+    #[allow(dead_code)]
     pub fn type_names(&self) -> Vec<String> {
         self.schemas.keys().cloned().collect()
     }

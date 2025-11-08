@@ -32,6 +32,7 @@ npm-debug.log*
 pnpm-debug.log*
 yarn-debug.log*
 yarn-error.log*
+.git_action_logs/
 
 # Testing
 /coverage/
@@ -41,3 +42,6 @@ yarn-error.log*
 *.tmp
 *.temp
 .cache/
+
+# Profiling data
+profiling_data/

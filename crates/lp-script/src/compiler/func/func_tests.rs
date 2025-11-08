@@ -590,7 +590,7 @@ mod integration_tests {
         let result = vm
             .run_scalar(Fixed::ZERO, Fixed::ZERO, Fixed::ZERO)
             .unwrap();
-        assert!((result.to_f32() - 3.14159).abs() < 0.01);
+        assert!((result.to_f32() - std::f32::consts::PI).abs() < 0.01);
     }
 
     #[test]

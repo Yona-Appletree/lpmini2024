@@ -1,0 +1,4 @@
+[alias]
+profile = "run --bin profile --package lp-debug"
+demo = "run --bin visualizer --package lp-debug"
+

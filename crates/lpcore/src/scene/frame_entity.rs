@@ -5,11 +5,17 @@ pub struct FrameEntity {
     pub output: JsonValue,
 }
 
-impl FrameEntity {
-    pub fn new() -> Self {
+impl Default for FrameEntity {
+    fn default() -> Self {
         Self {
             input: JsonValue::Null,
             output: JsonValue::Null,
         }
+    }
+}
+
+impl FrameEntity {
+    pub fn new() -> Self {
+        Self::default()
     }
 }

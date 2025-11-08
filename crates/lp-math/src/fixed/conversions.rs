@@ -5,7 +5,7 @@ use super::fixed::Fixed;
 ///
 /// # Examples
 /// ```
-/// use engine_core::math::{Fixed, ToFixed};
+/// use lp_math::fixed::{Fixed, ToFixed};
 /// let a = 5i32.to_fixed();
 /// let b = 1.5f32.to_fixed();
 /// ```

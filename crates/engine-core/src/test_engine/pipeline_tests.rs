@@ -1,5 +1,6 @@
 /// Tests for the rendering pipeline
 #[cfg(test)]
+#[allow(clippy::module_inception)]
 mod pipeline_tests {
     use lp_script::fixed::Fixed;
     use lp_script::parse_expr;

@@ -259,4 +259,236 @@ mod tests {
         })
         .unwrap();
     }
+
+    // === Comprehensive Edge Case Tests ===
+
+    #[test]
+    fn test_string_very_long() {
+        let pool = setup_pool();
+        pool.run(|| {
+            let mut s = LpString::new();
+
+            // Build a long string that requires multiple reallocations
+            for i in 0..100 {
+                s.try_push_str(&alloc::format!("Line {} ", i))?;
+            }
+
+            assert!(s.len() > 500);
+            assert!(s.as_str().contains("Line 0"));
+            assert!(s.as_str().contains("Line 99"));
+
+            Ok::<(), AllocError>(())
+        })
+        .unwrap();
+    }
+
+    #[test]
+    fn test_string_unicode() {
+        let pool = setup_pool();
+        pool.run(|| {
+            let mut s = LpString::new();
+            s.try_push_str("Hello ")?;
+            s.try_push_str("🦀")?; // Rust crab emoji (4 bytes)
+            s.try_push_str(" World")?;
+            s.try_push_str(" 世界")?; // Chinese characters
+
+            assert_eq!(s.as_str(), "Hello 🦀 World 世界");
+            assert!(s.len() > 17); // More than ASCII length
+
+            Ok::<(), AllocError>(())
+        })
+        .unwrap();
+    }
+
+    #[test]
+    fn test_string_is_empty() {
+        let pool = setup_pool();
+        pool.run(|| {
+            let s = LpString::new();
+            assert!(s.is_empty());
+
+            let mut s2 = LpString::new();
+            s2.try_push_str("x")?;
+            assert!(!s2.is_empty());
+
+            Ok::<(), AllocError>(())
+        })
+        .unwrap();
+    }
+
+    #[test]
+    fn test_string_repeated_operations() {
+        let pool = setup_pool();
+        pool.run(|| {
+            let mut s = LpString::new();
+
+            for _ in 0..10 {
+                s.try_push_str("hello")?;
+            }
+
+            assert_eq!(s.len(), 50);
+            assert_eq!(
+                s.as_str(),
+                "hellohellohellohellohellohellohellohellohellohello"
+            );
+
+            Ok::<(), AllocError>(())
+        })
+        .unwrap();
+    }
+
+    #[test]
+    fn test_string_from_str_with_scope() {
+        let pool = setup_pool();
+        pool.run(|| {
+            let s = LpString::try_from_str_with_scope("test", Some("test_scope"))?;
+            assert_eq!(s.as_str(), "test");
+            assert_eq!(s.len(), 4);
+
+            Ok::<(), AllocError>(())
+        })
+        .unwrap();
+    }
+
+    #[test]
+    fn test_string_memory_is_freed() {
+        let pool = setup_pool();
+        let before = pool.used_bytes().unwrap();
+
+        pool.run(|| {
+            {
+                let mut s1 = LpString::new();
+                s1.try_push_str("This is a test string")?;
+
+                let mut s2 = LpString::new();
+                s2.try_push_str("Another test string")?;
+                // Both dropped here
+            }
+
+            let after = pool.used_bytes().unwrap();
+            assert_eq!(after, before, "Memory should be freed after strings drop");
+
+            Ok::<(), AllocError>(())
+        })
+        .unwrap();
+    }
+
+    #[test]
+    fn test_string_debug_display() {
+        let pool = setup_pool();
+        pool.run(|| {
+            let s = LpString::try_from_str("test")?;
+
+            // Test Debug formatting
+            let debug_str = alloc::format!("{:?}", s);
+            assert_eq!(debug_str, "\"test\"");
+
+            // Test Display formatting
+            let display_str = alloc::format!("{}", s);
+            assert_eq!(display_str, "test");
+
+            Ok::<(), AllocError>(())
+        })
+        .unwrap();
+    }
+
+    #[test]
+    fn test_string_eq_with_str_ref() {
+        let pool = setup_pool();
+        pool.run(|| {
+            let s = LpString::try_from_str("hello")?;
+
+            let hello_str: &str = "hello";
+            let world_str: &str = "world";
+
+            assert!(s == "hello");
+            assert!(s == hello_str);
+            assert!(s != "world");
+            assert!(s != world_str);
+
+            Ok::<(), AllocError>(())
+        })
+        .unwrap();
+    }
+
+    #[test]
+    fn test_string_empty_then_push() {
+        let pool = setup_pool();
+        pool.run(|| {
+            let mut s = LpString::new();
+            assert_eq!(s.as_str(), "");
+            assert_eq!(s.len(), 0);
+
+            s.try_push_str("")?; // Push empty string
+            assert_eq!(s.as_str(), "");
+
+            s.try_push_str("a")?;
+            assert_eq!(s.as_str(), "a");
+            assert_eq!(s.len(), 1);
+
+            Ok::<(), AllocError>(())
+        })
+        .unwrap();
+    }
+
+    #[test]
+    fn test_string_growth_pattern() {
+        let pool = setup_pool();
+        pool.run(|| {
+            let mut s = LpString::new();
+
+            // Push strings of increasing size
+            s.try_push_str("a")?;
+            assert_eq!(s.len(), 1);
+
+            s.try_push_str("bb")?;
+            assert_eq!(s.len(), 3);
+
+            s.try_push_str("ccc")?;
+            assert_eq!(s.len(), 6);
+
+            s.try_push_str("dddd")?;
+            assert_eq!(s.len(), 10);
+
+            assert_eq!(s.as_str(), "abbcccdddd");
+
+            Ok::<(), AllocError>(())
+        })
+        .unwrap();
+    }
+
+    #[test]
+    fn test_string_partial_eq_symmetric() {
+        let pool = setup_pool();
+        pool.run(|| {
+            let s1 = LpString::try_from_str("test")?;
+            let s2 = LpString::try_from_str("test")?;
+            let str_ref = "test";
+
+            // Test symmetry of PartialEq
+            assert!(s1 == s2);
+            assert!(s2 == s1);
+
+            assert!(s1 == str_ref);
+            assert!(str_ref == s1.as_str());
+
+            Ok::<(), AllocError>(())
+        })
+        .unwrap();
+    }
+
+    #[test]
+    fn test_string_ordering_with_different_lengths() {
+        let pool = setup_pool();
+        pool.run(|| {
+            let short = LpString::try_from_str("a")?;
+            let long = LpString::try_from_str("aaa")?;
+
+            assert!(short < long);
+            assert!(long > short);
+
+            Ok::<(), AllocError>(())
+        })
+        .unwrap();
+    }
 }

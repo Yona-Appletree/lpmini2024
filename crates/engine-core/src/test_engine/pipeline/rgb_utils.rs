@@ -31,13 +31,7 @@ pub fn i32_to_grey(val: i32) -> Fixed {
 /// Convert greyscale fixed-point to RGB (grey, grey, grey) packed as i32
 #[inline(always)]
 pub fn grey_to_rgb_i32(grey: Fixed) -> i32 {
-    let clamped = if grey.0 < 0 {
-        0
-    } else if grey.0 > FIXED_ONE {
-        FIXED_ONE
-    } else {
-        grey.0
-    };
+    let clamped = grey.0.clamp(0, FIXED_ONE);
     // Convert to 0-255 range: (clamped * 255) / FIXED_ONE
     // Use i64 to avoid overflow
     let byte_val = ((clamped as i64 * 255) / FIXED_ONE as i64) as u8;

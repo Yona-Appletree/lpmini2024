@@ -46,7 +46,7 @@ impl LpsProgram {
 
     /// Get the main function (always at index 0)
     pub fn main_function(&self) -> Option<&FunctionDef> {
-        self.functions.get(0)
+        self.functions.first()
     }
 
     /// Get a function by index

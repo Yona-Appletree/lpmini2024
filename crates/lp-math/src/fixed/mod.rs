@@ -16,7 +16,7 @@ pub mod conversions;
 /// # Conversions
 /// Use the `ToFixed` trait for ergonomic conversions:
 /// ```
-/// use engine_core::fixed::ToFixed;
+/// use lp_math::fixed::ToFixed;
 /// let a = 5i32.to_fixed();
 /// let b = 1.5f32.to_fixed();
 /// ```
@@ -37,6 +37,7 @@ pub mod conversions;
 ///
 /// # Noise
 /// - `noise::perlin3(x, y, z, octaves)` - 3D Perlin noise
+#[allow(clippy::module_inception)]
 pub mod fixed;
 pub mod interpolation;
 pub mod noise;

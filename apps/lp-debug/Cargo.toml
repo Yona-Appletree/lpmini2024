@@ -15,8 +15,12 @@ path = "src/visualizer.rs"
 name = "lps-compile"
 path = "src/lps_compile.rs"
 
+[[bin]]
+name = "profile"
+path = "src/profile.rs"
+
 [dependencies]
-engine-core = { path = "../../crates/engine-core" }
+engine-core = { path = "../../crates/engine-core", features = ["profiling"] }
 lp-script = { path = "../../crates/lp-script" }
 lp-data = { path = "../../crates/lp-data", features = ["serde_json"] }
 minifb = "0.27"
