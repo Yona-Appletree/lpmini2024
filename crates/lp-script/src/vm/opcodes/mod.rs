@@ -1,11 +1,11 @@
+// Re-export LoadSource from load module
+pub use load::LoadSource;
+
 /// OpCode definitions for LPS VM
 ///
 /// Design: Hybrid approach - small constants (indices, offsets) embedded in opcodes,
 /// data values flow through stack.
 use crate::fixed::Fixed;
-
-// Re-export LoadSource from load module
-pub use load::LoadSource;
 
 // Fixed-point opcodes (split into basic, advanced, logic)
 pub mod fixed_advanced;

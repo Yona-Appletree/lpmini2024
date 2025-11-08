@@ -1,11 +1,12 @@
+use alloc::string::String;
+use alloc::vec::Vec;
+
 use crate::compiler::ast::{FunctionDef, Parameter};
 use crate::compiler::error::ParseError;
 /// Function definition parsing methods
 use crate::compiler::parser::Parser;
 use crate::lexer::TokenKind;
 use crate::shared::Span;
-use alloc::string::String;
-use alloc::vec::Vec;
 
 impl Parser {
     /// Check if the current position is a function definition

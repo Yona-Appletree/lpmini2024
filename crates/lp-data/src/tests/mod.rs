@@ -117,10 +117,11 @@ fn annotations_support_nested_objects() {
 
 #[cfg(feature = "serde_json")]
 mod json_tests {
+    use serde_json::json;
+
     use super::*;
     use crate::schema;
     use crate::value::LpValue;
-    use serde_json::json;
 
     fn circle_config_type() -> LpType {
         let mut struct_ty = LpStructType::new("CircleMappingConfig");

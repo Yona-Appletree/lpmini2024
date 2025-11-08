@@ -114,8 +114,9 @@ pub fn rgb_buffer_from_greyscale(greyscale: &[Fixed], rgb_buffer: &mut [u8], pal
 
 #[cfg(test)]
 mod tests {
-    use super::*;
     use lp_script::fixed::ToFixed;
+
+    use super::*;
 
     #[test]
     fn test_palette_edges() {

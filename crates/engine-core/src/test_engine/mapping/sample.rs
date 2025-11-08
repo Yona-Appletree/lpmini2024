@@ -121,8 +121,9 @@ pub fn sample_rgb_bilinear(
 
 #[cfg(all(test, not(feature = "use-libm")))]
 mod tests {
-    use super::*;
     use lp_script::fixed::ToFixed;
+
+    use super::*;
 
     #[test]
     fn test_bilinear_interp_channel_corners() {
@@ -262,8 +263,9 @@ mod tests {
         // Reproduce the exact issue: LEDs 81 and 89 in circular_panel_7ring mapping
         // are sampling at exact pixel boundaries and returning black
         extern crate alloc;
-        use super::super::{apply_2d_mapping, LedMapping};
         use alloc::vec;
+
+        use super::super::{apply_2d_mapping, LedMapping};
 
         const WIDTH: usize = 16;
         const HEIGHT: usize = 16;

@@ -18,16 +18,20 @@ const HALF: i32 = ONE / 2;
 pub struct Fixed(pub i32);
 
 impl Fixed {
-    pub const SHIFT: i32 = SHIFT;
-    pub const ZERO: Fixed = Fixed(0);
-    pub const ONE: Fixed = Fixed(ONE);
+    // 2π ≈ 6.28318530718 in 16.16
+    pub const E: Fixed = Fixed(178145);
     pub const HALF: Fixed = Fixed(HALF);
-
+    pub const ONE: Fixed = Fixed(ONE);
+    // e ≈ 2.71828182846 in 16.16
+    pub const PHI: Fixed = Fixed(106039);
     // Mathematical constants
-    pub const PI: Fixed = Fixed(205887); // π ≈ 3.14159265359 in 16.16
-    pub const TAU: Fixed = Fixed(411774); // 2π ≈ 6.28318530718 in 16.16
-    pub const E: Fixed = Fixed(178145); // e ≈ 2.71828182846 in 16.16
-    pub const PHI: Fixed = Fixed(106039); // φ ≈ 1.61803398875 in 16.16 (golden ratio)
+    pub const PI: Fixed = Fixed(205887);
+    pub const SHIFT: i32 = SHIFT;
+    // π ≈ 3.14159265359 in 16.16
+    pub const TAU: Fixed = Fixed(411774);
+    pub const ZERO: Fixed = Fixed(0);
+
+    // φ ≈ 1.61803398875 in 16.16 (golden ratio)
 
     /// Create a Fixed from a raw fixed-point value
     #[inline(always)]
@@ -110,6 +114,7 @@ impl Fixed {
 
 impl Add for Fixed {
     type Output = Self;
+
     #[inline(always)]
     fn add(self, rhs: Self) -> Self {
         Fixed(self.0 + rhs.0)
@@ -118,6 +123,7 @@ impl Add for Fixed {
 
 impl Sub for Fixed {
     type Output = Self;
+
     #[inline(always)]
     fn sub(self, rhs: Self) -> Self {
         Fixed(self.0 - rhs.0)
@@ -126,6 +132,7 @@ impl Sub for Fixed {
 
 impl Mul for Fixed {
     type Output = Self;
+
     #[inline(always)]
     fn mul(self, rhs: Self) -> Self {
         Fixed(((self.0 as i64 * rhs.0 as i64) >> Self::SHIFT) as i32)
@@ -134,6 +141,7 @@ impl Mul for Fixed {
 
 impl Div for Fixed {
     type Output = Self;
+
     #[inline(always)]
     fn div(self, rhs: Self) -> Self {
         if rhs.0 != 0 {
@@ -146,6 +154,7 @@ impl Div for Fixed {
 
 impl core::ops::Rem for Fixed {
     type Output = Self;
+
     #[inline(always)]
     fn rem(self, rhs: Self) -> Self {
         if rhs.0 != 0 {
@@ -158,6 +167,7 @@ impl core::ops::Rem for Fixed {
 
 impl Neg for Fixed {
     type Output = Self;
+
     #[inline(always)]
     fn neg(self) -> Self {
         Fixed(-self.0)

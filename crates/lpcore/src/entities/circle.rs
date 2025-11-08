@@ -1,10 +1,12 @@
-use crate::entity::entity_instance::{EntityInstance, UpdateContext};
-use crate::values::size_int::SizeInt;
-use crate::values::texture_ref::TextureRef;
+use std::error::Error;
+
 use schemars::{schema_for, JsonSchema, Schema};
 use serde::{Deserialize, Serialize};
 use serde_json::{json, Value as JsonValue};
-use std::error::Error;
+
+use crate::entity::entity_instance::{EntityInstance, UpdateContext};
+use crate::values::size_int::SizeInt;
+use crate::values::texture_ref::TextureRef;
 
 #[derive(Default)]
 pub struct CircleEntity {}
