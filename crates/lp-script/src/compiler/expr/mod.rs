@@ -5,8 +5,7 @@ pub mod bitwise;
 pub mod call;
 pub mod compare;
 pub mod constructors;
-// TODO: Fix test utility compilation errors
-// pub mod expr_test_util;
+pub mod expr_test_util;
 pub(crate) mod expr_types;
 pub mod incdec;
 pub mod literals;
