@@ -2,8 +2,6 @@
 use alloc::collections::BTreeMap as MetaMap;
 #[cfg(feature = "alloc-meta")]
 use alloc::format;
-#[cfg(all(feature = "alloc-meta", not(feature = "std")))]
-use core::cell::RefCell;
 #[cfg(all(feature = "alloc-meta", feature = "std"))]
 use std::cell::RefCell as StdRefCell;
 #[cfg(all(feature = "alloc-meta", feature = "std"))]

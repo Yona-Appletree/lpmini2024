@@ -1,10 +1,6 @@
 #[cfg(feature = "alloc-tracking")]
 use alloc::collections::BTreeMap as TrackingMap;
 use alloc::format;
-#[cfg(all(feature = "alloc-tracking", feature = "std"))]
-use core::cell::RefCell;
-#[cfg(all(feature = "alloc-tracking", not(feature = "std")))]
-use core::cell::RefCell;
 #[cfg(all(feature = "alloc-tracking", not(feature = "std")))]
 use spin::Mutex;
 #[cfg(all(feature = "alloc-tracking", feature = "std"))]
@@ -33,7 +29,7 @@ mod storage {
     #[cfg(feature = "std")]
     thread_local! {
         static TYPE_STATS: StdRefCell<TrackingMap<AllocationKey, TypeStats>> =
-            StdRefCell::new(TrackingMap::new());
+            const { StdRefCell::new(TrackingMap::new()) };
     }
 
     #[cfg(feature = "std")]
@@ -41,7 +37,7 @@ mod storage {
     where
         F: FnOnce(&mut TrackingMap<AllocationKey, TypeStats>) -> R,
     {
-        TYPE_STATS.with(|cell| f(&mut *cell.borrow_mut()))
+        TYPE_STATS.with(|cell| f(&mut cell.borrow_mut()))
     }
 
     #[cfg(feature = "std")]
@@ -49,7 +45,7 @@ mod storage {
     where
         F: FnOnce(&TrackingMap<AllocationKey, TypeStats>) -> R,
     {
-        TYPE_STATS.with(|cell| f(&*cell.borrow()))
+        TYPE_STATS.with(|cell| f(&cell.borrow()))
     }
 
     #[cfg(not(feature = "std"))]
