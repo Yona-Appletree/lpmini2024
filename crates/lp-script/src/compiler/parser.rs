@@ -64,7 +64,7 @@ impl Parser {
         }
     }
 
-    /// Parse an expression (expression mode) - delegated to expr module
+    // Parse an expression (expression mode) - delegated to expr module
     // pub fn parse(&mut self) -> Result<Expr, ParseError> is implemented in expr/mod.rs
 
     /// Parse a full program (script mode)

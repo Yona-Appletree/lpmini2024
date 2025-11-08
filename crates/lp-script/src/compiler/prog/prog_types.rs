@@ -66,13 +66,11 @@ impl TypeChecker {
         }
 
         // Verify all code paths return a value (if return_type != Void)
-        if *expected_return_type != Type::Void {
-            if !Self::all_paths_return(body) {
-                return Err(TypeError {
-                    kind: TypeErrorKind::MissingReturn(func_name.to_string()),
-                    span: func_span,
-                });
-            }
+        if *expected_return_type != Type::Void && !Self::all_paths_return(body) {
+            return Err(TypeError {
+                kind: TypeErrorKind::MissingReturn(func_name.to_string()),
+                span: func_span,
+            });
         }
 
         Ok(())
@@ -123,7 +121,8 @@ impl TypeChecker {
                 ..
             } => {
                 if let Some(else_s) = else_stmt {
-                    Self::stmt_always_returns(&**then_stmt) && Self::stmt_always_returns(&**else_s)
+                    Self::stmt_always_returns(then_stmt.as_ref())
+                        && Self::stmt_always_returns(else_s.as_ref())
                 } else {
                     false
                 }

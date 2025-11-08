@@ -27,10 +27,14 @@ impl<'a> CodeGenerator<'a> {
                 then_stmt,
                 else_stmt,
             } => {
-                self.gen_if_stmt(condition, &**then_stmt, else_stmt.as_ref().map(|s| &**s));
+                self.gen_if_stmt(
+                    condition,
+                    then_stmt.as_ref(),
+                    else_stmt.as_ref().map(|s| s.as_ref()),
+                );
             }
             StmtKind::While { condition, body } => {
-                self.gen_while_stmt(condition, &**body);
+                self.gen_while_stmt(condition, body.as_ref());
             }
             StmtKind::For {
                 init,
@@ -39,10 +43,10 @@ impl<'a> CodeGenerator<'a> {
                 body,
             } => {
                 self.gen_for_stmt(
-                    init.as_ref().map(|s| &**s),
+                    init.as_ref().map(|s| s.as_ref()),
                     condition.as_ref(),
                     increment.as_ref(),
-                    &**body,
+                    body.as_ref(),
                 );
             }
         }

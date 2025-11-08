@@ -41,33 +41,16 @@ impl Parser {
 
             // Compound assignments - desugar to simple assignment with binary operation
             // e.g., x += 5 becomes x = x + 5
-            TokenKind::PlusEq => {
-                self.parse_compound_assignment(expr, |left, right| ExprKind::Add(left, right))
-            }
-            TokenKind::MinusEq => {
-                self.parse_compound_assignment(expr, |left, right| ExprKind::Sub(left, right))
-            }
-            TokenKind::StarEq => {
-                self.parse_compound_assignment(expr, |left, right| ExprKind::Mul(left, right))
-            }
-            TokenKind::SlashEq => {
-                self.parse_compound_assignment(expr, |left, right| ExprKind::Div(left, right))
-            }
-            TokenKind::PercentEq => {
-                self.parse_compound_assignment(expr, |left, right| ExprKind::Mod(left, right))
-            }
-            TokenKind::AmpersandEq => self
-                .parse_compound_assignment(expr, |left, right| ExprKind::BitwiseAnd(left, right)),
-            TokenKind::PipeEq => {
-                self.parse_compound_assignment(expr, |left, right| ExprKind::BitwiseOr(left, right))
-            }
-            TokenKind::CaretEq => self
-                .parse_compound_assignment(expr, |left, right| ExprKind::BitwiseXor(left, right)),
-            TokenKind::LShiftEq => {
-                self.parse_compound_assignment(expr, |left, right| ExprKind::LeftShift(left, right))
-            }
-            TokenKind::RShiftEq => self
-                .parse_compound_assignment(expr, |left, right| ExprKind::RightShift(left, right)),
+            TokenKind::PlusEq => self.parse_compound_assignment(expr, ExprKind::Add),
+            TokenKind::MinusEq => self.parse_compound_assignment(expr, ExprKind::Sub),
+            TokenKind::StarEq => self.parse_compound_assignment(expr, ExprKind::Mul),
+            TokenKind::SlashEq => self.parse_compound_assignment(expr, ExprKind::Div),
+            TokenKind::PercentEq => self.parse_compound_assignment(expr, ExprKind::Mod),
+            TokenKind::AmpersandEq => self.parse_compound_assignment(expr, ExprKind::BitwiseAnd),
+            TokenKind::PipeEq => self.parse_compound_assignment(expr, ExprKind::BitwiseOr),
+            TokenKind::CaretEq => self.parse_compound_assignment(expr, ExprKind::BitwiseXor),
+            TokenKind::LShiftEq => self.parse_compound_assignment(expr, ExprKind::LeftShift),
+            TokenKind::RShiftEq => self.parse_compound_assignment(expr, ExprKind::RightShift),
 
             _ => Ok(expr),
         };
