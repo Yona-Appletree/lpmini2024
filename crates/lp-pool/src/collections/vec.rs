@@ -358,6 +358,7 @@ mod tests {
 
     use super::*;
     use crate::memory_pool::LpMemoryPool;
+    use crate::with_global_alloc;
 
     fn setup_pool() -> LpMemoryPool {
         let mut memory = [0u8; 16384];
@@ -597,8 +598,9 @@ mod tests {
             let sum: i32 = vec.iter().sum();
             assert_eq!(sum, 6);
 
-            let collected: alloc::vec::Vec<_> = vec.iter().collect();
-            assert_eq!(collected, alloc::vec![&1, &2, &3]);
+            let collected = with_global_alloc(|| vec.iter().collect::<alloc::vec::Vec<_>>());
+            let expected = with_global_alloc(|| alloc::vec![&1, &2, &3]);
+            assert_eq!(collected, expected);
             Ok::<(), AllocError>(())
         })
         .unwrap();
@@ -634,8 +636,10 @@ mod tests {
             vec.try_push(2)?;
             vec.try_push(3)?;
 
-            let collected: alloc::vec::Vec<_> = vec.iter().rev().copied().collect();
-            assert_eq!(collected, alloc::vec![3, 2, 1]);
+            let collected =
+                with_global_alloc(|| vec.iter().rev().copied().collect::<alloc::vec::Vec<_>>());
+            let expected = with_global_alloc(|| alloc::vec![3, 2, 1]);
+            assert_eq!(collected, expected);
             Ok::<(), AllocError>(())
         })
         .unwrap();
@@ -814,14 +818,16 @@ mod tests {
 
     #[test]
     fn test_vec_nested_drop() {
-        use alloc::string::String;
         let pool = setup_pool();
 
         pool.run(|| {
             let mut vec = LpVec::new();
-            vec.try_push(String::from("hello"))?;
-            vec.try_push(String::from("world"))?;
-            vec.try_push(String::from("test"))?;
+            let hello = with_global_alloc(|| alloc::string::String::from("hello"));
+            let world = with_global_alloc(|| alloc::string::String::from("world"));
+            let test = with_global_alloc(|| alloc::string::String::from("test"));
+            vec.try_push(hello)?;
+            vec.try_push(world)?;
+            vec.try_push(test)?;
 
             // Drop happens here - should not leak strings
             Ok::<(), AllocError>(())

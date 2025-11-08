@@ -136,6 +136,7 @@ mod tests {
 
     use super::*;
     use crate::memory_pool::LpMemoryPool;
+    use crate::with_global_alloc;
 
     fn setup_pool() -> LpMemoryPool {
         let mut memory = [0u8; 16384];
@@ -210,7 +211,12 @@ mod tests {
     fn test_pool_box_string() {
         use alloc::string::String;
         let pool = setup_pool();
-        let boxed = pool.run(|| LpBox::try_new(String::from("hello"))).unwrap();
+        let boxed = pool
+            .run(|| {
+                let value = with_global_alloc(|| String::from("hello"));
+                LpBox::try_new(value)
+            })
+            .unwrap();
         assert_eq!(*boxed, "hello");
     }
 
@@ -362,7 +368,7 @@ mod tests {
     fn test_box_deref_coercion() {
         let pool = setup_pool();
         pool.run(|| {
-            let boxed = LpBox::try_new(alloc::string::String::from("hello"))?;
+            let boxed = LpBox::try_new(with_global_alloc(|| alloc::string::String::from("hello")))?;
 
             // Deref coercion: LpBox<String> -> &str
             let s: &str = &boxed;

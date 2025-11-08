@@ -128,6 +128,7 @@ mod tests {
 
     use super::*;
     use crate::memory_pool::LpMemoryPool;
+    use crate::with_global_alloc;
 
     fn setup_pool() -> LpMemoryPool {
         let mut memory = [0u8; 16384];
@@ -270,7 +271,8 @@ mod tests {
 
             // Build a long string that requires multiple reallocations
             for i in 0..100 {
-                s.try_push_str(&alloc::format!("Line {} ", i))?;
+                let chunk = with_global_alloc(|| alloc::format!("Line {} ", i));
+                s.try_push_str(&chunk)?;
             }
 
             assert!(s.len() > 500);
@@ -380,11 +382,11 @@ mod tests {
             let s = LpString::try_from_str("test")?;
 
             // Test Debug formatting
-            let debug_str = alloc::format!("{:?}", s);
+            let debug_str = with_global_alloc(|| alloc::format!("{:?}", s));
             assert_eq!(debug_str, "\"test\"");
 
             // Test Display formatting
-            let display_str = alloc::format!("{}", s);
+            let display_str = with_global_alloc(|| alloc::format!("{}", s));
             assert_eq!(display_str, "test");
 
             Ok::<(), AllocError>(())

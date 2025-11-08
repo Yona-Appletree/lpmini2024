@@ -348,11 +348,11 @@ where
 
 #[cfg(test)]
 mod tests {
-    use alloc::string::String;
     use core::ptr::NonNull;
 
     use super::*;
     use crate::memory_pool::LpMemoryPool;
+    use crate::with_global_alloc;
 
     fn setup_pool() -> LpMemoryPool {
         let mut memory = [0u8; 16384];
@@ -438,11 +438,16 @@ mod tests {
         let pool = setup_pool();
         pool.run(|| {
             let mut map = LpBTreeMap::new();
-            map.try_insert(String::from("a"), 1)?;
-            map.try_insert(String::from("b"), 2)?;
+            let key_a = with_global_alloc(|| alloc::string::String::from("a"));
+            let key_b = with_global_alloc(|| alloc::string::String::from("b"));
+            map.try_insert(key_a, 1)?;
+            map.try_insert(key_b, 2)?;
 
-            assert_eq!(map.get(&String::from("a")), Some(&1));
-            assert_eq!(map.get(&String::from("b")), Some(&2));
+            let lookup_a = with_global_alloc(|| alloc::string::String::from("a"));
+            let lookup_b = with_global_alloc(|| alloc::string::String::from("b"));
+
+            assert_eq!(map.get(&lookup_a), Some(&1));
+            assert_eq!(map.get(&lookup_b), Some(&2));
             Ok::<(), AllocError>(())
         })
         .unwrap();

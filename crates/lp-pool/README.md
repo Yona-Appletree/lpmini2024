@@ -40,6 +40,28 @@ pool.run(|| {
 }).unwrap();
 ```
 
+## Preventing stray allocations
+
+When the crate is running on a host with a global allocator (e.g. during tests), `LpMemoryPool::run`
+automatically disables the process-wide allocator so any stray `Box::new`, `alloc::vec![]`, or similar
+calls fail fast. If test code needs a short-lived escape hatch, wrap the operation in
+`with_global_alloc`:
+
+```rust
+use lp_pool::{with_global_alloc, LpMemoryPool};
+
+pool.run(|| {
+    // This would panic because the guard is active:
+    // let _vec = alloc::vec![1, 2, 3];
+
+    // Allow one standard allocation within the closure.
+    let host_vec = with_global_alloc(|| alloc::vec![1, 2, 3]);
+    assert_eq!(host_vec, [1, 2, 3]);
+
+    Ok::<(), lp_pool::AllocError>(())
+})?;
+```
+
 ## Architecture
 
 The allocator uses a variable-size block approach with metadata headers:

@@ -3,6 +3,8 @@ use core::ptr::NonNull;
 use crate::error::AllocError;
 use crate::pool::LpAllocator;
 use crate::state;
+#[cfg(any(feature = "std", test))]
+use crate::ScopedGlobalAllocGuard;
 
 /// Main memory pool interface with thread-local allocator
 pub struct LpMemoryPool;
@@ -28,6 +30,8 @@ impl LpMemoryPool {
         if !state::allocator_exists() {
             return Err(E::from(AllocError::PoolExhausted));
         }
+        #[cfg(any(feature = "std", test))]
+        let _guard = ScopedGlobalAllocGuard::enter();
         // Execute closure - it will access pool via with_active_pool()
         f()
     }
@@ -146,6 +150,57 @@ mod tests {
 
             // Memory should be freed
             assert_eq!(pool.used_bytes().unwrap(), 0);
+        }
+    }
+
+    #[test]
+    fn test_global_allocations_panic_inside_run() {
+        use std::panic;
+
+        let mut memory = [0u8; 1024];
+        let memory_ptr = NonNull::new(memory.as_mut_ptr()).unwrap();
+
+        unsafe {
+            let pool = LpMemoryPool::new(memory_ptr, 1024).unwrap();
+
+            let panic_result = panic::catch_unwind(|| {
+                let _ = pool.run(|| {
+                    let mut vec = alloc::vec::Vec::new();
+                    vec.push(1);
+                    Ok::<(), AllocError>(())
+                });
+            });
+
+            assert!(
+                panic_result.is_err(),
+                "global allocation should panic while guard active"
+            );
+
+            // Guard must be released even after panic so we can run again
+            let rerun = pool.run(|| Ok::<(), AllocError>(()));
+            assert!(rerun.is_ok(), "pool.run should succeed after guard panic");
+        }
+    }
+
+    #[test]
+    fn test_nested_run_guard_depth() {
+        let mut memory = [0u8; 2048];
+        let memory_ptr = NonNull::new(memory.as_mut_ptr()).unwrap();
+
+        unsafe {
+            let pool = LpMemoryPool::new(memory_ptr, 2048).unwrap();
+
+            let result = pool.run(|| {
+                pool.run(|| {
+                    let mut vec = crate::LpVec::new();
+                    vec.try_push(1)?;
+                    vec.try_push(2)?;
+                    Ok::<(), AllocError>(())
+                })?;
+                Ok::<(), AllocError>(())
+            });
+
+            assert!(result.is_ok());
         }
     }
 }

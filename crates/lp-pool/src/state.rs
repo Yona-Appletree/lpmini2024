@@ -2,6 +2,8 @@
 use crate::collections::alloc_meta::AllocationMetaMap;
 use crate::error::AllocError;
 use crate::pool::LpAllocator;
+#[cfg(any(feature = "std", test))]
+use core::cell::Cell;
 
 #[cfg(any(feature = "std", test))]
 mod allocator_storage {
@@ -98,6 +100,7 @@ mod meta_storage {
     }
 
     pub(super) fn clear() {
+        let _allow = super::enter_global_alloc_allowance();
         META.with(|cell| cell.borrow_mut().clear());
     }
 
@@ -105,6 +108,7 @@ mod meta_storage {
     where
         F: FnOnce(&AllocationMetaMap) -> R,
     {
+        let _allow = super::enter_global_alloc_allowance();
         META.with(|cell| f(&cell.borrow()))
     }
 
@@ -112,6 +116,7 @@ mod meta_storage {
     where
         F: FnOnce(&mut AllocationMetaMap) -> R,
     {
+        let _allow = super::enter_global_alloc_allowance();
         META.with(|cell| f(&mut cell.borrow_mut()))
     }
 }
@@ -126,6 +131,7 @@ mod meta_storage {
     static META: Mutex<AllocationMetaMap> = Mutex::new(AllocationMetaMap::new());
 
     pub(super) fn clear() {
+        let _allow = super::enter_global_alloc_allowance();
         let mut guard = META.lock();
         guard.clear();
     }
@@ -134,6 +140,7 @@ mod meta_storage {
     where
         F: FnOnce(&AllocationMetaMap) -> R,
     {
+        let _allow = super::enter_global_alloc_allowance();
         let guard = META.lock();
         f(&*guard)
     }
@@ -142,6 +149,7 @@ mod meta_storage {
     where
         F: FnOnce(&mut AllocationMetaMap) -> R,
     {
+        let _allow = super::enter_global_alloc_allowance();
         let mut guard = META.lock();
         f(&mut *guard)
     }
@@ -188,3 +196,135 @@ where
 {
     meta_storage::with_mut(f)
 }
+
+#[cfg(any(feature = "std", test))]
+mod guard_storage {
+    use super::*;
+    use std::thread_local;
+
+    thread_local! {
+        static DEPTH: Cell<u32> = const { Cell::new(0) };
+        static ALLOW_DEPTH: Cell<u32> = const { Cell::new(0) };
+    }
+
+    pub(super) fn push() {
+        DEPTH.with(|depth| depth.set(depth.get().saturating_add(1)));
+    }
+
+    pub(super) fn pop() {
+        DEPTH.with(|depth| {
+            let current = depth.get();
+            if current > 0 {
+                depth.set(current - 1);
+            }
+        });
+    }
+
+    pub(super) fn active() -> bool {
+        DEPTH.with(|depth| depth.get() > 0)
+    }
+
+    pub(super) fn force_clear() {
+        DEPTH.with(|depth| depth.set(0));
+        ALLOW_DEPTH.with(|depth| depth.set(0));
+    }
+
+    pub(super) fn push_allow() {
+        ALLOW_DEPTH.with(|depth| depth.set(depth.get().saturating_add(1)));
+    }
+
+    pub(super) fn pop_allow() {
+        ALLOW_DEPTH.with(|depth| {
+            let current = depth.get();
+            if current > 0 {
+                depth.set(current - 1);
+            }
+        });
+    }
+
+    pub(super) fn allow_active() -> bool {
+        ALLOW_DEPTH.with(|depth| depth.get() > 0)
+    }
+}
+
+#[cfg(any(feature = "std", test))]
+pub(crate) struct GlobalAllocGuardToken;
+
+#[cfg(any(feature = "std", test))]
+pub(crate) fn enter_global_alloc_guard() -> GlobalAllocGuardToken {
+    guard_storage::push();
+    GlobalAllocGuardToken
+}
+
+#[cfg(any(feature = "std", test))]
+pub(crate) fn global_alloc_guard_active() -> bool {
+    guard_storage::active()
+}
+
+#[cfg(any(feature = "std", test))]
+pub(crate) fn global_alloc_allowance_active() -> bool {
+    guard_storage::allow_active()
+}
+
+#[cfg(any(feature = "std", test))]
+pub(crate) struct GlobalAllocAllowToken;
+
+#[cfg(any(feature = "std", test))]
+pub(crate) fn enter_global_alloc_allowance() -> GlobalAllocAllowToken {
+    guard_storage::push_allow();
+    GlobalAllocAllowToken
+}
+
+#[cfg(any(feature = "std", test))]
+impl Drop for GlobalAllocAllowToken {
+    fn drop(&mut self) {
+        guard_storage::pop_allow();
+    }
+}
+
+#[cfg(any(feature = "std", test))]
+pub(crate) fn force_clear_global_alloc_guard() {
+    guard_storage::force_clear();
+}
+
+#[cfg(any(feature = "std", test))]
+impl Drop for GlobalAllocGuardToken {
+    fn drop(&mut self) {
+        guard_storage::pop();
+    }
+}
+
+#[cfg(all(not(feature = "std"), not(test)))]
+pub(crate) struct GlobalAllocGuardToken;
+
+#[cfg(all(not(feature = "std"), not(test)))]
+#[allow(clippy::unused_unit)]
+pub(crate) fn enter_global_alloc_guard() -> GlobalAllocGuardToken {
+    GlobalAllocGuardToken
+}
+
+#[cfg(all(not(feature = "std"), not(test)))]
+pub(crate) fn global_alloc_guard_active() -> bool {
+    false
+}
+
+#[cfg(all(not(feature = "std"), not(test)))]
+pub(crate) fn global_alloc_allowance_active() -> bool {
+    false
+}
+
+#[cfg(all(not(feature = "std"), not(test)))]
+pub(crate) struct GlobalAllocAllowToken;
+
+#[cfg(all(not(feature = "std"), not(test)))]
+pub(crate) fn enter_global_alloc_allowance() -> GlobalAllocAllowToken {
+    GlobalAllocAllowToken
+}
+
+#[cfg(all(not(feature = "std"), not(test)))]
+impl Drop for GlobalAllocAllowToken {
+    fn drop(&mut self) {}
+}
+
+#[cfg(all(not(feature = "std"), not(test)))]
+pub(crate) fn force_clear_global_alloc_guard() {}

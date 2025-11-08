@@ -48,6 +48,8 @@ pub mod allocator;
 pub mod block_header;
 pub mod collections;
 pub mod error;
+#[cfg(any(feature = "std", test))]
+mod guarded_alloc;
 pub mod memory_pool;
 pub mod pool;
 mod state;
@@ -58,7 +60,13 @@ pub use collections::{
     LpVecIterMut,
 };
 pub use error::AllocError;
+#[cfg(any(feature = "std", test))]
+pub use guarded_alloc::{with_global_alloc, ScopedGlobalAllocGuard};
 pub use memory_pool::{LpMemoryPool, PoolStats};
+
+#[cfg(any(feature = "std", test))]
+#[global_allocator]
+static GLOBAL_ALLOCATOR: guarded_alloc::GuardedAllocator = guarded_alloc::GuardedAllocator;
 
 #[cfg(test)]
 mod integration_tests {
@@ -165,12 +173,19 @@ mod integration_tests {
         let pool = unsafe { LpMemoryPool::new(memory_ptr, 8192).unwrap() };
 
         pool.run(|| {
-            let mut boxes = alloc::vec::Vec::new();
+            let mut boxes = LpVec::new();
 
             // Allocate until OOM
             loop {
                 match LpBox::try_new([0u8; 64]) {
-                    Ok(b) => boxes.push(b),
+                    Ok(b) => {
+                        if let Err(err) = boxes.try_push(b) {
+                            match err {
+                                AllocError::OutOfMemory { .. } | AllocError::PoolExhausted => break,
+                                other => return Err(other),
+                            }
+                        }
+                    }
                     Err(AllocError::OutOfMemory { .. }) | Err(AllocError::PoolExhausted) => break,
                     Err(e) => panic!("Unexpected error: {:?}", e),
                 }
@@ -180,7 +195,10 @@ mod integration_tests {
             assert!(boxes.len() > 5, "Should allocate at least 5 boxes");
 
             // Free half of them
-            boxes.truncate(boxes.len() / 2);
+            let target_len = boxes.len() / 2;
+            while boxes.len() > target_len {
+                let _ = boxes.pop();
+            }
 
             // Should be able to allocate more
             let result = LpBox::try_new([0u8; 64]);
@@ -197,16 +215,16 @@ mod integration_tests {
         let memory_ptr = NonNull::new(memory.as_mut_ptr()).unwrap();
         let pool = unsafe { LpMemoryPool::new(memory_ptr, 32768).unwrap() };
 
-        pool.run(|| {
+        let std_vec = alloc::vec![
+            alloc::string::String::from("hello"),
+            alloc::string::String::from("world")
+        ];
+
+        pool.run(move || {
             let mut vec = LpVec::new();
 
             // Can't nest pool-allocated collections due to RefCell borrow
             // So we'll use standard Vec<String> inside LpBox
-            let std_vec = alloc::vec![
-                alloc::string::String::from("hello"),
-                alloc::string::String::from("world")
-            ];
-
             let boxed = LpBox::try_new(std_vec)?;
             vec.try_push(boxed)?;
 
@@ -225,12 +243,19 @@ mod integration_tests {
         let pool = unsafe { LpMemoryPool::new(memory_ptr, 32768).unwrap() };
 
         pool.run(|| {
-            let mut boxes = alloc::vec::Vec::new();
+            let mut boxes = LpVec::new();
 
             // Allocate many small items
             for i in 0..100 {
                 match LpBox::try_new(i) {
-                    Ok(b) => boxes.push(b),
+                    Ok(b) => {
+                        if let Err(err) = boxes.try_push(b) {
+                            match err {
+                                AllocError::OutOfMemory { .. } | AllocError::PoolExhausted => break,
+                                other => return Err(other),
+                            }
+                        }
+                    }
                     Err(AllocError::OutOfMemory { .. }) | Err(AllocError::PoolExhausted) => break,
                     Err(e) => panic!("Unexpected error: {:?}", e),
                 }
@@ -386,12 +411,19 @@ mod integration_tests {
         assert_eq!(pool.usage_ratio().unwrap(), 0.0);
 
         pool.run(|| {
-            let mut boxes = alloc::vec::Vec::new();
+            let mut boxes = LpVec::new();
 
             // Allocate until about 50% full
             while pool.usage_ratio().unwrap() < 0.5 {
                 match LpBox::try_new([0u8; 64]) {
-                    Ok(b) => boxes.push(b),
+                    Ok(b) => {
+                        if let Err(err) = boxes.try_push(b) {
+                            match err {
+                                AllocError::OutOfMemory { .. } | AllocError::PoolExhausted => break,
+                                other => return Err(other),
+                            }
+                        }
+                    }
                     Err(AllocError::OutOfMemory { .. }) | Err(AllocError::PoolExhausted) => break,
                     Err(e) => panic!("Unexpected error: {:?}", e),
                 }

@@ -124,7 +124,7 @@ mod tests {
     use core::ptr::NonNull;
 
     use super::*;
-    use crate::{LpBox, LpMemoryPool, LpVec};
+    use crate::{with_global_alloc, LpBox, LpMemoryPool, LpVec};
 
     fn setup_pool() -> LpMemoryPool {
         let mut memory = [0u8; 16384];
@@ -168,10 +168,14 @@ mod tests {
 
             // After drop, metadata should be cleaned up
             // All scoped allocations should be removed
-            let entries: alloc::vec::Vec<(AllocationMeta, AllocationStats)> =
+            let entries = with_global_alloc(|| {
                 crate::state::with_meta(|stats| {
-                    stats.iter().map(|(meta, stat)| (*meta, *stat)).collect()
-                });
+                    stats
+                        .iter()
+                        .map(|(meta, stat)| (*meta, *stat))
+                        .collect::<alloc::vec::Vec<_>>()
+                })
+            });
 
             for (meta, stats) in entries {
                 if meta.scope == Some("scope1") || meta.scope == Some("scope2") {
