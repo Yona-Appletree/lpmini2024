@@ -28,11 +28,9 @@ use crate::compiler::stmt::stmt_types;
 
 impl TypeChecker {
     /// Type check an expression (expression mode)
-    pub fn check(expr_id: Expr, pool: AstPool) -> Result<(Expr, AstPool), TypeError> {
-        let mut pool = pool;
+    pub fn check(expr: &mut Expr) -> Result<(), TypeError> {
         let mut symbols = SymbolTable::new();
         let func_table = FunctionTable::new(); // Empty for expression mode
-        Self::infer_type_id(&mut pool, expr_id, &mut symbols, &func_table)?;
-        Ok((expr_id, pool))
+        Self::infer_type(expr, &mut symbols, &func_table)
     }
 }
