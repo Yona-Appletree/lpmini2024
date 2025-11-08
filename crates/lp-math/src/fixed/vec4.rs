@@ -1,9 +1,10 @@
 /// 4D vector for fixed-point fixed (useful for RGBA colors and homogeneous coordinates)
+use core::cmp::Ord;
+use core::ops::{Add, Div, Mul, Neg, Sub};
 use super::conversions::ToFixed;
 use super::fixed::Fixed;
 use super::vec2::Vec2;
 use super::vec3::Vec3;
-use core::ops::{Add, Div, Mul, Neg, Sub};
 
 #[derive(Copy, Clone, Debug, PartialEq)]
 pub struct Vec4 {
