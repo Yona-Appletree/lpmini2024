@@ -4,88 +4,12 @@ use core::ptr::NonNull;
 use crate::error::AllocError;
 use crate::memory_pool::with_active_pool;
 
-/// Iterator over LpVec
-pub struct LpVecIter<'a, T> {
-    vec: &'a LpVec<T>,
-    start: usize,
-    end: usize,
-}
-
-impl<'a, T> Iterator for LpVecIter<'a, T> {
-    type Item = &'a T;
-
-    fn next(&mut self) -> Option<Self::Item> {
-        if self.start < self.end {
-            let item = self.vec.get(self.start);
-            self.start += 1;
-            item
-        } else {
-            None
-        }
-    }
-
-    fn size_hint(&self) -> (usize, Option<usize>) {
-        let remaining = self.end.saturating_sub(self.start);
-        (remaining, Some(remaining))
-    }
-}
-
-impl<'a, T> ExactSizeIterator for LpVecIter<'a, T> {
-    fn len(&self) -> usize {
-        self.end.saturating_sub(self.start)
-    }
-}
-
-impl<'a, T> DoubleEndedIterator for LpVecIter<'a, T> {
-    fn next_back(&mut self) -> Option<Self::Item> {
-        if self.start < self.end {
-            self.end -= 1;
-            self.vec.get(self.end)
-        } else {
-            None
-        }
-    }
-}
-
-/// Mutable iterator over LpVec
-pub struct LpVecIterMut<'a, T> {
-    vec: *mut LpVec<T>,
-    index: usize,
-    len: usize,
-    _marker: core::marker::PhantomData<&'a mut T>,
-}
-
-impl<'a, T> Iterator for LpVecIterMut<'a, T> {
-    type Item = &'a mut T;
-
-    fn next(&mut self) -> Option<Self::Item> {
-        if self.index < self.len {
-            unsafe {
-                let vec = &mut *self.vec;
-                let item = vec.get_mut(self.index);
-                self.index += 1;
-                // Safety: We have exclusive access to vec, and we're returning non-overlapping refs
-                item.map(|r| &mut *(r as *mut T))
-            }
-        } else {
-            None
-        }
-    }
-
-    fn size_hint(&self) -> (usize, Option<usize>) {
-        let remaining = self.len.saturating_sub(self.index);
-        (remaining, Some(remaining))
-    }
-}
-
-impl<'a, T> ExactSizeIterator for LpVecIterMut<'a, T> {
-    fn len(&self) -> usize {
-        self.len.saturating_sub(self.index)
-    }
-}
-
 #[cfg(feature = "alloc-meta")]
-use super::alloc_meta::{record_allocation_meta, remove_allocation_meta, AllocationMeta};
+use crate::collections::alloc_meta::{
+    record_allocation_meta, remove_allocation_meta, AllocationMeta,
+};
+
+use super::iter::{LpVecIter, LpVecIterMut};
 
 /// Pool-backed Vec
 pub struct LpVec<T> {
@@ -500,17 +424,12 @@ mod tests {
         .unwrap();
     }
 
-    // Test for design issue #6: Pointer arithmetic alignment
-    // This test verifies that LpVec handles aligned types correctly
-    // Note: This test may fail if the pool doesn't provide aligned blocks
     #[test]
     fn test_vec_aligned_types() {
         #[repr(align(16))]
         struct Aligned16(u64);
 
-        // Use a pool with block_size that's a multiple of 16 to ensure alignment
         let mut memory = [0u8; 16384];
-        // Align memory to 16 bytes
         let memory_ptr = {
             let addr = memory.as_mut_ptr() as usize;
             let aligned_addr = (addr + 15) & !15;
@@ -530,12 +449,10 @@ mod tests {
             vec.try_push(Aligned16(2))?;
             vec.try_push(Aligned16(3))?;
 
-            // Verify we can access the values correctly
             assert_eq!(vec.get(0).unwrap().0, 1);
             assert_eq!(vec.get(1).unwrap().0, 2);
             assert_eq!(vec.get(2).unwrap().0, 3);
 
-            // Verify alignment is maintained (if allocation succeeded)
             let slice = vec.as_raw_slice();
             let ptr = slice.as_ptr() as usize;
             assert_eq!(ptr % 16, 0, "Vec data should be aligned to 16 bytes");
@@ -545,7 +462,6 @@ mod tests {
         .unwrap();
     }
 
-    // Test for design issue #12: Missing is_empty method
     #[test]
     fn test_vec_is_empty() {
         let pool = setup_pool();
@@ -561,7 +477,6 @@ mod tests {
         .unwrap();
     }
 
-    // Test for indexing
     #[test]
     fn test_vec_index() {
         let pool = setup_pool();
@@ -597,67 +512,6 @@ mod tests {
         .unwrap();
     }
 
-    // Test for iteration
-    #[test]
-    fn test_vec_iter() {
-        let pool = setup_pool();
-        pool.run(|| {
-            let mut vec = LpVec::new();
-            vec.try_push(1)?;
-            vec.try_push(2)?;
-            vec.try_push(3)?;
-
-            let sum: i32 = vec.iter().sum();
-            assert_eq!(sum, 6);
-
-            let collected = allow_global_alloc(|| vec.iter().collect::<alloc::vec::Vec<_>>());
-            let expected = allow_global_alloc(|| alloc::vec![&1, &2, &3]);
-            assert_eq!(collected, expected);
-            Ok::<(), AllocError>(())
-        })
-        .unwrap();
-    }
-
-    #[test]
-    fn test_vec_iter_mut() {
-        let pool = setup_pool();
-        pool.run(|| {
-            let mut vec = LpVec::new();
-            vec.try_push(1)?;
-            vec.try_push(2)?;
-            vec.try_push(3)?;
-
-            for val in vec.iter_mut() {
-                *val *= 10;
-            }
-
-            assert_eq!(vec[0], 10);
-            assert_eq!(vec[1], 20);
-            assert_eq!(vec[2], 30);
-            Ok::<(), AllocError>(())
-        })
-        .unwrap();
-    }
-
-    #[test]
-    fn test_vec_iter_rev() {
-        let pool = setup_pool();
-        pool.run(|| {
-            let mut vec = LpVec::new();
-            vec.try_push(1)?;
-            vec.try_push(2)?;
-            vec.try_push(3)?;
-
-            let collected =
-                allow_global_alloc(|| vec.iter().rev().copied().collect::<alloc::vec::Vec<_>>());
-            let expected = allow_global_alloc(|| alloc::vec![3, 2, 1]);
-            assert_eq!(collected, expected);
-            Ok::<(), AllocError>(())
-        })
-        .unwrap();
-    }
-
-    // Test for last() and last_mut()
     #[test]
     fn test_vec_last() {
         let pool = setup_pool();
@@ -699,16 +553,12 @@ mod tests {
 
         static DROP_COUNT: AtomicUsize = AtomicUsize::new(0);
 
-        /// Type that accesses its own data during drop
-        /// This would cause UB if memory is freed before drop is called
         struct DropChecker {
             sentinel: u32,
         }
 
         impl Drop for DropChecker {
             fn drop(&mut self) {
-                // CRITICAL: This accesses self.sentinel from memory
-                // If memory was already freed, this is undefined behavior
                 assert_eq!(
                     self.sentinel, 0xDEADBEEF,
                     "Drop accessed freed memory - sentinel corrupted!"
@@ -733,9 +583,7 @@ mod tests {
                     sentinel: 0xDEADBEEF,
                 })?;
             }
-            // Vec dropped here - all 3 elements should be dropped
 
-            // Verify all drops were called
             assert_eq!(
                 DROP_COUNT.load(Ordering::SeqCst),
                 3,
@@ -747,11 +595,8 @@ mod tests {
         .unwrap();
     }
 
-    // === Comprehensive Edge Case Tests ===
-
     #[test]
     fn test_vec_zst() {
-        // Zero-sized types
         let pool = setup_pool();
         pool.run(|| {
             let mut vec = LpVec::<()>::new();
@@ -775,14 +620,11 @@ mod tests {
         pool.run(|| {
             let mut vec = LpVec::<i32>::new();
 
-            // Pop from empty vec
             assert_eq!(vec.pop(), None);
 
-            // Push one, pop one
             vec.try_push(42)?;
             assert_eq!(vec.pop(), Some(42));
 
-            // Pop again from empty
             assert_eq!(vec.pop(), None);
 
             Ok::<(), AllocError>(())
@@ -815,11 +657,9 @@ mod tests {
 
             vec.clear();
 
-            // All 4 should be dropped
             assert_eq!(CLEAR_DROP_COUNT.load(Ordering::SeqCst), 4);
             assert_eq!(vec.len(), 0);
 
-            // Can still push after clear
             vec.try_push(DropCounter)?;
             assert_eq!(vec.len(), 1);
 
@@ -841,7 +681,6 @@ mod tests {
             vec.try_push(world)?;
             vec.try_push(test)?;
 
-            // Drop happens here - should not leak strings
             Ok::<(), AllocError>(())
         })
         .unwrap();
@@ -850,7 +689,7 @@ mod tests {
     #[test]
     fn test_vec_large_type() {
         #[derive(Clone, Copy)]
-        struct Large([u64; 8]); // 64 bytes - smaller to fit in block
+        struct Large([u64; 8]);
 
         let pool = setup_pool();
         pool.run(|| {
@@ -870,106 +709,17 @@ mod tests {
     }
 
     #[test]
-    fn test_vec_iterator_exactsize() {
-        let pool = setup_pool();
-        pool.run(|| {
-            let mut vec = LpVec::new();
-            vec.try_push(1)?;
-            vec.try_push(2)?;
-            vec.try_push(3)?;
-
-            let mut iter = vec.iter();
-            assert_eq!(iter.len(), 3);
-
-            iter.next();
-            assert_eq!(iter.len(), 2);
-
-            iter.next();
-            assert_eq!(iter.len(), 1);
-
-            iter.next();
-            assert_eq!(iter.len(), 0);
-
-            assert_eq!(iter.next(), None);
-
-            Ok::<(), AllocError>(())
-        })
-        .unwrap();
-    }
-
-    #[test]
-    fn test_vec_iterator_double_ended() {
-        let pool = setup_pool();
-        pool.run(|| {
-            let mut vec = LpVec::new();
-            vec.try_push(1)?;
-            vec.try_push(2)?;
-            vec.try_push(3)?;
-            vec.try_push(4)?;
-
-            let mut iter = vec.iter();
-
-            // Alternate between next and next_back
-            assert_eq!(iter.next(), Some(&1));
-            assert_eq!(iter.next_back(), Some(&4));
-            assert_eq!(iter.next(), Some(&2));
-            assert_eq!(iter.next_back(), Some(&3));
-            assert_eq!(iter.next(), None);
-            assert_eq!(iter.next_back(), None);
-
-            Ok::<(), AllocError>(())
-        })
-        .unwrap();
-    }
-
-    #[test]
-    fn test_vec_iterator_empty() {
-        let pool = setup_pool();
-        pool.run(|| {
-            let vec = LpVec::<i32>::new();
-            let mut iter = vec.iter();
-
-            assert_eq!(iter.len(), 0);
-            assert_eq!(iter.next(), None);
-            assert_eq!(iter.next_back(), None);
-
-            Ok::<(), AllocError>(())
-        })
-        .unwrap();
-    }
-
-    #[test]
-    fn test_vec_iterator_single_element() {
-        let pool = setup_pool();
-        pool.run(|| {
-            let mut vec = LpVec::new();
-            vec.try_push(42)?;
-
-            let mut iter = vec.iter();
-            assert_eq!(iter.len(), 1);
-            assert_eq!(iter.next(), Some(&42));
-            assert_eq!(iter.len(), 0);
-            assert_eq!(iter.next(), None);
-
-            Ok::<(), AllocError>(())
-        })
-        .unwrap();
-    }
-
-    #[test]
     fn test_vec_multiple_growth_cycles() {
         let pool = setup_pool();
         pool.run(|| {
             let mut vec = LpVec::new();
 
-            // Capacity grows: 0 -> 4 -> 8 -> 16 -> 32
             for i in 0..50 {
                 vec.try_push(i)?;
             }
 
             assert_eq!(vec.len(), 50);
 
-            // Verify all values
             for i in 0..50 {
                 assert_eq!(vec.get(i), Some(&i));
             }
@@ -990,7 +740,6 @@ mod tests {
                 vec.try_push(1)?;
                 vec.try_push(2)?;
                 vec.try_push(3)?;
-                // Vec dropped here
             }
 
             let after = pool.used_bytes().unwrap();
