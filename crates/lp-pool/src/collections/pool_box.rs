@@ -228,4 +228,229 @@ mod tests {
         // Verify drop was called
         assert!(DROP_CALLED.load(Ordering::SeqCst), "Drop was not called!");
     }
+
+    // === Comprehensive Edge Case Tests ===
+
+    #[test]
+    fn test_box_large_type() {
+        #[derive(Clone, Copy)]
+        struct Large([u64; 16]); // 128 bytes
+
+        let pool = setup_pool();
+        pool.run(|| {
+            let boxed = LpBox::try_new(Large([0x42; 16]))?;
+            assert_eq!(boxed.0[0], 0x42);
+            assert_eq!(boxed.0[15], 0x42);
+
+            Ok::<(), AllocError>(())
+        })
+        .unwrap();
+    }
+
+    #[test]
+    fn test_box_zst() {
+        // Zero-sized types
+        let pool = setup_pool();
+        pool.run(|| {
+            let boxed = LpBox::try_new(())?;
+            assert_eq!(*boxed, ());
+
+            Ok::<(), AllocError>(())
+        })
+        .unwrap();
+    }
+
+    #[test]
+    fn test_box_aligned_type() {
+        #[repr(align(8))]
+        struct Aligned8(u64);
+
+        let pool = setup_pool();
+        pool.run(|| {
+            let boxed = LpBox::try_new(Aligned8(42))?;
+            assert_eq!(boxed.0, 42);
+
+            // Verify alignment
+            let ptr = &*boxed as *const Aligned8 as usize;
+            assert_eq!(ptr % 8, 0, "Should be aligned to 8 bytes");
+
+            Ok::<(), AllocError>(())
+        })
+        .unwrap();
+    }
+
+    #[test]
+    fn test_box_with_drop_order() {
+        use core::sync::atomic::{AtomicUsize, Ordering};
+
+        static DROP_ORDER: AtomicUsize = AtomicUsize::new(0);
+
+        struct DropOrderChecker(usize);
+
+        impl Drop for DropOrderChecker {
+            fn drop(&mut self) {
+                let order = DROP_ORDER.fetch_add(1, Ordering::SeqCst);
+                assert_eq!(
+                    order, self.0,
+                    "Drop called out of order: expected {}, got {}",
+                    self.0, order
+                );
+            }
+        }
+
+        let pool = setup_pool();
+        DROP_ORDER.store(0, Ordering::SeqCst);
+
+        pool.run(|| {
+            let _box1 = LpBox::try_new(DropOrderChecker(2))?; // Dropped first (LIFO)
+            let _box2 = LpBox::try_new(DropOrderChecker(1))?; // Dropped second
+            let _box3 = LpBox::try_new(DropOrderChecker(0))?; // Dropped last
+
+            Ok::<(), AllocError>(())
+        })
+        .unwrap();
+
+        assert_eq!(DROP_ORDER.load(Ordering::SeqCst), 3);
+    }
+
+    #[test]
+    fn test_box_mutation() {
+        let pool = setup_pool();
+        pool.run(|| {
+            let mut boxed = LpBox::try_new(10i32)?;
+
+            assert_eq!(*boxed, 10);
+
+            *boxed = 20;
+            assert_eq!(*boxed, 20);
+
+            *boxed += 5;
+            assert_eq!(*boxed, 25);
+
+            Ok::<(), AllocError>(())
+        })
+        .unwrap();
+    }
+
+    #[test]
+    fn test_box_deref_coercion() {
+        let pool = setup_pool();
+        pool.run(|| {
+            let boxed = LpBox::try_new(alloc::string::String::from("hello"))?;
+
+            // Deref coercion: LpBox<String> -> &str
+            let s: &str = &boxed;
+            assert_eq!(s, "hello");
+            assert_eq!(s.len(), 5);
+
+            Ok::<(), AllocError>(())
+        })
+        .unwrap();
+    }
+
+    #[test]
+    fn test_box_as_ref_as_mut() {
+        let pool = setup_pool();
+        pool.run(|| {
+            let mut boxed = LpBox::try_new(100i32)?;
+
+            let r = boxed.as_ref();
+            assert_eq!(*r, 100);
+
+            let m = boxed.as_mut();
+            *m = 200;
+            assert_eq!(*boxed, 200);
+
+            Ok::<(), AllocError>(())
+        })
+        .unwrap();
+    }
+
+    #[test]
+    fn test_box_tuple() {
+        // Box containing tuple
+        let pool = setup_pool();
+        pool.run(|| {
+            let boxed = LpBox::try_new((1, 2, 3))?;
+            assert_eq!(boxed.0, 1);
+            assert_eq!(boxed.1, 2);
+            assert_eq!(boxed.2, 3);
+
+            Ok::<(), AllocError>(())
+        })
+        .unwrap();
+    }
+
+    #[test]
+    fn test_box_multiple_allocations() {
+        let pool = setup_pool();
+        pool.run(|| {
+            let box1 = LpBox::try_new(1i32)?;
+            let box2 = LpBox::try_new(2i32)?;
+            let box3 = LpBox::try_new(3i32)?;
+
+            assert_eq!(*box1, 1);
+            assert_eq!(*box2, 2);
+            assert_eq!(*box3, 3);
+
+            // Verify they're different allocations
+            let ptr1 = &*box1 as *const i32;
+            let ptr2 = &*box2 as *const i32;
+            let ptr3 = &*box3 as *const i32;
+
+            assert_ne!(ptr1, ptr2);
+            assert_ne!(ptr2, ptr3);
+            assert_ne!(ptr1, ptr3);
+
+            Ok::<(), AllocError>(())
+        })
+        .unwrap();
+    }
+
+    #[test]
+    fn test_box_with_scope() {
+        let pool = setup_pool();
+        pool.run(|| {
+            let boxed = LpBox::try_new_with_scope(42i32, Some("test_scope"))?;
+            assert_eq!(*boxed, 42);
+
+            Ok::<(), AllocError>(())
+        })
+        .unwrap();
+    }
+
+    #[test]
+    fn test_box_memory_is_freed() {
+        let pool = setup_pool();
+        let before = pool.used_bytes().unwrap();
+
+        pool.run(|| {
+            {
+                let _box1 = LpBox::try_new([0u8; 64])?;
+                let _box2 = LpBox::try_new([0u8; 64])?;
+                // Both dropped here
+            }
+
+            let after = pool.used_bytes().unwrap();
+            assert_eq!(after, before, "Memory should be freed after boxes drop");
+
+            Ok::<(), AllocError>(())
+        })
+        .unwrap();
+    }
+
+    #[test]
+    fn test_box_array() {
+        let pool = setup_pool();
+        pool.run(|| {
+            let boxed = LpBox::try_new([1, 2, 3, 4, 5])?;
+
+            assert_eq!(boxed[0], 1);
+            assert_eq!(boxed[4], 5);
+            assert_eq!(boxed.len(), 5);
+
+            Ok::<(), AllocError>(())
+        })
+        .unwrap();
+    }
 }
