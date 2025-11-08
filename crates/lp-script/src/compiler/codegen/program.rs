@@ -98,10 +98,7 @@ pub fn gen_program_with_functions(
     let main_return_type = func_table
         .lookup("main")
         .map(|meta| meta.return_type.clone())
-        .unwrap_or_else(|| {
-            let inferred = infer_main_return_type(&program.stmts, pool);
-            inferred
-        });
+        .unwrap_or_else(|| infer_main_return_type(&program.stmts, pool));
 
     let main_func = VmFunctionDef::new(String::from("main"), main_return_type)
         .with_locals(main_local_defs)

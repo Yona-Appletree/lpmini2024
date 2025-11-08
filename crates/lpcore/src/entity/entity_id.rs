@@ -1,5 +1,4 @@
 use std::error::Error;
-use std::fmt::Display;
 
 #[derive(Debug, PartialEq, Eq, Hash, Clone)]
 pub struct EntityId {
@@ -13,7 +12,7 @@ impl EntityId {
         Self { source, specifier }
     }
 
-    pub fn from_str(s: &str) -> Result<Self, Box<dyn Error>> {
+    pub fn parse_str(s: &str) -> Result<Self, Box<dyn Error>> {
         let parts: Vec<&str> = s.splitn(2, ':').collect();
         let id_type = match parts[0] {
             "builtin" => EntitySource::BuiltIn,
@@ -47,14 +46,14 @@ mod tests {
 
     #[test]
     fn test_from_str_builtin() {
-        let entity_id = EntityId::from_str("builtin:test_entity").unwrap();
+        let entity_id = EntityId::parse_str("builtin:test_entity").unwrap();
         assert!(matches!(entity_id.source, EntitySource::BuiltIn));
         assert_eq!(entity_id.specifier, "test_entity");
     }
 
     #[test]
     fn test_from_str_scene() {
-        let entity_id = EntityId::from_str("scene:my_scene").unwrap();
+        let entity_id = EntityId::parse_str("scene:my_scene").unwrap();
         assert!(matches!(entity_id.source, EntitySource::Scene));
         assert_eq!(entity_id.specifier, "my_scene");
     }
@@ -62,6 +61,6 @@ mod tests {
     #[test]
     #[should_panic(expected = "Invalid entity id type: invalid")]
     fn test_from_str_invalid_type() {
-        EntityId::from_str("invalid:test_entity").unwrap();
+        EntityId::parse_str("invalid:test_entity").unwrap();
     }
 }

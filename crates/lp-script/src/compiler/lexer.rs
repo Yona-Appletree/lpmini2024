@@ -384,12 +384,8 @@ impl Lexer {
                         if let Some(next_ch) = self.peek(1) {
                             if next_ch.is_numeric() {
                                 // It's a number like .5
-                                let (num_str, is_float) = self.read_number();
-                                if is_float {
-                                    TokenKind::FloatLiteral(num_str.parse().unwrap_or(0.0))
-                                } else {
-                                    TokenKind::FloatLiteral(num_str.parse().unwrap_or(0.0))
-                                }
+                                let (num_str, _is_float) = self.read_number();
+                                TokenKind::FloatLiteral(num_str.parse().unwrap_or(0.0))
                             } else {
                                 // It's a dot operator
                                 self.advance();
@@ -520,6 +516,8 @@ impl Lexer {
 
 #[cfg(test)]
 mod tests {
+    #![allow(clippy::approx_constant)]
+
     use super::*;
 
     fn tokenize(input: &str) -> Vec<TokenKind> {

@@ -16,7 +16,7 @@ pub mod conversions;
 /// # Conversions
 /// Use the `ToFixed` trait for ergonomic conversions:
 /// ```
-/// use engine_core::fixed::ToFixed;
+/// use lp_math::fixed::ToFixed;
 /// let a = 5i32.to_fixed();
 /// let b = 1.5f32.to_fixed();
 /// ```
@@ -37,6 +37,7 @@ pub mod conversions;
 ///
 /// # Noise
 /// - `noise::perlin3(x, y, z, octaves)` - 3D Perlin noise
+#[allow(clippy::module_inception)]
 pub mod fixed;
 pub mod interpolation;
 pub mod noise;
@@ -50,18 +51,18 @@ pub mod vec3;
 pub mod vec4;
 
 // Re-export commonly used items at module level
+pub use clamping::{saturate, sign};
 pub use conversions::ToFixed;
 pub use fixed::Fixed;
+pub use interpolation::{lerp, smoothstep, step};
+pub use rounding::{ceil, floor, frac};
+pub use trig::{cos, sin, tan};
 pub use vec2::Vec2;
 pub use vec3::Vec3;
 pub use vec4::Vec4;
 
 // Re-export fixed utilities
 pub use crate::fixed::advanced::{atan, atan2, fract, modulo, pow, sqrt};
-pub use clamping::{saturate, sign};
-pub use interpolation::{lerp, smoothstep, step};
-pub use rounding::{ceil, floor, frac};
-pub use trig::{cos, sin, tan};
 
 // Legacy compatibility - maintain old function names
 // Re-export for backwards compatibility

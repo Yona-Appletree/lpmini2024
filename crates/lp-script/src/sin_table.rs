@@ -1,10 +1,11 @@
 /// Pre-computed sine lookup table (256 entries, 0 to 2π)
 /// Generated using: sin(i * 2π / 256) * 65536
 /// Format: Fixed-point 16.16
-
+#[allow(dead_code)]
 pub const SIN_TABLE_SIZE: usize = 256;
 
 // Raw i32 values for DIY fixed-point
+#[allow(dead_code)]
 pub const SIN_TABLE_I32: [i32; SIN_TABLE_SIZE] = [
     0, 1608, 3215, 4821, 6423, 8022, 9616, 11204, 12785, 14359, 15923, 17479, 19024, 20557, 22078,
     23586, 25079, 26557, 28020, 29465, 30893, 32302, 33692, 35061, 36409, 37736, 39039, 40319,

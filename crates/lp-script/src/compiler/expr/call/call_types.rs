@@ -3,12 +3,11 @@ extern crate alloc;
 
 use alloc::string::ToString;
 
+use super::expand_componentwise;
 use crate::compiler::ast::{AstPool, ExprId};
 use crate::compiler::error::{TypeError, TypeErrorKind};
 use crate::compiler::typechecker::{FunctionTable, SymbolTable, TypeChecker};
 use crate::shared::Type;
-
-use super::expand_componentwise;
 
 /// Type check function call
 ///
@@ -284,7 +283,7 @@ fn builtin_function_return_type_id(
 
         // Perlin noise: vec3 -> float
         "perlin3" => {
-            if args.len() < 1 || args.len() > 2 {
+            if args.is_empty() || args.len() > 2 {
                 return Err(TypeError {
                     kind: TypeErrorKind::InvalidArgumentCount {
                         expected: 1,

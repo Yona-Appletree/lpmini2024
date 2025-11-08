@@ -1,8 +1,10 @@
-/// Spiral LED mappings
-use super::{LedMap, LedMapping};
 use core::cmp::{max, min};
+
 use lp_script::fixed::trig::{cos, sin};
 use lp_script::fixed::{Fixed, ToFixed, FIXED_ONE, FIXED_SHIFT};
+
+/// Spiral LED mappings
+use super::{LedMap, LedMapping};
 
 impl LedMapping {
     /// Create a spiral mapping with configurable number of arms
@@ -21,11 +23,11 @@ impl LedMapping {
             height / 2
         };
 
-        for i in 0..128 {
+        for (i, map) in maps.iter_mut().enumerate() {
             // Distribute LEDs across arms
             let arm = i % arms;
             let led_in_arm = i / arms;
-            let total_leds_per_arm = (128 + arms - 1) / arms;
+            let total_leds_per_arm = 128_usize.div_ceil(arms);
 
             // Calculate spiral parameters in fixed-point
             // t = led_in_arm / total_leds_per_arm (progress along arm, 0..1)
@@ -42,7 +44,7 @@ impl LedMapping {
 
             // Convert normalized angle (0..1) to radians (0..2π)
             let angle_radians =
-                Fixed((angle_normalized as i64 * Fixed::TAU.0 as i64 >> FIXED_SHIFT) as i32);
+                Fixed(((angle_normalized as i64 * Fixed::TAU.0 as i64) >> FIXED_SHIFT) as i32);
 
             // Use fixed-point sin/cos (they expect radians, return -1..1 in Fixed)
             let cos_val = cos(angle_radians).0;
@@ -65,7 +67,7 @@ impl LedMapping {
                 (height as i32 - 1).to_fixed().0 + FIXED_ONE,
             );
 
-            maps[i] = LedMap::new_fixed(x_fixed, y_fixed);
+            *map = LedMap::new_fixed(x_fixed, y_fixed);
         }
 
         LedMapping { maps }

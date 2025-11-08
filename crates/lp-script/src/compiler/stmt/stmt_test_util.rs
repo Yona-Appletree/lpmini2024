@@ -6,10 +6,9 @@ use alloc::string::String;
 use alloc::vec::Vec;
 
 use crate::compiler::ast::{AstPool, Program};
-use crate::compiler::codegen;
 use crate::compiler::func::FunctionMetadata;
 use crate::compiler::stmt::stmt_test_ast::StmtBuilder;
-use crate::compiler::{lexer, parser, typechecker};
+use crate::compiler::{codegen, lexer, parser, typechecker};
 use crate::fixed::{Fixed, ToFixed, Vec2, Vec3, Vec4};
 use crate::shared::Type;
 use crate::vm::lps_vm::LpsVm;
@@ -54,9 +53,11 @@ pub struct FunctionMetadataAssertion {
 ///
 /// Note: Script mode supports variable declarations, control flow, etc.
 /// Built-in variables like `x`, `y`, `time` from uv/coord still work.
+type ProgramBuilderFn = Box<dyn FnOnce(&mut StmtBuilder) -> Program>;
+
 pub struct ScriptTest {
     input: String,
-    expected_ast_builder: Option<Box<dyn FnOnce(&mut StmtBuilder) -> Program>>,
+    expected_ast_builder: Option<ProgramBuilderFn>,
     expected_opcodes: Option<Vec<LpsOpCode>>,
     expected_result: Option<TestResult>,
     expected_function_metadata: Vec<FunctionMetadataAssertion>,
@@ -67,8 +68,11 @@ pub struct ScriptTest {
 
 enum TestResult {
     Fixed(Fixed),
+    #[allow(dead_code)]
     Vec2(Vec2),
+    #[allow(dead_code)]
     Vec3(Vec3),
+    #[allow(dead_code)]
     Vec4(Vec4),
 }
 
@@ -97,24 +101,28 @@ impl ScriptTest {
     }
 
     /// Set x value for built-in `x` variable (default: 0.5)
+    #[allow(dead_code)]
     pub fn with_x(mut self, x: f32) -> Self {
         self.x = x.to_fixed();
         self
     }
 
     /// Set y value for built-in `y` variable (default: 0.5)
+    #[allow(dead_code)]
     pub fn with_y(mut self, y: f32) -> Self {
         self.y = y.to_fixed();
         self
     }
 
     /// Set time value for built-in (default: 0.0)
+    #[allow(dead_code)]
     pub fn with_time(mut self, time: f32) -> Self {
         self.time = time.to_fixed();
         self
     }
 
     /// Set VM run parameters (x, y, time) for built-in variables
+    #[allow(dead_code)]
     pub fn with_vm_params(mut self, x: f32, y: f32, time: f32) -> Self {
         self.x = x.to_fixed();
         self.y = y.to_fixed();
@@ -135,18 +143,21 @@ impl ScriptTest {
     }
 
     /// Expect a vec2 result
+    #[allow(dead_code)]
     pub fn expect_result_vec2(mut self, expected: Vec2) -> Self {
         self.expected_result = Some(TestResult::Vec2(expected));
         self
     }
 
     /// Expect a vec3 result
+    #[allow(dead_code)]
     pub fn expect_result_vec3(mut self, expected: Vec3) -> Self {
         self.expected_result = Some(TestResult::Vec3(expected));
         self
     }
 
     /// Expect a vec4 result
+    #[allow(dead_code)]
     pub fn expect_result_vec4(mut self, expected: Vec4) -> Self {
         self.expected_result = Some(TestResult::Vec4(expected));
         self
@@ -383,7 +394,7 @@ impl ScriptTest {
 
         let program = LpsProgram::new("test".into())
             .with_functions(vec![main_function])
-            .with_source(self.input.clone().into());
+            .with_source(self.input.clone());
 
         // Check opcodes if expected
         if let Some(expected_opcodes) = &self.expected_opcodes {

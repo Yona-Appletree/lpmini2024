@@ -18,6 +18,7 @@ pub enum LoadSource {
 
 /// Execute Load: push built-in variable value onto stack
 #[inline(always)]
+#[allow(clippy::too_many_arguments)]
 pub fn exec_load(
     stack: &mut ValueStack,
     source: LoadSource,
@@ -101,7 +102,7 @@ pub fn exec_load(
                 // Convert normalized (0..1) to radians (0..2π)
                 // Then shift to -π..π range to match atan2 convention
                 let radians =
-                    Fixed((normalized as i64 * Fixed::TAU.0 as i64 >> FIXED_SHIFT) as i32);
+                    Fixed(((normalized as i64 * Fixed::TAU.0 as i64) >> FIXED_SHIFT) as i32);
                 radians - Fixed::PI // Convert 0..2π to -π..π
             }
         }

@@ -24,12 +24,11 @@ pub mod power_limit;
 
 // Re-export commonly used items
 // LoadSource is now defined in lp-script::vm::opcodes::load
-pub use lp_script::vm::opcodes::LoadSource;
-
 #[allow(deprecated)]
 pub use lp_script::fixed::{
     fixed_from_f32, fixed_from_int, fixed_to_f32, Fixed, FIXED_ONE, FIXED_SHIFT,
 };
+pub use lp_script::vm::opcodes::LoadSource;
 pub use mapping::{apply_2d_mapping, LedMapping, MappingConfig};
 pub use palette::{rgb_buffer_from_greyscale, Palette};
 pub use pipeline::{

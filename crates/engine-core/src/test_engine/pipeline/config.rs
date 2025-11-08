@@ -18,7 +18,7 @@ impl FxPipelineConfig {
 
     /// Validate the configuration
     pub fn validate(&self) -> Result<(), PipelineError> {
-        for (_step_idx, step) in self.steps.iter().enumerate() {
+        for step in self.steps.iter() {
             match step {
                 PipelineStep::ExprStep { output, params, .. } => {
                     // Validate output buffer

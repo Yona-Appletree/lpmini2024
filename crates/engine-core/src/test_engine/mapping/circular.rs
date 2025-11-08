@@ -1,7 +1,8 @@
-/// Circular panel LED mappings (concentric rings)
-use super::{LedMap, LedMapping};
 use lp_script::fixed::trig::{cos, sin};
 use lp_script::fixed::{Fixed, FIXED_ONE, FIXED_SHIFT};
+
+/// Circular panel LED mappings (concentric rings)
+use super::{LedMap, LedMapping};
 
 impl LedMapping {
     /// Create a circular panel mapping with concentric rings
@@ -50,7 +51,7 @@ impl LedMapping {
                 // Multiply by TAU (2π) to convert to radians
                 let normalized_angle = (i as i32 * FIXED_ONE) / led_count as i32;
                 let angle_radians =
-                    Fixed((normalized_angle as i64 * Fixed::TAU.0 as i64 >> FIXED_SHIFT) as i32);
+                    Fixed(((normalized_angle as i64 * Fixed::TAU.0 as i64) >> FIXED_SHIFT) as i32);
 
                 // Use fixed-point sin/cos (they expect radians, return -1..1 in Fixed)
                 let cos_val = cos(angle_radians).0;

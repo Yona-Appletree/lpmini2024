@@ -1,11 +1,12 @@
+use std::error::Error;
+
 use schemars::{schema_for, JsonSchema, Schema};
 use serde::{Deserialize, Serialize};
 use serde_json::Value as JsonValue;
-use std::error::Error;
 
 use crate::entity::entity_instance::{EntityInstance, UpdateContext};
 
-#[derive(Serialize, Deserialize, JsonSchema, Debug)]
+#[derive(Serialize, Deserialize, JsonSchema, Debug, Default)]
 pub struct LfoEntity {
     offset_ms: i64,
     prev_period_ms: i64,
@@ -13,10 +14,7 @@ pub struct LfoEntity {
 
 impl LfoEntity {
     pub fn new() -> Self {
-        Self {
-            offset_ms: 0,
-            prev_period_ms: 0,
-        }
+        Self::default()
     }
 }
 
@@ -69,26 +67,17 @@ fn default_max() -> f64 {
     1.0
 }
 
-///
 /// Waveforms for low frequency oscillators.
-///
-#[derive(Serialize, Deserialize, JsonSchema, Debug)]
+#[derive(Serialize, Deserialize, JsonSchema, Debug, Default)]
 pub enum Shape {
+    #[default]
     Sine,
     Square,
     Triangle,
     Sawtooth,
 }
 
-impl Default for Shape {
-    fn default() -> Self {
-        Self::Sine
-    }
-}
-
-///
 /// Calculates the offset needed to maintain phase when the period changes.
-///
 fn offset_to_maintain_phase(
     now_ms: i64,
     old_offset_ms: i64,
@@ -101,18 +90,14 @@ fn offset_to_maintain_phase(
     ((new_phase - prev_phase) * new_period_ms as f64).round() as i64
 }
 
-///
 /// Calculates phase time in the range [0, 1) for a given time and period.
-///
 fn calc_phase_t(adjusted_ms: i64, period_ms: i64) -> f64 {
     let phase = adjusted_ms % period_ms;
     let phase = if phase < 0 { phase + period_ms } else { phase };
     phase as f64 / period_ms as f64
 }
 
-///
 /// Calculates the wave values for a given phase and waveform.
-///
 fn calc_wave_t(phase_unit: f64, waveform: Shape) -> f64 {
     match waveform {
         Shape::Sine => (phase_unit * 2.0 * std::f64::consts::PI).sin(),
@@ -134,9 +119,7 @@ fn calc_wave_t(phase_unit: f64, waveform: Shape) -> f64 {
     }
 }
 
-///
 /// Scales a values from the range [0, 1) to a values in the range [min, max).
-///
 fn range_from_t(unit: f64, min: f64, max: f64) -> f64 {
     unit * (max - min) + min
 }

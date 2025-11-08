@@ -1,8 +1,9 @@
+use alloc::vec::Vec;
+
 use crate::fixed::{Fixed, Vec2, Vec3, Vec4};
 use crate::vm::vm_limits::VmLimits;
 use crate::vm::{CallStack, ValueStack};
 use crate::{LocalStack, LpsProgram, LpsVmError, RuntimeErrorWithContext};
-use alloc::vec::Vec;
 
 /// LightPlayer Script Virtual Machine
 ///
@@ -60,6 +61,7 @@ impl<'a> LpsVm<'a> {
     /// Execute the program with full coordinate information
     ///
     /// Accepts both normalized and pixel coordinates for complete builtin variable support.
+    #[allow(clippy::too_many_arguments)]
     pub fn run_with_coords(
         &mut self,
         x_norm: Fixed,
@@ -99,6 +101,7 @@ impl<'a> LpsVm<'a> {
         self.run_with_coords(x, y, Fixed::ZERO, Fixed::ZERO, time, 0, 0)
     }
 
+    #[allow(clippy::too_many_arguments)]
     fn run_impl(
         &mut self,
         x_norm: Fixed,
@@ -196,6 +199,7 @@ impl<'a> LpsVm<'a> {
 
 impl<'a> LpsVm<'a> {
     /// Execute the program and expect a scalar result (with pixel coordinates)
+    #[allow(clippy::too_many_arguments)]
     pub fn run_scalar_with_coords(
         &mut self,
         x_norm: Fixed,
@@ -301,7 +305,7 @@ impl<'a> LpsVm<'a> {
         let sp = self.stack.sp();
         if sp > 0 {
             output.push_str("  stack (top 5): [");
-            let start = if sp > 5 { sp - 5 } else { 0 };
+            let start = sp.saturating_sub(5);
             for i in start..sp {
                 if i > start {
                     output.push_str(", ");
@@ -339,7 +343,7 @@ mod tests {
         let vm = LpsVm::new(&program, VmLimits::default()).unwrap();
 
         // Verify VM can be created with correct initialization
-        assert!(vm.program.main_function().unwrap().opcodes.len() > 0);
+        assert!(!vm.program.main_function().unwrap().opcodes.is_empty());
         assert_eq!(vm.stack.sp(), 0);
         assert_eq!(vm.pc, 0);
         assert_eq!(vm.call_stack.depth(), 0);

@@ -3,13 +3,12 @@
 /// Evaluates expressions with constant operands at compile time.
 extern crate alloc;
 
-use crate::compiler::ast::{AstPool, ExprId, ExprKind};
-
-// Import fixed-point fixed for compile-time constant evaluation
-use crate::fixed::{ceil, cos, floor, saturate, sin, sqrt, tan, Fixed};
-
 // Import libm for pow (not yet implemented in fixed-point)
 use libm::powf;
+
+use crate::compiler::ast::{AstPool, ExprId, ExprKind};
+// Import fixed-point fixed for compile-time constant evaluation
+use crate::fixed::{ceil, cos, floor, saturate, sin, sqrt, tan, Fixed};
 
 /// Fold constants in an expression tree
 pub fn fold_constants(expr_id: ExprId, pool: AstPool) -> (ExprId, AstPool) {
