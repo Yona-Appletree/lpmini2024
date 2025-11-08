@@ -1,41 +1,39 @@
 /// Ternary expression parsing
-use crate::compiler::ast::{ExprId, ExprKind};
+use crate::compiler::ast::{Expr, ExprKind};
 use crate::compiler::error::ParseError;
 use crate::compiler::lexer::TokenKind;
 use crate::compiler::parser::Parser;
 use crate::shared::Span;
+use lp_pool::LpBox;
 
 impl Parser {
     // Ternary: condition ? true_expr : false_expr
-    pub(crate) fn ternary(&mut self) -> Result<ExprId, ParseError> {
+    pub(crate) fn ternary(&mut self) -> Result<Expr, ParseError> {
         self.enter_recursion()?;
-        let mut expr_id = self.logical_or()?;
+        let mut expr = self.logical_or()?;
 
         if matches!(self.current().kind, TokenKind::Question) {
-            let start = self.pool.expr(expr_id).span.start;
+            let start = expr.span.start;
             self.advance(); // consume '?'
-            let true_expr_id = self.ternary()?;
+            let true_expr = self.ternary()?;
 
             if matches!(self.current().kind, TokenKind::Colon) {
                 self.advance(); // consume ':'
-                let false_expr_id = self.ternary()?;
-                let end = self.pool.expr(false_expr_id).span.end;
+                let false_expr = self.ternary()?;
+                let end = false_expr.span.end;
 
-                expr_id = self
-                    .pool
-                    .alloc_expr(
-                        ExprKind::Ternary {
-                            condition: expr_id,
-                            true_expr: true_expr_id,
-                            false_expr: false_expr_id,
-                        },
-                        Span::new(start, end),
-                    )
-                    .map_err(|e| self.pool_error_to_parse_error(e))?;
+                expr = Expr::new(
+                    ExprKind::Ternary {
+                        condition: LpBox::try_new(expr)?,
+                        true_expr: LpBox::try_new(true_expr)?,
+                        false_expr: LpBox::try_new(false_expr)?,
+                    },
+                    Span::new(start, end),
+                );
             }
         }
 
         self.exit_recursion();
-        Ok(expr_id)
+        Ok(expr)
     }
 }
