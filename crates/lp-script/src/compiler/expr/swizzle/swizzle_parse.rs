@@ -1,20 +1,21 @@
 /// Swizzle (postfix) operator parsing
-use crate::compiler::ast::{ExprId, ExprKind};
+use crate::compiler::ast::{Expr, ExprKind};
 use crate::compiler::error::ParseError;
 use crate::compiler::lexer::TokenKind;
 use crate::compiler::parser::Parser;
 use crate::shared::Span;
+use lp_pool::LpBox;
 
 impl Parser {
     // Postfix: swizzle (.xyzw, .rgba, .stpq), postfix increment/decrement (++, --)
-    pub(crate) fn postfix(&mut self) -> Result<ExprId, ParseError> {
+    pub(crate) fn postfix(&mut self) -> Result<Expr, ParseError> {
         self.enter_recursion()?;
-        let mut expr_id = self.primary()?;
+        let mut expr = self.primary()?;
 
         loop {
             match &self.current().kind {
                 TokenKind::Dot => {
-                    let start = self.pool.expr(expr_id).span.start;
+                    let start = expr.span.start;
                     self.advance(); // consume '.'
 
                     // Read the swizzle components
@@ -23,16 +24,13 @@ impl Parser {
                         let end = self.current().span.end;
                         self.advance();
 
-                        expr_id = self
-                            .pool
-                            .alloc_expr(
-                                ExprKind::Swizzle {
-                                    expr: expr_id,
-                                    components,
-                                },
-                                Span::new(start, end),
-                            )
-                            .map_err(|e| self.pool_error_to_parse_error(e))?;
+                        expr = Expr::new(
+                            ExprKind::Swizzle {
+                                expr: LpBox::try_new(expr)?,
+                                components,
+                            },
+                            Span::new(start, end),
+                        );
                     } else {
                         // Invalid swizzle, just break
                         break;
@@ -41,16 +39,12 @@ impl Parser {
                 TokenKind::PlusPlus => {
                     // Postfix increment: var++
                     // Only works on variables (l-values)
-                    let expr = self.pool.expr(expr_id);
                     if let ExprKind::Variable(name) = &expr.kind {
                         let name = name.clone();
                         let start = expr.span.start;
                         let end = self.current().span.end;
                         self.advance();
-                        expr_id = self
-                            .pool
-                            .alloc_expr(ExprKind::PostIncrement(name), Span::new(start, end))
-                            .map_err(|e| self.pool_error_to_parse_error(e))?;
+                        expr = Expr::new(ExprKind::PostIncrement(name), Span::new(start, end));
                     } else {
                         // Not an l-value, break (will be caught by type checker)
                         break;
@@ -59,16 +53,12 @@ impl Parser {
                 TokenKind::MinusMinus => {
                     // Postfix decrement: var--
                     // Only works on variables (l-values)
-                    let expr = self.pool.expr(expr_id);
                     if let ExprKind::Variable(name) = &expr.kind {
                         let name = name.clone();
                         let start = expr.span.start;
                         let end = self.current().span.end;
                         self.advance();
-                        expr_id = self
-                            .pool
-                            .alloc_expr(ExprKind::PostDecrement(name), Span::new(start, end))
-                            .map_err(|e| self.pool_error_to_parse_error(e))?;
+                        expr = Expr::new(ExprKind::PostDecrement(name), Span::new(start, end));
                     } else {
                         // Not an l-value, break (will be caught by type checker)
                         break;
@@ -79,6 +69,6 @@ impl Parser {
         }
 
         self.exit_recursion();
-        Ok(expr_id)
+        Ok(expr)
     }
 }
