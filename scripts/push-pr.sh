@@ -108,6 +108,7 @@ info "Repository root: ${ROOT_DIR}"
 run_step "turbo validate" "${TURBO_CMD[@]}" validate
 run_step "cargo fmt (nightly check)" rustup run nightly cargo fmt --all -- --check
 run_step "cargo clippy" cargo clippy --all-targets --all-features -- -D warnings
+run_step "lp_pool_lint" cargo run -p lp_pool_lint
 run_step "cargo test" cargo test
 run_step "cargo test (lp-pool without default features)" cargo test -p lp-pool --lib --no-default-features
 

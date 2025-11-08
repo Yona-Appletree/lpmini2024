@@ -1,0 +1,15 @@
+[package]
+name = "lp_pool_lint"
+version = "0.1.0"
+edition = "2021"
+publish = false
+
+[dependencies]
+anyhow = "1.0"
+clap = { version = "4.5", features = ["derive"] }
+proc-macro2 = { version = "1.0", features = ["span-locations"] }
+syn = { version = "2.0", features = ["full", "visit"] }
+walkdir = "2.5"
+camino = "1.1"
+quote = "1.0"
+
