@@ -52,6 +52,31 @@ else
   exit 1
 fi
 
+merge_pr=false
+
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+    --merge)
+      merge_pr=true
+      shift
+      ;;
+    --help|-h)
+      cat <<'EOF'
+Usage: scripts/push-pr.sh [OPTIONS]
+
+Options:
+  --merge   Merge the associated PR after checks pass.
+  -h, --help
+EOF
+      exit 0
+      ;;
+    *)
+      error "Unknown argument: $1"
+      exit 1
+      ;;
+  esac
+done
+
 run_step() {
   local description="$1"
   shift
@@ -112,17 +137,37 @@ if ! gh auth status >/dev/null 2>&1; then
   exit 1
 fi
 
+pr_info_json="$(gh pr view --json url,state,number 2>/dev/null || true)"
 pr_url=""
-if ! pr_url="$(gh pr view --json url --jq '.url' 2>/dev/null)"; then
-  info "No open PR detected for ${current_branch}. Creating one."
+pr_number=""
+
+if [[ -z "${pr_info_json}" ]]; then
+  info "No PR detected for ${current_branch}. Creating one."
+elif [[ "${pr_info_json}" == "null" ]]; then
+  info "No PR detected for ${current_branch}. Creating one."
+else
+  pr_state="$(printf '%s' "${pr_info_json}" | jq -r '.state')"
+  pr_url="$(printf '%s' "${pr_info_json}" | jq -r '.url')"
+  pr_number="$(printf '%s' "${pr_info_json}" | jq -r '.number')"
+
+  if [[ "${pr_state}" == "OPEN" ]]; then
+    info "Existing PR detected: ${pr_url}"
+  else
+    info "Current PR #${pr_number} is ${pr_state}. Creating a new PR."
+    pr_url=""
+  fi
+fi
+
+if [[ -z "${pr_url}" ]]; then
   if ! gh pr create --fill --head "${current_branch}"; then
     error "Failed to create a pull request automatically."
     warn "Use \`gh pr create --fill --head ${current_branch}\` after resolving the issue."
     exit 1
   fi
-  pr_url="$(gh pr view --json url --jq '.url')"
-else
-  info "Existing PR detected: ${pr_url}"
+  pr_info_json="$(gh pr view --json url,state,number)"
+  pr_url="$(printf '%s' "${pr_info_json}" | jq -r '.url')"
+  pr_number="$(printf '%s' "${pr_info_json}" | jq -r '.number')"
+  info "New PR created: ${pr_url}"
 fi
 
 commit_sha="$(git rev-parse HEAD)"
@@ -175,16 +220,34 @@ if gh run watch "${run_id}" --exit-status; then
   if [[ -n "${pr_url}" ]]; then
     info "PR ready: ${pr_url}"
   fi
+
+  if [[ "${merge_pr}" == "true" ]]; then
+    if [[ -z "${pr_number}" ]]; then
+      warn "PR number unavailable; skipping merge."
+    else
+      merge_state="$(gh pr view "${pr_number}" --json state --jq '.state' 2>/dev/null || true)"
+      if [[ "${merge_state}" != "OPEN" ]]; then
+        warn "Cannot merge PR #${pr_number}; state is ${merge_state}."
+      else
+        info "Merging PR #${pr_number}."
+        if gh pr merge "${pr_number}" --merge --auto; then
+          info "PR #${pr_number} merged."
+        else
+          warn "Failed to merge PR #${pr_number}. Review GitHub CLI output."
+        fi
+      fi
+    fi
+  fi
   exit 0
 fi
 
 warn "Workflow failed for commit ${commit_sha}. Downloading logs."
 log_dir="$(mktemp -d "${LOG_ROOT}/run_${commit_sha}_XXXXXX")"
-if gh run download "${run_id}" --dir "${log_dir}"; then
+if gh run download "${run_id}" --dir "${log_dir}" --log; then
   error "GitHub Actions run failed. Logs saved at: ${log_dir}"
   warn "Inspect the logs and iterate on the reported failures before re-running this script."
 else
-  warn "Failed to download logs automatically. Use \`gh run download ${run_id} --dir <path>\` to fetch them manually."
+  warn "Failed to download logs automatically. Use \`gh run download ${run_id} --dir <path> --log\` to fetch them manually."
 fi
 
 exit 1
