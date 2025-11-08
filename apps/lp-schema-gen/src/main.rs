@@ -7,14 +7,14 @@ use types::lfo_config::{LfoConfig, LfoShape};
 use types::ui_slider::UiSliderConfig;
 
 fn main() {
-    // Create registry and register all types
+    // Create registry and register all types using LpSchema metadata
     let mut registry = SchemaRegistry::new();
     registry.register::<UiSliderConfig>();
     registry.register::<LfoShape>();
     registry.register::<LfoConfig>();
 
-    // Generate Zod schemas
-    let zod_schemas = zod_gen::generate_zod_schemas(&registry);
+    // Generate Zod schemas from lp-data metadata
+    let zod_schemas = zod_gen::generate_zod_schemas(registry.registry());
 
     // Print to stdout (can be redirected to a file)
     print!("{}", zod_schemas);

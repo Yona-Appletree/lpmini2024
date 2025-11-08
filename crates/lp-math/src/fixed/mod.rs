@@ -42,7 +42,6 @@ pub mod fixed;
 pub mod interpolation;
 pub mod noise;
 pub mod rounding;
-#[cfg(feature = "serde")]
 pub mod serde_impl;
 pub mod sin_table;
 pub mod trig;

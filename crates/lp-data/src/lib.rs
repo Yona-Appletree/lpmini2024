@@ -1,37 +1,37 @@
 #![cfg_attr(not(feature = "std"), no_std)]
 //! Shared data model for `lpmini` runtime metadata.
 //!
-//! ## Engine-core integration
-//! The circular mapping helpers in `engine-core/src/test_engine/mapping/circular.rs`
-//! expect a configuration struct describing ring counts, directions, and geometry.
-//! This crate's `LpType` and `Annotations` APIs are intended to express that
-//! configuration metadata so both the compiler and UI layers can consume a single
-//! source of truth.
-//!
-//! ```ignore
-//! use lp_data::ty::{LpField, LpStructType, LpType};
-//!
-//! let mut struct_ty = LpStructType::new("CircleMappingConfig");
-//! struct_ty.add_field(LpField::new("ring_counts", LpType::array(LpType::int32())));
-//! struct_ty.add_field(LpField::new("radius", LpType::fixed32()));
-//! let config_type = LpType::structure(struct_ty);
-//! ```
-//!
-//! Once engine-core is ready to adopt `LpData`, the concrete config struct can use
-//! the builder pattern above to register its schema.
+//! Combine `#[derive(LpSchema)]` with per-field attributes to describe runtime
+//! data structures in a UI-friendly way. The derive generates rich metadata that
+//! downstream tooling can consume to build forms, validators, and schema exports.
 
 #[cfg(feature = "alloc")]
 extern crate alloc;
 
-pub mod annotation;
-#[cfg(feature = "schemars")]
-pub mod custom_types;
+pub mod metadata;
 pub mod registry;
-pub mod schema;
-pub mod ty;
-pub mod value;
+pub use metadata::{
+    ArrayType, ArrayUi, BoolScalar, BoolUi, EnumType, EnumUi, EnumVariant, FixedScalar,
+    Int32Scalar, LpScalarType, LpType, LpTypeMeta, NumberUi, RecordField, RecordType, RecordUi,
+    SliderUi, StringScalar, StringUi, TypeRef, Vec2Type, Vec2Ui, Vec3Type, Vec3Ui, Vec4Type,
+    Vec4Ui,
+};
+pub use registry::{LpDescribe, SchemaRegistration, TypeRegistry};
 
-pub use registry::{LpDataType, TypeRegistry};
+#[cfg(feature = "derive")]
+pub use lp_data_derive::LpSchema;
+
+#[cfg(feature = "serde")]
+pub trait LpSerialize: serde::Serialize {}
+
+#[cfg(feature = "serde")]
+impl<T> LpSerialize for T where T: serde::Serialize {}
+
+#[cfg(feature = "serde")]
+pub trait LpDeserialize<'de>: serde::Deserialize<'de> {}
+
+#[cfg(feature = "serde")]
+impl<'de, T> LpDeserialize<'de> for T where T: serde::Deserialize<'de> {}
 
 #[cfg(test)]
 mod tests;

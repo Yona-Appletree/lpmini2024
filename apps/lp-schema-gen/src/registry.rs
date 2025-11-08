@@ -1,48 +1,26 @@
-use std::collections::BTreeMap;
+use lp_data::{LpDescribe, TypeRegistry};
 
-use schemars::{JsonSchema, Schema};
-
-/// Registry for all registered LP data types using schemars
+/// Registry wrapper for lp-data types
 pub struct SchemaRegistry {
-    schemas: BTreeMap<String, Schema>,
+    registry: TypeRegistry,
 }
 
 impl SchemaRegistry {
     /// Create a new empty registry
     pub fn new() -> Self {
         Self {
-            schemas: BTreeMap::new(),
+            registry: TypeRegistry::new(),
         }
     }
 
-    /// Register a type that implements JsonSchema
-    pub fn register<T: JsonSchema>(&mut self) {
-        let schema = schemars::schema_for!(T);
-        let name = T::schema_name().to_string();
-        self.schemas.insert(name, schema);
+    /// Register a type that implements LpDescribe
+    pub fn register<T: LpDescribe>(&mut self) {
+        self.registry.register::<T>();
     }
 
-    /// Register a type with a custom name
-    #[allow(dead_code)]
-    pub fn register_with_name(&mut self, name: String, schema: Schema) {
-        self.schemas.insert(name, schema);
-    }
-
-    /// Get a schema by type name
-    #[allow(dead_code)]
-    pub fn get(&self, name: &str) -> Option<&Schema> {
-        self.schemas.get(name)
-    }
-
-    /// Get all registered type names
-    #[allow(dead_code)]
-    pub fn type_names(&self) -> Vec<String> {
-        self.schemas.keys().cloned().collect()
-    }
-
-    /// Get all schemas
-    pub fn all_schemas(&self) -> &BTreeMap<String, Schema> {
-        &self.schemas
+    /// Get the underlying TypeRegistry
+    pub fn registry(&self) -> &TypeRegistry {
+        &self.registry
     }
 }
 

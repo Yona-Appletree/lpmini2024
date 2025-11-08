@@ -1,20 +1,27 @@
 use alloc::collections::BTreeMap;
 use alloc::vec::Vec;
 
-use crate::ty::LpType;
+use crate::metadata::LpTypeMeta;
 
-/// Trait for types that can provide their LP schema definition
-pub trait LpDataType {
-    /// Returns the name of this type
-    fn type_name() -> &'static str;
+/// Trait implemented by types that can describe their schema.
+pub trait LpDescribe {
+    /// Canonical name for the described type.
+    const TYPE_NAME: &'static str;
 
-    /// Returns the LP type schema for this type
-    fn lp_type() -> LpType;
+    /// Returns the schema metadata for this type.
+    /// Implementations should be const to allow use in const contexts.
+    fn lp_schema() -> &'static LpTypeMeta;
+}
+
+/// Entry produced by explicit registration helpers.
+pub struct SchemaRegistration {
+    pub name: &'static str,
+    pub schema: &'static LpTypeMeta,
 }
 
 /// Registry for all registered LP data types
 pub struct TypeRegistry {
-    types: BTreeMap<&'static str, LpType>,
+    types: BTreeMap<&'static str, &'static LpTypeMeta>,
 }
 
 impl TypeRegistry {
@@ -25,23 +32,30 @@ impl TypeRegistry {
         }
     }
 
-    /// Register a type that implements LpDataType
-    pub fn register<T: LpDataType>(&mut self) {
-        self.types.insert(T::type_name(), T::lp_type());
+    /// Register a type that implements LpDescribe
+    pub fn register<T: LpDescribe>(&mut self) {
+        self.register_with_meta(T::TYPE_NAME, T::lp_schema());
+    }
+
+    /// Register all descriptors in one call.
+    pub fn register_many(&mut self, entries: &[SchemaRegistration]) {
+        for entry in entries {
+            self.register_with_meta(entry.name, entry.schema);
+        }
     }
 
     /// Register a type with a custom name
-    pub fn register_with_name(&mut self, name: &'static str, ty: LpType) {
-        self.types.insert(name, ty);
+    pub fn register_with_meta(&mut self, name: &'static str, schema: &'static LpTypeMeta) {
+        self.types.insert(name, schema);
     }
 
     /// Get a type by name
-    pub fn get(&self, name: &str) -> Option<&LpType> {
-        self.types.get(name)
+    pub fn get(&self, name: &str) -> Option<&'static LpTypeMeta> {
+        self.types.get(name).copied()
     }
 
     /// Get all registered types
-    pub fn all_types(&self) -> &BTreeMap<&'static str, LpType> {
+    pub fn all_types(&self) -> &BTreeMap<&'static str, &'static LpTypeMeta> {
         &self.types
     }
 
@@ -55,4 +69,17 @@ impl Default for TypeRegistry {
     fn default() -> Self {
         Self::new()
     }
+}
+
+/// Explicit helper to register a list of types implementing [`LpDescribe`].
+///
+/// Keeping this explicit makes call sites obvious today. Once we're confident in
+/// the derive story we could move to an automatic registry (e.g. `inventory`).
+#[macro_export]
+macro_rules! register_lp_schemas {
+    ($registry:expr, $( $ty:ty ),+ $(,)?) => {
+        $(
+            $registry.register::<$ty>();
+        )+
+    };
 }

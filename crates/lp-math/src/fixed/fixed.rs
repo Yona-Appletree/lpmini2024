@@ -11,10 +11,6 @@ const HALF: i32 = ONE / 2;
 
 /// Fixed-point number (16.16 format)
 #[derive(Copy, Clone, Debug, PartialEq, Eq, PartialOrd, Ord)]
-#[cfg_attr(
-    all(feature = "serde", feature = "schemars"),
-    derive(schemars::JsonSchema)
-)]
 pub struct Fixed(pub i32);
 
 impl Fixed {

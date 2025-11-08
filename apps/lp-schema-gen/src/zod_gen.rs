@@ -1,72 +1,35 @@
-use serde_json::Value as JsonValue;
+use lp_data::{
+    ArrayType, EnumType, EnumVariant, LpScalarType, LpType, LpTypeMeta, NumberUi, RecordType,
+    TypeRef, TypeRegistry, Vec2Type, Vec3Type, Vec4Type,
+};
 
-use crate::registry::SchemaRegistry;
-
-/// Generate Zod schema TypeScript code from a schema registry
-pub fn generate_zod_schemas(registry: &SchemaRegistry) -> String {
+/// Generate Zod schema TypeScript code from a TypeRegistry
+pub fn generate_zod_schemas(registry: &TypeRegistry) -> String {
     let mut output = String::new();
 
     // Add header
     output.push_str("import { z } from 'zod';\n\n");
+    output.push_str("export function ZodFactory<TSchema extends z.ZodTypeAny, TExtra>(schema: TSchema, extra?: TExtra) {
+  return Object.assign((params: z.input<TSchema>) => schema.parse(params), {
+    schema,
+    ...extra,
+  }) as {
+    (params: z.input<TSchema>): z.output<TSchema>;
+    schema: TSchema;
+  } & (void extends TExtra ? Record<never, never> : TExtra);
+}
+\n\n");
 
-    // Convert schemas to JSON for easier processing
-    let mut schemas_json: std::collections::BTreeMap<String, JsonValue> =
-        std::collections::BTreeMap::new();
-    for (name, schema) in registry.all_schemas() {
-        let json = serde_json::to_value(schema).unwrap_or(JsonValue::Null);
-        schemas_json.insert(name.clone(), json);
-    }
+    let all_types = registry.all_types();
+
+    // Collect type names and sort them
+    let mut type_names: Vec<&str> = all_types.keys().copied().collect();
+    type_names.sort();
 
     // Generate schemas for all types
-    // First, collect and sort types, separating enums from structs
-    let mut enum_names = Vec::new();
-    let mut struct_names = Vec::new();
-    let mut other_names = Vec::new();
-
-    for (type_name, schema_json) in &schemas_json {
-        match classify_schema_json(schema_json) {
-            SchemaKind::Enum => enum_names.push(type_name.clone()),
-            SchemaKind::Struct => struct_names.push(type_name.clone()),
-            SchemaKind::Other => other_names.push(type_name.clone()),
-        }
-    }
-
-    enum_names.sort();
-    struct_names.sort();
-    other_names.sort();
-
-    // Generate enums first (they may be referenced by structs)
-    for type_name in enum_names {
-        if let Some(schema_json) = schemas_json.get(&type_name) {
-            output.push_str(&generate_type_schema_from_json(
-                &type_name,
-                schema_json,
-                &schemas_json,
-            ));
-            output.push_str("\n\n");
-        }
-    }
-
-    // Then generate structs
-    for type_name in struct_names {
-        if let Some(schema_json) = schemas_json.get(&type_name) {
-            output.push_str(&generate_type_schema_from_json(
-                &type_name,
-                schema_json,
-                &schemas_json,
-            ));
-            output.push_str("\n\n");
-        }
-    }
-
-    // Finally, generate other types
-    for type_name in other_names {
-        if let Some(schema_json) = schemas_json.get(&type_name) {
-            output.push_str(&generate_type_schema_from_json(
-                &type_name,
-                schema_json,
-                &schemas_json,
-            ));
+    for type_name in &type_names {
+        if let Some(meta) = all_types.get(type_name) {
+            output.push_str(&generate_type_schema(type_name, meta, all_types));
             output.push_str("\n\n");
         }
     }
@@ -74,151 +37,142 @@ pub fn generate_zod_schemas(registry: &SchemaRegistry) -> String {
     output
 }
 
-enum SchemaKind {
-    Enum,
-    Struct,
-    Other,
-}
-
-fn classify_schema_json(schema: &JsonValue) -> SchemaKind {
-    if let Some(obj) = schema.as_object() {
-        if obj.get("type") == Some(&JsonValue::String("string".to_string()))
-            && obj.get("enum").is_some()
-        {
-            return SchemaKind::Enum;
-        }
-        if obj.get("type") == Some(&JsonValue::String("object".to_string()))
-            && obj.get("properties").is_some()
-        {
-            return SchemaKind::Struct;
-        }
-    }
-    SchemaKind::Other
-}
-
-fn generate_type_schema_from_json(
+fn generate_type_schema(
     name: &str,
-    schema: &JsonValue,
-    all_schemas: &std::collections::BTreeMap<String, JsonValue>,
+    meta: &LpTypeMeta,
+    all_types: &std::collections::BTreeMap<&'static str, &'static LpTypeMeta>,
 ) -> String {
-    if let Some(obj) = schema.as_object() {
-        // Check if it's an enum
-        if obj.get("type") == Some(&JsonValue::String("string".to_string()))
-            && obj.get("enum").is_some()
-        {
-            return generate_enum_schema_from_json(name, obj);
-        }
+    let schema_expr = lp_type_to_zod(&meta.ty, all_types);
+    let schema_name = format!("{}", name);
 
-        // Check if it's a struct
-        if obj.get("type") == Some(&JsonValue::String("object".to_string()))
-            && obj.get("properties").is_some()
-        {
-            return generate_struct_schema_from_json(name, obj, all_schemas);
-        }
-    }
-
-    // Primitive or other
-    format!(
-        "export const {}Schema = {};",
-        name,
-        schema_json_to_zod(schema, all_schemas)
-    )
+    format!("export const {schema_name} = ZodFactory('{schema_name}', {schema_expr});")
 }
 
-fn generate_enum_schema_from_json(name: &str, obj: &serde_json::Map<String, JsonValue>) -> String {
-    if let Some(enum_values) = obj.get("enum").and_then(|v| v.as_array()) {
-        let variants: Vec<String> = enum_values
-            .iter()
-            .filter_map(|v| v.as_str().map(|s| format!("'{}'", s)))
-            .collect();
-
-        format!(
-            "export const {}Schema = z.enum([{}]);",
-            name,
-            variants.join(", ")
-        )
-    } else {
-        format!("export const {}Schema = z.string();", name)
+fn lp_type_to_zod(
+    ty: &LpType,
+    all_types: &std::collections::BTreeMap<&'static str, &'static LpTypeMeta>,
+) -> String {
+    match ty {
+        LpType::Scalar(scalar) => scalar_to_zod(scalar),
+        LpType::Vec2(vec2) => vec2_to_zod(vec2),
+        LpType::Vec3(vec3) => vec3_to_zod(vec3),
+        LpType::Vec4(vec4) => vec4_to_zod(vec4),
+        LpType::Array(array) => array_to_zod(array, all_types),
+        LpType::Record(record) => record_to_zod(record, all_types),
+        LpType::Enum(enum_ty) => enum_to_zod(enum_ty, all_types),
     }
 }
 
-fn generate_struct_schema_from_json(
-    name: &str,
-    obj: &serde_json::Map<String, JsonValue>,
-    all_schemas: &std::collections::BTreeMap<String, JsonValue>,
+fn scalar_to_zod(scalar: &LpScalarType) -> String {
+    match scalar {
+        LpScalarType::String(_) => "z.string()".to_string(),
+        LpScalarType::Fixed(fixed) => {
+            if let NumberUi::Slider(slider) = &fixed.ui {
+                let mut zod = "z.number()".to_string();
+                zod.push_str(&format!(".min({})", slider.min));
+                zod.push_str(&format!(".max({})", slider.max));
+                if let Some(step) = slider.step {
+                    zod.push_str(&format!(".step({})", step));
+                }
+                zod
+            } else {
+                "z.number()".to_string()
+            }
+        }
+        LpScalarType::Int32(int32) => {
+            if let NumberUi::Slider(slider) = &int32.ui {
+                let mut zod = "z.number().int()".to_string();
+                zod.push_str(&format!(".min({})", slider.min as i32));
+                zod.push_str(&format!(".max({})", slider.max as i32));
+                if let Some(step) = slider.step {
+                    zod.push_str(&format!(".step({})", step as i32));
+                }
+                zod
+            } else {
+                "z.number().int()".to_string()
+            }
+        }
+        LpScalarType::Bool(_) => "z.boolean()".to_string(),
+    }
+}
+
+fn vec2_to_zod(_vec2: &Vec2Type) -> String {
+    "z.tuple([z.number(), z.number()])".to_string()
+}
+
+fn vec3_to_zod(_vec3: &Vec3Type) -> String {
+    "z.tuple([z.number(), z.number(), z.number()])".to_string()
+}
+
+fn vec4_to_zod(_vec4: &Vec4Type) -> String {
+    "z.tuple([z.number(), z.number(), z.number(), z.number()])".to_string()
+}
+
+fn array_to_zod(
+    array: &ArrayType<TypeRef>,
+    all_types: &std::collections::BTreeMap<&'static str, &'static LpTypeMeta>,
+) -> String {
+    let element_zod = type_ref_to_zod(array.element, all_types);
+    format!("z.array({})", element_zod)
+}
+
+fn record_to_zod(
+    record: &RecordType<TypeRef>,
+    all_types: &std::collections::BTreeMap<&'static str, &'static LpTypeMeta>,
 ) -> String {
     let mut fields = Vec::new();
 
-    if let Some(properties) = obj.get("properties").and_then(|v| v.as_object()) {
-        for (field_name, field_schema) in properties {
-            let zod_type = schema_json_to_zod(field_schema, all_schemas);
-            fields.push(format!("  {}: {}", field_name, zod_type));
-        }
+    for field in record.fields {
+        let field_zod = type_ref_to_zod(field.ty, all_types);
+        fields.push(format!("  {}: {}", field.name, field_zod));
     }
 
-    format!(
-        "export const {}Schema = z.object({{\n{}\n}});",
-        name,
-        fields.join(",\n")
-    )
+    format!("z.object({{\n{}\n}})", fields.join(",\n"))
 }
 
-fn schema_json_to_zod(
-    schema: &JsonValue,
-    all_schemas: &std::collections::BTreeMap<String, JsonValue>,
+fn enum_to_zod(
+    enum_ty: &EnumType<TypeRef>,
+    all_types: &std::collections::BTreeMap<&'static str, &'static LpTypeMeta>,
 ) -> String {
-    // Check for $ref
-    if let Some(obj) = schema.as_object() {
-        if let Some(ref_path) = obj.get("$ref").and_then(|v| v.as_str()) {
-            // Extract type name from reference path (e.g., "#/definitions/MyType" -> "MyType")
-            if let Some(type_name) = ref_path.strip_prefix("#/definitions/") {
-                // Check if this type is registered
-                if all_schemas.contains_key(type_name) {
-                    return format!("{}Schema", type_name);
-                }
-            }
+    match &enum_ty.variants[..] {
+        [] => "z.never()".to_string(),
+        variants => {
+            let variant_strings: Vec<String> = variants
+                .iter()
+                .map(|v| match v {
+                    EnumVariant::Unit { name } => format!("'{}'", name),
+                    EnumVariant::Tuple { name, .. } => {
+                        // For tuple variants, we'd need to generate a discriminated union
+                        // For now, just use the name as a string literal
+                        format!("'{}'", name)
+                    }
+                    EnumVariant::Struct { name, .. } => {
+                        // For struct variants, we'd need to generate a discriminated union
+                        // For now, just use the name as a string literal
+                        format!("'{}'", name)
+                    }
+                })
+                .collect();
+            format!("z.enum([{}])", variant_strings.join(", "))
         }
+    }
+}
 
-        // Check type
-        if let Some(type_str) = obj.get("type").and_then(|v| v.as_str()) {
-            match type_str {
-                "boolean" => return "z.boolean()".to_string(),
-                "integer" => return "z.number().int()".to_string(),
-                "number" => return "z.number()".to_string(),
-                "string" => {
-                    // Check if it's an enum
-                    if let Some(enum_values) = obj.get("enum").and_then(|v| v.as_array()) {
-                        let variants: Vec<String> = enum_values
-                            .iter()
-                            .filter_map(|v| v.as_str().map(|s| format!("'{}'", s)))
-                            .collect();
-                        return format!("z.enum([{}])", variants.join(", "));
-                    }
-                    return "z.string()".to_string();
-                }
-                "array" => {
-                    if let Some(items) = obj.get("items") {
-                        let item_zod = schema_json_to_zod(items, all_schemas);
-                        return format!("z.array({})", item_zod);
-                    }
-                    return "z.array(z.unknown())".to_string();
-                }
-                "object" => {
-                    // Object type - generate inline
-                    let mut fields = Vec::new();
-                    if let Some(properties) = obj.get("properties").and_then(|v| v.as_object()) {
-                        for (field_name, field_schema) in properties {
-                            let zod_type = schema_json_to_zod(field_schema, all_schemas);
-                            fields.push(format!("{}: {}", field_name, zod_type));
-                        }
-                    }
-                    return format!("z.object({{\n    {}\n  }})", fields.join(",\n    "));
-                }
-                _ => {}
-            }
+fn type_ref_to_zod(
+    type_ref: TypeRef,
+    all_types: &std::collections::BTreeMap<&'static str, &'static LpTypeMeta>,
+) -> String {
+    // Check if this is a reference to a registered type
+    // We need to find the type name by searching through all_types
+    // Compare by pointer address since these are static references
+    let type_ref_ptr = type_ref as *const _;
+    for (name, meta) in all_types {
+        let meta_ptr = *meta as *const _;
+        if std::ptr::eq(meta_ptr, type_ref_ptr) {
+            return format!("{}Schema", name);
         }
     }
 
-    // Fallback for unknown types
-    "z.unknown()".to_string()
+    // Not a registered type, generate inline
+    lp_type_to_zod(&type_ref.ty, all_types)
 }
