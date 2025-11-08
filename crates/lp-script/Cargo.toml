@@ -10,3 +10,4 @@ use-libm = []
 # Math for no_std
 libm = { version = "0.2" }
 lp-math = { path = "../lp-math" }
+lp-pool = { path = "../lp-pool", features = ["alloc-meta"] }
