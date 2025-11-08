@@ -45,6 +45,7 @@ extern crate alloc;
 extern crate std;
 
 pub mod allocator;
+mod allocator_store;
 pub mod block_header;
 pub mod collections;
 pub mod error;
@@ -53,7 +54,6 @@ pub mod fmt;
 mod guarded_alloc;
 pub mod memory_pool;
 pub mod pool;
-mod state;
 
 pub use allocator::LpAllocatorWrapper;
 pub use collections::{
@@ -63,7 +63,7 @@ pub use collections::{
 pub use error::AllocError;
 pub use fmt::{lp_format, write_lp_string};
 #[cfg(any(feature = "std", test))]
-pub use guarded_alloc::{with_global_alloc, ScopedGlobalAllocGuard};
+pub use guarded_alloc::allow_global_alloc;
 pub use memory_pool::{LpMemoryPool, PoolStats};
 
 #[cfg(any(feature = "std", test))]

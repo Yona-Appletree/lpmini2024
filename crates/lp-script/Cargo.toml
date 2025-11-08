@@ -13,3 +13,6 @@ use-libm = []
 libm = { version = "0.2" }
 lp-math = { path = "../lp-math" }
 lp-pool = { path = "../lp-pool", default-features = false, features = ["alloc-meta"] }
+
+[dev-dependencies]
+lp-pool = { path = "../lp-pool", default-features = false, features = ["alloc-meta", "std"] }

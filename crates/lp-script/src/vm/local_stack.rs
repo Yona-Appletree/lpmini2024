@@ -9,7 +9,7 @@ use super::error::LpsVmError;
 use super::lps_program::LocalVarDef;
 use crate::fixed::Fixed;
 use crate::shared::Type;
-use lp_pool::with_global_alloc;
+use lp_pool::allow_global_alloc;
 
 impl LocalStack {
     /// Create new locals storage with the given capacity (in i32 units)
@@ -18,9 +18,6 @@ impl LocalStack {
     /// Example: if max depth is 64 and average function uses 20 i32s of locals,
     /// capacity should be at least 64 * 20 = 1280.
     pub fn try_new(capacity: usize) -> Result<Self, LpsVmError> {
-        #[cfg(test)]
-        crate::vm::test_pool::ensure_initialized();
-
         let mut data = LpVec::new();
         if capacity > 0 {
             data.try_reserve(capacity)?;
@@ -434,7 +431,7 @@ impl LocalStack {
 
     /// List all locals with their names and types (for debugging)
     pub fn list_locals(&self) -> Vec<(String, Type)> {
-        with_global_alloc(|| {
+        allow_global_alloc(|| {
             self.metadata
                 .iter()
                 .map(|m| (alloc::string::String::from(m.name.as_str()), m.ty.clone()))

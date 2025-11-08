@@ -369,8 +369,8 @@ mod tests {
     use core::ptr::NonNull;
 
     use super::*;
+    use crate::allow_global_alloc;
     use crate::memory_pool::LpMemoryPool;
-    use crate::with_global_alloc;
 
     fn setup_pool() -> LpMemoryPool {
         let mut memory = [0u8; 16384];
@@ -610,8 +610,8 @@ mod tests {
             let sum: i32 = vec.iter().sum();
             assert_eq!(sum, 6);
 
-            let collected = with_global_alloc(|| vec.iter().collect::<alloc::vec::Vec<_>>());
-            let expected = with_global_alloc(|| alloc::vec![&1, &2, &3]);
+            let collected = allow_global_alloc(|| vec.iter().collect::<alloc::vec::Vec<_>>());
+            let expected = allow_global_alloc(|| alloc::vec![&1, &2, &3]);
             assert_eq!(collected, expected);
             Ok::<(), AllocError>(())
         })
@@ -649,8 +649,8 @@ mod tests {
             vec.try_push(3)?;
 
             let collected =
-                with_global_alloc(|| vec.iter().rev().copied().collect::<alloc::vec::Vec<_>>());
-            let expected = with_global_alloc(|| alloc::vec![3, 2, 1]);
+                allow_global_alloc(|| vec.iter().rev().copied().collect::<alloc::vec::Vec<_>>());
+            let expected = allow_global_alloc(|| alloc::vec![3, 2, 1]);
             assert_eq!(collected, expected);
             Ok::<(), AllocError>(())
         })
@@ -834,9 +834,9 @@ mod tests {
 
         pool.run(|| {
             let mut vec = LpVec::new();
-            let hello = with_global_alloc(|| alloc::string::String::from("hello"));
-            let world = with_global_alloc(|| alloc::string::String::from("world"));
-            let test = with_global_alloc(|| alloc::string::String::from("test"));
+            let hello = allow_global_alloc(|| alloc::string::String::from("hello"));
+            let world = allow_global_alloc(|| alloc::string::String::from("world"));
+            let test = allow_global_alloc(|| alloc::string::String::from("test"));
             vec.try_push(hello)?;
             vec.try_push(world)?;
             vec.try_push(test)?;

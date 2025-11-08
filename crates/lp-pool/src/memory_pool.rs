@@ -1,10 +1,10 @@
 use core::ptr::NonNull;
 
+use crate::allocator_store;
 use crate::error::AllocError;
-use crate::pool::LpAllocator;
-use crate::state;
 #[cfg(any(feature = "std", test))]
-use crate::ScopedGlobalAllocGuard;
+use crate::guarded_alloc::ScopedGlobalAllocGuard;
+use crate::pool::LpAllocator;
 
 /// Main memory pool interface with thread-local allocator
 pub struct LpMemoryPool;
@@ -17,8 +17,29 @@ impl LpMemoryPool {
     /// - Memory must remain valid for the lifetime of the pool
     pub unsafe fn new(memory: NonNull<u8>, size: usize) -> Result<Self, AllocError> {
         let root_pool = LpAllocator::new(memory, size)?;
-        state::set_allocator(root_pool);
+        allocator_store::set_allocator(root_pool);
         Ok(LpMemoryPool)
+    }
+
+    /// Get access to the global default pool (only available with `default_pool` feature)
+    ///
+    /// This pool is automatically initialized on first use with default settings.
+    #[cfg(feature = "default_pool")]
+    pub fn global() -> Self {
+        LpMemoryPool
+    }
+
+    /// Execute a closure while temporarily allowing global allocations
+    ///
+    /// This allows code inside `run()` to use the standard allocator (e.g., `Vec`, `String`)
+    /// without panicking. The allowance is only active for the duration of the closure.
+    #[cfg(any(feature = "std", test))]
+    pub fn with_global_alloc<F, R>(f: F) -> R
+    where
+        F: FnOnce() -> R,
+    {
+        let _allow = allocator_store::enter_global_alloc_allowance();
+        f()
     }
 
     /// Execute a closure with the pool active
@@ -27,7 +48,7 @@ impl LpMemoryPool {
         F: FnOnce() -> Result<R, E>,
         E: From<AllocError>,
     {
-        if !state::allocator_exists() {
+        if !allocator_store::allocator_exists() {
             return Err(E::from(AllocError::PoolExhausted));
         }
         #[cfg(any(feature = "std", test))]
@@ -38,7 +59,7 @@ impl LpMemoryPool {
 
     /// Get current memory usage statistics
     pub fn stats(&self) -> Result<PoolStats, AllocError> {
-        state::with_allocator(|pool| {
+        allocator_store::with_allocator(|pool| {
             Ok(PoolStats {
                 used_bytes: pool.used_bytes(),
                 capacity: pool.capacity(),
@@ -88,7 +109,7 @@ pub(crate) fn with_active_pool<F, R>(f: F) -> Result<R, AllocError>
 where
     F: FnOnce(&mut LpAllocator) -> Result<R, AllocError>,
 {
-    state::with_allocator_mut(f)
+    allocator_store::with_allocator_mut(f)
 }
 
 #[cfg(test)]
@@ -202,5 +223,50 @@ mod tests {
 
             assert!(result.is_ok());
         }
+    }
+}
+
+#[cfg(all(test, feature = "default_pool"))]
+mod default_pool_tests {
+    use super::*;
+    use alloc::vec::Vec;
+    use std::panic;
+
+    #[test]
+    fn default_pool_runs_without_manual_initialization() {
+        let pool = LpMemoryPool::global();
+        let result = pool.run(|| Ok::<(), AllocError>(()));
+        assert!(result.is_ok(), "default pool should allow running closures");
+    }
+
+    #[test]
+    fn global_allocations_require_with_global_alloc() {
+        let pool = LpMemoryPool::global();
+
+        let panic_result = panic::catch_unwind(|| {
+            let _ = pool.run(|| {
+                let mut host_vec = Vec::new();
+                host_vec.push(42u8);
+                Ok::<(), AllocError>(())
+            });
+        });
+
+        assert!(
+            panic_result.is_err(),
+            "host allocations without with_global_alloc should panic"
+        );
+
+        let ok_result = pool.run(|| {
+            LpMemoryPool::with_global_alloc(|| {
+                let mut host_vec = Vec::new();
+                host_vec.push(7u8);
+            });
+            Ok::<(), AllocError>(())
+        });
+
+        assert!(
+            ok_result.is_ok(),
+            "with_global_alloc should permit host allocations while pool is active"
+        );
     }
 }

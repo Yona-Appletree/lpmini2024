@@ -2,7 +2,7 @@
 use alloc::{collections::BTreeMap, format};
 
 #[cfg(feature = "alloc-meta")]
-use crate::state;
+use crate::allocator_store;
 
 #[cfg(feature = "alloc-meta")]
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
@@ -24,7 +24,7 @@ pub(crate) type AllocationMetaMap = BTreeMap<AllocationMeta, AllocationStats>;
 
 #[cfg(feature = "alloc-meta")]
 pub(crate) fn record_allocation_meta(meta: AllocationMeta, size: usize) {
-    state::with_meta_mut(|stats| {
+    allocator_store::with_meta_mut(|stats| {
         let entry = stats.entry(meta).or_insert(AllocationStats {
             count: 0,
             total_bytes: 0,
@@ -36,7 +36,7 @@ pub(crate) fn record_allocation_meta(meta: AllocationMeta, size: usize) {
 
 #[cfg(feature = "alloc-meta")]
 pub(crate) fn remove_allocation_meta(meta: AllocationMeta, size: usize) {
-    state::with_meta_mut(|stats| {
+    allocator_store::with_meta_mut(|stats| {
         if let Some(entry) = stats.get_mut(&meta) {
             entry.count = entry.count.saturating_sub(1);
             entry.total_bytes = entry.total_bytes.saturating_sub(size);
@@ -56,7 +56,7 @@ pub fn print_memory_stats_with<F>(print: F)
 where
     F: Fn(&str),
 {
-    state::with_meta(|stats| {
+    allocator_store::with_meta(|stats| {
         print("Memory Statistics by Type and Scope:");
         print(
             "----------------------------------------------------------------------------------------",
@@ -124,7 +124,7 @@ mod tests {
     use core::ptr::NonNull;
 
     use super::*;
-    use crate::{with_global_alloc, LpBox, LpMemoryPool, LpVec};
+    use crate::{allow_global_alloc, LpBox, LpMemoryPool, LpVec};
 
     fn setup_pool() -> LpMemoryPool {
         let mut memory = [0u8; 16384];
@@ -138,13 +138,13 @@ mod tests {
 
         pool.run(|| {
             // Clear any previous metadata
-            let initial_count = crate::state::with_meta(|stats| stats.len());
+            let initial_count = crate::allocator_store::with_meta(|stats| stats.len());
 
             // Allocate with scope
             let _box1 = LpBox::try_new_with_scope(42i32, Some("test_scope"))?;
 
             // Check metadata was recorded
-            let len_after = crate::state::with_meta(|stats| stats.len());
+            let len_after = crate::allocator_store::with_meta(|stats| stats.len());
             assert!(len_after >= initial_count);
 
             Ok::<(), crate::AllocError>(())
@@ -162,14 +162,14 @@ mod tests {
                 let _box2 = LpBox::try_new_with_scope([0u8; 64], Some("scope2"))?;
 
                 // Metadata should be tracked
-                let count_during = crate::state::with_meta(|stats| stats.len());
+                let count_during = crate::allocator_store::with_meta(|stats| stats.len());
                 assert!(count_during > 0);
             }
 
             // After drop, metadata should be cleaned up
             // All scoped allocations should be removed
-            let entries = with_global_alloc(|| {
-                crate::state::with_meta(|stats| {
+            let entries = allow_global_alloc(|| {
+                crate::allocator_store::with_meta(|stats| {
                     stats
                         .iter()
                         .map(|(meta, stat)| (*meta, *stat))
@@ -206,7 +206,7 @@ mod tests {
             // Metadata should reflect vec allocations
             // Note: metadata tracking is best-effort, so we don't assert
             // Just verify it doesn't crash and that we can iterate metadata
-            crate::state::with_meta(|stats| {
+            crate::allocator_store::with_meta(|stats| {
                 for _ in stats.iter() {
                     // no-op
                 }

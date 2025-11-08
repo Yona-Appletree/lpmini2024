@@ -20,9 +20,6 @@ pub struct ValueStack {
 impl ValueStack {
     /// Create a new stack with the given maximum size
     pub fn try_new(max_size: usize) -> Result<Self, LpsVmError> {
-        #[cfg(test)]
-        crate::vm::test_pool::ensure_initialized();
-
         let mut data = LpVec::new();
         if max_size > 0 {
             data.try_reserve(max_size)?;

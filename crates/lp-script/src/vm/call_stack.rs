@@ -43,9 +43,6 @@ impl CallStack {
     /// # Arguments
     /// * `max_depth` - Maximum call depth (e.g., 64)
     pub fn try_new(max_depth: usize) -> Result<Self, LpsVmError> {
-        #[cfg(test)]
-        crate::vm::test_pool::ensure_initialized();
-
         let mut frames = LpVec::new();
         if max_depth > 0 {
             frames.try_reserve(max_depth)?;

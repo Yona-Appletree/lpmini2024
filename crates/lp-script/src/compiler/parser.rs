@@ -172,13 +172,16 @@ mod tests {
         let pool = unsafe { LpMemoryPool::new(memory_ptr, POOL_SIZE).expect("pool init failed") };
 
         pool.run(|| -> Result<(), ParseError> {
-            let mut lexer = Lexer::new("1.0 + 2.0");
-            let tokens = lexer.tokenize();
-            let mut parser = Parser::new(tokens);
-            let expr = parser.parse()?;
+            use lp_pool::LpMemoryPool;
+            LpMemoryPool::with_global_alloc(|| -> Result<(), ParseError> {
+                let mut lexer = Lexer::new("1.0 + 2.0");
+                let tokens = lexer.tokenize();
+                let mut parser = Parser::new(tokens);
+                let expr = parser.parse()?;
 
-            assert!(matches!(expr.kind, ExprKind::Add(_, _)));
-            Ok(())
+                assert!(matches!(expr.kind, ExprKind::Add(_, _)));
+                Ok(())
+            })
         })
         .unwrap();
     }
@@ -190,14 +193,17 @@ mod tests {
         let pool = unsafe { LpMemoryPool::new(memory_ptr, POOL_SIZE).expect("pool init failed") };
 
         pool.run(|| -> Result<(), ParseError> {
-            let mut lexer = Lexer::new("float x = 5.0; return x;");
-            let tokens = lexer.tokenize();
-            let parser = Parser::new(tokens);
-            let program = parser.parse_program()?;
+            use lp_pool::LpMemoryPool;
+            LpMemoryPool::with_global_alloc(|| -> Result<(), ParseError> {
+                let mut lexer = Lexer::new("float x = 5.0; return x;");
+                let tokens = lexer.tokenize();
+                let parser = Parser::new(tokens);
+                let program = parser.parse_program()?;
 
-            assert_eq!(program.stmts.len(), 2);
-            assert!(program.functions.is_empty());
-            Ok(())
+                assert_eq!(program.stmts.len(), 2);
+                assert!(program.functions.is_empty());
+                Ok(())
+            })
         })
         .unwrap();
     }
@@ -209,15 +215,19 @@ mod tests {
         let pool = unsafe { LpMemoryPool::new(memory_ptr, POOL_SIZE).expect("pool init failed") };
 
         pool.run(|| -> Result<(), ParseError> {
-            let mut lexer =
-                Lexer::new("float add(float a, float b) { return a + b; } return add(1.0, 2.0);");
-            let tokens = lexer.tokenize();
-            let parser = Parser::new(tokens);
-            let program = parser.parse_program()?;
+            use lp_pool::LpMemoryPool;
+            LpMemoryPool::with_global_alloc(|| -> Result<(), ParseError> {
+                let mut lexer = Lexer::new(
+                    "float add(float a, float b) { return a + b; } return add(1.0, 2.0);",
+                );
+                let tokens = lexer.tokenize();
+                let parser = Parser::new(tokens);
+                let program = parser.parse_program()?;
 
-            assert_eq!(program.functions.len(), 1);
-            assert_eq!(program.stmts.len(), 1);
-            Ok(())
+                assert_eq!(program.functions.len(), 1);
+                assert_eq!(program.stmts.len(), 1);
+                Ok(())
+            })
         })
         .unwrap();
     }

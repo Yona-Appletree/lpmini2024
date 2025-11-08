@@ -7,7 +7,9 @@ edition = "2021"
 default = ["alloc-meta", "std"]
 # Allocation metadata tracking; works in both std and no_std.
 alloc-meta = []
-std = ["thread_local"]
+std = ["thread_local", "default_pool"]
+# Default pool auto-initialization for tests (automatically enabled with std)
+default_pool = []
 
 [dependencies]
 allocator-api2 = { version = "0.2", default-features = false, features = ["alloc"] }

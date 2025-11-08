@@ -2,9 +2,8 @@
 extern crate alloc;
 use alloc::format;
 use alloc::string::String;
-use core::ptr::NonNull;
 
-use lp_pool::LpMemoryPool;
+use lp_pool::{allow_global_alloc, LpMemoryPool};
 
 use crate::compiler::ast::{Program, Stmt};
 use crate::compiler::expr::expr_test_util::expr_eq_ignore_spans;
@@ -227,12 +226,11 @@ impl ScriptTest {
     }
 
     pub fn run(self) -> Result<(), String> {
-        const POOL_SIZE: usize = 512 * 1024;
-        let mut memory = vec![0u8; POOL_SIZE];
-        let memory_ptr =
-            NonNull::new(memory.as_mut_ptr()).ok_or_else(|| String::from("pool memory null"))?;
-        let pool = unsafe { LpMemoryPool::new(memory_ptr, POOL_SIZE).map_err(String::from)? };
+        let pool = LpMemoryPool::global();
+        pool.run(move || allow_global_alloc(|| self.execute()))
+    }
 
+    fn execute(self) -> Result<(), String> {
         let ScriptTest {
             input,
             expected_ast_builder,
@@ -244,14 +242,13 @@ impl ScriptTest {
             time,
         } = self;
 
-        pool.run(|| {
         let mut errors = Vec::new();
 
-            let mut lexer = lexer::Lexer::new(&input);
+        let mut lexer = lexer::Lexer::new(&input);
         let tokens = lexer.tokenize();
         let parser = parser::Parser::new(tokens);
-            let mut program = match parser.parse_program() {
-                Ok(program) => program,
+        let mut program = match parser.parse_program() {
+            Ok(program) => program,
             Err(e) => {
                 errors.push(format!("Parse error: {}", e));
                 return Err(errors.join("\n\n"));
@@ -259,7 +256,7 @@ impl ScriptTest {
         };
 
         let func_table =
-                match crate::compiler::analyzer::FunctionAnalyzer::analyze_program(&program) {
+            match crate::compiler::analyzer::FunctionAnalyzer::analyze_program(&program) {
                 Ok(table) => table,
                 Err(e) => {
                     errors.push(format!("Analysis error: {}", e));
@@ -267,7 +264,7 @@ impl ScriptTest {
                 }
             };
 
-            for assertion in &expected_function_metadata {
+        for assertion in &expected_function_metadata {
             if let Some(metadata) = func_table.lookup(&assertion.function_name) {
                 Self::check_metadata_assertion(metadata, assertion, &mut errors);
             } else {
@@ -278,51 +275,47 @@ impl ScriptTest {
             }
         }
 
-            if let Err(e) = typechecker::TypeChecker::check_program(&mut program, &func_table) {
-                    errors.push(format!("Type check error: {}", e));
-                    return Err(errors.join("\n\n"));
-                }
+        if let Err(e) = typechecker::TypeChecker::check_program(&mut program, &func_table) {
+            errors.push(format!("Type check error: {}", e));
+            return Err(errors.join("\n\n"));
+        }
 
-            if let Some(builder_fn) = expected_ast_builder {
+        if let Some(builder_fn) = expected_ast_builder {
             let mut builder = StmtBuilder::new();
             let expected_program = builder_fn(&mut builder);
-                if !program_eq_ignore_spans(&program, &expected_program) {
+            if !program_eq_ignore_spans(&program, &expected_program) {
                 errors.push(format!(
-                        "Program AST mismatch:
-Expected: {:#?}
-Actual:   {:#?}",
-                        expected_program, program
+                    "Program AST mismatch:\nExpected: {:#?}\nActual:   {:#?}",
+                    expected_program, program
                 ));
             }
         }
 
-            let functions =
-                codegen::CodeGenerator::generate_program_with_functions(&program, &func_table);
-            let optimize_options = OptimizeOptions::none();
-            let vm_functions: Vec<FunctionDef> = functions
-                .into_iter()
-                .map(|func| {
-                    let optimized_opcodes =
-                        optimize::optimize_opcodes(func.opcodes.clone(), &optimize_options);
-                    FunctionDef::new(func.name.clone(), func.return_type.clone())
-                        .with_params(func.params.clone())
-                        .with_locals(func.locals.clone())
-                        .with_opcodes(optimized_opcodes)
+        let functions =
+            codegen::CodeGenerator::generate_program_with_functions(&program, &func_table);
+        let optimize_options = OptimizeOptions::none();
+        let vm_functions: Vec<FunctionDef> = functions
+            .into_iter()
+            .map(|func| {
+                let optimized_opcodes =
+                    optimize::optimize_opcodes(func.opcodes.clone(), &optimize_options);
+                FunctionDef::new(func.name.clone(), func.return_type.clone())
+                    .with_params(func.params.clone())
+                    .with_locals(func.locals.clone())
+                    .with_opcodes(optimized_opcodes)
             })
             .collect();
 
-            let program_obj = LpsProgram::new("test".into())
-                .with_functions(vm_functions)
-                .with_source(input.clone());
+        let program_obj = LpsProgram::new("test".into())
+            .with_functions(vm_functions)
+            .with_source(input.clone());
 
-            if let Some(expected) = &expected_opcodes {
-                if let Some(main_fn) = program_obj.main_function() {
-                    if &main_fn.opcodes != expected {
+        if let Some(expected) = expected_opcodes.as_ref() {
+            if let Some(main_fn) = program_obj.main_function() {
+                if &main_fn.opcodes != expected {
                     errors.push(format!(
-                            "Opcode mismatch:
-Expected: {:#?}
-Actual:   {:#?}",
-                            expected, main_fn.opcodes
+                        "Opcode mismatch:\nExpected: {:#?}\nActual:   {:#?}",
+                        expected, main_fn.opcodes
                     ));
                 }
             } else {
@@ -330,25 +323,25 @@ Actual:   {:#?}",
             }
         }
 
-            if let Some(expected_result) = expected_result {
-                match LpsVm::new(&program_obj, VmLimits::default()) {
-                    Ok(mut vm) => match expected_result {
-                        TestResult::Fixed(expected) => match vm.run_scalar(x, y, time) {
-                                Ok(result) => {
-                                let diff = (expected.to_f32() - result.to_f32()).abs();
-                                if diff > 0.01 {
-                                        errors.push(format!(
-                                            "Result mismatch:\nExpected: {}\nActual:   {}\nDiff:     {}",
-                                        expected.to_f32(),
-                                        result.to_f32(),
-                                        diff
-                                        ));
-                                    }
-                                }
-                            Err(e) => errors.push(format!("Runtime error: {:?}", e)),
-                        },
+        if let Some(expected) = expected_result {
+            match LpsVm::new(&program_obj, VmLimits::default()) {
+                Ok(mut vm) => match expected {
+                    TestResult::Fixed(expected) => match vm.run_scalar(x, y, time) {
+                        Ok(result) => {
+                            let diff = (expected.to_f32() - result.to_f32()).abs();
+                            if diff > 0.01 {
+                                errors.push(format!(
+                                    "Result mismatch:\nExpected: {}\nActual:   {}\nDiff:     {}",
+                                    expected.to_f32(),
+                                    result.to_f32(),
+                                    diff
+                                ));
+                            }
+                        }
+                        Err(e) => errors.push(format!("Runtime error: {:?}", e)),
                     },
-                    Err(e) => errors.push(format!("Failed to create VM: {:?}", e)),
+                },
+                Err(e) => errors.push(format!("Failed to create VM: {:?}", e)),
             }
         }
 
@@ -357,7 +350,6 @@ Actual:   {:#?}",
         } else {
             Err(errors.join("\n\n"))
         }
-        })
     }
 }
 

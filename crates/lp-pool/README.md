@@ -62,6 +62,30 @@ pool.run(|| {
 })?;
 ```
 
+## Test Harness Integration
+
+When the crate is built with `std` (including under the Rust test harness), `lp-pool` automatically
+provisions a thread-local pool the first time allocator APIs are touched. This removes the need for
+ad-hoc `#[cfg(test)]` initialisers scattered across dependent crates. Auto-initialisation can be
+disabled by setting `LP_POOL_AUTOINIT=0`.
+
+The `lp_pool::test` module exposes helpers for tailoring this behaviour in individual tests:
+
+- `configure_thread_pool(size)` – change the default per-thread pool capacity.
+- `teardown_thread_pool()` – drop the current auto-initialised pool and reset guard state.
+- `with_custom_test_pool(size, f)` – run `f` inside a temporary pool (with guard active) that is
+  torn down afterwards.
+
+```rust
+use lp_pool::test::with_custom_test_pool;
+
+with_custom_test_pool(128 * 1024, || {
+    let mut vec = lp_pool::LpVec::new();
+    vec.try_push(1)?;
+    Ok::<(), lp_pool::AllocError>(())
+})?;
+```
+
 ## Architecture
 
 The allocator uses a variable-size block approach with metadata headers:
