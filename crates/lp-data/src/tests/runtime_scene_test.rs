@@ -2,8 +2,8 @@
 
 #[cfg(test)]
 mod tests {
-    use crate::shape::int32::LpInt32;
-    use crate::shape::record::RecordValue;
+    use crate::kind::int32::LpInt32;
+    use crate::kind::record::RecordValue;
     use crate::tests::nodes::lfo::LfoConfig;
 
     #[test]
@@ -16,7 +16,7 @@ mod tests {
         let period_ms = lfo
             .get_field("period_ms")
             .expect("should get period_ms field");
-        assert_eq!(period_ms.kind(), crate::shape::kind::LpKind::Int32);
+        assert_eq!(period_ms.kind(), crate::kind::kind::LpKind::Int32);
 
         // Test getting a non-existent field
         assert!(lfo.get_field("nonexistent").is_err());
@@ -35,7 +35,7 @@ mod tests {
         // Can't directly mutate through trait object, but we can verify it works
 
         // Test setting a field
-        lfo.set_field("period_ms", crate::value::LpValue::Int32(200))
+        lfo.set_field("period_ms", crate::kind::value::LpValue::Int32(200))
             .expect("should set period_ms");
         assert_eq!(lfo.period_ms.0, 200);
     }

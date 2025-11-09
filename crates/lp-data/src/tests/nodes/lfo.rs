@@ -2,10 +2,10 @@ use lp_math::fixed::Fixed;
 use serde::{Deserialize, Serialize};
 
 use crate as lp_data;
-use crate::shape::int32::LpInt32;
-use crate::shape::record::RecordValue;
-use crate::shape::value::LpValueTrait;
-use crate::value::{LpValue, RuntimeError};
+use crate::kind::int32::LpInt32;
+use crate::kind::record::RecordValue;
+use crate::kind::value::{LpValue, LpValueTrait};
+use crate::value::RuntimeError;
 use crate::LpSchema;
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize, LpSchema)]
@@ -19,7 +19,7 @@ pub struct LfoConfig {
 }
 
 impl LpValueTrait for LfoConfig {
-    fn shape(&self) -> &crate::shape::shape_ref::ShapeRef {
+    fn shape(&self) -> &crate::kind::shape_ref::ShapeRef {
         <Self as lp_data::LpDescribe>::lp_schema()
     }
 }

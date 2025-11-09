@@ -9,18 +9,10 @@
 extern crate alloc;
 
 pub mod registry;
-pub mod registry_old;
-pub mod shape;
-pub mod value;
-
-// Re-export old registry (backwards compatibility - will be removed)
-pub use registry_old::{LpDescribe, SchemaRegistration, TypeRegistry};
+pub mod kind;
 
 // Re-export new registries
 pub use registry::{RuntimeRegistry, StaticRegistry};
-
-// Re-export values
-pub use value::{LpValue, RuntimeError};
 
 #[cfg(feature = "derive")]
 pub use lp_data_derive::LpSchema;

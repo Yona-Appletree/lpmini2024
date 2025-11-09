@@ -1,9 +1,10 @@
 use crate as lp_data;
-use crate::shape::vec3::LpVec3;
+use crate::kind::vec3::LpVec3;
 use crate::LpSchema;
 use lp_math::fixed::{ToFixed, Vec3};
 use lp_pool::LpVec;
 use serde::{Deserialize, Serialize};
+use crate::kind::{LpShapeStatic, TupleShapeStatic};
 
 /// Runtime structure for a Perlin3 node.
 ///
@@ -13,14 +14,12 @@ pub struct Perlin3Node {
     pub input: Perlin3Input,
 }
 
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, LpSchema)]
-#[lp(schema(
-    name = "Perlin3 Input",
-    docs = "Input configuration for Perlin3 noise node."
-))]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct Perlin3Input {
-    #[lp(field(docs = "Position vector for noise evaluation."))]
-    pub pos: LpVec3,
+    //#[lp(field(docs = "Position vector for noise evaluation."))]
+    pub pos: (
+        LpFixed,
+    )
 }
 
 impl Perlin3Node {
