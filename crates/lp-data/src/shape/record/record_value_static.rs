@@ -1,8 +1,5 @@
 //! Static struct value handling.
 
-#[cfg(feature = "alloc")]
-use alloc::string::String;
-
 use lp_pool::collections::vec::LpVec;
 use lp_pool::error::AllocError;
 

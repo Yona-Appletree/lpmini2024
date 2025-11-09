@@ -10,15 +10,11 @@ use lp_pool::collections::{LpBox, LpString, LpVec};
 use lp_pool::error::AllocError;
 
 use crate::shape::array::array_value::ArrayValue;
+use crate::shape::map::MapValue;
 use crate::shape::option::option_value::OptionValue;
 use crate::shape::r#enum::enum_value::EnumValue;
+use crate::shape::record::StructValue;
 use crate::shape::shape_ref::ShapeRef;
-use crate::types::record::StructValue;
-use crate::types::record_dyn::MapValue;
-use crate::types::{
-    bool as bool_value, fixed as fixed_value, int32 as int32_value, string as string_value,
-    vec2 as vec2_value, vec3 as vec3_value, vec4 as vec4_value,
-};
 
 /// Runtime error for value operations.
 #[derive(Debug, Clone, PartialEq)]
@@ -127,37 +123,37 @@ impl LpValue {
 
     /// Construct a Fixed value.
     pub fn fixed(value: Fixed) -> Self {
-        fixed_value::fixed(value)
+        Self::Fixed(value)
     }
 
     /// Construct an Int32 value.
     pub fn int32(value: i32) -> Self {
-        int32_value::int32(value)
+        Self::Int32(value)
     }
 
     /// Construct a Bool value.
     pub fn bool(value: bool) -> Self {
-        bool_value::bool(value)
+        Self::Bool(value)
     }
 
     /// Construct a String value.
     pub fn string(value: LpString) -> Self {
-        string_value::string(value)
+        Self::String(value)
     }
 
     /// Construct a Vec2 value.
     pub fn vec2(x: Fixed, y: Fixed) -> Self {
-        vec2_value::vec2(x, y)
+        Self::Vec2(x, y)
     }
 
     /// Construct a Vec3 value.
     pub fn vec3(x: Fixed, y: Fixed, z: Fixed) -> Self {
-        vec3_value::vec3(x, y, z)
+        Self::Vec3(x, y, z)
     }
 
     /// Construct a Vec4 value.
     pub fn vec4(x: Fixed, y: Fixed, z: Fixed, w: Fixed) -> Self {
-        vec4_value::vec4(x, y, z, w)
+        Self::Vec4(x, y, z, w)
     }
 
     /// Construct an Option::None value.
@@ -327,8 +323,14 @@ impl LpValue {
     }
 
     /// Get value as string slice, if it is a String scalar.
-    pub fn as_string(&self) -> Result<&str, RuntimeError> {
-        string_value::as_string(self)
+    pub fn as_string(&self) -> Result<&LpString, RuntimeError> {
+        match self {
+            Self::String(s) => Ok(s),
+            _ => Err(RuntimeError::TypeMismatch {
+                expected: "String",
+                actual: "other",
+            }),
+        }
     }
 
     /// Get value as Vec2, if it is a Vec2.

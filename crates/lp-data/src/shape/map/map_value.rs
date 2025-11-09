@@ -1,8 +1,5 @@
 //! Dynamic map value handling.
 
-#[cfg(feature = "alloc")]
-use alloc::string::String;
-
 use lp_pool::collections::{LpBTreeMap, LpString};
 use lp_pool::error::AllocError;
 

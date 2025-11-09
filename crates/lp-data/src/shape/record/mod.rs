@@ -3,6 +3,7 @@
 pub mod record_dynamic;
 pub mod record_meta;
 pub mod record_static;
+pub mod record_value_static;
 
 #[cfg(test)]
 mod record_tests;
@@ -13,6 +14,7 @@ use crate::LpValue;
 pub use record_dynamic::DynamicRecordShape;
 pub use record_meta::{RecordField, RecordUi};
 pub use record_static::StaticRecordShape;
+pub use record_value_static::StructValue;
 
 /// Value operations for record/struct types.
 pub trait RecordValue: LpValueTrait {

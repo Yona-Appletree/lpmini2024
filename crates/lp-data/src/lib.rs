@@ -11,11 +11,7 @@ extern crate alloc;
 pub mod registry;
 pub mod registry_old;
 pub mod shape;
-pub mod types;
 pub mod value;
-
-// Re-export MapType
-pub use types::MapType;
 
 // Re-export old registry (backwards compatibility - will be removed)
 pub use registry_old::{LpDescribe, SchemaRegistration, TypeRegistry};
@@ -25,15 +21,6 @@ pub use registry::{RuntimeRegistry, StaticRegistry};
 
 // Re-export values
 pub use value::{LpValue, RuntimeError};
-
-// Re-export scalar value functions
-pub use bool_value::{as_bool, bool};
-pub use fixed_value::{as_fixed, fixed};
-pub use int32_value::{as_int32, int32};
-pub use string_value::{as_string, string};
-pub use types::{
-    bool as bool_value, fixed as fixed_value, int32 as int32_value, string as string_value,
-};
 
 #[cfg(feature = "derive")]
 pub use lp_data_derive::LpSchema;
