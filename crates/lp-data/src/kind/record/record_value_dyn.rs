@@ -166,36 +166,6 @@ impl RecordValue for RecordValueDyn {
     fn field_count(&self) -> usize {
         self.fields.len()
     }
-
-    #[cfg(feature = "alloc")]
-    fn iter_fields(&self) -> alloc::vec::IntoIter<(alloc::string::String, LpValueBox)> {
-        let mut result = alloc::vec::Vec::new();
-        for (name, value) in self.fields.iter() {
-            result.push((alloc::string::String::from(name.as_str()), value.clone()));
-        }
-        result.into_iter()
-    }
-}
-
-impl Clone for RecordValueDyn {
-    fn clone(&self) -> Self {
-        // Clone the shape
-        let cloned_shape = RecordShapeDyn {
-            name: self.shape.name.clone(),
-            fields: self.shape.fields.clone(),
-        };
-
-        // Clone the fields
-        let mut cloned_fields = LpVec::new();
-        for (name, value) in self.fields.iter() {
-            let _ = cloned_fields.try_push((name.clone(), value.clone()));
-        }
-
-        RecordValueDyn {
-            shape: cloned_shape,
-            fields: cloned_fields,
-        }
-    }
 }
 
 #[cfg(test)]

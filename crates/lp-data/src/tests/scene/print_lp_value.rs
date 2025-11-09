@@ -6,9 +6,7 @@ pub fn print_lp_value(value_box: LpValueBox, indent: usize) {
     match value_box {
         LpValueBox::Fixed(boxed) => {
             // Extract the Fixed value from the box
-            let fixed_ref: &dyn LpValue = boxed.as_ref();
             // We need to downcast to get the actual Fixed value
-            // For now, we'll use the shape to determine it's Fixed and access it
             // This is a bit of a hack - ideally we'd have a way to downcast
             let fixed_value = unsafe {
                 // SAFETY: We know this is a Fixed because it's in the Fixed variant
@@ -19,10 +17,14 @@ pub fn print_lp_value(value_box: LpValueBox, indent: usize) {
         }
         LpValueBox::Record(boxed) => {
             let record_ref: &dyn RecordValue = boxed.as_ref();
-            for (name, value) in record_ref.iter_fields() {
-                println!("{:>indent$}  {}:", "", name);
-                print_lp_value(value, indent + 2);
-            }
+            // Note: iter_fields was removed to avoid cloning
+            // For now, we can't iterate over fields without knowing field names
+            // This is a limitation - field iteration requires knowing field names
+            println!(
+                "{:>indent$}Record ({} fields)",
+                "",
+                record_ref.field_count()
+            );
         }
     }
 }

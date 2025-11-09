@@ -12,7 +12,7 @@ use core::ptr::NonNull;
 extern crate alloc;
 use crate::kind::record::RecordValueDyn;
 use lp_math::fixed::ToFixed;
-use lp_pool::{enter_global_alloc_allowance, LpBoxDyn, LpMemoryPool, LpString};
+use lp_pool::{enter_global_alloc_allowance, lp_box_dyn, LpMemoryPool, LpString};
 
 fn setup_pool() -> LpMemoryPool {
     let mut memory = [0u8; 16384];
@@ -35,9 +35,8 @@ fn test_scene_traversal() {
 
         // Convert LfoNode to LpValueBox
         // LfoNode implements RecordValue, so we box it as a RecordValue
-        let lfo_record: &dyn RecordValue = &lfo_node;
-        #[allow(deprecated)]
-        let lfo_boxed = LpBoxDyn::try_new_unsized(lfo_record)?;
+        // The value is moved into pool memory, preventing double free
+        let lfo_boxed = lp_box_dyn!(lfo_node, dyn RecordValue)?;
         let lfo_value_box = LpValueBox::from(lfo_boxed);
         let name = LpString::try_from_str("test")?;
         nodes
@@ -48,9 +47,8 @@ fn test_scene_traversal() {
         LpMemoryPool::with_global_alloc(|| {
             println!("Scene graph:");
             // Convert RecordValueDyn to LpValueBox for printing
-            let nodes_record: &dyn RecordValue = &nodes;
-            #[allow(deprecated)]
-            let nodes_boxed = LpBoxDyn::try_new_unsized(nodes_record).expect("Failed to box nodes");
+            // The value is moved into pool memory
+            let nodes_boxed = lp_box_dyn!(nodes, dyn RecordValue).expect("Failed to box nodes");
             let nodes_value_box = LpValueBox::from(nodes_boxed);
             print_lp_value(nodes_value_box, 0);
         });
