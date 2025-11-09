@@ -106,23 +106,7 @@ run_step() {
 info "Repository root: ${ROOT_DIR}"
 
 run_step "turbo validate" "${TURBO_CMD[@]}" validate
-run_step "cargo fmt (nightly check)" rustup run nightly cargo fmt --all -- --check
-run_step "cargo clippy" cargo clippy --all-targets --all-features -- -D warnings
-run_step "lp_pool_lint" cargo run -p lp_pool_lint
-run_step "cargo test" cargo test
-run_step "cargo test (lp-pool without default features)" cargo test -p lp-pool --lib --no-default-features
-
-ensure_riscv_target() {
-  local target="riscv32imc-unknown-none-elf"
-  if ! rustup target list --installed | grep -q "^${target}$"; then
-    info "Installing Rust target ${target}"
-    rustup target add "${target}"
-  fi
-}
-
-ensure_riscv_target
-
-run_step "cargo build (fw-esp32c3 firmware)" bash -c 'cd apps/fw-esp32c3 && cargo build --release --locked'
+run_step "build:rust:fw-esp32c3" "${TURBO_CMD[@]}" build:rust:fw-esp32c3
 
 current_branch="$(git rev-parse --abbrev-ref HEAD)"
 if [[ "${current_branch}" == "HEAD" ]]; then

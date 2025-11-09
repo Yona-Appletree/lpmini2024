@@ -230,6 +230,7 @@ mod tests {
 mod default_pool_tests {
     use super::*;
     use alloc::vec::Vec;
+    use core::ptr::NonNull;
     use std::panic;
 
     #[test]
@@ -268,5 +269,112 @@ mod default_pool_tests {
             ok_result.is_ok(),
             "with_global_alloc should permit host allocations while pool is active"
         );
+    }
+
+    #[test]
+    fn with_global_alloc_allows_println() {
+        #[cfg(any(feature = "std", test))]
+        {
+            let mut memory = [0u8; 1024];
+            let memory_ptr = NonNull::new(memory.as_mut_ptr()).unwrap();
+
+            unsafe {
+                let pool = LpMemoryPool::new(memory_ptr, 1024).unwrap();
+
+                let result = pool.run(|| {
+                    LpMemoryPool::with_global_alloc(|| {
+                        // println! allocates internally, this should work
+                        std::println!("Test message");
+                    });
+                    Ok::<(), AllocError>(())
+                });
+
+                assert!(
+                    result.is_ok(),
+                    "with_global_alloc should allow println! allocations"
+                );
+            }
+        }
+    }
+
+    #[test]
+    fn with_global_alloc_allows_string_operations() {
+        let mut memory = [0u8; 1024];
+        let memory_ptr = NonNull::new(memory.as_mut_ptr()).unwrap();
+
+        unsafe {
+            let pool = LpMemoryPool::new(memory_ptr, 1024).unwrap();
+
+            let result = pool.run(|| {
+                LpMemoryPool::with_global_alloc(|| {
+                    // String::repeat allocates, this should work
+                    let indent = "  ".repeat(5);
+                    assert_eq!(indent.len(), 10);
+                });
+                Ok::<(), AllocError>(())
+            });
+
+            assert!(
+                result.is_ok(),
+                "with_global_alloc should allow String operations"
+            );
+        }
+    }
+
+    #[test]
+    fn with_global_alloc_allows_nested_allocations() {
+        // Test that allocations work in nested function calls
+        fn helper_function(indent: usize) {
+            let indent_str = "  ".repeat(indent);
+            std::println!("{}Nested allocation test", indent_str);
+        }
+
+        let mut memory = [0u8; 1024];
+        let memory_ptr = NonNull::new(memory.as_mut_ptr()).unwrap();
+
+        unsafe {
+            let pool = LpMemoryPool::new(memory_ptr, 1024).unwrap();
+
+            let result = pool.run(|| {
+                LpMemoryPool::with_global_alloc(|| {
+                    // Call a function that allocates internally
+                    helper_function(3);
+                });
+                Ok::<(), AllocError>(())
+            });
+
+            assert!(
+                result.is_ok(),
+                "with_global_alloc should allow allocations in nested functions"
+            );
+        }
+    }
+
+    #[test]
+    fn with_global_alloc_allows_immediate_println() {
+        // Test that println! works as the first call in with_global_alloc
+        // This reproduces the lp-data test scenario
+        let mut memory = [0u8; 1024];
+        let memory_ptr = NonNull::new(memory.as_mut_ptr()).unwrap();
+
+        unsafe {
+            let pool = LpMemoryPool::new(memory_ptr, 1024).unwrap();
+
+            let result = pool.run(|| {
+                LpMemoryPool::with_global_alloc(|| {
+                    // First allocation - println! should work
+                    std::println!("First message");
+                    // Then string operations
+                    let indent = "  ".repeat(2);
+                    std::println!("{}Second message", indent);
+                });
+                Ok::<(), AllocError>(())
+            });
+
+            assert!(
+                result.is_ok(),
+                "with_global_alloc should allow println! as first operation"
+            );
+        }
     }
 }

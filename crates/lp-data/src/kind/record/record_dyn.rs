@@ -44,6 +44,15 @@ pub struct RecordShapeDyn {
     pub fields: LpVec<RecordFieldDyn>,
 }
 
+impl RecordShapeDyn {
+    pub fn new() -> Self {
+        Self {
+            name: lp_pool::LpString::new(),
+            fields: LpVec::new(),
+        }
+    }
+}
+
 impl LpShape for RecordShapeDyn {
     fn kind(&self) -> LpKind {
         LpKind::Record
@@ -51,6 +60,10 @@ impl LpShape for RecordShapeDyn {
 }
 
 impl RecordShape for RecordShapeDyn {
+    fn name(&self) -> &str {
+        self.name.as_str()
+    }
+
     fn field_count(&self) -> usize {
         self.fields.len()
     }
@@ -64,5 +77,26 @@ impl RecordShape for RecordShapeDyn {
             .iter()
             .find(|f| f.name.as_str() == name)
             .map(|f| f as &dyn RecordFieldShape)
+    }
+}
+
+impl Clone for RecordFieldDyn {
+    fn clone(&self) -> Self {
+        RecordFieldDyn {
+            name: self.name.clone(),
+            shape: self.shape,
+            meta: RecordFieldMetaDyn {
+                docs: self.meta.docs.clone(),
+            },
+        }
+    }
+}
+
+impl Clone for RecordShapeDyn {
+    fn clone(&self) -> Self {
+        RecordShapeDyn {
+            name: self.name.clone(),
+            fields: self.fields.clone(),
+        }
     }
 }

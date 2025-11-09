@@ -4,6 +4,13 @@
 
 use super::shape::LpShape;
 use crate::value::RuntimeError;
+use lp_math::fixed::Fixed;
+use lp_pool::{LpBox, LpBoxDyn};
+
+pub enum LpValueBox {
+    Fixed(Fixed),
+    Record(LpBoxDyn<dyn RecordValue>),
+}
 
 /// Base trait for all runtime values.
 ///

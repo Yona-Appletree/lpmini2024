@@ -57,13 +57,13 @@ mod pool;
 
 pub use allocator::LpAllocatorWrapper;
 pub use collections::{
-    print_memory_stats, print_memory_stats_with, LpBTreeMap, LpBox, LpString, LpVec, LpVecIter,
-    LpVecIterMut,
+    print_memory_stats, print_memory_stats_with, LpBTreeMap, LpBox, LpBoxDyn, LpString, LpVec,
+    LpVecIter, LpVecIterMut,
 };
 pub use error::AllocError;
 pub use fmt::{lp_format, write_lp_string};
 #[cfg(any(feature = "std", test))]
-pub use guarded_alloc::allow_global_alloc;
+pub use guarded_alloc::{allow_global_alloc, ScopedGlobalAllocGuard};
 pub use memory_pool::{LpMemoryPool, PoolStats};
 
 #[cfg(any(feature = "std", test))]

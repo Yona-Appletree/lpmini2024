@@ -7,6 +7,9 @@ use crate::kind::shape::LpShape;
 
 /// Trait for record shapes that have fields.
 pub trait RecordShape: LpShape {
+    /// Get the name of this record type.
+    fn name(&self) -> &str;
+
     /// Get the number of fields in this record.
     fn field_count(&self) -> usize;
 

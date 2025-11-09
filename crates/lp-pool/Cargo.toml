@@ -4,8 +4,10 @@ version = "0.1.0"
 edition = "2021"
 
 [features]
-default = ["alloc-meta", "std"]
+default = ["std"]
 # Allocation types tracking; works in both std and no_std.
+# NOTE: Currently unstable - uses native allocator which conflicts with lp-pool's guard system.
+# See TODO.md for details.
 alloc-meta = []
 std = ["thread_local", "default_pool"]
 # Default pool auto-initialization for tests (automatically enabled with std)

@@ -48,6 +48,10 @@ impl LpShape for RecordShapeStatic {
 }
 
 impl RecordShape for RecordShapeStatic {
+    fn name(&self) -> &str {
+        self.name
+    }
+
     fn field_count(&self) -> usize {
         self.fields.len()
     }

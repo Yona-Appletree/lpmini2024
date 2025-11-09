@@ -13,3 +13,4 @@ pub use record_dyn::{RecordFieldDyn, RecordShapeDyn};
 pub use record_meta::{RecordFieldMeta, RecordFieldMetaDyn, RecordFieldMetaStatic};
 pub use record_shape::{RecordFieldShape, RecordShape};
 pub use record_static::{RecordFieldStatic, RecordShapeStatic};
+pub use record_value_dyn::RecordValueDyn;

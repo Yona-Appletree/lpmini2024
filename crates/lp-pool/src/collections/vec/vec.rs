@@ -274,6 +274,28 @@ impl<T> Default for LpVec<T> {
     }
 }
 
+impl<T: Clone> Clone for LpVec<T> {
+    fn clone(&self) -> Self {
+        // Deep clone: create a new LpVec and clone all elements
+        // This allocates new memory from the pool
+        let mut cloned = LpVec::new();
+        // Reserve capacity
+        if let Err(_) = cloned.try_reserve(self.len) {
+            // If allocation fails, return empty vec
+            // This matches Rust's Vec behavior (it panics, but we can't panic here)
+            return cloned;
+        }
+        // Clone each element
+        for item in self.iter() {
+            if let Err(_) = cloned.try_push(item.clone()) {
+                // If push fails, break (shouldn't happen if reserve worked)
+                break;
+            }
+        }
+        cloned
+    }
+}
+
 impl<T> core::ops::Index<usize> for LpVec<T> {
     type Output = T;
 

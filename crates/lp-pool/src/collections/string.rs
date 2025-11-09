@@ -130,6 +130,17 @@ impl Ord for LpString {
     }
 }
 
+impl Clone for LpString {
+    fn clone(&self) -> Self {
+        // Deep clone: create a new LpString and copy the contents
+        // This allocates new memory from the pool
+        let mut cloned = LpString::new();
+        // Clone the vec's contents
+        cloned.vec = self.vec.clone();
+        cloned
+    }
+}
+
 impl core::fmt::Debug for LpString {
     fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
         write!(f, "{:?}", self.as_str())
