@@ -1,11 +1,13 @@
 //! Metadata types for Fixed shapes.
 
-use lp_pool::LpString;
+extern crate alloc;
+
+use alloc::string::String;
 
 /// Trait for Fixed shape metadata.
 ///
 /// This trait allows polymorphic access to metadata regardless of whether
-/// it's stored as static strings (`&'static str`) or dynamic strings (`LpString`).
+/// it's stored as static strings (`&'static str`) or dynamic strings (`String`).
 pub trait FixedMeta {
     /// Get the label for this fixed value.
     fn label(&self) -> &str;
@@ -35,17 +37,17 @@ pub struct FixedMetaStatic {
 
 /// Dynamic metadata for a Fixed shape.
 ///
-/// Uses `LpString` for runtime-allocated strings.
-#[derive(Debug)]
+/// Uses `String` for runtime-allocated strings.
+#[derive(Debug, Clone)]
 pub struct FixedMetaDyn {
     /// Label for this fixed value.
-    pub label: LpString,
+    pub label: String,
 
     /// Markdown documentation for this fixed value.
-    pub desc_md: Option<LpString>,
+    pub desc_md: Option<String>,
 
     /// Unit string.
-    pub unit: Option<LpString>,
+    pub unit: Option<String>,
 }
 
 impl FixedMeta for FixedMetaStatic {
@@ -64,15 +66,15 @@ impl FixedMeta for FixedMetaStatic {
 
 impl FixedMeta for FixedMetaDyn {
     fn label(&self) -> &str {
-        self.label.as_str()
+        &self.label
     }
 
     fn desc_md(&self) -> Option<&str> {
-        self.desc_md.as_ref().map(|s| s.as_str())
+        self.desc_md.as_deref()
     }
 
     fn unit(&self) -> Option<&str> {
-        self.unit.as_ref().map(|s| s.as_str())
+        self.unit.as_deref()
     }
 }
 

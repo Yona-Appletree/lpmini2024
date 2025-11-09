@@ -5,9 +5,6 @@
 //! data structures in a UI-friendly way. The derive generates rich types that
 //! downstream tooling can consume to build forms, validators, and schema exports.
 
-#[cfg(feature = "alloc")]
-extern crate alloc;
-
 // pub mod registry; // TODO: Implement registry module
 pub mod kind;
 pub mod value;

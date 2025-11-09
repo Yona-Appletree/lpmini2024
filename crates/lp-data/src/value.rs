@@ -1,7 +1,8 @@
 //! Runtime error types for lp-data.
 
-#[cfg(feature = "alloc")]
 extern crate alloc;
+
+use alloc::string::String;
 
 /// Runtime errors that can occur when working with lp-data values.
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -9,29 +10,17 @@ pub enum RuntimeError {
     /// Field not found in a record.
     FieldNotFound {
         /// Name of the record type.
-        #[cfg(feature = "alloc")]
-        record_name: alloc::string::String,
-        #[cfg(not(feature = "alloc"))]
-        record_name: &'static str,
+        record_name: String,
         /// Name of the field that was not found.
-        #[cfg(feature = "alloc")]
-        field_name: alloc::string::String,
-        #[cfg(not(feature = "alloc"))]
-        field_name: &'static str,
+        field_name: String,
     },
 
     /// Type mismatch when setting a field value.
     TypeMismatch {
         /// Expected type name.
-        #[cfg(feature = "alloc")]
-        expected: alloc::string::String,
-        #[cfg(not(feature = "alloc"))]
-        expected: &'static str,
+        expected: String,
         /// Actual type name.
-        #[cfg(feature = "alloc")]
-        actual: alloc::string::String,
-        #[cfg(not(feature = "alloc"))]
-        actual: &'static str,
+        actual: String,
     },
 
     /// Index out of bounds.
@@ -51,32 +40,18 @@ impl std::fmt::Display for RuntimeError {
                 record_name,
                 field_name,
             } => {
-                #[cfg(feature = "alloc")]
-                return write!(
+                write!(
                     f,
                     "Field '{}' not found in record '{}'",
                     field_name, record_name
-                );
-                #[cfg(not(feature = "alloc"))]
-                return write!(
-                    f,
-                    "Field '{}' not found in record '{}'",
-                    field_name, record_name
-                );
+                )
             }
             RuntimeError::TypeMismatch { expected, actual } => {
-                #[cfg(feature = "alloc")]
-                return write!(
+                write!(
                     f,
                     "Type mismatch: expected '{}', got '{}'",
                     expected, actual
-                );
-                #[cfg(not(feature = "alloc"))]
-                return write!(
-                    f,
-                    "Type mismatch: expected '{}', got '{}'",
-                    expected, actual
-                );
+                )
             }
             RuntimeError::IndexOutOfBounds { index, len } => {
                 write!(f, "Index {} out of bounds for length {}", index, len)

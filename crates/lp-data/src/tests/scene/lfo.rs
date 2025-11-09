@@ -1,6 +1,5 @@
 //! LFO (Low Frequency Oscillator) node.
 
-#[cfg(feature = "alloc")]
 extern crate alloc;
 
 use crate::kind::{
@@ -13,6 +12,7 @@ use crate::kind::{
     value::{LpValue, LpValueBox, RecordValue},
 };
 use crate::value::RuntimeError;
+use alloc::string::String;
 use lp_math::fixed::Fixed;
 
 /// Configuration for an LFO node.
@@ -52,14 +52,8 @@ impl RecordValue for LfoConfig {
         match name {
             "period" => Ok(&self.period as &dyn LpValue),
             _ => Err(RuntimeError::FieldNotFound {
-                #[cfg(feature = "alloc")]
-                record_name: alloc::string::String::from("LfoConfig"),
-                #[cfg(not(feature = "alloc"))]
-                record_name: "LfoConfig",
-                #[cfg(feature = "alloc")]
-                field_name: alloc::string::String::from(name),
-                #[cfg(not(feature = "alloc"))]
-                field_name: name,
+                record_name: String::from("LfoConfig"),
+                field_name: String::from(name),
             }),
         }
     }
@@ -68,28 +62,16 @@ impl RecordValue for LfoConfig {
         match name {
             "period" => Ok(&mut self.period as &mut dyn LpValue),
             _ => Err(RuntimeError::FieldNotFound {
-                #[cfg(feature = "alloc")]
-                record_name: alloc::string::String::from("LfoConfig"),
-                #[cfg(not(feature = "alloc"))]
-                record_name: "LfoConfig",
-                #[cfg(feature = "alloc")]
-                field_name: alloc::string::String::from(name),
-                #[cfg(not(feature = "alloc"))]
-                field_name: name,
+                record_name: String::from("LfoConfig"),
+                field_name: String::from(name),
             }),
         }
     }
 
     fn set_field(&mut self, _name: &str, _value: &dyn LpValue) -> Result<(), RuntimeError> {
         Err(RuntimeError::TypeMismatch {
-            #[cfg(feature = "alloc")]
-            expected: alloc::string::String::from("Fixed"),
-            #[cfg(not(feature = "alloc"))]
-            expected: "Fixed",
-            #[cfg(feature = "alloc")]
-            actual: alloc::string::String::from("unknown"),
-            #[cfg(not(feature = "alloc"))]
-            actual: "unknown",
+            expected: String::from("Fixed"),
+            actual: String::from("unknown"),
         })
     }
 
@@ -97,14 +79,14 @@ impl RecordValue for LfoConfig {
         1
     }
 
-    #[cfg(feature = "alloc")]
-    fn iter_fields(&self) -> alloc::vec::IntoIter<(alloc::string::String, LpValueBox)> {
-        let mut fields = alloc::vec::Vec::new();
-        fields.push((
-            alloc::string::String::from("period"),
-            LpValueBox::from(self.period),
-        ));
+    fn iter_fields(&self) -> crate::kind::value::VecIntoIter<(String, LpValueBox)> {
+        let mut fields = Vec::new();
+        fields.push((String::from("period"), LpValueBox::from(self.period)));
         fields.into_iter()
+    }
+
+    fn clone_box(&self) -> Box<dyn RecordValue> {
+        Box::new(self.clone())
     }
 }
 
@@ -158,14 +140,8 @@ impl RecordValue for LfoNode {
             "config" => Ok(&self.config as &dyn LpValue),
             "output" => Ok(&self.output as &dyn LpValue),
             _ => Err(RuntimeError::FieldNotFound {
-                #[cfg(feature = "alloc")]
-                record_name: alloc::string::String::from("LfoNode"),
-                #[cfg(not(feature = "alloc"))]
-                record_name: "LfoNode",
-                #[cfg(feature = "alloc")]
-                field_name: alloc::string::String::from(name),
-                #[cfg(not(feature = "alloc"))]
-                field_name: name,
+                record_name: String::from("LfoNode"),
+                field_name: String::from(name),
             }),
         }
     }
@@ -175,28 +151,16 @@ impl RecordValue for LfoNode {
             "config" => Ok(&mut self.config as &mut dyn LpValue),
             "output" => Ok(&mut self.output as &mut dyn LpValue),
             _ => Err(RuntimeError::FieldNotFound {
-                #[cfg(feature = "alloc")]
-                record_name: alloc::string::String::from("LfoNode"),
-                #[cfg(not(feature = "alloc"))]
-                record_name: "LfoNode",
-                #[cfg(feature = "alloc")]
-                field_name: alloc::string::String::from(name),
-                #[cfg(not(feature = "alloc"))]
-                field_name: name,
+                record_name: String::from("LfoNode"),
+                field_name: String::from(name),
             }),
         }
     }
 
     fn set_field(&mut self, _name: &str, _value: &dyn LpValue) -> Result<(), RuntimeError> {
         Err(RuntimeError::TypeMismatch {
-            #[cfg(feature = "alloc")]
-            expected: alloc::string::String::from("set_field not implemented"),
-            #[cfg(not(feature = "alloc"))]
-            expected: "set_field not implemented",
-            #[cfg(feature = "alloc")]
-            actual: alloc::string::String::from("unknown"),
-            #[cfg(not(feature = "alloc"))]
-            actual: "unknown",
+            expected: String::from("set_field not implemented"),
+            actual: String::from("unknown"),
         })
     }
 
@@ -204,23 +168,19 @@ impl RecordValue for LfoNode {
         2 // config, output
     }
 
-    #[cfg(feature = "alloc")]
-    fn iter_fields(&self) -> alloc::vec::IntoIter<(alloc::string::String, LpValueBox)> {
-        let mut fields = alloc::vec::Vec::new();
+    fn iter_fields(&self) -> crate::kind::value::VecIntoIter<(String, LpValueBox)> {
+        let mut fields = Vec::new();
         // Box the config as a RecordValue
-        let config_ref: &dyn RecordValue = &self.config;
-        #[allow(deprecated)]
-        let config_boxed = lp_pool::LpBoxDyn::try_new_unsized(config_ref)
-            .expect("Failed to allocate config in pool");
         fields.push((
-            alloc::string::String::from("config"),
-            LpValueBox::from(config_boxed),
+            String::from("config"),
+            LpValueBox::from(Box::new(self.config.clone()) as Box<dyn RecordValue>),
         ));
-        fields.push((
-            alloc::string::String::from("output"),
-            LpValueBox::from(self.output),
-        ));
+        fields.push((String::from("output"), LpValueBox::from(self.output)));
         fields.into_iter()
+    }
+
+    fn clone_box(&self) -> Box<dyn RecordValue> {
+        Box::new(self.clone())
     }
 }
 

@@ -1689,7 +1689,6 @@ version = "0.1.0"
 dependencies = [
  "lp-data-derive",
  "lp-math",
- "lp-pool",
  "schemars",
  "serde",
  "serde_json",

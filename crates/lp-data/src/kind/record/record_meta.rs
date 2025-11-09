@@ -1,6 +1,8 @@
 //! Metadata types for Record field shapes.
 
-use lp_pool::LpString;
+extern crate alloc;
+
+use alloc::string::String;
 
 /// Trait for record field metadata.
 pub trait RecordFieldMeta {
@@ -19,11 +21,11 @@ pub struct RecordFieldMetaStatic {
 
 /// Dynamic metadata for a record field.
 ///
-/// Uses `LpString` for runtime-allocated strings.
-#[derive(Debug)]
+/// Uses `String` for runtime-allocated strings.
+#[derive(Debug, Clone)]
 pub struct RecordFieldMetaDyn {
     /// Documentation for this field.
-    pub docs: Option<LpString>,
+    pub docs: Option<String>,
 }
 
 impl RecordFieldMeta for RecordFieldMetaStatic {
@@ -34,6 +36,6 @@ impl RecordFieldMeta for RecordFieldMetaStatic {
 
 impl RecordFieldMeta for RecordFieldMetaDyn {
     fn docs(&self) -> Option<&str> {
-        self.docs.as_ref().map(|s| s.as_str())
+        self.docs.as_deref()
     }
 }
