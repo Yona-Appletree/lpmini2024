@@ -2,4 +2,4 @@ pub mod r#type;
 pub mod value;
 
 pub use r#type::{EnumType, EnumUi, EnumVariant};
-pub use value::EnumValue;
+// EnumValue moved to shape::enum::enum_value - not re-exported here to avoid conflicts

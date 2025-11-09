@@ -9,10 +9,13 @@ mod tests {
 
     #[test]
     fn test_static_option_shape() {
-        let inner = ShapeRef::Fixed;
+        let inner = ShapeRef::fixed_default();
         let shape = StaticOptionShape { inner };
 
         assert_eq!(shape.kind(), LpKind::Option);
-        assert_eq!(shape.inner(), &ShapeRef::Fixed);
+        match shape.inner() {
+            ShapeRef::Fixed(_) => {}
+            _ => panic!("Expected Fixed"),
+        }
     }
 }

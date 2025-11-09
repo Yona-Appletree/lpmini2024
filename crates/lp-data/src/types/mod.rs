@@ -28,12 +28,12 @@ pub use vec3::{Vec3Type, Vec3Ui};
 pub use vec4::{Vec4Type, Vec4Ui};
 
 // Re-export values
-pub use array::ArrayValue;
+// ArrayValue moved to shape::array::array_value
 pub use bool::{as_bool, bool};
 pub use fixed::{as_fixed, fixed};
 pub use int32::{as_int32, int32};
-pub use option::OptionValue;
-pub use r#enum::EnumValue;
+// OptionValue moved to shape::option::option_value
+// EnumValue moved to shape::enum::enum_value
 pub use record::StructValue;
 pub use record_dyn::MapValue;
 pub use string::{as_string, string};

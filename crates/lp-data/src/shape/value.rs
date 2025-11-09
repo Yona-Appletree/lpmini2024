@@ -1,20 +1,30 @@
 //! Value trait hierarchy for runtime values.
 
+use crate::shape::kind::LpKind;
+use crate::shape::shape_ref::ShapeRef;
 use crate::value::LpValue;
 
 /// Base trait for all runtime values.
-pub trait LpValueTrait: core::fmt::Debug + Clone {
-    // Base operations can be added here if needed
+pub trait LpValueTrait: core::fmt::Debug {
+    /// Get the shape reference for this value.
+    fn shape(&self) -> &ShapeRef;
+
+    /// Get the kind of this value.
+    fn kind(&self) -> LpKind {
+        self.shape().kind()
+    }
 }
 
 /// Value operations for array types.
 pub trait ArrayValue: LpValueTrait {
     /// Get an element by index.
-    fn get_element(&self, index: usize) -> Result<&LpValue, crate::value::RuntimeError>;
+    fn get_element(&self, index: usize) -> Result<&dyn LpValueTrait, crate::value::RuntimeError>;
 
     /// Get a mutable element by index.
-    fn get_element_mut(&mut self, index: usize)
-        -> Result<&mut LpValue, crate::value::RuntimeError>;
+    fn get_element_mut(
+        &mut self,
+        index: usize,
+    ) -> Result<&mut dyn LpValueTrait, crate::value::RuntimeError>;
 
     /// Set an element value.
     fn set_element(
@@ -41,20 +51,22 @@ pub trait OptionValue: LpValueTrait {
     }
 
     /// Unwrap the inner value.
-    fn unwrap(&self) -> Result<&LpValue, crate::value::RuntimeError>;
+    fn unwrap(&self) -> Result<&dyn LpValueTrait, crate::value::RuntimeError>;
 
     /// Unwrap the inner value mutably.
-    fn unwrap_mut(&mut self) -> Result<&mut LpValue, crate::value::RuntimeError>;
+    fn unwrap_mut(&mut self) -> Result<&mut dyn LpValueTrait, crate::value::RuntimeError>;
 }
 
 /// Value operations for tuple types.
 pub trait TupleValue: LpValueTrait {
     /// Get an element by index.
-    fn get_element(&self, index: usize) -> Result<&LpValue, crate::value::RuntimeError>;
+    fn get_element(&self, index: usize) -> Result<&dyn LpValueTrait, crate::value::RuntimeError>;
 
     /// Get a mutable element by index.
-    fn get_element_mut(&mut self, index: usize)
-        -> Result<&mut LpValue, crate::value::RuntimeError>;
+    fn get_element_mut(
+        &mut self,
+        index: usize,
+    ) -> Result<&mut dyn LpValueTrait, crate::value::RuntimeError>;
 
     /// Set an element value.
     fn set_element(
@@ -70,10 +82,13 @@ pub trait TupleValue: LpValueTrait {
 /// Value operations for map/dynamic record types.
 pub trait MapValue: LpValueTrait {
     /// Get a field by name.
-    fn get_field(&self, name: &str) -> Result<&LpValue, crate::value::RuntimeError>;
+    fn get_field(&self, name: &str) -> Result<&dyn LpValueTrait, crate::value::RuntimeError>;
 
     /// Get a mutable field by name.
-    fn get_field_mut(&mut self, name: &str) -> Result<&mut LpValue, crate::value::RuntimeError>;
+    fn get_field_mut(
+        &mut self,
+        name: &str,
+    ) -> Result<&mut dyn LpValueTrait, crate::value::RuntimeError>;
 
     /// Set a field value.
     fn set_field(&mut self, name: &str, value: LpValue) -> Result<(), crate::value::RuntimeError>;
@@ -94,8 +109,8 @@ pub trait EnumValue: LpValueTrait {
     fn variant_name(&self) -> Option<&str>;
 
     /// Get the value associated with the variant (if any).
-    fn value(&self) -> Option<&LpValue>;
+    fn value(&self) -> Option<&dyn LpValueTrait>;
 
     /// Get the value associated with the variant mutably (if any).
-    fn value_mut(&mut self) -> Option<&mut LpValue>;
+    fn value_mut(&mut self) -> Option<&mut dyn LpValueTrait>;
 }

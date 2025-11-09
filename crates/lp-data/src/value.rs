@@ -9,12 +9,16 @@ use lp_math::fixed::Fixed;
 use lp_pool::collections::{LpBox, LpString, LpVec};
 use lp_pool::error::AllocError;
 
+use crate::shape::array::array_value::ArrayValue;
+use crate::shape::option::option_value::OptionValue;
+use crate::shape::r#enum::enum_value::EnumValue;
 use crate::shape::shape_ref::ShapeRef;
+use crate::types::record::StructValue;
+use crate::types::record_dyn::MapValue;
 use crate::types::{
     bool as bool_value, fixed as fixed_value, int32 as int32_value, string as string_value,
     vec2 as vec2_value, vec3 as vec3_value, vec4 as vec4_value,
 };
-use crate::types::{ArrayValue, EnumValue, MapValue, OptionValue, StructValue};
 
 /// Runtime error for value operations.
 #[derive(Debug, Clone, PartialEq)]
@@ -85,13 +89,34 @@ impl LpValue {
     /// Get the shape reference for this value.
     pub fn shape(&self) -> &ShapeRef {
         match self {
-            LpValue::Fixed(_) => &ShapeRef::Fixed,
-            LpValue::Int32(_) => &ShapeRef::Int32,
-            LpValue::Bool(_) => &ShapeRef::Bool,
-            LpValue::String(_) => &ShapeRef::String,
-            LpValue::Vec2(_, _) => &ShapeRef::Vec2,
-            LpValue::Vec3(_, _, _) => &ShapeRef::Vec3,
-            LpValue::Vec4(_, _, _, _) => &ShapeRef::Vec4,
+            LpValue::Fixed(_) => {
+                static DEFAULT: ShapeRef = ShapeRef::fixed_default();
+                &DEFAULT
+            }
+            LpValue::Int32(_) => {
+                static DEFAULT: ShapeRef = ShapeRef::int32_default();
+                &DEFAULT
+            }
+            LpValue::Bool(_) => {
+                static DEFAULT: ShapeRef = ShapeRef::bool_default();
+                &DEFAULT
+            }
+            LpValue::String(_) => {
+                static DEFAULT: ShapeRef = ShapeRef::string_default();
+                &DEFAULT
+            }
+            LpValue::Vec2(_, _) => {
+                static DEFAULT: ShapeRef = ShapeRef::vec2_default();
+                &DEFAULT
+            }
+            LpValue::Vec3(_, _, _) => {
+                static DEFAULT: ShapeRef = ShapeRef::vec3_default();
+                &DEFAULT
+            }
+            LpValue::Vec4(_, _, _, _) => {
+                static DEFAULT: ShapeRef = ShapeRef::vec4_default();
+                &DEFAULT
+            }
             LpValue::Option(opt) => &opt.shape,
             LpValue::Array(arr) => &arr.shape,
             LpValue::Struct(s) => &s.shape,
@@ -177,13 +202,13 @@ impl LpValue {
     /// - Options: None
     pub fn try_new_from_shape(shape: ShapeRef) -> Result<Self, AllocError> {
         match shape {
-            ShapeRef::Fixed => Ok(Self::Fixed(Fixed::ZERO)),
-            ShapeRef::Int32 => Ok(Self::Int32(0)),
-            ShapeRef::Bool => Ok(Self::Bool(false)),
-            ShapeRef::String => Ok(Self::String(LpString::new())),
-            ShapeRef::Vec2 => Ok(Self::Vec2(Fixed::ZERO, Fixed::ZERO)),
-            ShapeRef::Vec3 => Ok(Self::Vec3(Fixed::ZERO, Fixed::ZERO, Fixed::ZERO)),
-            ShapeRef::Vec4 => Ok(Self::Vec4(
+            ShapeRef::Fixed(_) => Ok(Self::Fixed(Fixed::ZERO)),
+            ShapeRef::Int32(_) => Ok(Self::Int32(0)),
+            ShapeRef::Bool(_) => Ok(Self::Bool(false)),
+            ShapeRef::String(_) => Ok(Self::String(LpString::new())),
+            ShapeRef::Vec2(_) => Ok(Self::Vec2(Fixed::ZERO, Fixed::ZERO)),
+            ShapeRef::Vec3(_) => Ok(Self::Vec3(Fixed::ZERO, Fixed::ZERO, Fixed::ZERO)),
+            ShapeRef::Vec4(_) => Ok(Self::Vec4(
                 Fixed::ZERO,
                 Fixed::ZERO,
                 Fixed::ZERO,
