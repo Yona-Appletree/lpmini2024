@@ -10,7 +10,7 @@ use crate::kind::{
         record_static::{RecordFieldStatic, RecordShapeStatic},
     },
     shape::LpShape,
-    value::{LpValue, RecordValue},
+    value::{LpValue, LpValueBox, RecordValue},
 };
 use crate::value::RuntimeError;
 use lp_math::fixed::Fixed;
@@ -95,6 +95,16 @@ impl RecordValue for LfoConfig {
 
     fn field_count(&self) -> usize {
         1
+    }
+
+    #[cfg(feature = "alloc")]
+    fn iter_fields(&self) -> alloc::vec::IntoIter<(alloc::string::String, LpValueBox)> {
+        let mut fields = alloc::vec::Vec::new();
+        fields.push((
+            alloc::string::String::from("period"),
+            LpValueBox::from(self.period),
+        ));
+        fields.into_iter()
     }
 }
 
@@ -192,6 +202,25 @@ impl RecordValue for LfoNode {
 
     fn field_count(&self) -> usize {
         2 // config, output
+    }
+
+    #[cfg(feature = "alloc")]
+    fn iter_fields(&self) -> alloc::vec::IntoIter<(alloc::string::String, LpValueBox)> {
+        let mut fields = alloc::vec::Vec::new();
+        // Box the config as a RecordValue
+        let config_ref: &dyn RecordValue = &self.config;
+        #[allow(deprecated)]
+        let config_boxed = lp_pool::LpBoxDyn::try_new_unsized(config_ref)
+            .expect("Failed to allocate config in pool");
+        fields.push((
+            alloc::string::String::from("config"),
+            LpValueBox::from(config_boxed),
+        ));
+        fields.push((
+            alloc::string::String::from("output"),
+            LpValueBox::from(self.output),
+        ));
+        fields.into_iter()
     }
 }
 

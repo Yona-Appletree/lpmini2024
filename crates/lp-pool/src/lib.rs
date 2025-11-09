@@ -66,6 +66,8 @@ pub use fmt::{lp_format, write_lp_string};
 pub use guarded_alloc::{allow_global_alloc, ScopedGlobalAllocGuard};
 pub use memory_pool::{LpMemoryPool, PoolStats};
 
+pub use allocator_store::enter_global_alloc_allowance;
+
 #[cfg(any(feature = "std", test))]
 #[global_allocator]
 static GLOBAL_ALLOCATOR: guarded_alloc::GuardedAllocator = guarded_alloc::GuardedAllocator;

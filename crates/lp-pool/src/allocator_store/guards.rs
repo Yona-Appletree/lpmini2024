@@ -75,9 +75,9 @@ impl Drop for GlobalAllocGuardToken {
     }
 }
 
-pub(crate) struct GlobalAllocAllowToken;
+pub struct GlobalAllocAllowToken;
 
-pub(crate) fn enter_global_alloc_allowance() -> GlobalAllocAllowToken {
+pub fn enter_global_alloc_allowance() -> GlobalAllocAllowToken {
     #[cfg(any(feature = "std", test))]
     {
         ALLOW_DEPTH.with(|depth| depth.set(depth.get().saturating_add(1)));

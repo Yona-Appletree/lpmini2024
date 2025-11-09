@@ -4,26 +4,29 @@
 //! This is in contrast to static record values, which are Rust structs that implement
 //! `RecordValue` directly via codegen.
 //!
-//! Uses `LpBoxDyn<dyn LpValue>` for field storage, which allocates from lp-pool.
+//! Uses `LpValueBox` for field storage, which allocates from lp-pool.
+
+#[cfg(feature = "alloc")]
+extern crate alloc;
 
 use lp_pool::{LpBoxDyn, LpString, LpVec};
 
 use crate::kind::{
     record::record_dyn::RecordShapeDyn,
     shape::LpShape,
-    value::{LpValue, RecordValue},
+    value::{LpValue, LpValueBox, RecordValue},
 };
 use crate::value::RuntimeError;
 
 /// Dynamic record value.
 ///
 /// Stores fields as name-value pairs in lp-pool allocated collections.
-/// All field values are boxed as `LpBoxDyn<dyn LpValue>`, which allocates from lp-pool.
+/// All field values are stored as `LpValueBox`, which allocates from lp-pool.
 pub struct RecordValueDyn {
     /// The shape of this record.
     shape: RecordShapeDyn,
     /// Fields stored as (name, value) pairs.
-    fields: LpVec<(LpString, LpBoxDyn<dyn LpValue>)>,
+    fields: LpVec<(LpString, LpValueBox)>,
 }
 
 impl RecordValueDyn {
@@ -38,11 +41,7 @@ impl RecordValueDyn {
     /// Add a field to this record.
     ///
     /// If a field with the same name already exists, it will be replaced.
-    pub fn add_field(
-        &mut self,
-        name: LpString,
-        value: LpBoxDyn<dyn LpValue>,
-    ) -> Result<(), RuntimeError> {
+    pub fn add_field(&mut self, name: LpString, value: LpValueBox) -> Result<(), RuntimeError> {
         // Check if field already exists and replace it
         for (existing_name, existing_value) in self.fields.iter_mut() {
             if existing_name.as_str() == name.as_str() {
@@ -59,15 +58,6 @@ impl RecordValueDyn {
     /// Get the name of this record type.
     pub fn record_name(&self) -> &str {
         self.shape.name.as_str()
-    }
-
-    /// Iterate over all fields as (name, value) pairs.
-    ///
-    /// This allows traversing the record's fields without needing to know field names in advance.
-    pub fn iter_fields(&self) -> impl Iterator<Item = (&str, &dyn LpValue)> {
-        self.fields
-            .iter()
-            .map(|(name, value)| (name.as_str(), value.as_ref()))
     }
 
     /// Remove a field by name.
@@ -116,7 +106,10 @@ impl RecordValue for RecordValueDyn {
     fn get_field(&self, name: &str) -> Result<&dyn LpValue, RuntimeError> {
         for (field_name, field_value) in self.fields.iter() {
             if field_name.as_str() == name {
-                return Ok(field_value.as_ref());
+                match field_value {
+                    LpValueBox::Fixed(boxed) => return Ok(boxed.as_ref()),
+                    LpValueBox::Record(boxed) => return Ok(boxed.as_ref()),
+                }
             }
         }
         Err(RuntimeError::FieldNotFound {
@@ -134,7 +127,10 @@ impl RecordValue for RecordValueDyn {
     fn get_field_mut(&mut self, name: &str) -> Result<&mut dyn LpValue, RuntimeError> {
         for (field_name, field_value) in self.fields.iter_mut() {
             if field_name.as_str() == name {
-                return Ok(field_value.as_mut());
+                match field_value {
+                    LpValueBox::Fixed(boxed) => return Ok(boxed.as_mut()),
+                    LpValueBox::Record(boxed) => return Ok(boxed.as_mut()),
+                }
             }
         }
         Err(RuntimeError::FieldNotFound {
@@ -170,6 +166,15 @@ impl RecordValue for RecordValueDyn {
     fn field_count(&self) -> usize {
         self.fields.len()
     }
+
+    #[cfg(feature = "alloc")]
+    fn iter_fields(&self) -> alloc::vec::IntoIter<(alloc::string::String, LpValueBox)> {
+        let mut result = alloc::vec::Vec::new();
+        for (name, value) in self.fields.iter() {
+            result.push((alloc::string::String::from(name.as_str()), value.clone()));
+        }
+        result.into_iter()
+    }
 }
 
 impl Clone for RecordValueDyn {
@@ -180,13 +185,15 @@ impl Clone for RecordValueDyn {
             fields: self.shape.fields.clone(),
         };
 
-        // Create new RecordValueDyn with cloned shape
-        // NOTE: We can't clone LpBoxDyn<dyn LpValue> generically, so fields are not cloned.
-        // This means cloned RecordValueDyn will have empty fields.
-        // This is a limitation - in practice, avoid cloning RecordValueDyn if you need the fields.
+        // Clone the fields
+        let mut cloned_fields = LpVec::new();
+        for (name, value) in self.fields.iter() {
+            let _ = cloned_fields.try_push((name.clone(), value.clone()));
+        }
+
         RecordValueDyn {
             shape: cloned_shape,
-            fields: LpVec::new(),
+            fields: cloned_fields,
         }
     }
 }
@@ -233,15 +240,13 @@ mod tests {
             };
             let mut record = RecordValueDyn::new(shape);
 
-            // Create a Fixed value and box it using lp-pool
+            // Create a Fixed value and convert it to LpValueBox
             let fixed_value = Fixed::ZERO;
             let field_name = LpString::try_from_str("value")?;
 
-            // Box the value using lp-pool
-            let trait_ref: &dyn LpValue = &fixed_value;
-            let boxed_value = LpBoxDyn::try_new_unsized(trait_ref)?;
+            let value_box = LpValueBox::from(fixed_value);
             record
-                .add_field(field_name, boxed_value)
+                .add_field(field_name, value_box)
                 .map_err(|_| lp_pool::AllocError::PoolExhausted)?;
 
             assert_eq!(record.field_count(), 1);
@@ -264,10 +269,9 @@ mod tests {
             let fixed_value = Fixed::ZERO; // Use ZERO for now
             let field_name = LpString::try_from_str("value")?;
 
-            let trait_ref: &dyn LpValue = &fixed_value;
-            let boxed_value = LpBoxDyn::try_new_unsized(trait_ref)?;
+            let value_box = LpValueBox::from(fixed_value);
             record
-                .add_field(field_name, boxed_value)
+                .add_field(field_name, value_box)
                 .map_err(|_| lp_pool::AllocError::PoolExhausted)?;
 
             let retrieved = record
@@ -294,10 +298,9 @@ mod tests {
             let fixed_value = Fixed::ZERO;
             let field_name = LpString::try_from_str("value")?;
 
-            let trait_ref: &dyn LpValue = &fixed_value;
-            let boxed_value = LpBoxDyn::try_new_unsized(trait_ref)?;
+            let value_box = LpValueBox::from(fixed_value);
             record
-                .add_field(field_name, boxed_value)
+                .add_field(field_name, value_box)
                 .map_err(|_| lp_pool::AllocError::PoolExhausted)?;
             assert_eq!(record.field_count(), 1);
 
@@ -329,20 +332,16 @@ mod tests {
             let value2 = Fixed::ZERO;
             let field_name = LpString::try_from_str("value")?;
 
-            let trait_ref1: &dyn LpValue = &value1;
-            let boxed1 = LpBoxDyn::try_new_unsized(trait_ref1)?;
-            // Create a copy of the field name string
-            let field_name_copy = LpString::try_from_str("value")?;
+            let value_box1 = LpValueBox::from(value1);
             record
-                .add_field(field_name_copy, boxed1)
+                .add_field(field_name, value_box1)
                 .map_err(|_| lp_pool::AllocError::PoolExhausted)?;
 
             // Adding again should replace - create new LpString
             let field_name2 = LpString::try_from_str("value")?;
-            let trait_ref2: &dyn LpValue = &value2;
-            let boxed2 = LpBoxDyn::try_new_unsized(trait_ref2)?;
+            let value_box2 = LpValueBox::from(value2);
             record
-                .add_field(field_name2, boxed2)
+                .add_field(field_name2, value_box2)
                 .map_err(|_| lp_pool::AllocError::PoolExhausted)?;
 
             assert_eq!(record.field_count(), 1);
@@ -392,21 +391,18 @@ mod tests {
             let value2 = Fixed::ZERO;
             let value3 = Fixed::ZERO;
 
-            let trait_ref1: &dyn LpValue = &value1;
-            let boxed1 = LpBoxDyn::try_new_unsized(trait_ref1)?;
-            let trait_ref2: &dyn LpValue = &value2;
-            let boxed2 = LpBoxDyn::try_new_unsized(trait_ref2)?;
-            let trait_ref3: &dyn LpValue = &value3;
-            let boxed3 = LpBoxDyn::try_new_unsized(trait_ref3)?;
+            let value_box1 = LpValueBox::from(value1);
+            let value_box2 = LpValueBox::from(value2);
+            let value_box3 = LpValueBox::from(value3);
 
             record
-                .add_field(LpString::try_from_str("a")?, boxed1)
+                .add_field(LpString::try_from_str("a")?, value_box1)
                 .map_err(|_| lp_pool::AllocError::PoolExhausted)?;
             record
-                .add_field(LpString::try_from_str("b")?, boxed2)
+                .add_field(LpString::try_from_str("b")?, value_box2)
                 .map_err(|_| lp_pool::AllocError::PoolExhausted)?;
             record
-                .add_field(LpString::try_from_str("c")?, boxed3)
+                .add_field(LpString::try_from_str("c")?, value_box3)
                 .map_err(|_| lp_pool::AllocError::PoolExhausted)?;
 
             assert_eq!(record.field_count(), 3);
@@ -434,10 +430,9 @@ mod tests {
             let fixed_value = Fixed::ZERO;
             let field_name = LpString::try_from_str("value")?;
 
-            let trait_ref: &dyn LpValue = &fixed_value;
-            let boxed_value = LpBoxDyn::try_new_unsized(trait_ref)?;
+            let value_box = LpValueBox::from(fixed_value);
             record
-                .add_field(field_name, boxed_value)
+                .add_field(field_name, value_box)
                 .map_err(|_| lp_pool::AllocError::PoolExhausted)?;
 
             // Can get mutable reference
