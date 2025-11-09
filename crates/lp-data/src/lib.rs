@@ -1,4 +1,4 @@
-#![cfg_attr(not(feature = "std"), no_std)]
+#![cfg_attr(all(not(feature = "std"), not(test)), no_std)]
 //! Shared data model for `lpmini` runtime types.
 //!
 //! Combine `#[derive(LpSchema)]` with per-field attributes to describe runtime
@@ -8,11 +8,13 @@
 #[cfg(feature = "alloc")]
 extern crate alloc;
 
-pub mod registry;
+// pub mod registry; // TODO: Implement registry module
 pub mod kind;
+pub mod value;
 
 // Re-export new registries
-pub use registry::{RuntimeRegistry, StaticRegistry};
+// pub use registry::{RuntimeRegistry, StaticRegistry};
+pub use value::RuntimeError;
 
 #[cfg(feature = "derive")]
 pub use lp_data_derive::LpSchema;
