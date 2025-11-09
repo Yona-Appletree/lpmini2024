@@ -6,12 +6,12 @@ use crate::shape::shape_ref::ShapeRef;
 #[derive(Debug)]
 pub struct RecordField {
     pub name: &'static str,
-    pub shape: ShapeRef,
+    pub shape: &'static ShapeRef,
     pub docs: Option<&'static str>,
 }
 
 impl RecordField {
-    pub const fn new(name: &'static str, shape: ShapeRef) -> Self {
+    pub const fn new(name: &'static str, shape: &'static ShapeRef) -> Self {
         Self {
             name,
             shape,

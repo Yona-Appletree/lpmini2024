@@ -13,6 +13,15 @@ pub struct StructValue {
     pub fields: LpVec<LpValue>,
 }
 
+impl core::fmt::Debug for StructValue {
+    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+        f.debug_struct("StructValue")
+            .field("shape", &self.shape)
+            .field("fields_len", &self.fields.len())
+            .finish()
+    }
+}
+
 impl StructValue {
     /// Create a new struct value from a ShapeRef.
     ///

@@ -3,9 +3,11 @@
 use crate::shape::shape_ref::ShapeRef;
 use crate::shape::value::LpValueTrait;
 use crate::value::{LpValue, RuntimeError};
+use serde::{Deserialize, Serialize};
 
 /// Type-safe wrapper for Int32 values.
-pub struct LpInt32(i32);
+#[derive(PartialEq, Serialize, Deserialize)]
+pub struct LpInt32(pub i32);
 
 impl LpInt32 {
     /// Create a new LpInt32 from an i32 value.

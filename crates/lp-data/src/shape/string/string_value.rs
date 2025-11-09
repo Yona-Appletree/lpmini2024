@@ -61,8 +61,5 @@ impl core::fmt::Debug for LpStringValue {
     }
 }
 
-impl Clone for LpStringValue {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
-}
+// LpString doesn't implement Clone, so we can't implement Clone for LpStringValue
+// If cloning is needed, it should be done through the memory pool

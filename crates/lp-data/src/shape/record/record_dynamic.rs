@@ -61,6 +61,15 @@ pub struct RecordValueDyn {
     pub fields: LpBTreeMap<LpString, LpValue>,
 }
 
+impl core::fmt::Debug for RecordValueDyn {
+    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+        f.debug_struct("RecordValueDyn")
+            .field("shape", &self.shape)
+            .field("fields_len", &self.fields.len())
+            .finish()
+    }
+}
+
 impl crate::shape::value::LpValueTrait for RecordValueDyn {
     fn shape(&self) -> &crate::shape::shape_ref::ShapeRef {
         &self.shape

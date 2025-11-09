@@ -1,8 +1,9 @@
-use lp_math::fixed::Vec3;
-use serde::{Deserialize, Serialize};
-
 use crate as lp_data;
+use crate::shape::vec3::LpVec3;
 use crate::LpSchema;
+use lp_math::fixed::{ToFixed, Vec3};
+use lp_pool::LpVec;
+use serde::{Deserialize, Serialize};
 
 /// Runtime structure for a Perlin3 node.
 ///
@@ -19,18 +20,14 @@ pub struct Perlin3Node {
 ))]
 pub struct Perlin3Input {
     #[lp(field(docs = "Position vector for noise evaluation."))]
-    pub pos: Vec3,
+    pub pos: LpVec3,
 }
 
 impl Perlin3Node {
     pub fn new() -> Self {
         Self {
             input: Perlin3Input {
-                pos: Vec3::new(
-                    lp_math::fixed::Fixed::ZERO,
-                    lp_math::fixed::Fixed::ZERO,
-                    lp_math::fixed::Fixed::ZERO,
-                ),
+                pos: LpVec3::new(0.to_fixed(), 0.to_fixed(), 0.to_fixed()),
             },
         }
     }

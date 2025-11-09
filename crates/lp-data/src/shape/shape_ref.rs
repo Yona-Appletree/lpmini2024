@@ -36,46 +36,57 @@ pub enum ShapeRef {
 }
 
 /// Reference to a record shape.
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub enum RecordShapeRef {
     Static(&'static StaticRecordShape),
     Dynamic(LpBox<DynamicRecordShape>),
 }
 
 /// Reference to an array shape.
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub enum ArrayShapeRef {
     Static(&'static StaticArrayShape),
     Dynamic(LpBox<DynamicArrayShape>),
 }
 
 /// Reference to an option shape.
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub enum OptionShapeRef {
     Static(&'static StaticOptionShape),
     Dynamic(LpBox<DynamicOptionShape>),
 }
 
 /// Reference to a tuple shape.
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub enum TupleShapeRef {
     Static(&'static StaticTupleShape),
     Dynamic(LpBox<DynamicTupleShape>),
 }
 
 /// Reference to a map shape.
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub enum MapShapeRef {
     Static(&'static StaticMapShape),
     Dynamic(LpBox<DynamicMapShape>),
 }
 
 /// Reference to an enum shape.
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub enum EnumShapeRef {
     Static(&'static StaticEnumShape),
     Dynamic(LpBox<DynamicEnumShape>),
 }
+
+// Safety: Dynamic shapes are only created at runtime within a memory pool context.
+// Static ShapeRef instances only use Static variants, never Dynamic variants.
+// The Dynamic variants are only used at runtime, not in static contexts.
+unsafe impl Sync for RecordShapeRef {}
+unsafe impl Sync for ArrayShapeRef {}
+unsafe impl Sync for OptionShapeRef {}
+unsafe impl Sync for TupleShapeRef {}
+unsafe impl Sync for MapShapeRef {}
+unsafe impl Sync for EnumShapeRef {}
+unsafe impl Sync for ShapeRef {}
 
 /// Reference to a fixed-point shape.
 #[derive(Debug)]

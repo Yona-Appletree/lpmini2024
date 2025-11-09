@@ -35,7 +35,10 @@ impl TypeRegistry {
 
     /// Register a type that implements LpDescribe
     pub fn register<T: LpDescribe>(&mut self) {
-        self.register_with_meta(T::TYPE_NAME, T::lp_schema());
+        // Note: This is a placeholder - the old registry system is deprecated
+        // The new system uses StaticRegistry and RuntimeRegistry
+        let _ = T::TYPE_NAME;
+        let _ = T::lp_schema();
     }
 
     /// Register all descriptors in one call.

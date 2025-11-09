@@ -554,7 +554,7 @@ impl TypeTokens {
                 };
                 Ok(TypeTokens {
                     helpers: vec![helper],
-                    type_ref: quote! { #shape_ref_ident },
+                    type_ref: quote! { &#shape_ref_ident },
                     bounds: Vec::new(),
                 })
             }
@@ -595,7 +595,7 @@ impl TypeTokens {
                 };
                 Ok(TypeTokens {
                     helpers: vec![helper],
-                    type_ref: quote! { #shape_ref_ident },
+                    type_ref: quote! { &#shape_ref_ident },
                     bounds: Vec::new(),
                 })
             }
@@ -629,7 +629,7 @@ impl TypeTokens {
                 let bounds = element_tokens.bounds;
                 Ok(TypeTokens {
                     helpers,
-                    type_ref: quote! { #array_shape_ref_ident },
+                    type_ref: quote! { &#array_shape_ref_ident },
                     bounds,
                 })
             }
@@ -701,7 +701,7 @@ impl TypeTokens {
                 };
                 Ok(TypeTokens {
                     helpers: vec![helper],
-                    type_ref: quote! { #shape_ref_ident },
+                    type_ref: quote! { &#shape_ref_ident },
                     bounds: Vec::new(),
                 })
             }
@@ -733,7 +733,7 @@ impl TypeTokens {
                 };
                 Ok(TypeTokens {
                     helpers: vec![helper],
-                    type_ref: quote! { #shape_ref_ident },
+                    type_ref: quote! { &#shape_ref_ident },
                     bounds: Vec::new(),
                 })
             }
@@ -764,7 +764,7 @@ impl TypeTokens {
                 };
                 Ok(TypeTokens {
                     helpers: vec![helper],
-                    type_ref: quote! { #shape_ref_ident },
+                    type_ref: quote! { &#shape_ref_ident },
                     bounds: Vec::new(),
                 })
             }
@@ -836,6 +836,15 @@ fn classify_type(ty: &Type) -> Result<TypeInfo, Error> {
             } else if is_lp_int32(path) {
                 // LpInt32 is a newtype wrapper around i32, treat it as i32
                 Ok(TypeInfo::Primitive(PrimitiveKind::Int32))
+            } else if is_lp_vec2(path) {
+                // LpVec2 is a newtype wrapper around Vec2, treat it as Vec2
+                Ok(TypeInfo::Vector(VectorKind::Vec2))
+            } else if is_lp_vec3(path) {
+                // LpVec3 is a newtype wrapper around Vec3, treat it as Vec3
+                Ok(TypeInfo::Vector(VectorKind::Vec3))
+            } else if is_lp_vec4(path) {
+                // LpVec4 is a newtype wrapper around Vec4, treat it as Vec4
+                Ok(TypeInfo::Vector(VectorKind::Vec4))
             } else if is_vec2(path) {
                 Ok(TypeInfo::Vector(VectorKind::Vec2))
             } else if is_vec3(path) {
@@ -866,6 +875,51 @@ fn is_lp_int32(path: &TypePath) -> bool {
             && path.path.segments[1].ident == "shape"
             && path.path.segments[2].ident == "int32"
             && path.path.segments[3].ident == "LpInt32"
+    } else {
+        false
+    }
+}
+
+fn is_lp_vec2(path: &TypePath) -> bool {
+    // Check for lp_data::shape::vec2::LpVec2 or just LpVec2
+    if path.path.segments.len() == 1 {
+        path.path.segments[0].ident == "LpVec2"
+    } else if path.path.segments.len() == 4 {
+        // lp_data::shape::vec2::LpVec2
+        path.path.segments[0].ident == "lp_data"
+            && path.path.segments[1].ident == "shape"
+            && path.path.segments[2].ident == "vec2"
+            && path.path.segments[3].ident == "LpVec2"
+    } else {
+        false
+    }
+}
+
+fn is_lp_vec3(path: &TypePath) -> bool {
+    // Check for lp_data::shape::vec3::LpVec3 or just LpVec3
+    if path.path.segments.len() == 1 {
+        path.path.segments[0].ident == "LpVec3"
+    } else if path.path.segments.len() == 4 {
+        // lp_data::shape::vec3::LpVec3
+        path.path.segments[0].ident == "lp_data"
+            && path.path.segments[1].ident == "shape"
+            && path.path.segments[2].ident == "vec3"
+            && path.path.segments[3].ident == "LpVec3"
+    } else {
+        false
+    }
+}
+
+fn is_lp_vec4(path: &TypePath) -> bool {
+    // Check for lp_data::shape::vec4::LpVec4 or just LpVec4
+    if path.path.segments.len() == 1 {
+        path.path.segments[0].ident == "LpVec4"
+    } else if path.path.segments.len() == 4 {
+        // lp_data::shape::vec4::LpVec4
+        path.path.segments[0].ident == "lp_data"
+            && path.path.segments[1].ident == "shape"
+            && path.path.segments[2].ident == "vec4"
+            && path.path.segments[3].ident == "LpVec4"
     } else {
         false
     }

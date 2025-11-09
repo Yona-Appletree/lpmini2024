@@ -331,17 +331,35 @@ impl LpValue {
 
     /// Get value as Fixed, if it is a Fixed scalar.
     pub fn as_fixed(&self) -> Result<Fixed, RuntimeError> {
-        fixed_value::as_fixed(self)
+        match self {
+            Self::Fixed(f) => Ok(*f),
+            _ => Err(RuntimeError::TypeMismatch {
+                expected: "Fixed",
+                actual: "other",
+            }),
+        }
     }
 
     /// Get value as Int32, if it is an Int32 scalar.
     pub fn as_int32(&self) -> Result<i32, RuntimeError> {
-        int32_value::as_int32(self)
+        match self {
+            Self::Int32(i) => Ok(*i),
+            _ => Err(RuntimeError::TypeMismatch {
+                expected: "Int32",
+                actual: "other",
+            }),
+        }
     }
 
     /// Get value as Bool, if it is a Bool scalar.
     pub fn as_bool(&self) -> Result<bool, RuntimeError> {
-        bool_value::as_bool(self)
+        match self {
+            Self::Bool(b) => Ok(*b),
+            _ => Err(RuntimeError::TypeMismatch {
+                expected: "Bool",
+                actual: "other",
+            }),
+        }
     }
 
     /// Get value as string slice, if it is a String scalar.
@@ -357,17 +375,35 @@ impl LpValue {
 
     /// Get value as Vec2, if it is a Vec2.
     pub fn as_vec2(&self) -> Result<(Fixed, Fixed), RuntimeError> {
-        vec2_value::as_vec2(self)
+        match self {
+            Self::Vec2(x, y) => Ok((*x, *y)),
+            _ => Err(RuntimeError::TypeMismatch {
+                expected: "Vec2",
+                actual: "other",
+            }),
+        }
     }
 
     /// Get value as Vec3, if it is a Vec3.
     pub fn as_vec3(&self) -> Result<(Fixed, Fixed, Fixed), RuntimeError> {
-        vec3_value::as_vec3(self)
+        match self {
+            Self::Vec3(x, y, z) => Ok((*x, *y, *z)),
+            _ => Err(RuntimeError::TypeMismatch {
+                expected: "Vec3",
+                actual: "other",
+            }),
+        }
     }
 
     /// Get value as Vec4, if it is a Vec4.
     pub fn as_vec4(&self) -> Result<(Fixed, Fixed, Fixed, Fixed), RuntimeError> {
-        vec4_value::as_vec4(self)
+        match self {
+            Self::Vec4(x, y, z, w) => Ok((*x, *y, *z, *w)),
+            _ => Err(RuntimeError::TypeMismatch {
+                expected: "Vec4",
+                actual: "other",
+            }),
+        }
     }
 
     /// Set a field value in a struct or map.
