@@ -77,13 +77,13 @@ impl core::fmt::Debug for TupleValue {
 
 impl crate::shape::value::TupleValue for TupleValue {
     fn get_element(&self, index: usize) -> Result<&dyn LpValueTrait, RuntimeError> {
-        // Convert &LpValue to &dyn LpValueTrait
-        // Will fix when LpValue implements LpValueTrait
-        Err(RuntimeError::NotAnArray)
+        let value = self.get(index)?;
+        Ok(value as &dyn LpValueTrait)
     }
 
     fn get_element_mut(&mut self, index: usize) -> Result<&mut dyn LpValueTrait, RuntimeError> {
-        Err(RuntimeError::NotAnArray)
+        let value = self.get_mut(index)?;
+        Ok(value as &mut dyn LpValueTrait)
     }
 
     fn set_element(&mut self, index: usize, value: LpValue) -> Result<(), RuntimeError> {

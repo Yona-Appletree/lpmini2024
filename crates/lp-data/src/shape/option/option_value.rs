@@ -83,12 +83,12 @@ impl crate::shape::value::OptionValue for OptionValue {
     }
 
     fn unwrap(&self) -> Result<&dyn LpValueTrait, RuntimeError> {
-        // Convert &LpValue to &dyn LpValueTrait
-        // Will fix when LpValue implements LpValueTrait
-        Err(RuntimeError::NotAnOption)
+        let value = self.try_unwrap()?;
+        Ok(value as &dyn LpValueTrait)
     }
 
     fn unwrap_mut(&mut self) -> Result<&mut dyn LpValueTrait, RuntimeError> {
-        Err(RuntimeError::NotAnOption)
+        let value = self.try_unwrap_mut()?;
+        Ok(value as &mut dyn LpValueTrait)
     }
 }

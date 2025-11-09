@@ -4,6 +4,7 @@ use lp_pool::collections::{LpBTreeMap, LpString};
 use lp_pool::error::AllocError;
 
 use crate::shape::shape_ref::ShapeRef;
+use crate::shape::value::LpValueTrait;
 use crate::value::RuntimeError;
 
 /// Dynamic map value storage (runtime-created records).
@@ -107,5 +108,48 @@ impl MapValue {
     /// Check if the map is empty.
     pub fn is_empty(&self) -> bool {
         self.fields.is_empty()
+    }
+}
+
+impl LpValueTrait for MapValue {
+    fn shape(&self) -> &ShapeRef {
+        &self.shape
+    }
+
+    fn kind(&self) -> crate::shape::kind::LpKind {
+        crate::shape::kind::LpKind::Map
+    }
+}
+
+impl core::fmt::Debug for MapValue {
+    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+        f.debug_struct("MapValue")
+            .field("shape", &self.shape)
+            .field("len", &self.fields.len())
+            .finish()
+    }
+}
+
+impl crate::shape::value::MapValue for MapValue {
+    fn get_field(&self, name: &str) -> Result<&dyn LpValueTrait, RuntimeError> {
+        let value = MapValue::get_field(self, name)?;
+        Ok(value as &dyn LpValueTrait)
+    }
+
+    fn get_field_mut(&mut self, name: &str) -> Result<&mut dyn LpValueTrait, RuntimeError> {
+        let value = MapValue::get_field_mut(self, name)?;
+        Ok(value as &mut dyn LpValueTrait)
+    }
+
+    fn set_field(&mut self, name: &str, value: crate::value::LpValue) -> Result<(), RuntimeError> {
+        self.try_set_field(name, value)
+    }
+
+    fn has_field(&self, name: &str) -> bool {
+        MapValue::has_field(self, name)
+    }
+
+    fn len(&self) -> usize {
+        MapValue::len(self)
     }
 }

@@ -84,10 +84,7 @@ impl RecordValue for RecordValueDyn {
                 field_name: name,
             }
         })?;
-        // TODO: Convert &LpValue to &dyn LpValueTrait
-        // This requires LpValue to implement LpValueTrait
-        // For now, return error
-        Err(crate::value::RuntimeError::NotARecord)
+        Ok(value as &dyn crate::shape::value::LpValueTrait)
     }
 
     fn get_field_mut(
@@ -96,14 +93,13 @@ impl RecordValue for RecordValueDyn {
     ) -> Result<&mut dyn crate::shape::value::LpValueTrait, crate::value::RuntimeError> {
         let name_str = LpString::try_from_str(name)
             .map_err(|_| crate::value::RuntimeError::AllocError(AllocError::OutOfMemory))?;
-        let _value = self.fields.get_mut(&name_str).ok_or_else(|| {
+        let value = self.fields.get_mut(&name_str).ok_or_else(|| {
             crate::value::RuntimeError::FieldNotFound {
                 record_name: "dynamic",
                 field_name: name,
             }
         })?;
-        // TODO: Convert &mut LpValue to &mut dyn LpValueTrait
-        Err(crate::value::RuntimeError::NotARecord)
+        Ok(value as &mut dyn crate::shape::value::LpValueTrait)
     }
 
     fn set_field(&mut self, name: &str, value: LpValue) -> Result<(), crate::value::RuntimeError> {

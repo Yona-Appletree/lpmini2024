@@ -88,12 +88,10 @@ impl crate::shape::value::EnumValue for EnumValue {
     }
 
     fn value(&self) -> Option<&dyn LpValueTrait> {
-        // Convert &LpValue to &dyn LpValueTrait
-        // Will fix when LpValue implements LpValueTrait
-        None
+        self.payload().map(|p| p as &dyn LpValueTrait)
     }
 
     fn value_mut(&mut self) -> Option<&mut dyn LpValueTrait> {
-        None
+        self.payload_mut().map(|p| p as &mut dyn LpValueTrait)
     }
 }

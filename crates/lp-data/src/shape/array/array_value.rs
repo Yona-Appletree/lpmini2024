@@ -94,14 +94,13 @@ impl core::fmt::Debug for ArrayValue {
 
 impl crate::shape::value::ArrayValue for ArrayValue {
     fn get_element(&self, index: usize) -> Result<&dyn LpValueTrait, RuntimeError> {
-        // Convert &LpValue to &dyn LpValueTrait
-        // This requires LpValue to implement LpValueTrait or we need a helper
-        // For now, return error - will fix when LpValue implements LpValueTrait
-        Err(RuntimeError::NotAnArray)
+        let value = self.get(index)?;
+        Ok(value as &dyn LpValueTrait)
     }
 
     fn get_element_mut(&mut self, index: usize) -> Result<&mut dyn LpValueTrait, RuntimeError> {
-        Err(RuntimeError::NotAnArray)
+        let value = self.get_mut(index)?;
+        Ok(value as &mut dyn LpValueTrait)
     }
 
     fn set_element(&mut self, index: usize, value: LpValue) -> Result<(), RuntimeError> {

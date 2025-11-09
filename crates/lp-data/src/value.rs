@@ -15,6 +15,7 @@ use crate::shape::option::option_value::OptionValue;
 use crate::shape::r#enum::enum_value::EnumValue;
 use crate::shape::record::StructValue;
 use crate::shape::shape_ref::ShapeRef;
+use crate::shape::value::LpValueTrait;
 
 /// Runtime error for value operations.
 #[derive(Debug, Clone, PartialEq)]
@@ -446,5 +447,31 @@ impl LpValue {
             path: "",
             reason: "nested mutable path access requires multiple calls to get_field_mut",
         })
+    }
+}
+
+impl LpValueTrait for LpValue {
+    fn shape(&self) -> &ShapeRef {
+        // Call the inherent method using fully qualified syntax to avoid recursion
+        LpValue::shape(self)
+    }
+}
+
+impl core::fmt::Debug for LpValue {
+    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+        match self {
+            Self::Fixed(v) => write!(f, "Fixed({:?})", v),
+            Self::Int32(v) => write!(f, "Int32({})", v),
+            Self::Bool(v) => write!(f, "Bool({})", v),
+            Self::String(v) => write!(f, "String({:?})", v),
+            Self::Vec2(x, y) => write!(f, "Vec2({:?}, {:?})", x, y),
+            Self::Vec3(x, y, z) => write!(f, "Vec3({:?}, {:?}, {:?})", x, y, z),
+            Self::Vec4(x, y, z, w) => write!(f, "Vec4({:?}, {:?}, {:?}, {:?})", x, y, z, w),
+            Self::Option(opt) => write!(f, "Option({:?})", opt),
+            Self::Array(arr) => write!(f, "Array({:?})", arr),
+            Self::Struct(s) => write!(f, "Struct({:?})", s),
+            Self::Map(m) => write!(f, "Map({:?})", m),
+            Self::Enum(e) => write!(f, "Enum({:?})", e),
+        }
     }
 }
