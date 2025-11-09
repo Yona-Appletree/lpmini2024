@@ -42,7 +42,10 @@ impl LpInt32 {
 
 impl LpValueTrait for LpInt32 {
     fn shape(&self) -> &ShapeRef {
-        static DEFAULT: ShapeRef = ShapeRef::int32_default();
+        static SHAPE: crate::shape::int32::StaticInt32Shape =
+            crate::shape::int32::StaticInt32Shape::default();
+        static DEFAULT: ShapeRef =
+            ShapeRef::Int32(crate::shape::shape_ref::Int32ShapeRef::Static(&SHAPE));
         &DEFAULT
     }
 

@@ -6,27 +6,35 @@ use lp_math::fixed::{Fixed, Vec3};
 use lp_pool::error::AllocError;
 use lp_pool::memory_pool::LpMemoryPool;
 
-use crate::metadata::{LpTypeMeta, TypeRef};
-use crate::types::{RecordField, RecordType};
+use crate::shape::record::{RecordField, StaticRecordShape};
+use crate::shape::shape_ref::Vec3ShapeRef;
+use crate::shape::shape_ref::{RecordShapeRef, ShapeRef};
+use crate::shape::vec3::StaticVec3Shape;
 use crate::value::LpValue;
-// Static type types for runtime scene graph
-const FIXED_META: LpTypeMeta = LpTypeMeta::new(crate::LpType::fixed());
-const VEC3_META: LpTypeMeta = LpTypeMeta::new(crate::LpType::vec3());
 
-// LFO node type: { config: LfoConfig, output: Fixed }
-// We'll construct this at runtime since lp_schema() is not const
+// Static shapes for runtime scene graph
+static VEC3_SHAPE_STATIC: StaticVec3Shape = StaticVec3Shape::default();
+static VEC3_SHAPE: ShapeRef = ShapeRef::Vec3(Vec3ShapeRef::Static(&VEC3_SHAPE_STATIC));
 
 // Perlin3 input type: { pos: Vec3 }
-const PERLIN3_INPUT_FIELDS: &[RecordField<TypeRef>] = &[RecordField::new("pos", &VEC3_META)];
-const PERLIN3_INPUT_RECORD_TYPE: RecordType<TypeRef> =
-    RecordType::new("Perlin3Input", PERLIN3_INPUT_FIELDS);
-const PERLIN3_INPUT_META: LpTypeMeta =
-    LpTypeMeta::new(crate::LpType::Record(PERLIN3_INPUT_RECORD_TYPE));
+static PERLIN3_INPUT_FIELDS: &[RecordField] = &[RecordField::new("pos", VEC3_SHAPE)];
+static PERLIN3_INPUT_SHAPE: StaticRecordShape = StaticRecordShape {
+    name: "Perlin3Input",
+    fields: PERLIN3_INPUT_FIELDS,
+    ui: crate::shape::record::RecordUi { collapsible: false },
+};
+static PERLIN3_INPUT_SHAPE_REF: ShapeRef =
+    ShapeRef::Record(RecordShapeRef::Static(&PERLIN3_INPUT_SHAPE));
 
 // Perlin3 node type: { input: Perlin3Input }
-const PERLIN3_FIELDS: &[RecordField<TypeRef>] = &[RecordField::new("input", &PERLIN3_INPUT_META)];
-const PERLIN3_RECORD_TYPE: RecordType<TypeRef> = RecordType::new("Perlin3Node", PERLIN3_FIELDS);
-const PERLIN3_NODE_META: LpTypeMeta = LpTypeMeta::new(crate::LpType::Record(PERLIN3_RECORD_TYPE));
+static PERLIN3_FIELDS: &[RecordField] = &[RecordField::new("input", PERLIN3_INPUT_SHAPE_REF)];
+static PERLIN3_NODE_SHAPE: StaticRecordShape = StaticRecordShape {
+    name: "Perlin3Node",
+    fields: PERLIN3_FIELDS,
+    ui: crate::shape::record::RecordUi { collapsible: false },
+};
+static PERLIN3_NODE_SHAPE_REF: ShapeRef =
+    ShapeRef::Record(RecordShapeRef::Static(&PERLIN3_NODE_SHAPE));
 
 // Top-level nodes type: { lfo: LfoNode, perlin3: Perlin3Node }
 // We'll construct this at runtime
@@ -47,27 +55,43 @@ fn create_scene_graph(pool: &LpMemoryPool) -> Result<LpValue, AllocError> {
 
         // Create a record with just perlin3 node for now
         // In a real implementation, we'd need to support dynamic record type creation
-        const SIMPLE_NODES_FIELDS: &[RecordField<TypeRef>] =
-            &[RecordField::new("perlin3", &PERLIN3_NODE_META)];
-        const SIMPLE_NODES_RECORD_TYPE: RecordType<TypeRef> =
-            RecordType::new("Nodes", SIMPLE_NODES_FIELDS);
-        const SIMPLE_NODES_META: LpTypeMeta =
-            LpTypeMeta::new(crate::LpType::Record(SIMPLE_NODES_RECORD_TYPE));
+        static SIMPLE_NODES_FIELDS: &[RecordField] =
+            &[RecordField::new("perlin3", PERLIN3_NODE_SHAPE_REF)];
+        static SIMPLE_NODES_SHAPE: StaticRecordShape = StaticRecordShape {
+            name: "Nodes",
+            fields: SIMPLE_NODES_FIELDS,
+            ui: crate::shape::record::RecordUi { collapsible: false },
+        };
+        let nodes_shape_ref = ShapeRef::Record(RecordShapeRef::Static(&SIMPLE_NODES_SHAPE));
 
         // Create the runtime value structure
-        let mut nodes = LpValue::try_record(&SIMPLE_NODES_META)?;
+        let mut nodes = LpValue::try_record(nodes_shape_ref)?;
 
         // Initialize Perlin3 node
-        let mut perlin3_node = nodes
-            .get_field_mut("perlin3")
-            .map_err(|_| AllocError::InvalidLayout)?;
-        let mut perlin3_input = perlin3_node
-            .get_field_mut("input")
-            .map_err(|_| AllocError::InvalidLayout)?;
-        let perlin3_pos = perlin3_input
-            .get_field_mut("pos")
-            .map_err(|_| AllocError::InvalidLayout)?;
-        *perlin3_pos = LpValue::vec3(Fixed::ZERO, Fixed::ZERO, Fixed::ZERO);
+        match &mut nodes {
+            LpValue::Struct(s) => {
+                let perlin3_node = s
+                    .get_field_mut("perlin3")
+                    .map_err(|_| AllocError::InvalidLayout)?;
+                match perlin3_node {
+                    LpValue::Struct(s2) => {
+                        let perlin3_input = s2
+                            .get_field_mut("input")
+                            .map_err(|_| AllocError::InvalidLayout)?;
+                        match perlin3_input {
+                            LpValue::Struct(s3) => {
+                                *s3.get_field_mut("pos")
+                                    .map_err(|_| AllocError::InvalidLayout)? =
+                                    LpValue::vec3(Fixed::ZERO, Fixed::ZERO, Fixed::ZERO);
+                            }
+                            _ => return Err(AllocError::InvalidLayout),
+                        }
+                    }
+                    _ => return Err(AllocError::InvalidLayout),
+                }
+            }
+            _ => return Err(AllocError::InvalidLayout),
+        }
 
         Ok(nodes)
     })
@@ -82,7 +106,10 @@ fn test_runtime_scene_graph_creation() {
     let nodes = create_scene_graph(&pool).expect("failed to create scene graph");
 
     // Verify structure exists
-    assert!(nodes.get_field("perlin3").is_ok());
+    match &nodes {
+        LpValue::Struct(s) => assert!(s.get_field("perlin3").is_ok()),
+        _ => panic!("expected Struct"),
+    }
 }
 
 #[test]
@@ -118,10 +145,25 @@ fn test_runtime_scene_graph_dynamic_update() {
         Fixed::from_f32(0.5),
         Fixed::from_f32(0.5),
     );
-    let mut perlin3_node = nodes.get_field_mut("perlin3").unwrap();
-    let mut perlin3_input = perlin3_node.get_field_mut("input").unwrap();
-    let perlin3_pos = perlin3_input.get_field_mut("pos").unwrap();
-    *perlin3_pos = LpValue::vec3(pos_value.x, pos_value.y, pos_value.z);
+    match &mut nodes {
+        LpValue::Struct(s) => {
+            let perlin3_node = s.get_field_mut("perlin3").unwrap();
+            match perlin3_node {
+                LpValue::Struct(s2) => {
+                    let perlin3_input = s2.get_field_mut("input").unwrap();
+                    match perlin3_input {
+                        LpValue::Struct(s3) => {
+                            *s3.get_field_mut("pos").unwrap() =
+                                LpValue::vec3(pos_value.x, pos_value.y, pos_value.z);
+                        }
+                        _ => panic!("expected Struct"),
+                    }
+                }
+                _ => panic!("expected Struct"),
+            }
+        }
+        _ => panic!("expected Struct"),
+    }
 
     // Verify Perlin3's pos was updated
     let updated_pos = nodes
@@ -142,17 +184,27 @@ fn test_runtime_scene_graph_field_access() {
     let nodes = create_scene_graph(&pool).expect("failed to create scene graph");
 
     // Test field-by-field access (as the VM would do)
-    let perlin3_node = nodes
-        .get_field("perlin3")
-        .expect("perlin3 node should exist");
-    let perlin3_input = perlin3_node
-        .get_field("input")
-        .expect("perlin3.input should exist");
-    let perlin3_pos = perlin3_input
-        .get_field("pos")
-        .expect("perlin3.input.pos should exist");
-    let (x, y, z) = perlin3_pos.as_vec3().expect("should be Vec3");
-    assert_eq!(x, Fixed::ZERO);
-    assert_eq!(y, Fixed::ZERO);
-    assert_eq!(z, Fixed::ZERO);
+    match &nodes {
+        LpValue::Struct(s) => {
+            let perlin3_node = s.get_field("perlin3").expect("perlin3 node should exist");
+            match perlin3_node {
+                LpValue::Struct(s2) => {
+                    let perlin3_input = s2.get_field("input").expect("perlin3.input should exist");
+                    match perlin3_input {
+                        LpValue::Struct(s3) => {
+                            let perlin3_pos =
+                                s3.get_field("pos").expect("perlin3.input.pos should exist");
+                            let (x, y, z) = perlin3_pos.as_vec3().expect("should be Vec3");
+                            assert_eq!(x, Fixed::ZERO);
+                            assert_eq!(y, Fixed::ZERO);
+                            assert_eq!(z, Fixed::ZERO);
+                        }
+                        _ => panic!("expected Struct"),
+                    }
+                }
+                _ => panic!("expected Struct"),
+            }
+        }
+        _ => panic!("expected Struct"),
+    }
 }

@@ -58,7 +58,10 @@ impl LpVec4 {
 
 impl LpValueTrait for LpVec4 {
     fn shape(&self) -> &ShapeRef {
-        static DEFAULT: ShapeRef = ShapeRef::vec4_default();
+        static SHAPE: crate::shape::vec4::StaticVec4Shape =
+            crate::shape::vec4::StaticVec4Shape::default();
+        static DEFAULT: ShapeRef =
+            ShapeRef::Vec4(crate::shape::shape_ref::Vec4ShapeRef::Static(&SHAPE));
         &DEFAULT
     }
 

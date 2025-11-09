@@ -52,7 +52,8 @@ fn expand_enum(input: &DeriveInput, data: &DataEnum) -> Result<TokenStream2, Err
         }
         let variant_name = variant.ident.to_string();
         let variant_lit = LitStr::new(&variant_name, Span::call_site());
-        variant_exprs.push(quote! { lp_data::EnumVariant::unit(#variant_lit) });
+        variant_exprs
+            .push(quote! { lp_data::shape::enum::enum_meta::EnumVariant::unit(#variant_lit) });
     }
 
     let variants_const_ident = format_ident!(
@@ -188,6 +189,10 @@ fn expand_struct(input: &DeriveInput, data: &DataStruct) -> Result<TokenStream2,
     let fields_const_ident = format_ident!("__LP_SCHEMA_{}_FIELDS", struct_ident);
     let schema_const_ident =
         format_ident!("__LP_SCHEMA_{}", struct_ident.to_string().to_uppercase());
+    let schema_shape_ref_ident = format_ident!(
+        "__LP_SCHEMA_{}_SHAPE_REF",
+        struct_ident.to_string().to_uppercase()
+    );
     let type_name_literal = struct_attrs
         .type_name_override
         .clone()
@@ -222,21 +227,27 @@ fn expand_struct(input: &DeriveInput, data: &DataStruct) -> Result<TokenStream2,
 
         #(#helper_consts)*
 
-        const #fields_const_ident: &'static [lp_data::RecordField<lp_data::TypeRef>] = &[
+        const #fields_const_ident: &'static [lp_data::shape::record::RecordField] = &[
             #(#field_exprs),*
         ];
 
-        const #schema_const_ident: lp_data::LpTypeMeta =
-            lp_data::LpTypeMeta::new(lp_data::LpType::Record(lp_data::RecordType::new(
-                #record_name_lit,
-                #fields_const_ident,
-            ))) #doc_expr;
+        static #schema_const_ident: lp_data::shape::record::StaticRecordShape =
+            lp_data::shape::record::StaticRecordShape {
+                name: #record_name_lit,
+                fields: #fields_const_ident,
+                ui: lp_data::shape::record::RecordUi { collapsible: false },
+            };
+
+        static #schema_shape_ref_ident: lp_data::shape::shape_ref::ShapeRef =
+            lp_data::shape::shape_ref::ShapeRef::Record(
+                lp_data::shape::shape_ref::RecordShapeRef::Static(&#schema_const_ident)
+            );
 
         impl lp_data::LpDescribe for #struct_ident #where_clause {
             const TYPE_NAME: &'static str = #type_name_lit;
 
-            fn lp_schema() -> &'static lp_data::LpTypeMeta {
-                &#schema_const_ident
+            fn lp_schema() -> &'static lp_data::shape::shape_ref::ShapeRef {
+                &#schema_shape_ref_ident
             }
         }
 
@@ -252,7 +263,7 @@ fn build_field_expr(
     type_ref: TokenStream2,
 ) -> TokenStream2 {
     let field_name_lit = LitStr::new(field_name, Span::call_site());
-    let base = quote! { lp_data::RecordField::new(#field_name_lit, #type_ref) };
+    let base = quote! { lp_data::shape::record::RecordField::new(#field_name_lit, #type_ref) };
     if let Some(doc) = docs {
         let doc_lit = LitStr::new(&doc, Span::call_site());
         quote! { #base.with_docs(#doc_lit) }
@@ -522,18 +533,28 @@ impl TypeTokens {
     ) -> Result<Self, Error> {
         match classify_type(ty)? {
             TypeInfo::Primitive(kind) => {
-                let const_ident = format_ident!(
-                    "__LP_SCHEMA_{}_{}_TYPE",
+                let shape_ident = format_ident!(
+                    "__LP_SCHEMA_{}_{}_SHAPE",
                     struct_ident,
                     field_ident.to_string().to_uppercase()
                 );
-                let helper_expr = primitive_meta_expr(kind, &ui, ty.span())?;
+                let shape_ref_ident = format_ident!(
+                    "__LP_SCHEMA_{}_{}_SHAPE_REF",
+                    struct_ident,
+                    field_ident.to_string().to_uppercase()
+                );
+                let (shape_type, shape_expr, variant_name, shape_ref_type) =
+                    primitive_shape_expr(kind, &ui, ty.span())?;
                 let helper = quote! {
-                    const #const_ident: lp_data::LpTypeMeta = #helper_expr;
+                    static #shape_ident: #shape_type = #shape_expr;
+                    static #shape_ref_ident: lp_data::shape::shape_ref::ShapeRef =
+                        lp_data::shape::shape_ref::ShapeRef::#variant_name(
+                            lp_data::shape::shape_ref::#shape_ref_type::Static(&#shape_ident)
+                        );
                 };
                 Ok(TypeTokens {
                     helpers: vec![helper],
-                    type_ref: quote! { &#const_ident },
+                    type_ref: quote! { #shape_ref_ident },
                     bounds: Vec::new(),
                 })
             }
@@ -554,68 +575,86 @@ impl TypeTokens {
                 })
             }
             TypeInfo::Bool => {
-                let const_ident = format_ident!(
-                    "__LP_SCHEMA_{}_{}_TYPE",
+                let shape_ident = format_ident!(
+                    "__LP_SCHEMA_{}_{}_SHAPE",
                     struct_ident,
                     field_ident.to_string().to_uppercase()
                 );
-                let helper_expr = bool_meta_expr(&ui, ty.span())?;
+                let shape_ref_ident = format_ident!(
+                    "__LP_SCHEMA_{}_{}_SHAPE_REF",
+                    struct_ident,
+                    field_ident.to_string().to_uppercase()
+                );
+                let (shape_type, shape_expr) = bool_shape_expr(&ui, ty.span())?;
                 let helper = quote! {
-                    const #const_ident: lp_data::LpTypeMeta = #helper_expr;
+                    static #shape_ident: #shape_type = #shape_expr;
+                    static #shape_ref_ident: lp_data::shape::shape_ref::ShapeRef =
+                        lp_data::shape::shape_ref::ShapeRef::Bool(
+                            lp_data::shape::shape_ref::BoolShapeRef::Static(&#shape_ident)
+                        );
                 };
                 Ok(TypeTokens {
                     helpers: vec![helper],
-                    type_ref: quote! { &#const_ident },
+                    type_ref: quote! { #shape_ref_ident },
                     bounds: Vec::new(),
                 })
             }
             TypeInfo::Array(element_ty) => {
                 let element_tokens =
                     TypeTokens::for_nested(struct_ident, field_ident, *element_ty, ui)?;
-                let array_const_ident = format_ident!(
-                    "__LP_SCHEMA_{}_{}_ARRAY",
+                let array_shape_ident = format_ident!(
+                    "__LP_SCHEMA_{}_{}_ARRAY_SHAPE",
                     struct_ident,
                     field_ident.to_string().to_uppercase()
                 );
-                let element_type_ref = element_tokens.type_ref;
+                let array_shape_ref_ident = format_ident!(
+                    "__LP_SCHEMA_{}_{}_ARRAY_SHAPE_REF",
+                    struct_ident,
+                    field_ident.to_string().to_uppercase()
+                );
+                let element_shape_ref = element_tokens.type_ref;
                 let array_helper = quote! {
-                    const #array_const_ident: lp_data::LpTypeMeta =
-                        lp_data::LpTypeMeta::new(lp_data::LpType::Array(
-                            lp_data::ArrayType::new(#element_type_ref)
-                        ));
+                    static #array_shape_ident: lp_data::shape::array::StaticArrayShape =
+                        lp_data::shape::array::StaticArrayShape {
+                            element: #element_shape_ref,
+                            ui: lp_data::shape::array::array_meta::ArrayUi::List,
+                        };
+                    static #array_shape_ref_ident: lp_data::shape::shape_ref::ShapeRef =
+                        lp_data::shape::shape_ref::ShapeRef::Array(
+                            lp_data::shape::shape_ref::ArrayShapeRef::Static(&#array_shape_ident)
+                        );
                 };
                 let mut helpers = element_tokens.helpers;
                 helpers.push(array_helper);
                 let bounds = element_tokens.bounds;
                 Ok(TypeTokens {
                     helpers,
-                    type_ref: quote! { &#array_const_ident },
+                    type_ref: quote! { #array_shape_ref_ident },
                     bounds,
                 })
             }
             TypeInfo::Describe(path) => {
-                // For types that implement LpDescribe, we can't call lp_schema() in const contexts
-                // because trait methods can't be const in stable Rust. For same-crate types, we can
-                // reference the const directly. For external types, we can't use them in const contexts.
+                // For types that implement LpDescribe, we can reference the static ShapeRef directly
                 let mut bounds = Vec::new();
                 bounds.push(quote! { #path: lp_data::LpDescribe });
 
                 // Check if this is a same-crate type (simple ident, not a path)
                 let type_ref = if let Type::Path(ref type_path) = path {
                     if type_path.path.segments.len() == 1 {
-                        // Same-crate type - reference the const directly
+                        // Same-crate type - reference the static ShapeRef directly
                         let type_ident = &type_path.path.segments[0].ident;
-                        let const_name =
-                            format_ident!("__LP_SCHEMA_{}", type_ident.to_string().to_uppercase());
-                        quote! { &#const_name }
+                        let shape_ref_name = format_ident!(
+                            "__LP_SCHEMA_{}_SHAPE_REF",
+                            type_ident.to_string().to_uppercase()
+                        );
+                        quote! { #shape_ref_name }
                     } else {
-                        // External type - can't use in const contexts, will fail at compile time
-                        // TODO: Consider using const trait impls (nightly) or a different mechanism
-                        quote! { <#path as lp_data::LpDescribe>::lp_schema() }
+                        // External type - call lp_schema() which returns &'static ShapeRef
+                        quote! { *<#path as lp_data::LpDescribe>::lp_schema() }
                     }
                 } else {
                     // Not a TypePath - fall back to lp_schema()
-                    quote! { <#path as lp_data::LpDescribe>::lp_schema() }
+                    quote! { *<#path as lp_data::LpDescribe>::lp_schema() }
                 };
 
                 Ok(TypeTokens {
@@ -635,8 +674,13 @@ impl TypeTokens {
     ) -> Result<Self, Error> {
         match info {
             TypeInfo::Primitive(kind) => {
-                let const_ident = format_ident!(
-                    "__LP_SCHEMA_{}_{}_ELEMENT",
+                let shape_ident = format_ident!(
+                    "__LP_SCHEMA_{}_{}_ELEMENT_SHAPE",
+                    struct_ident,
+                    field_ident.to_string().to_uppercase()
+                );
+                let shape_ref_ident = format_ident!(
+                    "__LP_SCHEMA_{}_{}_ELEMENT_SHAPE_REF",
                     struct_ident,
                     field_ident.to_string().to_uppercase()
                 );
@@ -646,19 +690,29 @@ impl TypeTokens {
                         "array element UI cannot be overridden at the array level",
                     ));
                 }
-                let helper_expr = primitive_meta_expr(kind, &None, field_ident.span())?;
+                let (shape_type, shape_expr, variant_name, shape_ref_type) =
+                    primitive_shape_expr(kind, &None, field_ident.span())?;
                 let helper = quote! {
-                    const #const_ident: lp_data::LpTypeMeta = #helper_expr;
+                    static #shape_ident: #shape_type = #shape_expr;
+                    static #shape_ref_ident: lp_data::shape::shape_ref::ShapeRef =
+                        lp_data::shape::shape_ref::ShapeRef::#variant_name(
+                            lp_data::shape::shape_ref::#shape_ref_type::Static(&#shape_ident)
+                        );
                 };
                 Ok(TypeTokens {
                     helpers: vec![helper],
-                    type_ref: quote! { &#const_ident },
+                    type_ref: quote! { #shape_ref_ident },
                     bounds: Vec::new(),
                 })
             }
             TypeInfo::Vector(kind) => {
-                let const_ident = format_ident!(
-                    "__LP_SCHEMA_{}_{}_ELEMENT",
+                let shape_ident = format_ident!(
+                    "__LP_SCHEMA_{}_{}_ELEMENT_SHAPE",
+                    struct_ident,
+                    field_ident.to_string().to_uppercase()
+                );
+                let shape_ref_ident = format_ident!(
+                    "__LP_SCHEMA_{}_{}_ELEMENT_SHAPE_REF",
                     struct_ident,
                     field_ident.to_string().to_uppercase()
                 );
@@ -668,19 +722,29 @@ impl TypeTokens {
                         "array element UI cannot be overridden at the array level",
                     ));
                 }
-                let helper_expr = vector_meta_expr(kind, &None, field_ident.span())?;
+                let (shape_type, shape_expr, variant_name, shape_ref_type) =
+                    vector_shape_expr(kind, &None, field_ident.span())?;
                 let helper = quote! {
-                    const #const_ident: lp_data::LpTypeMeta = #helper_expr;
+                    static #shape_ident: #shape_type = #shape_expr;
+                    static #shape_ref_ident: lp_data::shape::shape_ref::ShapeRef =
+                        lp_data::shape::shape_ref::ShapeRef::#variant_name(
+                            lp_data::shape::shape_ref::#shape_ref_type::Static(&#shape_ident)
+                        );
                 };
                 Ok(TypeTokens {
                     helpers: vec![helper],
-                    type_ref: quote! { &#const_ident },
+                    type_ref: quote! { #shape_ref_ident },
                     bounds: Vec::new(),
                 })
             }
             TypeInfo::Bool => {
-                let const_ident = format_ident!(
-                    "__LP_SCHEMA_{}_{}_ELEMENT",
+                let shape_ident = format_ident!(
+                    "__LP_SCHEMA_{}_{}_ELEMENT_SHAPE",
+                    struct_ident,
+                    field_ident.to_string().to_uppercase()
+                );
+                let shape_ref_ident = format_ident!(
+                    "__LP_SCHEMA_{}_{}_ELEMENT_SHAPE_REF",
                     struct_ident,
                     field_ident.to_string().to_uppercase()
                 );
@@ -690,13 +754,17 @@ impl TypeTokens {
                         "array element UI cannot be overridden at the array level",
                     ));
                 }
-                let helper_expr = bool_meta_expr(&None, field_ident.span())?;
+                let (shape_type, shape_expr) = bool_shape_expr(&None, field_ident.span())?;
                 let helper = quote! {
-                    const #const_ident: lp_data::LpTypeMeta = #helper_expr;
+                    static #shape_ident: #shape_type = #shape_expr;
+                    static #shape_ref_ident: lp_data::shape::shape_ref::ShapeRef =
+                        lp_data::shape::shape_ref::ShapeRef::Bool(
+                            lp_data::shape::shape_ref::BoolShapeRef::Static(&#shape_ident)
+                        );
                 };
                 Ok(TypeTokens {
                     helpers: vec![helper],
-                    type_ref: quote! { &#const_ident },
+                    type_ref: quote! { #shape_ref_ident },
                     bounds: Vec::new(),
                 })
             }
@@ -705,18 +773,20 @@ impl TypeTokens {
                 "nested arrays are not currently supported",
             )),
             TypeInfo::Describe(path) => {
-                // For same-crate types, reference the const directly
+                // For same-crate types, reference the static ShapeRef directly
                 let type_ref = if let Type::Path(ref type_path) = path {
                     if type_path.path.segments.len() == 1 {
                         let type_ident = &type_path.path.segments[0].ident;
-                        let const_name =
-                            format_ident!("__LP_SCHEMA_{}", type_ident.to_string().to_uppercase());
-                        quote! { &#const_name }
+                        let shape_ref_name = format_ident!(
+                            "__LP_SCHEMA_{}_SHAPE_REF",
+                            type_ident.to_string().to_uppercase()
+                        );
+                        quote! { #shape_ref_name }
                     } else {
-                        quote! { <#path as lp_data::LpDescribe>::lp_schema() }
+                        quote! { *<#path as lp_data::LpDescribe>::lp_schema() }
                     }
                 } else {
-                    quote! { <#path as lp_data::LpDescribe>::lp_schema() }
+                    quote! { *<#path as lp_data::LpDescribe>::lp_schema() }
                 };
 
                 Ok(TypeTokens {
@@ -763,6 +833,9 @@ fn classify_type(ty: &Type) -> Result<TypeInfo, Error> {
                 Ok(TypeInfo::Bool)
             } else if is_fixed(path) {
                 Ok(TypeInfo::Primitive(PrimitiveKind::Fixed))
+            } else if is_lp_int32(path) {
+                // LpInt32 is a newtype wrapper around i32, treat it as i32
+                Ok(TypeInfo::Primitive(PrimitiveKind::Int32))
             } else if is_vec2(path) {
                 Ok(TypeInfo::Vector(VectorKind::Vec2))
             } else if is_vec3(path) {
@@ -780,6 +853,21 @@ fn classify_type(ty: &Type) -> Result<TypeInfo, Error> {
             ty.span(),
             "unsupported type; expected primitives, vectors, Vec<T>, or other LpDescribe types",
         )),
+    }
+}
+
+fn is_lp_int32(path: &TypePath) -> bool {
+    // Check for lp_data::shape::int32::LpInt32 or just LpInt32
+    if path.path.segments.len() == 1 {
+        path.path.segments[0].ident == "LpInt32"
+    } else if path.path.segments.len() == 4 {
+        // lp_data::shape::int32::LpInt32
+        path.path.segments[0].ident == "lp_data"
+            && path.path.segments[1].ident == "shape"
+            && path.path.segments[2].ident == "int32"
+            && path.path.segments[3].ident == "LpInt32"
+    } else {
+        false
     }
 }
 
@@ -827,6 +915,95 @@ fn extract_vec_element(path: &TypePath) -> Option<Type> {
         }
         None
     })
+}
+
+fn primitive_shape_expr(
+    kind: PrimitiveKind,
+    ui: &Option<UiAttr>,
+    span: Span,
+) -> Result<(TokenStream2, TokenStream2, TokenStream2, TokenStream2), Error> {
+    match kind {
+        PrimitiveKind::String => {
+            let shape_type = quote! { lp_data::shape::string::StaticStringShape };
+            let shape_expr = match ui {
+                None | Some(UiAttr::StringSingleLine) | Some(UiAttr::NumberTextbox) => {
+                    quote! { lp_data::shape::string::StaticStringShape::default() }
+                }
+                Some(UiAttr::StringMultiline) => {
+                    quote! { lp_data::shape::string::StaticStringShape::new(lp_data::shape::string::string_meta::StringUi::MultiLine) }
+                }
+                Some(other) => {
+                    return Err(Error::new(
+                        span,
+                        format!(
+                            "ui {:?} not valid for string fields",
+                            other_variant_name(other)
+                        ),
+                    ));
+                }
+            };
+            Ok((
+                shape_type,
+                shape_expr,
+                quote! { String },
+                quote! { StringShapeRef },
+            ))
+        }
+        PrimitiveKind::Int32 => {
+            let shape_type = quote! { lp_data::shape::int32::StaticInt32Shape };
+            let shape_expr = match ui {
+                None | Some(UiAttr::NumberTextbox) => {
+                    quote! { lp_data::shape::int32::StaticInt32Shape::default() }
+                }
+                Some(UiAttr::NumberSlider { min, max, step: _ }) => {
+                    let slider_ui = quote! { lp_data::shape::int32::int32_meta::Int32Ui::Slider { min: (#min) as i32, max: (#max) as i32 } };
+                    quote! { lp_data::shape::int32::StaticInt32Shape::new(#slider_ui) }
+                }
+                Some(other) => {
+                    return Err(Error::new(
+                        span,
+                        format!(
+                            "ui {:?} not valid for numeric fields",
+                            other_variant_name(other)
+                        ),
+                    ));
+                }
+            };
+            Ok((
+                shape_type,
+                shape_expr,
+                quote! { Int32 },
+                quote! { Int32ShapeRef },
+            ))
+        }
+        PrimitiveKind::Fixed => {
+            let shape_type = quote! { lp_data::shape::fixed::StaticFixedShape };
+            let shape_expr = match ui {
+                None | Some(UiAttr::NumberTextbox) => {
+                    quote! { lp_data::shape::fixed::StaticFixedShape::default() }
+                }
+                Some(UiAttr::NumberSlider { min, max, step: _ }) => {
+                    let slider_ui = quote! { lp_data::shape::fixed::fixed_meta::FixedUi::Slider { min: (#min) as i32, max: (#max) as i32 } };
+                    quote! { lp_data::shape::fixed::StaticFixedShape::new(#slider_ui) }
+                }
+                Some(other) => {
+                    return Err(Error::new(
+                        span,
+                        format!(
+                            "ui {:?} not valid for numeric fields",
+                            other_variant_name(other)
+                        ),
+                    ));
+                }
+            };
+            Ok((
+                shape_type,
+                shape_expr,
+                quote! { Fixed },
+                quote! { FixedShapeRef },
+            ))
+        }
+    }
 }
 
 fn primitive_meta_expr(
@@ -901,6 +1078,112 @@ fn primitive_meta_expr(
             )),
         },
     }
+}
+
+fn vector_shape_expr(
+    kind: VectorKind,
+    ui: &Option<UiAttr>,
+    span: Span,
+) -> Result<(TokenStream2, TokenStream2, TokenStream2, TokenStream2), Error> {
+    match kind {
+        VectorKind::Vec2 => {
+            let shape_type = quote! { lp_data::shape::vec2::StaticVec2Shape };
+            let shape_expr = match ui {
+                None | Some(UiAttr::VectorRaw) | Some(UiAttr::NumberTextbox) => {
+                    quote! { lp_data::shape::vec2::StaticVec2Shape::default() }
+                }
+                Some(UiAttr::VectorPosition) => {
+                    quote! { lp_data::shape::vec2::StaticVec2Shape::new(lp_data::shape::vec2::vec2_meta::Vec2Ui::Position) }
+                }
+                Some(other) => {
+                    return Err(Error::new(
+                        span,
+                        format!(
+                            "ui {:?} not valid for vec2 fields",
+                            other_variant_name(other)
+                        ),
+                    ));
+                }
+            };
+            Ok((
+                shape_type,
+                shape_expr,
+                quote! { Vec2 },
+                quote! { Vec2ShapeRef },
+            ))
+        }
+        VectorKind::Vec3 => {
+            let shape_type = quote! { lp_data::shape::vec3::StaticVec3Shape };
+            let shape_expr = match ui {
+                None | Some(UiAttr::VectorRaw) | Some(UiAttr::NumberTextbox) => {
+                    quote! { lp_data::shape::vec3::StaticVec3Shape::default() }
+                }
+                Some(UiAttr::VectorColor) => {
+                    quote! { lp_data::shape::vec3::StaticVec3Shape::new(lp_data::shape::vec3::vec3_meta::Vec3Ui::Color) }
+                }
+                Some(other) => {
+                    return Err(Error::new(
+                        span,
+                        format!(
+                            "ui {:?} not valid for vec3 fields",
+                            other_variant_name(other)
+                        ),
+                    ));
+                }
+            };
+            Ok((
+                shape_type,
+                shape_expr,
+                quote! { Vec3 },
+                quote! { Vec3ShapeRef },
+            ))
+        }
+        VectorKind::Vec4 => {
+            let shape_type = quote! { lp_data::shape::vec4::StaticVec4Shape };
+            let shape_expr = match ui {
+                None | Some(UiAttr::VectorRaw) | Some(UiAttr::NumberTextbox) => {
+                    quote! { lp_data::shape::vec4::StaticVec4Shape::default() }
+                }
+                Some(other) => {
+                    return Err(Error::new(
+                        span,
+                        format!(
+                            "ui {:?} not valid for vec4 fields",
+                            other_variant_name(other)
+                        ),
+                    ));
+                }
+            };
+            Ok((
+                shape_type,
+                shape_expr,
+                quote! { Vec4 },
+                quote! { Vec4ShapeRef },
+            ))
+        }
+    }
+}
+
+fn bool_shape_expr(ui: &Option<UiAttr>, span: Span) -> Result<(TokenStream2, TokenStream2), Error> {
+    let shape_type = quote! { lp_data::shape::bool::StaticBoolShape };
+    let shape_expr = match ui {
+        None | Some(UiAttr::BoolCheckbox) | Some(UiAttr::NumberTextbox) => {
+            quote! { lp_data::shape::bool::StaticBoolShape::default() }
+        }
+        Some(UiAttr::BoolToggle) => {
+            quote! { lp_data::shape::bool::StaticBoolShape::new(lp_data::shape::bool::bool_meta::BoolUi::Toggle) }
+        }
+        Some(other) => {
+            return Err(Error::new(
+                span,
+                format!(
+                    "ui {:?} not valid for bool fields",
+                    other_variant_name(other)
+                ),
+            ));
+        }
+    };
+    Ok((shape_type, shape_expr))
 }
 
 fn vector_meta_expr(

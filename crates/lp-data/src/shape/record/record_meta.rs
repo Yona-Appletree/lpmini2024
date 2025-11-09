@@ -35,6 +35,10 @@ impl RecordUi {
     pub const fn collapsible() -> Self {
         Self { collapsible: true }
     }
+
+    pub const fn default() -> Self {
+        Self { collapsible: false }
+    }
 }
 
 impl Default for RecordUi {

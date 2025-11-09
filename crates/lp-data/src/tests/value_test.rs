@@ -7,8 +7,8 @@ use lp_pool::collections::string::LpString;
 use lp_pool::error::AllocError;
 use lp_pool::memory_pool::LpMemoryPool;
 
-use crate::metadata::{LpTypeMeta, TypeRef};
-use crate::types::{RecordField, RecordType};
+use crate::shape::record::{RecordField, StaticRecordShape};
+use crate::shape::shape_ref::{RecordShapeRef, ShapeRef};
 use crate::value::LpValue;
 
 #[test]
@@ -71,17 +71,17 @@ fn test_option_values() {
     let pool = unsafe { LpMemoryPool::new(memory_ptr, 4096).unwrap() };
 
     pool.run(|| {
-        const FIXED_META: LpTypeMeta = LpTypeMeta::new(crate::LpType::fixed());
+        let fixed_shape = ShapeRef::fixed_default();
 
         // Test None
-        let opt_none = LpValue::try_option_none(&FIXED_META).unwrap();
+        let opt_none = LpValue::try_option_none(fixed_shape).unwrap();
         assert!(opt_none.is_none());
         assert!(!opt_none.is_some());
         assert!(opt_none.try_unwrap().is_err());
 
         // Test Some
         let inner_value = LpValue::fixed(Fixed::from_f32(42.0));
-        let opt_some = LpValue::try_option_some(&FIXED_META, inner_value).unwrap();
+        let opt_some = LpValue::try_option_some(fixed_shape, inner_value).unwrap();
         assert!(opt_some.is_some());
         assert!(!opt_some.is_none());
         let unwrapped = opt_some.try_unwrap().unwrap();
@@ -99,18 +99,35 @@ fn test_record_values() {
     let pool = unsafe { LpMemoryPool::new(memory_ptr, 4096).unwrap() };
 
     pool.run(|| {
-        const FIXED_META: LpTypeMeta = LpTypeMeta::new(crate::LpType::fixed());
-        const INT_META: LpTypeMeta = LpTypeMeta::new(crate::LpType::int32());
+        // Create static shapes for fields
+        use crate::shape::fixed::StaticFixedShape;
+        use crate::shape::int32::StaticInt32Shape;
+        use crate::shape::shape_ref::{FixedShapeRef, Int32ShapeRef};
 
-        const FIELDS: &[RecordField<TypeRef>] = &[
-            RecordField::new("x", &FIXED_META),
-            RecordField::new("y", &INT_META),
+        static FIXED_SHAPE_STATIC: StaticFixedShape = StaticFixedShape::default();
+        static INT_SHAPE_STATIC: StaticInt32Shape = StaticInt32Shape::default();
+
+        static FIXED_SHAPE: ShapeRef = ShapeRef::Fixed(FixedShapeRef::Static(&FIXED_SHAPE_STATIC));
+        static INT_SHAPE: ShapeRef = ShapeRef::Int32(Int32ShapeRef::Static(&INT_SHAPE_STATIC));
+
+        // Create record fields
+        static FIELDS: &[RecordField] = &[
+            RecordField::new("x", FIXED_SHAPE),
+            RecordField::new("y", INT_SHAPE),
         ];
-        const RECORD_TYPE: RecordType<TypeRef> = RecordType::new("Point", FIELDS);
-        const RECORD_META: LpTypeMeta = LpTypeMeta::new(crate::LpType::Record(RECORD_TYPE));
+
+        // Create static record shape
+        static RECORD_SHAPE: StaticRecordShape = StaticRecordShape {
+            name: "Point",
+            fields: FIELDS,
+            ui: crate::shape::record::RecordUi { collapsible: false },
+        };
+
+        // Create ShapeRef for the record
+        let record_shape_ref = ShapeRef::Record(RecordShapeRef::Static(&RECORD_SHAPE));
 
         // Create record
-        let mut record = LpValue::try_record(&RECORD_META).unwrap();
+        let mut record = LpValue::try_record(record_shape_ref).unwrap();
 
         // Set field values
         record
@@ -120,13 +137,25 @@ fn test_record_values() {
 
         // Get field values
         let x_field = record.get_field("x").unwrap();
-        assert_eq!(x_field.as_fixed().unwrap(), Fixed::from_f32(10.0));
+        // x_field is &dyn LpValueTrait, need to downcast to LpValue
+        // For now, use try_set_field to verify it works
+        let x_value = match &record {
+            LpValue::Struct(s) => s.get_field("x").unwrap(),
+            _ => panic!("expected Struct"),
+        };
+        assert_eq!(x_value.as_fixed().unwrap(), Fixed::from_f32(10.0));
 
-        let y_field = record.get_field("y").unwrap();
-        assert_eq!(y_field.as_int32().unwrap(), 20);
+        let y_value = match &record {
+            LpValue::Struct(s) => s.get_field("y").unwrap(),
+            _ => panic!("expected Struct"),
+        };
+        assert_eq!(y_value.as_int32().unwrap(), 20);
 
         // Test field not found
-        assert!(record.get_field("z").is_err());
+        match &record {
+            LpValue::Struct(s) => assert!(s.get_field("z").is_err()),
+            _ => panic!("expected Struct"),
+        }
 
         Ok::<(), AllocError>(())
     })
@@ -140,10 +169,26 @@ fn test_array_values() {
     let pool = unsafe { LpMemoryPool::new(memory_ptr, 4096).unwrap() };
 
     pool.run(|| {
-        const FIXED_META: LpTypeMeta = LpTypeMeta::new(crate::LpType::fixed());
+        let fixed_shape = ShapeRef::fixed_default();
+
+        // Create array shape
+        use crate::shape::array::StaticArrayShape;
+        use crate::shape::fixed::StaticFixedShape;
+        use crate::shape::shape_ref::ArrayShapeRef;
+        use crate::shape::shape_ref::FixedShapeRef;
+
+        static ELEMENT_SHAPE_STATIC: StaticFixedShape = StaticFixedShape::default();
+        static ELEMENT_SHAPE: ShapeRef =
+            ShapeRef::Fixed(FixedShapeRef::Static(&ELEMENT_SHAPE_STATIC));
+
+        static ARRAY_SHAPE: StaticArrayShape = StaticArrayShape {
+            element: ELEMENT_SHAPE,
+            ui: crate::shape::record::RecordUi { collapsible: false },
+        };
+        let array_shape_ref = ShapeRef::Array(ArrayShapeRef::Static(&ARRAY_SHAPE));
 
         // Create array
-        let mut array = LpValue::try_array(&FIXED_META, 0).unwrap();
+        let mut array = LpValue::try_array(array_shape_ref, 0).unwrap();
 
         // Push elements
         array
@@ -158,20 +203,40 @@ fn test_array_values() {
 
         // Get elements
         let elem0 = array.get_element(0).unwrap();
-        assert_eq!(elem0.as_fixed().unwrap(), Fixed::from_f32(1.0));
+        // elem0 is &dyn LpValueTrait, need to access through array value
+        match &array {
+            LpValue::Array(arr) => {
+                let val = arr.get(0).unwrap();
+                assert_eq!(val.as_fixed().unwrap(), Fixed::from_f32(1.0));
+            }
+            _ => panic!("expected Array"),
+        }
 
-        let elem1 = array.get_element(1).unwrap();
-        assert_eq!(elem1.as_fixed().unwrap(), Fixed::from_f32(2.0));
+        match &array {
+            LpValue::Array(arr) => {
+                let val = arr.get(1).unwrap();
+                assert_eq!(val.as_fixed().unwrap(), Fixed::from_f32(2.0));
+            }
+            _ => panic!("expected Array"),
+        }
 
         // Set element
         array
             .try_set_element(1, LpValue::fixed(Fixed::from_f32(99.0)))
             .unwrap();
-        let updated_elem1 = array.get_element(1).unwrap();
-        assert_eq!(updated_elem1.as_fixed().unwrap(), Fixed::from_f32(99.0));
+        match &array {
+            LpValue::Array(arr) => {
+                let val = arr.get(1).unwrap();
+                assert_eq!(val.as_fixed().unwrap(), Fixed::from_f32(99.0));
+            }
+            _ => panic!("expected Array"),
+        }
 
         // Test index out of bounds
-        assert!(array.get_element(10).is_err());
+        match &array {
+            LpValue::Array(arr) => assert!(arr.get(10).is_err()),
+            _ => panic!("expected Array"),
+        }
 
         Ok::<(), AllocError>(())
     })
@@ -186,27 +251,60 @@ fn test_path_access() {
 
     pool.run(|| {
         // Create nested structure: { a: { b: { c: 42 } } }
-        const INT_META: LpTypeMeta = LpTypeMeta::new(crate::LpType::int32());
+        use crate::shape::int32::StaticInt32Shape;
+        use crate::shape::shape_ref::Int32ShapeRef;
+
+        static INT_SHAPE_STATIC: StaticInt32Shape = StaticInt32Shape::default();
+        static INT_SHAPE: ShapeRef = ShapeRef::Int32(Int32ShapeRef::Static(&INT_SHAPE_STATIC));
 
         // Inner record: { c: int32 }
-        const INNER_FIELDS: &[RecordField<TypeRef>] = &[RecordField::new("c", &INT_META)];
-        const INNER_TYPE: RecordType<TypeRef> = RecordType::new("Inner", INNER_FIELDS);
-        const INNER_META: LpTypeMeta = LpTypeMeta::new(crate::LpType::Record(INNER_TYPE));
+        static INNER_FIELDS: &[RecordField] = &[RecordField::new("c", INT_SHAPE)];
+        static INNER_SHAPE: StaticRecordShape = StaticRecordShape {
+            name: "Inner",
+            fields: INNER_FIELDS,
+            ui: crate::shape::record::RecordUi { collapsible: false },
+        };
+        static INNER_SHAPE_REF: ShapeRef = ShapeRef::Record(RecordShapeRef::Static(&INNER_SHAPE));
 
         // Middle record: { b: Inner }
-        const MIDDLE_FIELDS: &[RecordField<TypeRef>] = &[RecordField::new("b", &INNER_META)];
-        const MIDDLE_TYPE: RecordType<TypeRef> = RecordType::new("Middle", MIDDLE_FIELDS);
-        const MIDDLE_META: LpTypeMeta = LpTypeMeta::new(crate::LpType::Record(MIDDLE_TYPE));
+        static MIDDLE_FIELDS: &[RecordField] = &[RecordField::new("b", INNER_SHAPE_REF)];
+        static MIDDLE_SHAPE: StaticRecordShape = StaticRecordShape {
+            name: "Middle",
+            fields: MIDDLE_FIELDS,
+            ui: crate::shape::record::RecordUi { collapsible: false },
+        };
+        static MIDDLE_SHAPE_REF: ShapeRef = ShapeRef::Record(RecordShapeRef::Static(&MIDDLE_SHAPE));
 
         // Outer record: { a: Middle }
-        const OUTER_FIELDS: &[RecordField<TypeRef>] = &[RecordField::new("a", &MIDDLE_META)];
-        const OUTER_TYPE: RecordType<TypeRef> = RecordType::new("Outer", OUTER_FIELDS);
-        const OUTER_META: LpTypeMeta = LpTypeMeta::new(crate::LpType::Record(OUTER_TYPE));
+        static OUTER_FIELDS: &[RecordField] = &[RecordField::new("a", MIDDLE_SHAPE_REF)];
+        static OUTER_SHAPE: StaticRecordShape = StaticRecordShape {
+            name: "Outer",
+            fields: OUTER_FIELDS,
+            ui: crate::shape::record::RecordUi { collapsible: false },
+        };
+        let outer_shape_ref = ShapeRef::Record(RecordShapeRef::Static(&OUTER_SHAPE));
 
-        let mut outer = LpValue::try_record(&OUTER_META).unwrap();
-        let a = outer.get_field_mut("a").unwrap();
-        let b = a.get_field_mut("b").unwrap();
-        *b.get_field_mut("c").unwrap() = LpValue::int32(42);
+        let mut outer = LpValue::try_record(outer_shape_ref).unwrap();
+
+        // Access fields mutably
+        match &mut outer {
+            LpValue::Struct(s) => {
+                let a = s.get_field_mut("a").unwrap();
+                match a {
+                    LpValue::Struct(s2) => {
+                        let b = s2.get_field_mut("b").unwrap();
+                        match b {
+                            LpValue::Struct(s3) => {
+                                *s3.get_field_mut("c").unwrap() = LpValue::int32(42);
+                            }
+                            _ => panic!("expected Struct"),
+                        }
+                    }
+                    _ => panic!("expected Struct"),
+                }
+            }
+            _ => panic!("expected Struct"),
+        }
 
         // Test path access
         let c_value = outer.get_path("a.b.c").unwrap();

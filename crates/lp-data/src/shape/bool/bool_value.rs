@@ -42,7 +42,10 @@ impl LpBool {
 
 impl LpValueTrait for LpBool {
     fn shape(&self) -> &ShapeRef {
-        static DEFAULT: ShapeRef = ShapeRef::bool_default();
+        static SHAPE: crate::shape::bool::StaticBoolShape =
+            crate::shape::bool::StaticBoolShape::default();
+        static DEFAULT: ShapeRef =
+            ShapeRef::Bool(crate::shape::shape_ref::BoolShapeRef::Static(&SHAPE));
         &DEFAULT
     }
 

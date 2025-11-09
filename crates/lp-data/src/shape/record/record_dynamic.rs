@@ -23,7 +23,7 @@ impl DynamicRecordShape {
         Ok(Self {
             name: name_str,
             fields,
-            ui: crate::shape::record::RecordUi::default(),
+            ui: crate::shape::record::RecordUi { collapsible: false },
         })
     }
 }
@@ -77,7 +77,7 @@ impl RecordValue for RecordValueDyn {
         name: &str,
     ) -> Result<&dyn crate::shape::value::LpValueTrait, crate::value::RuntimeError> {
         let name_str = LpString::try_from_str(name)
-            .map_err(|_| crate::value::RuntimeError::AllocError(AllocError::OutOfMemory))?;
+            .map_err(|_| crate::value::RuntimeError::AllocError(AllocError::PoolExhausted))?;
         let value = self.fields.get(&name_str).ok_or_else(|| {
             crate::value::RuntimeError::FieldNotFound {
                 record_name: "dynamic",
@@ -92,7 +92,7 @@ impl RecordValue for RecordValueDyn {
         name: &str,
     ) -> Result<&mut dyn crate::shape::value::LpValueTrait, crate::value::RuntimeError> {
         let name_str = LpString::try_from_str(name)
-            .map_err(|_| crate::value::RuntimeError::AllocError(AllocError::OutOfMemory))?;
+            .map_err(|_| crate::value::RuntimeError::AllocError(AllocError::PoolExhausted))?;
         let value = self.fields.get_mut(&name_str).ok_or_else(|| {
             crate::value::RuntimeError::FieldNotFound {
                 record_name: "dynamic",
@@ -104,10 +104,10 @@ impl RecordValue for RecordValueDyn {
 
     fn set_field(&mut self, name: &str, value: LpValue) -> Result<(), crate::value::RuntimeError> {
         let name_str = LpString::try_from_str(name)
-            .map_err(|_| crate::value::RuntimeError::AllocError(AllocError::OutOfMemory))?;
+            .map_err(|_| crate::value::RuntimeError::AllocError(AllocError::PoolExhausted))?;
         self.fields
             .try_insert(name_str, value)
-            .map_err(|_| crate::value::RuntimeError::AllocError(AllocError::OutOfMemory))?;
+            .map_err(|e| crate::value::RuntimeError::AllocError(e))?;
         Ok(())
     }
 }

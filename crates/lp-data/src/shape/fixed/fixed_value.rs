@@ -43,7 +43,10 @@ impl LpFixed {
 
 impl LpValueTrait for LpFixed {
     fn shape(&self) -> &ShapeRef {
-        static DEFAULT: ShapeRef = ShapeRef::fixed_default();
+        static SHAPE: crate::shape::fixed::StaticFixedShape =
+            crate::shape::fixed::StaticFixedShape::default();
+        static DEFAULT: ShapeRef =
+            ShapeRef::Fixed(crate::shape::shape_ref::FixedShapeRef::Static(&SHAPE));
         &DEFAULT
     }
 

@@ -43,7 +43,10 @@ impl LpStringValue {
 
 impl LpValueTrait for LpStringValue {
     fn shape(&self) -> &ShapeRef {
-        static DEFAULT: ShapeRef = ShapeRef::string_default();
+        static SHAPE: crate::shape::string::StaticStringShape =
+            crate::shape::string::StaticStringShape::default();
+        static DEFAULT: ShapeRef =
+            ShapeRef::String(crate::shape::shape_ref::StringShapeRef::Static(&SHAPE));
         &DEFAULT
     }
 

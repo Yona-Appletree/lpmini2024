@@ -53,7 +53,10 @@ impl LpVec3 {
 
 impl LpValueTrait for LpVec3 {
     fn shape(&self) -> &ShapeRef {
-        static DEFAULT: ShapeRef = ShapeRef::vec3_default();
+        static SHAPE: crate::shape::vec3::StaticVec3Shape =
+            crate::shape::vec3::StaticVec3Shape::default();
+        static DEFAULT: ShapeRef =
+            ShapeRef::Vec3(crate::shape::shape_ref::Vec3ShapeRef::Static(&SHAPE));
         &DEFAULT
     }
 

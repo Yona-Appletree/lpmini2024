@@ -2,7 +2,7 @@ use lp_math::fixed::Vec3;
 use serde::{Deserialize, Serialize};
 
 use crate as lp_data;
-use crate::{LpDescribe, LpSchema};
+use crate::LpSchema;
 
 /// Runtime structure for a Perlin3 node.
 ///

@@ -87,31 +87,52 @@ impl LpValue {
     pub fn shape(&self) -> &ShapeRef {
         match self {
             LpValue::Fixed(_) => {
-                static DEFAULT: ShapeRef = ShapeRef::fixed_default();
+                static SHAPE: crate::shape::fixed::StaticFixedShape =
+                    crate::shape::fixed::StaticFixedShape::default();
+                static DEFAULT: ShapeRef =
+                    ShapeRef::Fixed(crate::shape::shape_ref::FixedShapeRef::Static(&SHAPE));
                 &DEFAULT
             }
             LpValue::Int32(_) => {
-                static DEFAULT: ShapeRef = ShapeRef::int32_default();
+                static SHAPE: crate::shape::int32::StaticInt32Shape =
+                    crate::shape::int32::StaticInt32Shape::default();
+                static DEFAULT: ShapeRef =
+                    ShapeRef::Int32(crate::shape::shape_ref::Int32ShapeRef::Static(&SHAPE));
                 &DEFAULT
             }
             LpValue::Bool(_) => {
-                static DEFAULT: ShapeRef = ShapeRef::bool_default();
+                static SHAPE: crate::shape::bool::StaticBoolShape =
+                    crate::shape::bool::StaticBoolShape::default();
+                static DEFAULT: ShapeRef =
+                    ShapeRef::Bool(crate::shape::shape_ref::BoolShapeRef::Static(&SHAPE));
                 &DEFAULT
             }
             LpValue::String(_) => {
-                static DEFAULT: ShapeRef = ShapeRef::string_default();
+                static SHAPE: crate::shape::string::StaticStringShape =
+                    crate::shape::string::StaticStringShape::default();
+                static DEFAULT: ShapeRef =
+                    ShapeRef::String(crate::shape::shape_ref::StringShapeRef::Static(&SHAPE));
                 &DEFAULT
             }
             LpValue::Vec2(_, _) => {
-                static DEFAULT: ShapeRef = ShapeRef::vec2_default();
+                static SHAPE: crate::shape::vec2::StaticVec2Shape =
+                    crate::shape::vec2::StaticVec2Shape::default();
+                static DEFAULT: ShapeRef =
+                    ShapeRef::Vec2(crate::shape::shape_ref::Vec2ShapeRef::Static(&SHAPE));
                 &DEFAULT
             }
             LpValue::Vec3(_, _, _) => {
-                static DEFAULT: ShapeRef = ShapeRef::vec3_default();
+                static SHAPE: crate::shape::vec3::StaticVec3Shape =
+                    crate::shape::vec3::StaticVec3Shape::default();
+                static DEFAULT: ShapeRef =
+                    ShapeRef::Vec3(crate::shape::shape_ref::Vec3ShapeRef::Static(&SHAPE));
                 &DEFAULT
             }
             LpValue::Vec4(_, _, _, _) => {
-                static DEFAULT: ShapeRef = ShapeRef::vec4_default();
+                static SHAPE: crate::shape::vec4::StaticVec4Shape =
+                    crate::shape::vec4::StaticVec4Shape::default();
+                static DEFAULT: ShapeRef =
+                    ShapeRef::Vec4(crate::shape::shape_ref::Vec4ShapeRef::Static(&SHAPE));
                 &DEFAULT
             }
             LpValue::Option(opt) => &opt.shape,
