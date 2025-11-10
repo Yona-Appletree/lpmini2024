@@ -1,6 +1,6 @@
 //! Dynamic shape implementation for Record.
 
-use super::record_meta::{RecordFieldMeta, RecordFieldMetaDyn};
+use super::record_meta::{RecordFieldMeta, RecordFieldMetaDyn, RecordMeta, RecordMetaDyn};
 use super::record_shape::{RecordFieldShape, RecordShape};
 use crate::kind::{kind::LpKind, shape::LpShape};
 use lp_pool::LpVec;
@@ -37,8 +37,8 @@ impl RecordFieldShape for RecordFieldDyn {
 ///
 /// Allocated in lp-pool.
 pub struct RecordShapeDyn {
-    /// Name of this record type.
-    pub name: lp_pool::LpString,
+    /// Metadata for this record shape.
+    pub meta: RecordMetaDyn,
 
     /// Fields in this record.
     pub fields: LpVec<RecordFieldDyn>,
@@ -47,7 +47,10 @@ pub struct RecordShapeDyn {
 impl RecordShapeDyn {
     pub fn new() -> Self {
         Self {
-            name: lp_pool::LpString::new(),
+            meta: RecordMetaDyn {
+                name: lp_pool::LpString::new(),
+                docs: None,
+            },
             fields: LpVec::new(),
         }
     }
@@ -60,8 +63,8 @@ impl LpShape for RecordShapeDyn {
 }
 
 impl RecordShape for RecordShapeDyn {
-    fn name(&self) -> &str {
-        self.name.as_str()
+    fn meta(&self) -> &dyn RecordMeta {
+        &self.meta as &dyn RecordMeta
     }
 
     fn field_count(&self) -> usize {
@@ -95,7 +98,10 @@ impl Clone for RecordFieldDyn {
 impl Clone for RecordShapeDyn {
     fn clone(&self) -> Self {
         RecordShapeDyn {
-            name: self.name.clone(),
+            meta: RecordMetaDyn {
+                name: self.meta.name.clone(),
+                docs: self.meta.docs.clone(),
+            },
             fields: self.fields.clone(),
         }
     }

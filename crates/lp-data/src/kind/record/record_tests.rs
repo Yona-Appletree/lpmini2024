@@ -6,7 +6,7 @@ mod tests {
         fixed::fixed_static::FIXED_SHAPE,
         kind::LpKind,
         record::{
-            record_meta::RecordFieldMetaStatic,
+            record_meta::{RecordFieldMetaStatic, RecordMetaStatic},
             record_static::{RecordFieldStatic, RecordShapeStatic},
             RecordFieldShape, RecordShape,
         },
@@ -23,7 +23,10 @@ mod tests {
 
         const FIELDS: &[RecordFieldStatic] = &[FIELD];
         let shape = RecordShapeStatic {
-            name: "LfoConfig",
+            meta: RecordMetaStatic {
+                name: "LfoConfig",
+                docs: None,
+            },
             fields: FIELDS,
         };
 

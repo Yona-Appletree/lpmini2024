@@ -2,13 +2,13 @@
 //!
 //! Note: Metadata types are in `record_meta.rs`.
 
-use super::record_meta::RecordFieldMeta;
+use super::record_meta::{RecordFieldMeta, RecordMeta};
 use crate::kind::shape::LpShape;
 
 /// Trait for record shapes that have fields.
 pub trait RecordShape: LpShape {
-    /// Get the name of this record type.
-    fn name(&self) -> &str;
+    /// Get the metadata for this record shape.
+    fn meta(&self) -> &dyn RecordMeta;
 
     /// Get the number of fields in this record.
     fn field_count(&self) -> usize;

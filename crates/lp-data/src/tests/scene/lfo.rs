@@ -6,7 +6,7 @@ extern crate alloc;
 use crate::kind::{
     fixed::{fixed_meta::FixedMetaStatic, fixed_static::FixedShapeStatic},
     record::{
-        record_meta::RecordFieldMetaStatic,
+        record_meta::{RecordFieldMetaStatic, RecordMetaStatic},
         record_shape::RecordShape,
         record_static::{RecordFieldStatic, RecordShapeStatic},
     },
@@ -25,7 +25,10 @@ pub struct LfoConfig {
 
 /// Static shape for LfoConfig.
 const LFO_CONFIG_SHAPE: RecordShapeStatic = RecordShapeStatic {
-    name: "LFO Config",
+    meta: RecordMetaStatic {
+        name: "LfoConfig",
+        docs: None,
+    },
     fields: &[RecordFieldStatic {
         name: "period",
         shape: &PERIOD_SHAPE,
@@ -49,6 +52,10 @@ impl LpValue for LfoConfig {
 }
 
 impl RecordValue for LfoConfig {
+    fn shape(&self) -> &dyn RecordShape {
+        &LFO_CONFIG_SHAPE
+    }
+
     fn get_field(&self, name: &str) -> Result<LpValueRef, RuntimeError> {
         match name {
             "period" => Ok(LpValueRef::Fixed(&self.period as &dyn LpValue)),
@@ -132,7 +139,10 @@ impl LfoNode {
 
 /// Static shape for LfoNode.
 const LFO_NODE_SHAPE: RecordShapeStatic = RecordShapeStatic {
-    name: "LfoNode",
+    meta: RecordMetaStatic {
+        name: "LfoNode",
+        docs: None,
+    },
     fields: &[
         RecordFieldStatic {
             name: "config",
@@ -160,6 +170,10 @@ impl LpValue for LfoNode {
 }
 
 impl RecordValue for LfoNode {
+    fn shape(&self) -> &dyn RecordShape {
+        &LFO_NODE_SHAPE
+    }
+
     fn get_field(&self, name: &str) -> Result<LpValueRef, RuntimeError> {
         match name {
             "config" => Ok(LpValueRef::Record(&self.config as &dyn RecordValue)),

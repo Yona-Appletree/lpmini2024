@@ -12,7 +12,7 @@ extern crate alloc;
 use lp_pool::{LpString, LpVec};
 
 use crate::kind::{
-    record::record_dyn::RecordShapeDyn,
+    record::{record_dyn::RecordShapeDyn, RecordShape},
     shape::LpShape,
     value::{LpValue, LpValueBox, LpValueRef, LpValueRefMut, RecordValue},
 };
@@ -57,7 +57,7 @@ impl RecordValueDyn {
 
     /// Get the name of this record type.
     pub fn record_name(&self) -> &str {
-        self.shape.name.as_str()
+        self.shape.meta().name()
     }
 
     /// Remove a field by name.
@@ -103,6 +103,10 @@ impl LpValue for RecordValueDyn {
 }
 
 impl RecordValue for RecordValueDyn {
+    fn shape(&self) -> &dyn RecordShape {
+        &self.shape
+    }
+
     fn get_field(&self, name: &str) -> Result<LpValueRef, RuntimeError> {
         for (field_name, field_value) in self.fields.iter() {
             if field_name.as_str() == name {
@@ -189,10 +193,10 @@ impl RecordValue for RecordValueDyn {
 mod tests {
     use super::*;
     use crate::kind::fixed::fixed_static::FIXED_SHAPE;
-    use crate::kind::record::record_dyn::RecordShapeDyn;
+    use crate::kind::record::{record_dyn::RecordShapeDyn, record_meta::RecordMetaDyn};
     use core::ptr::NonNull;
     use lp_math::fixed::Fixed;
-    use lp_pool::{allow_global_alloc, LpMemoryPool};
+    use lp_pool::{allow_global_alloc, LpMemoryPool, LpString};
 
     fn setup_pool() -> LpMemoryPool {
         let mut memory = [0u8; 16384];
@@ -206,7 +210,10 @@ mod tests {
         pool.run(|| {
             let shape_name = LpString::try_from_str("TestRecord")?;
             let shape = RecordShapeDyn {
-                name: shape_name,
+                meta: RecordMetaDyn {
+                    name: shape_name,
+                    docs: None,
+                },
                 fields: LpVec::new(),
             };
             let record = RecordValueDyn::new(shape);
@@ -222,7 +229,10 @@ mod tests {
         pool.run(|| {
             let shape_name = LpString::try_from_str("TestRecord")?;
             let shape = RecordShapeDyn {
-                name: shape_name,
+                meta: RecordMetaDyn {
+                    name: shape_name,
+                    docs: None,
+                },
                 fields: LpVec::new(),
             };
             let mut record = RecordValueDyn::new(shape);
@@ -248,7 +258,10 @@ mod tests {
         pool.run(|| {
             let shape_name = LpString::try_from_str("TestRecord")?;
             let shape = RecordShapeDyn {
-                name: shape_name,
+                meta: RecordMetaDyn {
+                    name: shape_name,
+                    docs: None,
+                },
                 fields: LpVec::new(),
             };
             let mut record = RecordValueDyn::new(shape);
@@ -280,7 +293,10 @@ mod tests {
         pool.run(|| {
             let shape_name = LpString::try_from_str("TestRecord")?;
             let shape = RecordShapeDyn {
-                name: shape_name,
+                meta: RecordMetaDyn {
+                    name: shape_name,
+                    docs: None,
+                },
                 fields: LpVec::new(),
             };
             let mut record = RecordValueDyn::new(shape);
@@ -313,7 +329,10 @@ mod tests {
         pool.run(|| {
             let shape_name = LpString::try_from_str("TestRecord")?;
             let shape = RecordShapeDyn {
-                name: shape_name,
+                meta: RecordMetaDyn {
+                    name: shape_name,
+                    docs: None,
+                },
                 fields: LpVec::new(),
             };
             let mut record = RecordValueDyn::new(shape);
@@ -347,7 +366,10 @@ mod tests {
         pool.run(|| {
             let shape_name = LpString::try_from_str("TestRecord")?;
             let shape = RecordShapeDyn {
-                name: shape_name,
+                meta: RecordMetaDyn {
+                    name: shape_name,
+                    docs: None,
+                },
                 fields: LpVec::new(),
             };
             let record = RecordValueDyn::new(shape);
@@ -372,7 +394,10 @@ mod tests {
         pool.run(|| {
             let shape_name = LpString::try_from_str("TestRecord")?;
             let shape = RecordShapeDyn {
-                name: shape_name,
+                meta: RecordMetaDyn {
+                    name: shape_name,
+                    docs: None,
+                },
                 fields: LpVec::new(),
             };
             let mut record = RecordValueDyn::new(shape);
@@ -412,7 +437,10 @@ mod tests {
         pool.run(|| {
             let shape_name = LpString::try_from_str("TestRecord")?;
             let shape = RecordShapeDyn {
-                name: shape_name,
+                meta: RecordMetaDyn {
+                    name: shape_name,
+                    docs: None,
+                },
                 fields: LpVec::new(),
             };
             let mut record = RecordValueDyn::new(shape);
@@ -445,12 +473,16 @@ mod tests {
         pool.run(|| {
             let shape_name = LpString::try_from_str("MyRecord")?;
             let shape = RecordShapeDyn {
-                name: shape_name,
+                meta: RecordMetaDyn {
+                    name: shape_name,
+                    docs: None,
+                },
                 fields: LpVec::new(),
             };
             let record = RecordValueDyn::new(shape);
 
-            let record_shape = record.shape();
+            use crate::kind::value::RecordValue;
+            let record_shape = RecordValue::shape(&record);
             assert_eq!(record_shape.kind(), crate::kind::kind::LpKind::Record);
 
             // Can't easily verify the name without downcasting, but we can verify the kind

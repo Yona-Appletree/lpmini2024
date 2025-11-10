@@ -1,4 +1,4 @@
-use crate::kind::value::{LpValue, LpValueBox, LpValueRef, RecordValue};
+use crate::kind::value::{LpValue, LpValueBox, LpValueRef};
 use lp_math::fixed::Fixed;
 
 /// Traverse the scene graph and print all data generically.
@@ -25,7 +25,13 @@ fn print_lp_value_ref(value_ref: LpValueRef, indent: usize) {
             println!("Fixed({})", fixed_value.to_f32());
         }
         LpValueRef::Record(record_ref) => {
-            println!("Record");
+            use crate::kind::value::RecordValue;
+            let record_name = RecordValue::shape(record_ref).meta().name();
+            if record_name.is_empty() {
+                println!("Record (anonymous)");
+            } else {
+                println!("Record({})", record_name);
+            }
             // Iterate over fields using get_field_by_index and recursively print them
             for i in 0..record_ref.field_count() {
                 if let Ok((field_name, field_value_ref)) = record_ref.get_field_by_index(i) {

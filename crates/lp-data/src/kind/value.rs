@@ -6,6 +6,7 @@
 extern crate alloc;
 
 use super::shape::LpShape;
+use crate::kind::RecordShape;
 use crate::value::RuntimeError;
 use lp_math::fixed::Fixed;
 use lp_pool::{lp_box_dyn, LpBoxDyn};
@@ -124,6 +125,8 @@ pub trait LpValue {
 
 /// Trait for record values that have fields.
 pub trait RecordValue: LpValue {
+    fn shape(&self) -> &dyn RecordShape;
+
     /// Get a field by name (immutable).
     fn get_field(&self, name: &str) -> Result<LpValueRef, RuntimeError>;
 

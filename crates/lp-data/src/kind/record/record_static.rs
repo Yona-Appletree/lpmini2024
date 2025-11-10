@@ -1,6 +1,6 @@
 //! Static shape implementation for Record.
 
-use super::record_meta::{RecordFieldMeta, RecordFieldMetaStatic};
+use super::record_meta::{RecordFieldMeta, RecordFieldMetaStatic, RecordMeta, RecordMetaStatic};
 use super::record_shape::{RecordFieldShape, RecordShape};
 use crate::kind::{kind::LpKind, shape::LpShape};
 
@@ -34,8 +34,8 @@ impl RecordFieldShape for RecordFieldStatic {
 ///
 /// Uses `&'static` references for zero-cost storage.
 pub struct RecordShapeStatic {
-    /// Name of this record type.
-    pub name: &'static str,
+    /// Metadata for this record shape.
+    pub meta: RecordMetaStatic,
 
     /// Fields in this record.
     pub fields: &'static [RecordFieldStatic],
@@ -48,8 +48,8 @@ impl LpShape for RecordShapeStatic {
 }
 
 impl RecordShape for RecordShapeStatic {
-    fn name(&self) -> &str {
-        self.name
+    fn meta(&self) -> &dyn RecordMeta {
+        &self.meta as &dyn RecordMeta
     }
 
     fn field_count(&self) -> usize {
