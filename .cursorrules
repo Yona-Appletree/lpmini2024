@@ -6,9 +6,18 @@ Communicate concisely, like a senior engineer or compiler output. Prioritize inf
 
 All feature branches should be named `feature/name-of-feature`
 
-
 # Pushing code
 
 To push and validate code on ci, use the following command:
 
     scripts/push-pr.sh
+
+# Commits
+
+Unless otherwise requested, automatically make commits as you go. Work in small, focused commits, running build and tests before each commit, if applicable. For larger changes, make "wip" commits to mark progress and break down the work into smaller chunks. These wip commits do not need to build or pass tests.
+
+- Keep commits small and focused. Don't use git add . or git commit -a. Always stage changes individually.
+- Use the [Conventional Commits](https://www.conventionalcommits.org/) format: `<type>(<scope>): <description>`
+- Choose scopes from the monorepo structure (e.g. `lp-data`, `lp-pool`)
+- Example: `feat(lp-data): add offers list filter` or `chore(lp-pool): bump pnpm to 10.18.0`
+- Only add extra context to the commit message if it's not obvious from the changes.
