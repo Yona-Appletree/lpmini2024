@@ -1,8 +1,5 @@
 //! Tests for scene graph traversal.
-use crate::kind::{
-    record::record_dyn::RecordShapeDyn,
-    value::{LpValueBox, RecordValue},
-};
+use crate::kind::{record::record_dyn::RecordShapeDyn, value::LpValueBox};
 use crate::tests::scene::{
     lfo::{LfoConfig, LfoNode},
     print_lp_value::print_lp_value,
@@ -10,6 +7,7 @@ use crate::tests::scene::{
 use core::ptr::NonNull;
 
 extern crate alloc;
+use crate::kind::record::record_value::RecordValue;
 use crate::kind::record::RecordValueDyn;
 use lp_math::fixed::ToFixed;
 use lp_pool::{enter_global_alloc_allowance, lp_box_dyn, LpMemoryPool, LpString};

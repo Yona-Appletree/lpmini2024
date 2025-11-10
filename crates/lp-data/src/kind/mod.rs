@@ -13,7 +13,8 @@ pub mod record;
 // Re-export commonly used items
 pub use kind::LpKind;
 pub use shape::LpShape;
-pub use value::{LpValue, RecordValue};
+pub use value::LpValue;
 
 // Re-export record traits and metadata from record module
+pub use record::record_value::RecordValue;
 pub use record::{RecordFieldMeta, RecordFieldShape, RecordShape};

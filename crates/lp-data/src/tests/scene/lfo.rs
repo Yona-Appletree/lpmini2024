@@ -8,7 +8,7 @@ use crate::kind::{
         record_static::{RecordFieldStatic, RecordShapeStatic},
     },
     shape::LpShape,
-    value::{LpValue, LpValueRef, LpValueRefMut, RecordValue},
+    value::{LpValue, LpValueRef, LpValueRefMut},
 };
 use crate::value::RuntimeError;
 use lp_math::fixed::Fixed;
@@ -132,6 +132,7 @@ const LFO_NODE_SHAPE: RecordShapeStatic = RecordShapeStatic {
 };
 
 use crate::kind::fixed::fixed_static::FIXED_SHAPE;
+use crate::kind::record::record_value::RecordValue;
 
 impl LpValue for LfoNode {
     fn shape(&self) -> &dyn LpShape {

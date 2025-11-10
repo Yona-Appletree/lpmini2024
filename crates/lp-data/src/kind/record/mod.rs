@@ -4,11 +4,11 @@ pub mod record_dyn;
 pub mod record_meta;
 pub mod record_shape;
 pub mod record_static;
+pub mod record_value;
 pub mod record_value_dyn;
 
 #[cfg(test)]
 mod record_tests;
-mod record_value;
 
 pub use record_dyn::{RecordFieldDyn, RecordShapeDyn};
 pub use record_meta::{

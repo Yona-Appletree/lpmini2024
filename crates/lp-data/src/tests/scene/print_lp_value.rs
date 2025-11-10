@@ -25,7 +25,7 @@ fn print_lp_value_ref(value_ref: LpValueRef, indent: usize) {
             println!("Fixed({})", fixed_value.to_f32());
         }
         LpValueRef::Record(record_ref) => {
-            use crate::kind::value::RecordValue;
+            use crate::kind::record::record_value::RecordValue;
             let record_name = RecordValue::shape(record_ref).meta().name();
             if record_name.is_empty() {
                 println!("Record (anonymous)");

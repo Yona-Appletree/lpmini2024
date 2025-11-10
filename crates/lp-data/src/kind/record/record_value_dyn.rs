@@ -8,10 +8,11 @@
 
 use lp_pool::{LpString, LpVec};
 
+use crate::kind::record::record_value::RecordValue;
 use crate::kind::{
     record::{record_dyn::RecordShapeDyn, RecordShape},
     shape::LpShape,
-    value::{LpValue, LpValueBox, LpValueRef, LpValueRefMut, RecordValue},
+    value::{LpValue, LpValueBox, LpValueRef, LpValueRefMut},
 };
 use crate::value::RuntimeError;
 
@@ -442,7 +443,7 @@ mod tests {
             };
             let record = RecordValueDyn::new(shape);
 
-            use crate::kind::value::RecordValue;
+            use crate::kind::record::record_value::RecordValue;
             let record_shape = RecordValue::shape(&record);
             assert_eq!(record_shape.kind(), crate::kind::kind::LpKind::Record);
 
