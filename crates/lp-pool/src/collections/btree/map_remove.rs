@@ -1,8 +1,7 @@
 use core::ptr::NonNull;
 
-use crate::error::AllocError;
-
 use super::node::Node;
+use crate::error::AllocError;
 
 pub(super) unsafe fn remove_node<K, V>(
     root_ref: &mut Option<NonNull<Node<K, V>>>,

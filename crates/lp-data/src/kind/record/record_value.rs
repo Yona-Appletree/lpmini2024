@@ -1,7 +1,8 @@
+use lp_pool::LpBoxDyn;
+
 use crate::kind::value::{LpValueBox, LpValueRef, LpValueRefMut};
 use crate::kind::{LpValue, RecordShape};
 use crate::RuntimeError;
-use lp_pool::LpBoxDyn;
 
 /// Trait for record values that have fields.
 pub trait RecordValue: LpValue {

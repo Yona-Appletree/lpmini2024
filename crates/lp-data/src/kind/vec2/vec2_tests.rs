@@ -2,10 +2,12 @@
 
 #[cfg(test)]
 mod tests {
-    use crate::kind::{
-        kind::LpKind, shape::LpShape, value::LpValue, vec2::vec2_static::VEC2_SHAPE,
-    };
     use lp_math::fixed::{Fixed, Vec2};
+
+    use crate::kind::kind::LpKind;
+    use crate::kind::shape::LpShape;
+    use crate::kind::value::LpValue;
+    use crate::kind::vec2::vec2_static::VEC2_SHAPE;
 
     #[test]
     fn test_vec2_shape() {

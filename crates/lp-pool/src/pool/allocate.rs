@@ -2,10 +2,9 @@ use core::alloc::Layout;
 use core::mem;
 use core::ptr::NonNull;
 
+use super::allocator::LpAllocator;
 use crate::block_header::{BlockHeader, MIN_BLOCK_SIZE};
 use crate::error::AllocError;
-
-use super::allocator::LpAllocator;
 
 impl LpAllocator {
     /// Allocate a block using first-fit strategy with block splitting

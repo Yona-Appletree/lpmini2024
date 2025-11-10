@@ -2,7 +2,8 @@
 
 use super::enum_meta::{EnumMeta, EnumMetaStatic, EnumVariantMeta, EnumVariantMetaStatic};
 use super::enum_shape::{EnumShape, EnumVariantShape};
-use crate::kind::{kind::LpKind, shape::LpShape};
+use crate::kind::kind::LpKind;
+use crate::kind::shape::LpShape;
 
 /// Static variant in an enum shape.
 pub struct EnumVariantStatic {

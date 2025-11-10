@@ -18,9 +18,10 @@ impl Default for VmLimits {
 
 #[cfg(test)]
 mod tests {
+    use lp_pool::allow_global_alloc;
+
     use super::*;
     use crate::vm::LpsVm;
-    use lp_pool::allow_global_alloc;
 
     #[test]
     fn test_vm_limits() {

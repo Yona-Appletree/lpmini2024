@@ -1,16 +1,17 @@
 //! Tests for scene graph traversal.
-use crate::kind::{record::record_dyn::RecordShapeDyn, value::LpValueBox};
-use crate::tests::scene::{
-    print_lp_value::print_lp_value_to_string,
-    test_node::{LfoWaveform, TestNode, TestNodeConfig},
-};
 use core::ptr::NonNull;
 
+use crate::kind::record::record_dyn::RecordShapeDyn;
+use crate::kind::value::LpValueBox;
+use crate::tests::scene::print_lp_value::print_lp_value_to_string;
+use crate::tests::scene::test_node::{LfoWaveform, TestNode, TestNodeConfig};
+
 extern crate alloc;
-use crate::kind::record::record_value::RecordValue;
-use crate::kind::record::RecordValueDyn;
 use lp_math::fixed::{Fixed, ToFixed, Vec2, Vec3, Vec4};
 use lp_pool::{enter_global_alloc_allowance, lp_box_dyn, LpMemoryPool, LpString};
+
+use crate::kind::record::record_value::RecordValue;
+use crate::kind::record::RecordValueDyn;
 
 fn setup_pool() -> LpMemoryPool {
     let mut memory = [0u8; 16384];

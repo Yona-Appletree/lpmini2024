@@ -1,10 +1,11 @@
 use alloc::vec::Vec;
 
+use lp_pool::{lp_format, write_lp_string, LpString};
+
 use crate::fixed::{Fixed, Vec2, Vec3, Vec4};
 use crate::vm::vm_limits::VmLimits;
 use crate::vm::{CallStack, ValueStack};
 use crate::{LocalStack, LpsProgram, LpsVmError, RuntimeErrorWithContext};
-use lp_pool::{lp_format, write_lp_string, LpString};
 
 /// LightPlayer Script Virtual Machine
 ///
@@ -339,8 +340,9 @@ impl<'a> LpsVm<'a> {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
     use lp_pool::allow_global_alloc;
+
+    use super::*;
 
     #[test]
     fn test_vm_creation() {

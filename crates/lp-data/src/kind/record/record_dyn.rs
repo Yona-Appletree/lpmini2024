@@ -1,9 +1,11 @@
 //! Dynamic shape implementation for Record.
 
+use lp_pool::LpVec;
+
 use super::record_meta::{RecordFieldMeta, RecordFieldMetaDyn, RecordMeta, RecordMetaDyn};
 use super::record_shape::{RecordFieldShape, RecordShape};
-use crate::kind::{kind::LpKind, shape::LpShape};
-use lp_pool::LpVec;
+use crate::kind::kind::LpKind;
+use crate::kind::shape::LpShape;
 
 /// Dynamic field in a record shape.
 ///

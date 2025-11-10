@@ -1,7 +1,8 @@
 //! Value implementation for Vec4.
 
-use crate::kind::vec4::vec4_static::VEC4_SHAPE;
 use lp_math::fixed::Vec4;
+
+use crate::kind::vec4::vec4_static::VEC4_SHAPE;
 
 crate::define_primitive_value! {
     rust_type: Vec4,

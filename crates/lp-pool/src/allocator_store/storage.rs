@@ -1,6 +1,3 @@
-use crate::error::AllocError;
-use crate::pool::LpAllocator;
-
 #[cfg(any(feature = "std", test))]
 use core::cell::RefCell;
 #[cfg(any(feature = "std", test))]
@@ -8,6 +5,9 @@ use std::thread_local;
 
 #[cfg(all(not(feature = "std"), not(test)))]
 use spin::Mutex;
+
+use crate::error::AllocError;
+use crate::pool::LpAllocator;
 
 #[cfg(any(feature = "std", test))]
 thread_local! {

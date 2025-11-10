@@ -1,9 +1,8 @@
 use core::alloc::Layout;
 use core::ptr::NonNull;
 
-use crate::error::AllocError;
-
 use super::allocator::LpAllocator;
+use crate::error::AllocError;
 
 impl LpAllocator {
     /// Grow an allocation to a new size

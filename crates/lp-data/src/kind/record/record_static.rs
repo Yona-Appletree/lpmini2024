@@ -2,7 +2,8 @@
 
 use super::record_meta::{RecordFieldMeta, RecordFieldMetaStatic, RecordMeta, RecordMetaStatic};
 use super::record_shape::{RecordFieldShape, RecordShape};
-use crate::kind::{kind::LpKind, shape::LpShape};
+use crate::kind::kind::LpKind;
+use crate::kind::shape::LpShape;
 
 /// Static field in a record shape.
 pub struct RecordFieldStatic {

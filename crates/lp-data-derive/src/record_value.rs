@@ -1,9 +1,10 @@
 use proc_macro::TokenStream;
 use proc_macro2::{Span, TokenStream as TokenStream2};
 use quote::{format_ident, quote};
+use syn::spanned::Spanned;
 use syn::{
-    parse_macro_input, spanned::Spanned, Attribute, Data, DataStruct, DeriveInput, Error, Fields,
-    Ident, LitStr, Type, TypePath,
+    parse_macro_input, Attribute, Data, DataStruct, DeriveInput, Error, Fields, Ident, LitStr,
+    Type, TypePath,
 };
 
 pub fn derive(item: TokenStream) -> TokenStream {

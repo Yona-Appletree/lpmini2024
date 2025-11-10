@@ -1,6 +1,7 @@
+use lp_pool::collections::vec::LpVec;
+
 /// Call stack management for LPS VM function calls
 use super::error::LpsVmError;
-use lp_pool::collections::vec::LpVec;
 
 /// Call frame for function calls
 ///

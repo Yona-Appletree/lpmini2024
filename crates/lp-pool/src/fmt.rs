@@ -1,6 +1,7 @@
+use core::fmt::{self, Write};
+
 use crate::collections::string::LpString;
 use crate::error::AllocError;
-use core::fmt::{self, Write};
 
 /// Write formatted data into an existing `LpString`.
 pub fn write_lp_string(target: &mut LpString, args: fmt::Arguments<'_>) -> Result<(), AllocError> {
@@ -18,9 +19,10 @@ pub fn lp_format(args: fmt::Arguments<'_>) -> Result<LpString, AllocError> {
 
 #[cfg(test)]
 mod tests {
+    use core::ptr::NonNull;
+
     use super::*;
     use crate::memory_pool::LpMemoryPool;
-    use core::ptr::NonNull;
 
     fn setup_pool() -> LpMemoryPool {
         let mut memory = [0u8; 8192];

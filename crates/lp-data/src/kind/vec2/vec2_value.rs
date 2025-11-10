@@ -1,7 +1,8 @@
 //! Value implementation for Vec2.
 
-use crate::kind::vec2::vec2_static::VEC2_SHAPE;
 use lp_math::fixed::Vec2;
+
+use crate::kind::vec2::vec2_static::VEC2_SHAPE;
 
 crate::define_primitive_value! {
     rust_type: Vec2,

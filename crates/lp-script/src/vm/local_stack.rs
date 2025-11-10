@@ -3,13 +3,14 @@ extern crate alloc;
 use alloc::string::String;
 use alloc::vec::Vec;
 
-use lp_pool::collections::{string::LpString, vec::LpVec};
+use lp_pool::allow_global_alloc;
+use lp_pool::collections::string::LpString;
+use lp_pool::collections::vec::LpVec;
 
 use super::error::LpsVmError;
 use super::lps_program::LocalVarDef;
 use crate::fixed::Fixed;
 use crate::shared::Type;
-use lp_pool::allow_global_alloc;
 
 impl LocalStack {
     /// Create new locals storage with the given capacity (in i32 units)

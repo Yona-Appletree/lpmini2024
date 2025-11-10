@@ -1,15 +1,13 @@
 use core::alloc::Layout;
 use core::ptr::NonNull;
 
-use crate::error::AllocError;
-use crate::memory_pool::with_active_pool;
-
+use super::iter::{LpVecIter, LpVecIterMut};
 #[cfg(feature = "alloc-meta")]
 use crate::collections::alloc_meta::{
     record_allocation_meta, remove_allocation_meta, AllocationMeta,
 };
-
-use super::iter::{LpVecIter, LpVecIterMut};
+use crate::error::AllocError;
+use crate::memory_pool::with_active_pool;
 
 /// Pool-backed Vec
 pub struct LpVec<T> {

@@ -1,8 +1,7 @@
 use core::ptr::NonNull;
 
-use crate::error::AllocError;
-
 use super::node::Node;
+use crate::error::AllocError;
 
 pub(super) fn insert_node<K, V>(
     node_ptr: NonNull<Node<K, V>>,

@@ -1,6 +1,5 @@
-use crate::block_header::BlockHeader;
-
 use super::allocator::LpAllocator;
+use crate::block_header::BlockHeader;
 
 impl LpAllocator {
     /// Get used bytes

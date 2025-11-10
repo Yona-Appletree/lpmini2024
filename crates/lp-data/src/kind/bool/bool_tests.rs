@@ -2,9 +2,10 @@
 
 #[cfg(test)]
 mod tests {
-    use crate::kind::{
-        bool::bool_static::BOOL_SHAPE, kind::LpKind, shape::LpShape, value::LpValue,
-    };
+    use crate::kind::bool::bool_static::BOOL_SHAPE;
+    use crate::kind::kind::LpKind;
+    use crate::kind::shape::LpShape;
+    use crate::kind::value::LpValue;
 
     #[test]
     fn test_bool_shape() {

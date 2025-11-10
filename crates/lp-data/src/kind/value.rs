@@ -5,10 +5,11 @@
 #[cfg(feature = "alloc")]
 extern crate alloc;
 
+use lp_pool::LpBoxDyn;
+
 use super::shape::LpShape;
 use crate::kind::enum_::enum_value::EnumValue;
 use crate::kind::record::record_value::RecordValue;
-use lp_pool::LpBoxDyn;
 
 pub enum LpValueBox {
     Fixed(LpBoxDyn<dyn LpValue>),
@@ -206,8 +207,9 @@ where
             vec4_value.serialize(serializer)
         }
         LpValueRef::Record(record_ref) => {
-            use crate::kind::record::record_value::RecordValue;
             use serde::ser::SerializeMap;
+
+            use crate::kind::record::record_value::RecordValue;
             let shape = RecordValue::shape(record_ref);
             let field_count = shape.field_count();
             let mut map = serializer.serialize_map(Some(field_count))?;

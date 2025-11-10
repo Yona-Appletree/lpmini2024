@@ -1,11 +1,10 @@
-use lp_data::kind::{
-    enum_::EnumShape,
-    fixed::FixedShape,
-    kind::LpKind,
-    record::{RecordFieldShape, RecordShape},
-    shape::LpShape,
-};
 use std::collections::BTreeMap;
+
+use lp_data::kind::enum_::EnumShape;
+use lp_data::kind::fixed::FixedShape;
+use lp_data::kind::kind::LpKind;
+use lp_data::kind::record::{RecordFieldShape, RecordShape};
+use lp_data::kind::shape::LpShape;
 
 /// Generate Zod schema TypeScript code from a registry of shapes
 pub fn generate_zod_schemas(registry: &BTreeMap<&'static str, &dyn LpShape>) -> String {

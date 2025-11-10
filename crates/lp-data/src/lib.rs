@@ -14,10 +14,9 @@ pub mod value;
 
 // Re-export new registries
 // pub use registry::{RuntimeRegistry, StaticRegistry};
-pub use value::RuntimeError;
-
 #[cfg(feature = "derive")]
 pub use lp_data_derive::LpSchema;
+pub use value::RuntimeError;
 
 #[cfg(feature = "serde")]
 pub trait LpSerialize: serde::Serialize {}

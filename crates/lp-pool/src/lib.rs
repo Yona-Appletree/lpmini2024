@@ -56,6 +56,7 @@ pub mod memory_pool;
 mod pool;
 
 pub use allocator::LpAllocatorWrapper;
+pub use allocator_store::enter_global_alloc_allowance;
 pub use collections::{
     print_memory_stats, print_memory_stats_with, LpBTreeMap, LpBox, LpBoxDyn, LpString, LpVec,
     LpVecIter, LpVecIterMut,
@@ -65,8 +66,6 @@ pub use fmt::{lp_format, write_lp_string};
 #[cfg(any(feature = "std", test))]
 pub use guarded_alloc::{allow_global_alloc, ScopedGlobalAllocGuard};
 pub use memory_pool::{LpMemoryPool, PoolStats};
-
-pub use allocator_store::enter_global_alloc_allowance;
 
 #[cfg(any(feature = "std", test))]
 #[global_allocator]

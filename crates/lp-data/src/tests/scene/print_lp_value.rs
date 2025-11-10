@@ -1,5 +1,6 @@
-use crate::kind::value::{LpValue, LpValueBox, LpValueRef};
 use lp_math::fixed::{Fixed, Vec2, Vec3, Vec4};
+
+use crate::kind::value::{LpValue, LpValueBox, LpValueRef};
 
 /// Traverse the scene graph and print all data generically.
 pub fn print_lp_value(value_box: LpValueBox, indent: usize) {

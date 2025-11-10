@@ -8,16 +8,12 @@
 
 use lp_pool::{LpString, LpVec};
 
+use crate::kind::record::record_dyn::{RecordFieldDyn, RecordShapeDyn};
+use crate::kind::record::record_meta::RecordFieldMetaDyn;
 use crate::kind::record::record_value::RecordValue;
-use crate::kind::{
-    record::{
-        record_dyn::{RecordFieldDyn, RecordShapeDyn},
-        record_meta::RecordFieldMetaDyn,
-        RecordShape,
-    },
-    shape::LpShape,
-    value::{LpValue, LpValueBox, LpValueRef, LpValueRefMut},
-};
+use crate::kind::record::RecordShape;
+use crate::kind::shape::LpShape;
+use crate::kind::value::{LpValue, LpValueBox, LpValueRef, LpValueRefMut};
 use crate::value::RuntimeError;
 
 /// Dynamic record value.
@@ -227,11 +223,14 @@ impl serde::Serialize for RecordValueDyn {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
-    use crate::kind::record::{record_dyn::RecordShapeDyn, record_meta::RecordMetaDyn};
     use core::ptr::NonNull;
+
     use lp_math::fixed::{Fixed, Vec2, Vec3, Vec4};
     use lp_pool::{LpMemoryPool, LpString};
+
+    use super::*;
+    use crate::kind::record::record_dyn::RecordShapeDyn;
+    use crate::kind::record::record_meta::RecordMetaDyn;
 
     fn setup_pool() -> LpMemoryPool {
         let mut memory = [0u8; 16384];

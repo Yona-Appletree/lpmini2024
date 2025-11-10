@@ -1,7 +1,8 @@
 //! Value implementation for Fixed.
 
-use crate::kind::fixed::fixed_static::FIXED_SHAPE;
 use lp_math::fixed::Fixed;
+
+use crate::kind::fixed::fixed_static::FIXED_SHAPE;
 
 crate::define_primitive_value! {
     rust_type: Fixed,

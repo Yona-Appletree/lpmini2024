@@ -1,8 +1,7 @@
 use core::ptr::null_mut;
 
-use crate::block_header::{BlockHeader, MIN_BLOCK_SIZE};
-
 use super::allocator::LpAllocator;
+use crate::block_header::{BlockHeader, MIN_BLOCK_SIZE};
 
 impl LpAllocator {
     /// Remove a block from the free list

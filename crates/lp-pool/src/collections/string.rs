@@ -1,6 +1,7 @@
+use core::fmt::{self, Write};
+
 use super::vec::LpVec;
 use crate::error::AllocError;
-use core::fmt::{self, Write};
 
 /// Pool-backed String
 pub struct LpString {

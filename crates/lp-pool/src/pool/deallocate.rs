@@ -2,9 +2,8 @@ use core::alloc::Layout;
 use core::mem;
 use core::ptr::NonNull;
 
-use crate::block_header::BlockHeader;
-
 use super::allocator::LpAllocator;
+use crate::block_header::BlockHeader;
 
 impl LpAllocator {
     /// Deallocate a block with coalescing

@@ -25,9 +25,10 @@ pub(crate) fn clear_meta() {
 #[cfg(feature = "alloc-meta")]
 #[cfg(any(feature = "std", test))]
 mod meta_storage {
-    use super::*;
     use core::cell::RefCell;
     use std::thread_local;
+
+    use super::*;
 
     thread_local! {
         static META: RefCell<AllocationMetaMap> =
@@ -59,8 +60,9 @@ mod meta_storage {
 #[cfg(feature = "alloc-meta")]
 #[cfg(all(not(feature = "std"), not(test)))]
 mod meta_storage {
-    use super::*;
     use spin::Mutex;
+
+    use super::*;
 
     static META: Mutex<AllocationMetaMap> = Mutex::new(AllocationMetaMap::new());
 

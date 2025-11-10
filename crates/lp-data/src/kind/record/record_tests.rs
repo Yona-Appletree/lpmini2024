@@ -2,16 +2,12 @@
 
 #[cfg(test)]
 mod tests {
-    use crate::kind::{
-        fixed::fixed_static::FIXED_SHAPE,
-        kind::LpKind,
-        record::{
-            record_meta::{RecordFieldMetaStatic, RecordMetaStatic},
-            record_static::{RecordFieldStatic, RecordShapeStatic},
-            RecordFieldShape, RecordShape,
-        },
-        shape::LpShape,
-    };
+    use crate::kind::fixed::fixed_static::FIXED_SHAPE;
+    use crate::kind::kind::LpKind;
+    use crate::kind::record::record_meta::{RecordFieldMetaStatic, RecordMetaStatic};
+    use crate::kind::record::record_static::{RecordFieldStatic, RecordShapeStatic};
+    use crate::kind::record::{RecordFieldShape, RecordShape};
+    use crate::kind::shape::LpShape;
 
     #[test]
     fn test_record_shape_static() {
@@ -57,11 +53,11 @@ mod tests {
 
     #[test]
     fn test_record_with_all_primitive_types() {
-        use crate::kind::{
-            bool::bool_static::BOOL_SHAPE, int32::int32_static::INT32_SHAPE,
-            vec2::vec2_static::VEC2_SHAPE, vec3::vec3_static::VEC3_SHAPE,
-            vec4::vec4_static::VEC4_SHAPE,
-        };
+        use crate::kind::bool::bool_static::BOOL_SHAPE;
+        use crate::kind::int32::int32_static::INT32_SHAPE;
+        use crate::kind::vec2::vec2_static::VEC2_SHAPE;
+        use crate::kind::vec3::vec3_static::VEC3_SHAPE;
+        use crate::kind::vec4::vec4_static::VEC4_SHAPE;
 
         const FIELDS: &[RecordFieldStatic] = &[
             RecordFieldStatic {

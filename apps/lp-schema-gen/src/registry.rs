@@ -1,5 +1,6 @@
-use lp_data::kind::shape::LpShape;
 use std::collections::BTreeMap;
+
+use lp_data::kind::shape::LpShape;
 
 /// Trait for types that can provide their shape and name
 pub trait LpDescribe: lp_data::kind::value::LpValue + Default {

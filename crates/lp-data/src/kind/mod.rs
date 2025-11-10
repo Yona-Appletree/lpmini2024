@@ -20,13 +20,11 @@ pub mod vec3;
 pub mod vec4;
 
 // Re-export commonly used items
+// Re-export enum traits and metadata from enum module
+pub use enum_::{EnumMeta, EnumShape, EnumValue, EnumVariantMeta, EnumVariantShape};
 pub use kind::LpKind;
-pub use shape::LpShape;
-pub use value::LpValue;
-
 // Re-export record traits and metadata from record module
 pub use record::record_value::RecordValue;
 pub use record::{RecordFieldMeta, RecordFieldShape, RecordShape};
-
-// Re-export enum traits and metadata from enum module
-pub use enum_::{EnumMeta, EnumShape, EnumValue, EnumVariantMeta, EnumVariantShape};
+pub use shape::LpShape;
+pub use value::LpValue;

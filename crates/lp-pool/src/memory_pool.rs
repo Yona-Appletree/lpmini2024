@@ -228,10 +228,11 @@ mod tests {
 
 #[cfg(all(test, feature = "default_pool"))]
 mod default_pool_tests {
-    use super::*;
     use alloc::vec::Vec;
     use core::ptr::NonNull;
     use std::panic;
+
+    use super::*;
 
     #[test]
     fn default_pool_runs_without_manual_initialization() {

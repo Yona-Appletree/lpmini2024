@@ -4,9 +4,10 @@
 mod tests {
     use lp_math::fixed::ToFixed;
 
-    use crate::kind::{
-        fixed::fixed_static::FIXED_SHAPE, kind::LpKind, shape::LpShape, value::LpValue,
-    };
+    use crate::kind::fixed::fixed_static::FIXED_SHAPE;
+    use crate::kind::kind::LpKind;
+    use crate::kind::shape::LpShape;
+    use crate::kind::value::LpValue;
 
     #[test]
     fn test_fixed_shape() {

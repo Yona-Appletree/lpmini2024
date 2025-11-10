@@ -1,10 +1,9 @@
 #[cfg(any(feature = "std", test))]
 use core::cell::Cell;
-#[cfg(any(feature = "std", test))]
-use std::thread_local;
-
 #[cfg(all(not(feature = "std"), not(test)))]
 use core::sync::atomic::{AtomicU32, Ordering};
+#[cfg(any(feature = "std", test))]
+use std::thread_local;
 
 #[cfg(any(feature = "std", test))]
 thread_local! {

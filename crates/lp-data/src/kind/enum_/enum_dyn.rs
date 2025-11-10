@@ -1,9 +1,11 @@
 //! Dynamic shape implementation for Enum.
 
+use lp_pool::LpVec;
+
 use super::enum_meta::{EnumMeta, EnumMetaDyn, EnumVariantMeta, EnumVariantMetaDyn};
 use super::enum_shape::{EnumShape, EnumVariantShape};
-use crate::kind::{kind::LpKind, shape::LpShape};
-use lp_pool::LpVec;
+use crate::kind::kind::LpKind;
+use crate::kind::shape::LpShape;
 
 /// Dynamic variant in an enum shape.
 ///

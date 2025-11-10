@@ -5,11 +5,11 @@ use anyhow::{Context, Result};
 use camino::Utf8PathBuf;
 use clap::Parser;
 use proc_macro2::Span;
+use syn::parse::ParseStream;
+use syn::punctuated::Punctuated;
+use syn::spanned::Spanned;
 use syn::visit::Visit;
-use syn::{
-    parse::ParseStream, punctuated::Punctuated, spanned::Spanned, Attribute, Expr, Item, Macro,
-    Meta, Path as SynPath, PathArguments,
-};
+use syn::{Attribute, Expr, Item, Macro, Meta, Path as SynPath, PathArguments};
 use walkdir::WalkDir;
 
 #[derive(Parser, Debug)]

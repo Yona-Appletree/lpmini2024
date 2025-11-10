@@ -1,9 +1,10 @@
 //! Value implementation for Enum.
 
+use lp_pool::LpBoxDyn;
+
 use crate::kind::value::{LpValueBox, LpValueRef, LpValueRefMut};
 use crate::kind::{EnumShape, LpValue};
 use crate::RuntimeError;
-use lp_pool::LpBoxDyn;
 
 /// Trait for enum values that have variants.
 pub trait EnumValue: LpValue {
