@@ -1,10 +1,8 @@
-use lp_data::LpSchema;
 use lp_math::fixed::Fixed;
 use serde::{Deserialize, Serialize};
 
 /// LFO waveform shape enumeration
-#[derive(Serialize, Deserialize, Debug, Clone, Copy, PartialEq, Eq, LpSchema)]
-#[lp(schema(name = "LFO Waveform Shape",))]
+#[derive(Serialize, Deserialize, Debug, Clone, Copy, PartialEq, Eq)]
 pub enum LfoWaveformShape {
     Sine,
     Square,
@@ -12,25 +10,35 @@ pub enum LfoWaveformShape {
     Sawtooth,
 }
 
+impl Default for LfoWaveformShape {
+    fn default() -> Self {
+        LfoWaveformShape::Sine
+    }
+}
+
 /// Range type for LFO (min, max as Fixed)
-#[derive(Serialize, Deserialize, Debug, Clone, LpSchema)]
-#[lp(schema(name = "LFO Range",))]
+#[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct LfoRange {
     /// Minimum value
-    #[lp(field(ui(slider(min = 0.0, max = 1.0))))]
     pub min: Fixed,
 
     /// Maximum value
-    #[lp(field(ui(slider(min = 0.0, max = 1.0))))]
     pub max: Fixed,
 }
 
+impl Default for LfoRange {
+    fn default() -> Self {
+        LfoRange {
+            min: Fixed::from_f32(0.0),
+            max: Fixed::from_f32(1.0),
+        }
+    }
+}
+
 /// Configuration for an LFO (Low Frequency Oscillator)
-#[derive(Serialize, Deserialize, Debug, Clone, LpSchema)]
-#[lp(schema(name = "LFO Config",))]
+#[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct LfoConfig {
     /// Period of oscillation in milliseconds
-    #[lp(field(ui(slider(min = 10, max = 60000, step = 1))))]
     pub period_ms: i32,
 
     /// Range of oscillation
@@ -40,5 +48,19 @@ pub struct LfoConfig {
     pub shape: LfoWaveformShape,
 }
 
+impl Default for LfoConfig {
+    fn default() -> Self {
+        LfoConfig {
+            period_ms: 1000,
+            range: LfoRange::default(),
+            shape: LfoWaveformShape::Sine,
+        }
+    }
+}
+
 // Type aliases for backward compatibility
 pub type LfoShape = LfoWaveformShape;
+
+// Manual implementations until LpSchema derive is fixed
+// These types need to implement LpValue first - for now this is a placeholder
+// TODO: Implement LpValue for these types or fix LpSchema derive

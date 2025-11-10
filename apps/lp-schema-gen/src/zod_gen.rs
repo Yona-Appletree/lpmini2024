@@ -1,12 +1,14 @@
-use lp_data::types::meta::{LpType, LpTypeMeta, TypeRef};
-use lp_data::types::scalar::meta::{LpScalarType, NumberUi};
-use lp_data::types::vec2::meta::Vec2Type;
-use lp_data::types::vec3::meta::Vec3Type;
-use lp_data::types::vec4::meta::Vec4Type;
-use lp_data::{ArrayType, EnumType, EnumVariant, RecordType, TypeRegistry};
+use lp_data::kind::{
+    enum_::EnumShape,
+    fixed::FixedShape,
+    kind::LpKind,
+    record::{RecordFieldShape, RecordShape},
+    shape::LpShape,
+};
+use std::collections::BTreeMap;
 
-/// Generate Zod schema TypeScript code from a TypeRegistry
-pub fn generate_zod_schemas(registry: &TypeRegistry) -> String {
+/// Generate Zod schema TypeScript code from a registry of shapes
+pub fn generate_zod_schemas(registry: &BTreeMap<&'static str, &dyn LpShape>) -> String {
     let mut output = String::new();
 
     // Add header
@@ -22,16 +24,14 @@ pub fn generate_zod_schemas(registry: &TypeRegistry) -> String {
 }
 \n\n");
 
-    let all_types = registry.all_types();
-
     // Collect type names and sort them
-    let mut type_names: Vec<&str> = all_types.keys().copied().collect();
+    let mut type_names: Vec<&str> = registry.keys().copied().collect();
     type_names.sort();
 
     // Generate schemas for all types
     for type_name in &type_names {
-        if let Some(meta) = all_types.get(type_name) {
-            output.push_str(&generate_type_schema(type_name, meta, all_types));
+        if let Some(&shape) = registry.get(type_name) {
+            output.push_str(&generate_type_schema(type_name, shape, registry));
             output.push_str("\n\n");
         }
     }
@@ -41,140 +41,91 @@ pub fn generate_zod_schemas(registry: &TypeRegistry) -> String {
 
 fn generate_type_schema(
     name: &str,
-    meta: &LpTypeMeta,
-    all_types: &std::collections::BTreeMap<&'static str, &'static LpTypeMeta>,
+    shape: &dyn LpShape,
+    all_types: &BTreeMap<&'static str, &dyn LpShape>,
 ) -> String {
-    let schema_expr = lp_type_to_zod(&meta.ty, all_types);
+    let schema_expr = lp_shape_to_zod(shape, all_types);
     let schema_name = format!("{}", name);
 
     format!("export const {schema_name} = ZodFactory('{schema_name}', {schema_expr});")
 }
 
-fn lp_type_to_zod(
-    ty: &LpType,
-    all_types: &std::collections::BTreeMap<&'static str, &'static LpTypeMeta>,
+fn lp_shape_to_zod(
+    shape: &dyn LpShape,
+    all_types: &BTreeMap<&'static str, &dyn LpShape>,
 ) -> String {
-    match ty {
-        LpType::Scalar(scalar) => scalar_to_zod(scalar),
-        LpType::Vec2(vec2) => vec2_to_zod(vec2),
-        LpType::Vec3(vec3) => vec3_to_zod(vec3),
-        LpType::Vec4(vec4) => vec4_to_zod(vec4),
-        LpType::Array(array) => array_to_zod(array, all_types),
-        LpType::Record(record) => record_to_zod(record, all_types),
-        LpType::Enum(enum_ty) => enum_to_zod(enum_ty, all_types),
+    match shape.kind() {
+        LpKind::Fixed => {
+            // SAFETY: We know this is a Fixed because kind() returned Fixed
+            // Shapes are 'static, so transmuting the reference is safe
+            let fixed_shape: &dyn FixedShape = unsafe { core::mem::transmute(shape) };
+            fixed_to_zod(fixed_shape)
+        }
+        LpKind::Record => {
+            // SAFETY: We know this is a Record because kind() returned Record
+            // Shapes are 'static, so transmuting the reference is safe
+            let record_shape: &dyn RecordShape = unsafe { core::mem::transmute(shape) };
+            record_to_zod(record_shape, all_types)
+        }
+        LpKind::Enum => {
+            // SAFETY: We know this is an Enum because kind() returned Enum
+            // Shapes are 'static, so transmuting the reference is safe
+            let enum_shape: &dyn EnumShape = unsafe { core::mem::transmute(shape) };
+            enum_to_zod(enum_shape, all_types)
+        }
     }
 }
 
-fn scalar_to_zod(scalar: &LpScalarType) -> String {
-    match scalar {
-        LpScalarType::String(_) => "z.string()".to_string(),
-        LpScalarType::Fixed(fixed) => {
-            if let NumberUi::Slider(slider) = &fixed.ui {
-                let mut zod = "z.number()".to_string();
-                zod.push_str(&format!(".min({})", slider.min));
-                zod.push_str(&format!(".max({})", slider.max));
-                if let Some(step) = slider.step {
-                    zod.push_str(&format!(".step({})", step));
-                }
-                zod
-            } else {
-                "z.number()".to_string()
-            }
-        }
-        LpScalarType::Int32(int32) => {
-            if let NumberUi::Slider(slider) = &int32.ui {
-                let mut zod = "z.number().int()".to_string();
-                zod.push_str(&format!(".min({})", slider.min as i32));
-                zod.push_str(&format!(".max({})", slider.max as i32));
-                if let Some(step) = slider.step {
-                    zod.push_str(&format!(".step({})", step as i32));
-                }
-                zod
-            } else {
-                "z.number().int()".to_string()
-            }
-        }
-        LpScalarType::Bool(_) => "z.boolean()".to_string(),
-    }
-}
-
-fn vec2_to_zod(_vec2: &Vec2Type) -> String {
-    "z.tuple([z.number(), z.number()])".to_string()
-}
-
-fn vec3_to_zod(_vec3: &Vec3Type) -> String {
-    "z.tuple([z.number(), z.number(), z.number()])".to_string()
-}
-
-fn vec4_to_zod(_vec4: &Vec4Type) -> String {
-    "z.tuple([z.number(), z.number(), z.number(), z.number()])".to_string()
-}
-
-fn array_to_zod(
-    array: &ArrayType<TypeRef>,
-    all_types: &std::collections::BTreeMap<&'static str, &'static LpTypeMeta>,
-) -> String {
-    let element_zod = type_ref_to_zod(array.element, all_types);
-    format!("z.array({})", element_zod)
+fn fixed_to_zod(_fixed_shape: &dyn FixedShape) -> String {
+    // For now, just return z.number()
+    // TODO: Check metadata for slider min/max/step
+    "z.number()".to_string()
 }
 
 fn record_to_zod(
-    record: &RecordType<TypeRef>,
-    all_types: &std::collections::BTreeMap<&'static str, &'static LpTypeMeta>,
+    record_shape: &dyn RecordShape,
+    all_types: &BTreeMap<&'static str, &dyn LpShape>,
 ) -> String {
     let mut fields = Vec::new();
 
-    for field in record.fields {
-        let field_zod = type_ref_to_zod(field.ty, all_types);
-        fields.push(format!("  {}: {}", field.name, field_zod));
+    for i in 0..record_shape.field_count() {
+        if let Some(field_shape) = record_shape.get_field(i) {
+            let field_name = field_shape.name();
+            let field_zod = field_shape_to_zod(field_shape, all_types);
+            fields.push(format!("  {}: {}", field_name, field_zod));
+        }
     }
 
     format!("z.object({{\n{}\n}})", fields.join(",\n"))
 }
 
 fn enum_to_zod(
-    enum_ty: &EnumType<TypeRef>,
-    all_types: &std::collections::BTreeMap<&'static str, &'static LpTypeMeta>,
+    enum_shape: &dyn EnumShape,
+    _all_types: &BTreeMap<&'static str, &dyn LpShape>,
 ) -> String {
-    match &enum_ty.variants[..] {
-        [] => "z.never()".to_string(),
-        variants => {
-            let variant_strings: Vec<String> = variants
-                .iter()
-                .map(|v| match v {
-                    EnumVariant::Unit { name } => format!("'{}'", name),
-                    EnumVariant::Tuple { name, .. } => {
-                        // For tuple variants, we'd need to generate a discriminated union
-                        // For now, just use the name as a string literal
-                        format!("'{}'", name)
-                    }
-                    EnumVariant::Struct { name, .. } => {
-                        // For struct variants, we'd need to generate a discriminated union
-                        // For now, just use the name as a string literal
-                        format!("'{}'", name)
-                    }
-                })
-                .collect();
-            format!("z.enum([{}])", variant_strings.join(", "))
+    let mut variants = Vec::new();
+
+    for i in 0..enum_shape.variant_count() {
+        if let Some(variant_shape) = enum_shape.get_variant(i) {
+            variants.push(format!("'{}'", variant_shape.name()));
         }
+    }
+
+    if variants.is_empty() {
+        "z.never()".to_string()
+    } else {
+        format!("z.enum([{}])", variants.join(", "))
     }
 }
 
-fn type_ref_to_zod(
-    type_ref: TypeRef,
-    all_types: &std::collections::BTreeMap<&'static str, &'static LpTypeMeta>,
+fn field_shape_to_zod(
+    field_shape: &dyn RecordFieldShape,
+    all_types: &BTreeMap<&'static str, &dyn LpShape>,
 ) -> String {
-    // Check if this is a reference to a registered type
-    // We need to find the type name by searching through all_types
-    // Compare by pointer address since these are static references
-    let type_ref_ptr = type_ref as *const _;
-    for (name, meta) in all_types {
-        let meta_ptr = *meta as *const _;
-        if std::ptr::eq(meta_ptr, type_ref_ptr) {
-            return format!("{}Schema", name);
-        }
-    }
+    let shape = field_shape.shape();
 
-    // Not a registered type, generate inline
-    lp_type_to_zod(&type_ref.ty, all_types)
+    // Check if this shape is registered as a named type
+    // We need to compare shapes to see if they match a registered type
+    // For now, we'll generate inline schemas
+    lp_shape_to_zod(shape, all_types)
 }
