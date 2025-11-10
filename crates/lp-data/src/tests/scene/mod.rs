@@ -1,4 +1,4 @@
-pub mod lfo;
+pub mod test_node;
 
 mod print_lp_value;
 #[cfg(test)]

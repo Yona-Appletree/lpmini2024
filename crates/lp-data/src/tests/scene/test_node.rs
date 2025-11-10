@@ -1,6 +1,6 @@
-//! LFO (Low Frequency Oscillator) node.
+//! Test node with all primitive types.
 
-use lp_math::fixed::Fixed;
+use lp_math::fixed::{Fixed, Vec2, Vec3, Vec4};
 
 /// LFO waveform shape enumeration
 #[derive(
@@ -20,30 +20,45 @@ pub enum LfoWaveform {
     Sawtooth,
 }
 
-/// Configuration for an LFO node.
+/// Configuration for a test node with all primitive types.
 #[derive(
     Debug, Clone, PartialEq, lp_data_derive::RecordValue, serde::Serialize, serde::Deserialize,
 )]
-pub struct LfoConfig {
+pub struct TestNodeConfig {
     /// Oscillation period in seconds.
     pub period: Fixed,
 
     /// Waveform shape
     #[lp(enum)]
     pub waveform: LfoWaveform,
+
+    /// Integer count value
+    pub count: i32,
+
+    /// Boolean enabled flag
+    pub enabled: bool,
+
+    /// 2D position
+    pub position: Vec2,
+
+    /// 3D rotation
+    pub rotation: Vec3,
+
+    /// 4D color (RGBA)
+    pub color: Vec4,
 }
 
-/// Runtime structure for an LFO node.
+/// Runtime structure for a test node.
 #[derive(Clone, lp_data_derive::RecordValue, serde::Serialize, serde::Deserialize)]
-pub struct LfoNode {
-    /// LFO configuration
-    pub config: LfoConfig,
-    /// LFO output value
+pub struct TestNode {
+    /// Node configuration
+    pub config: TestNodeConfig,
+    /// Output value
     pub output: Fixed,
 }
 
-impl LfoNode {
-    pub fn new(config: LfoConfig) -> Self {
+impl TestNode {
+    pub fn new(config: TestNodeConfig) -> Self {
         Self {
             config,
             output: Fixed::ZERO,

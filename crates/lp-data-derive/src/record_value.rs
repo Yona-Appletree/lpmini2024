@@ -94,15 +94,34 @@ fn expand_struct(input: &DeriveInput, data: &DataStruct) -> Result<TokenStream2,
         let field_shape = get_field_shape(struct_ident, field_ident, &field.ty, is_enum_field)?;
         where_bounds.extend(field_shape.bounds);
 
-        let is_fixed_type = matches!(&field.ty, Type::Path(path) if is_fixed(path));
         let field_ty = &field.ty;
+        let primitive_variant = match &field.ty {
+            Type::Path(path) => {
+                if is_fixed(path) {
+                    Some(quote! { Fixed })
+                } else if is_i32(path) {
+                    Some(quote! { Int32 })
+                } else if is_bool(path) {
+                    Some(quote! { Bool })
+                } else if is_vec2(path) {
+                    Some(quote! { Vec2 })
+                } else if is_vec3(path) {
+                    Some(quote! { Vec3 })
+                } else if is_vec4(path) {
+                    Some(quote! { Vec4 })
+                } else {
+                    None
+                }
+            }
+            _ => None,
+        };
 
-        if is_fixed_type {
+        if let Some(variant) = primitive_variant {
             field_getters.push(quote! {
-                #index => Ok(crate::kind::value::LpValueRef::Fixed(&self.#field_ident as &dyn crate::kind::value::LpValue)),
+                #index => Ok(crate::kind::value::LpValueRef::#variant(&self.#field_ident as &dyn crate::kind::value::LpValue)),
             });
             field_getters_mut.push(quote! {
-                #index => Ok(crate::kind::value::LpValueRefMut::Fixed(&mut self.#field_ident as &mut dyn crate::kind::value::LpValue)),
+                #index => Ok(crate::kind::value::LpValueRefMut::#variant(&mut self.#field_ident as &mut dyn crate::kind::value::LpValue)),
             });
         } else {
             // We know at compile time if this is an enum or record via attribute/naming convention
@@ -317,6 +336,46 @@ fn get_field_shape(
                     bounds: Vec::new(),
                     is_enum: false,
                 })
+            } else if is_i32(path) {
+                Ok(FieldShape {
+                    shape_expr: quote! {
+                        &crate::kind::int32::int32_static::INT32_SHAPE
+                    },
+                    bounds: Vec::new(),
+                    is_enum: false,
+                })
+            } else if is_bool(path) {
+                Ok(FieldShape {
+                    shape_expr: quote! {
+                        &crate::kind::bool::bool_static::BOOL_SHAPE
+                    },
+                    bounds: Vec::new(),
+                    is_enum: false,
+                })
+            } else if is_vec2(path) {
+                Ok(FieldShape {
+                    shape_expr: quote! {
+                        &crate::kind::vec2::vec2_static::VEC2_SHAPE
+                    },
+                    bounds: Vec::new(),
+                    is_enum: false,
+                })
+            } else if is_vec3(path) {
+                Ok(FieldShape {
+                    shape_expr: quote! {
+                        &crate::kind::vec3::vec3_static::VEC3_SHAPE
+                    },
+                    bounds: Vec::new(),
+                    is_enum: false,
+                })
+            } else if is_vec4(path) {
+                Ok(FieldShape {
+                    shape_expr: quote! {
+                        &crate::kind::vec4::vec4_static::VEC4_SHAPE
+                    },
+                    bounds: Vec::new(),
+                    is_enum: false,
+                })
             } else {
                 // Could be either enum or record type - we know at compile time via attribute/naming
                 let bounds = Vec::new();
@@ -347,7 +406,7 @@ fn get_field_shape(
         }
         _ => Err(Error::new(
             ty.span(),
-            "unsupported field type; expected Fixed, enum, or record types",
+            "unsupported field type; expected Fixed, Int32, Bool, Vec2, Vec3, Vec4, enum, or record types",
         )),
     }
 }
@@ -357,6 +416,38 @@ fn is_fixed(path: &TypePath) -> bool {
         .segments
         .last()
         .map(|seg| seg.ident == "Fixed")
+        .unwrap_or(false)
+}
+
+fn is_i32(path: &TypePath) -> bool {
+    path.path.is_ident("i32")
+}
+
+fn is_bool(path: &TypePath) -> bool {
+    path.path.is_ident("bool")
+}
+
+fn is_vec2(path: &TypePath) -> bool {
+    path.path
+        .segments
+        .last()
+        .map(|seg| seg.ident == "Vec2")
+        .unwrap_or(false)
+}
+
+fn is_vec3(path: &TypePath) -> bool {
+    path.path
+        .segments
+        .last()
+        .map(|seg| seg.ident == "Vec3")
+        .unwrap_or(false)
+}
+
+fn is_vec4(path: &TypePath) -> bool {
+    path.path
+        .segments
+        .last()
+        .map(|seg| seg.ident == "Vec4")
         .unwrap_or(false)
 }
 

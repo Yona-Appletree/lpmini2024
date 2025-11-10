@@ -1,15 +1,15 @@
 //! Tests for scene graph traversal.
 use crate::kind::{record::record_dyn::RecordShapeDyn, value::LpValueBox};
 use crate::tests::scene::{
-    lfo::{LfoConfig, LfoNode, LfoWaveform},
     print_lp_value::print_lp_value_to_string,
+    test_node::{LfoWaveform, TestNode, TestNodeConfig},
 };
 use core::ptr::NonNull;
 
 extern crate alloc;
 use crate::kind::record::record_value::RecordValue;
 use crate::kind::record::RecordValueDyn;
-use lp_math::fixed::ToFixed;
+use lp_math::fixed::{Fixed, ToFixed, Vec2, Vec3, Vec4};
 use lp_pool::{enter_global_alloc_allowance, lp_box_dyn, LpMemoryPool, LpString};
 
 fn setup_pool() -> LpMemoryPool {
@@ -24,21 +24,26 @@ fn build_demo_scene() -> Result<RecordValueDyn, lp_pool::AllocError> {
     // Create a simple scene with a module containing nodes
     let mut nodes = RecordValueDyn::new(RecordShapeDyn::new());
 
-    // Create an LFO node
-    let lfo_node = LfoNode::new(LfoConfig {
+    // Create a test node with all primitive types
+    let test_node = TestNode::new(TestNodeConfig {
         period: 2.0f32.to_fixed(),
         waveform: LfoWaveform::Sine,
+        count: 42,
+        enabled: true,
+        position: Vec2::new(Fixed::ZERO, Fixed::ZERO),
+        rotation: Vec3::new(Fixed::ZERO, Fixed::ZERO, Fixed::ZERO),
+        color: Vec4::new(Fixed::ZERO, Fixed::ZERO, Fixed::ZERO, Fixed::ZERO),
     });
 
-    // Convert LfoNode to LpValueBox
-    // LfoNode implements RecordValue, so we box it as a RecordValue
+    // Convert TestNode to LpValueBox
+    // TestNode implements RecordValue, so we box it as a RecordValue
     // The value is moved into pool memory, preventing double free
-    let lfo_boxed = lp_box_dyn!(lfo_node, dyn RecordValue)?;
-    let lfo_value_box = LpValueBox::from(lfo_boxed);
+    let test_boxed = lp_box_dyn!(test_node, dyn RecordValue)?;
+    let test_value_box = LpValueBox::from(test_boxed);
 
     let name = LpString::try_from_str("test")?;
     nodes
-        .add_field(name, lfo_value_box)
+        .add_field(name, test_value_box)
         .map_err(|_| lp_pool::AllocError::PoolExhausted)?;
 
     Ok(nodes)
@@ -47,24 +52,33 @@ fn build_demo_scene() -> Result<RecordValueDyn, lp_pool::AllocError> {
 #[test]
 fn test_record_metadata() {
     // Test that derived RecordValue types have correct metadata
-    let lfo_config = LfoConfig {
+    let test_config = TestNodeConfig {
         period: 2.0f32.to_fixed(),
         waveform: LfoWaveform::Square,
+        count: 0,
+        enabled: false,
+        position: Vec2::new(Fixed::ZERO, Fixed::ZERO),
+        rotation: Vec3::new(Fixed::ZERO, Fixed::ZERO, Fixed::ZERO),
+        color: Vec4::new(Fixed::ZERO, Fixed::ZERO, Fixed::ZERO, Fixed::ZERO),
     };
 
     use crate::kind::record::record_value::RecordValue;
-    let record_shape = RecordValue::shape(&lfo_config);
+    let record_shape = RecordValue::shape(&test_config);
     let meta = record_shape.meta();
     assert_eq!(
         meta.name(),
-        "LfoConfig",
-        "LfoConfig should have name 'LfoConfig'"
+        "TestNodeConfig",
+        "TestNodeConfig should have name 'TestNodeConfig'"
     );
 
-    let lfo_node = LfoNode::new(lfo_config);
-    let record_shape = RecordValue::shape(&lfo_node);
+    let test_node = TestNode::new(test_config);
+    let record_shape = RecordValue::shape(&test_node);
     let meta = record_shape.meta();
-    assert_eq!(meta.name(), "LfoNode", "LfoNode should have name 'LfoNode'");
+    assert_eq!(
+        meta.name(),
+        "TestNode",
+        "TestNode should have name 'TestNode'"
+    );
 }
 
 #[test]
@@ -107,10 +121,10 @@ fn test_scene_traversal() {
                 let lfo_meta = lfo_shape.meta();
                 assert_eq!(
                     lfo_meta.name(),
-                    "LfoNode",
-                    "LfoNode should have name 'LfoNode'"
+                    "TestNode",
+                    "TestNode should have name 'TestNode'"
                 );
-                assert_eq!(lfo_shape.field_count(), 2, "LfoNode should have 2 fields");
+                assert_eq!(lfo_shape.field_count(), 2, "TestNode should have 2 fields");
 
                 // Verify LfoConfig has waveform field
                 if let Ok(config_ref) = lfo_ref.get_field_by_index(0) {
@@ -118,8 +132,8 @@ fn test_scene_traversal() {
                         let config_shape = RecordValue::shape(config_record);
                         assert_eq!(
                             config_shape.field_count(),
-                            2,
-                            "LfoConfig should have 2 fields"
+                            7,
+                            "TestNodeConfig should have 7 fields"
                         );
                         if let Some(waveform_field) = config_shape.find_field("waveform") {
                             // Verify waveform field exists
@@ -148,10 +162,15 @@ fn test_scene_traversal() {
         let expected_lines = vec![
             "Scene graph:",
             "Record (anonymous)",
-            "  test: Record(LfoNode)",
-            "    config: Record(LfoConfig)",
+            "  test: Record(TestNode)",
+            "    config: Record(TestNodeConfig)",
             "      period: Fixed(2)",
             "      waveform: Enum(LfoWaveform)::Sine",
+            "      count: Int32(42)",
+            "      enabled: Bool(true)",
+            "      position: Vec2(0, 0)",
+            "      rotation: Vec3(0, 0, 0)",
+            "      color: Vec4(0, 0, 0, 0)",
             "    output: Fixed(0)",
         ];
 
@@ -168,18 +187,38 @@ fn test_scene_traversal() {
 
         // Also verify it contains key elements
         assert!(
-            output.contains("LfoNode"),
-            "Output should contain 'LfoNode'"
+            output.contains("TestNode"),
+            "Output should contain 'TestNode'"
         );
         assert!(
-            output.contains("LfoConfig"),
-            "Output should contain 'LfoConfig'"
+            output.contains("TestNodeConfig"),
+            "Output should contain 'TestNodeConfig'"
         );
         assert!(
             output.contains("waveform"),
             "Output should contain 'waveform'"
         );
         assert!(output.contains("Sine"), "Output should contain 'Sine'");
+        assert!(
+            output.contains("Int32(42)"),
+            "Output should contain 'Int32(42)'"
+        );
+        assert!(
+            output.contains("Bool(true)"),
+            "Output should contain 'Bool(true)'"
+        );
+        assert!(
+            output.contains("Vec2(0, 0)"),
+            "Output should contain 'Vec2(0, 0)'"
+        );
+        assert!(
+            output.contains("Vec3(0, 0, 0)"),
+            "Output should contain 'Vec3(0, 0, 0)'"
+        );
+        assert!(
+            output.contains("Vec4(0, 0, 0, 0)"),
+            "Output should contain 'Vec4(0, 0, 0, 0)'"
+        );
 
         Ok::<(), lp_pool::AllocError>(())
     })
@@ -213,23 +252,41 @@ fn test_scene_serialization() {
 fn test_lfo_node_serialization() {
     use serde_json;
 
-    // Test serialization of individual LFO node
-    let lfo_node = LfoNode::new(LfoConfig {
+    // Test serialization of individual test node
+    let test_node = TestNode::new(TestNodeConfig {
         period: 2.0f32.to_fixed(),
         waveform: LfoWaveform::Triangle,
+        count: 100,
+        enabled: true,
+        position: Vec2::new(10.0f32.to_fixed(), 20.0f32.to_fixed()),
+        rotation: Vec3::new(1.0f32.to_fixed(), 2.0f32.to_fixed(), 3.0f32.to_fixed()),
+        color: Vec4::new(
+            0.5f32.to_fixed(),
+            0.6f32.to_fixed(),
+            0.7f32.to_fixed(),
+            1.0f32.to_fixed(),
+        ),
     });
 
     // Serialize to JSON
-    let json = serde_json::to_string(&lfo_node).expect("Failed to serialize LFO node");
-    println!("Serialized LFO node: {}", json);
+    let json = serde_json::to_string(&test_node).expect("Failed to serialize test node");
+    println!("Serialized test node: {}", json);
 
-    // Verify JSON structure
+    // Verify JSON structure contains all fields
     assert!(json.contains("config"));
     assert!(json.contains("period"));
     assert!(json.contains("waveform"));
+    assert!(json.contains("count"));
+    assert!(json.contains("enabled"));
+    assert!(json.contains("position"));
+    assert!(json.contains("rotation"));
+    assert!(json.contains("color"));
     assert!(json.contains("output"));
     // Verify enum is serialized as string
     assert!(json.contains("\"Triangle\"") || json.contains("Triangle"));
+    // Verify primitive types are serialized correctly
+    assert!(json.contains("100"), "JSON should contain count value");
+    assert!(json.contains("true"), "JSON should contain enabled value");
 }
 
 #[cfg(feature = "serde_json")]
@@ -237,16 +294,26 @@ fn test_lfo_node_serialization() {
 fn test_lfo_node_deserialization() {
     use serde_json;
 
-    let original_node = LfoNode::new(LfoConfig {
+    let original_node = TestNode::new(TestNodeConfig {
         period: 2.0f32.to_fixed(),
         waveform: LfoWaveform::Sawtooth,
+        count: 42,
+        enabled: false,
+        position: Vec2::new(1.0f32.to_fixed(), 2.0f32.to_fixed()),
+        rotation: Vec3::new(3.0f32.to_fixed(), 4.0f32.to_fixed(), 5.0f32.to_fixed()),
+        color: Vec4::new(
+            0.1f32.to_fixed(),
+            0.2f32.to_fixed(),
+            0.3f32.to_fixed(),
+            0.4f32.to_fixed(),
+        ),
     });
 
     // Serialize and deserialize
     let json = serde_json::to_string(&original_node).expect("Failed to serialize");
-    let deserialized_node: LfoNode = serde_json::from_str(&json).expect("Failed to deserialize");
+    let deserialized_node: TestNode = serde_json::from_str(&json).expect("Failed to deserialize");
 
-    // Verify round-trip
+    // Verify round-trip for all fields
     assert_eq!(
         original_node.config.period.to_f32(),
         deserialized_node.config.period.to_f32()
@@ -254,6 +321,47 @@ fn test_lfo_node_deserialization() {
     assert_eq!(
         original_node.config.waveform,
         deserialized_node.config.waveform
+    );
+    assert_eq!(original_node.config.count, deserialized_node.config.count);
+    assert_eq!(
+        original_node.config.enabled,
+        deserialized_node.config.enabled
+    );
+    assert_eq!(
+        original_node.config.position.x.to_f32(),
+        deserialized_node.config.position.x.to_f32()
+    );
+    assert_eq!(
+        original_node.config.position.y.to_f32(),
+        deserialized_node.config.position.y.to_f32()
+    );
+    assert_eq!(
+        original_node.config.rotation.x.to_f32(),
+        deserialized_node.config.rotation.x.to_f32()
+    );
+    assert_eq!(
+        original_node.config.rotation.y.to_f32(),
+        deserialized_node.config.rotation.y.to_f32()
+    );
+    assert_eq!(
+        original_node.config.rotation.z.to_f32(),
+        deserialized_node.config.rotation.z.to_f32()
+    );
+    assert_eq!(
+        original_node.config.color.x.to_f32(),
+        deserialized_node.config.color.x.to_f32()
+    );
+    assert_eq!(
+        original_node.config.color.y.to_f32(),
+        deserialized_node.config.color.y.to_f32()
+    );
+    assert_eq!(
+        original_node.config.color.z.to_f32(),
+        deserialized_node.config.color.z.to_f32()
+    );
+    assert_eq!(
+        original_node.config.color.w.to_f32(),
+        deserialized_node.config.color.w.to_f32()
     );
     assert_eq!(
         original_node.output.to_f32(),
@@ -266,14 +374,24 @@ fn test_lfo_node_deserialization() {
 fn test_lfo_node_round_trip() {
     use serde_json;
 
-    let original_node = LfoNode::new(LfoConfig {
+    let original_node = TestNode::new(TestNodeConfig {
         period: 2.0f32.to_fixed(),
         waveform: LfoWaveform::Sine,
+        count: 123,
+        enabled: true,
+        position: Vec2::new(5.0f32.to_fixed(), 10.0f32.to_fixed()),
+        rotation: Vec3::new(15.0f32.to_fixed(), 30.0f32.to_fixed(), 45.0f32.to_fixed()),
+        color: Vec4::new(
+            0.8f32.to_fixed(),
+            0.9f32.to_fixed(),
+            1.0f32.to_fixed(),
+            0.5f32.to_fixed(),
+        ),
     });
 
     // Round-trip through JSON
     let json = serde_json::to_string(&original_node).expect("Failed to serialize");
-    let round_tripped_node: LfoNode = serde_json::from_str(&json).expect("Failed to deserialize");
+    let round_tripped_node: TestNode = serde_json::from_str(&json).expect("Failed to deserialize");
 
     // Verify all fields match
     assert_eq!(
@@ -286,8 +404,120 @@ fn test_lfo_node_round_trip() {
         "Waveform should match after round-trip"
     );
     assert_eq!(
+        original_node.config.count, round_tripped_node.config.count,
+        "Count should match after round-trip"
+    );
+    assert_eq!(
+        original_node.config.enabled, round_tripped_node.config.enabled,
+        "Enabled should match after round-trip"
+    );
+    assert_eq!(
+        original_node.config.position.x.to_f32(),
+        round_tripped_node.config.position.x.to_f32(),
+        "Position.x should match after round-trip"
+    );
+    assert_eq!(
+        original_node.config.position.y.to_f32(),
+        round_tripped_node.config.position.y.to_f32(),
+        "Position.y should match after round-trip"
+    );
+    assert_eq!(
+        original_node.config.rotation.x.to_f32(),
+        round_tripped_node.config.rotation.x.to_f32(),
+        "Rotation.x should match after round-trip"
+    );
+    assert_eq!(
+        original_node.config.rotation.y.to_f32(),
+        round_tripped_node.config.rotation.y.to_f32(),
+        "Rotation.y should match after round-trip"
+    );
+    assert_eq!(
+        original_node.config.rotation.z.to_f32(),
+        round_tripped_node.config.rotation.z.to_f32(),
+        "Rotation.z should match after round-trip"
+    );
+    assert_eq!(
+        original_node.config.color.x.to_f32(),
+        round_tripped_node.config.color.x.to_f32(),
+        "Color.x should match after round-trip"
+    );
+    assert_eq!(
+        original_node.config.color.y.to_f32(),
+        round_tripped_node.config.color.y.to_f32(),
+        "Color.y should match after round-trip"
+    );
+    assert_eq!(
+        original_node.config.color.z.to_f32(),
+        round_tripped_node.config.color.z.to_f32(),
+        "Color.z should match after round-trip"
+    );
+    assert_eq!(
+        original_node.config.color.w.to_f32(),
+        round_tripped_node.config.color.w.to_f32(),
+        "Color.w should match after round-trip"
+    );
+    assert_eq!(
         original_node.output.to_f32(),
         round_tripped_node.output.to_f32(),
         "Output should match after round-trip"
     );
+}
+
+#[test]
+fn test_print_all_primitive_types() {
+    let _allow = enter_global_alloc_allowance();
+    let pool = setup_pool();
+    pool.run(|| {
+        let test_node = TestNode::new(TestNodeConfig {
+            period: 3.14f32.to_fixed(),
+            waveform: LfoWaveform::Square,
+            count: 999,
+            enabled: true,
+            position: Vec2::new(100.0f32.to_fixed(), 200.0f32.to_fixed()),
+            rotation: Vec3::new(1.0f32.to_fixed(), 2.0f32.to_fixed(), 3.0f32.to_fixed()),
+            color: Vec4::new(
+                0.25f32.to_fixed(),
+                0.5f32.to_fixed(),
+                0.75f32.to_fixed(),
+                1.0f32.to_fixed(),
+            ),
+        });
+
+        let test_boxed = lp_box_dyn!(test_node, dyn RecordValue)?;
+        let test_value_box = LpValueBox::from(test_boxed);
+
+        let output =
+            LpMemoryPool::with_global_alloc(|| print_lp_value_to_string(test_value_box, 0));
+
+        // Verify all primitive types are printed correctly
+        assert!(
+            output.contains("Int32(999)"),
+            "Output should contain Int32 value"
+        );
+        assert!(
+            output.contains("Bool(true)"),
+            "Output should contain Bool value"
+        );
+        assert!(
+            output.contains("Vec2(100, 200)"),
+            "Output should contain Vec2 value"
+        );
+        assert!(
+            output.contains("Vec3(1, 2, 3)"),
+            "Output should contain Vec3 value"
+        );
+        assert!(
+            output.contains("Vec4(0.25, 0.5, 0.75, 1)"),
+            "Output should contain Vec4 value"
+        );
+        // Fixed is printed with period field - check for "period: Fixed("
+        assert!(
+            output.contains("period: Fixed("),
+            "Output should contain Fixed value for period field, got: {}",
+            output
+        );
+
+        Ok::<(), lp_pool::AllocError>(())
+    })
+    .unwrap();
 }
