@@ -230,7 +230,7 @@ mod tests {
     use super::*;
     use crate::kind::record::{record_dyn::RecordShapeDyn, record_meta::RecordMetaDyn};
     use core::ptr::NonNull;
-    use lp_math::fixed::Fixed;
+    use lp_math::fixed::{Fixed, Vec2, Vec3, Vec4};
     use lp_pool::{LpMemoryPool, LpString};
 
     fn setup_pool() -> LpMemoryPool {
@@ -604,6 +604,118 @@ mod tests {
                 record_shape.field_count(),
                 0,
                 "Empty record should have 0 fields"
+            );
+
+            Ok::<(), lp_pool::AllocError>(())
+        })
+        .unwrap();
+    }
+
+    #[test]
+    fn test_record_value_dyn_with_all_primitive_types() {
+        let pool = setup_pool();
+        pool.run(|| {
+            let shape_name = LpString::try_from_str("TestRecord")?;
+            let shape = RecordShapeDyn {
+                meta: RecordMetaDyn {
+                    name: shape_name,
+                    docs: None,
+                },
+                fields: LpVec::new(),
+            };
+            let mut record = RecordValueDyn::new(shape);
+
+            // Add all primitive types
+            record
+                .add_field(LpString::try_from_str("count")?, LpValueBox::from(42i32))
+                .map_err(|_| lp_pool::AllocError::PoolExhausted)?;
+            record
+                .add_field(LpString::try_from_str("enabled")?, LpValueBox::from(true))
+                .map_err(|_| lp_pool::AllocError::PoolExhausted)?;
+            record
+                .add_field(
+                    LpString::try_from_str("position")?,
+                    LpValueBox::from(Vec2::new(Fixed::ZERO, Fixed::ZERO)),
+                )
+                .map_err(|_| lp_pool::AllocError::PoolExhausted)?;
+            record
+                .add_field(
+                    LpString::try_from_str("rotation")?,
+                    LpValueBox::from(Vec3::new(Fixed::ZERO, Fixed::ZERO, Fixed::ZERO)),
+                )
+                .map_err(|_| lp_pool::AllocError::PoolExhausted)?;
+            record
+                .add_field(
+                    LpString::try_from_str("color")?,
+                    LpValueBox::from(Vec4::new(
+                        Fixed::ZERO,
+                        Fixed::ZERO,
+                        Fixed::ZERO,
+                        Fixed::ZERO,
+                    )),
+                )
+                .map_err(|_| lp_pool::AllocError::PoolExhausted)?;
+            record
+                .add_field(
+                    LpString::try_from_str("frequency")?,
+                    LpValueBox::from(Fixed::ZERO),
+                )
+                .map_err(|_| lp_pool::AllocError::PoolExhausted)?;
+
+            // Verify all fields can be retrieved and have correct types
+            assert_eq!(
+                record
+                    .get_field("count")
+                    .map_err(|_| lp_pool::AllocError::PoolExhausted)?
+                    .as_lp_value()
+                    .shape()
+                    .kind(),
+                crate::kind::kind::LpKind::Int32
+            );
+            assert_eq!(
+                record
+                    .get_field("enabled")
+                    .map_err(|_| lp_pool::AllocError::PoolExhausted)?
+                    .as_lp_value()
+                    .shape()
+                    .kind(),
+                crate::kind::kind::LpKind::Bool
+            );
+            assert_eq!(
+                record
+                    .get_field("position")
+                    .map_err(|_| lp_pool::AllocError::PoolExhausted)?
+                    .as_lp_value()
+                    .shape()
+                    .kind(),
+                crate::kind::kind::LpKind::Vec2
+            );
+            assert_eq!(
+                record
+                    .get_field("rotation")
+                    .map_err(|_| lp_pool::AllocError::PoolExhausted)?
+                    .as_lp_value()
+                    .shape()
+                    .kind(),
+                crate::kind::kind::LpKind::Vec3
+            );
+            assert_eq!(
+                record
+                    .get_field("color")
+                    .map_err(|_| lp_pool::AllocError::PoolExhausted)?
+                    .as_lp_value()
+                    .shape()
+                    .kind(),
+                crate::kind::kind::LpKind::Vec4
+            );
+            assert_eq!(
+                record
+                    .get_field("frequency")
+                    .map_err(|_| lp_pool::AllocError::PoolExhausted)?
+                    .as_lp_value()
+                    .shape()
+                    .kind(),
+                crate::kind::kind::LpKind::Fixed
             );
 
             Ok::<(), lp_pool::AllocError>(())

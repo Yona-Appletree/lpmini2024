@@ -6,6 +6,9 @@ pub mod bool_shape;
 pub mod bool_static;
 pub mod bool_value;
 
+#[cfg(test)]
+mod bool_tests;
+
 pub use bool_dyn::BoolShapeDyn;
 pub use bool_meta::{BoolMeta, BoolMetaDyn, BoolMetaStatic};
 pub use bool_shape::BoolShape;
