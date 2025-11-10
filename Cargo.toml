@@ -9,7 +9,6 @@ members = [
     "crates/lp-data-derive",
     "crates/lp-script",
     "crates/lp-math",
-    "crates/lp-pool",
     "crates/lp-alloc",
     "tools/migrations/lp-pool-to-alloc",
 ]

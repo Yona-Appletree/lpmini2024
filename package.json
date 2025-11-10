@@ -42,7 +42,6 @@
     "fix:syncpack-mismatches": "syncpack fix-mismatches",
     "install-playwright": "pnpm --filter @lpmini/control exec playwright install --with-deps",
     "prepare": "husky",
-    "test:rust": "cargo test --workspace --exclude fw-esp32c3",
-    "test:rust:lp-pool-no-default-features": "cargo test -p lp-pool --lib --no-default-features"
+    "test:rust": "cargo test --workspace --exclude fw-esp32c3"
   }
 }

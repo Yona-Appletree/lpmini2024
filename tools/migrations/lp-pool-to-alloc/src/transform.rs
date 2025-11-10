@@ -1,13 +1,9 @@
-//! AST transformations for migrating from lp-pool to lp-alloc
-//! Uses a hybrid approach: string replacements for simple cases, AST for complex ones
-
-use quote::quote;
-use syn::{parse_file, File, Item, ItemFn, ItemMod, ItemUse, Stmt};
+//! Transformations for migrating from lp-pool to lp-alloc.
 
 use crate::patterns::*;
 
 /// Transform a Rust source file
-pub fn transform_file(content: &str, file_path: &std::path::Path) -> Result<String, syn::Error> {
+pub fn transform_file(content: &str, file_path: &std::path::Path) -> String {
     let is_compiler = is_compiler_path(file_path);
 
     // First do simple string-based replacements
@@ -19,13 +15,13 @@ pub fn transform_file(content: &str, file_path: &std::path::Path) -> Result<Stri
 
     // Then parse and do AST-based transformations for complex cases
     if is_compiler {
-        transformed = transform_compiler_try_calls(&transformed, file_path)?;
+        transformed = transform_compiler_try_calls(&transformed);
     }
 
     // Add test setup if needed
-    transformed = add_test_setup(&transformed, file_path)?;
+    transformed = add_test_setup(&transformed);
 
-    Ok(transformed)
+    transformed
 }
 
 /// Transform import statements
@@ -139,26 +135,12 @@ fn remove_pool_scopes(content: &str) -> String {
 }
 
 /// Transform try_* method calls in compiler code to use try_alloc
-fn transform_compiler_try_calls(
-    content: &str,
-    file_path: &std::path::Path,
-) -> Result<String, syn::Error> {
+fn transform_compiler_try_calls(content: &str) -> String {
     // This is complex and requires AST manipulation
     // For Phase 1, we'll do basic string replacements for common patterns
     // Full AST-based transformation will be done by the big model
 
     let mut result = content.to_string();
-
-    // Determine scope name from file path
-    let scope = if file_path.to_string_lossy().contains("parser") {
-        "parser"
-    } else if file_path.to_string_lossy().contains("expr") {
-        "expr"
-    } else if file_path.to_string_lossy().contains("stmt") {
-        "stmt"
-    } else {
-        "compiler"
-    };
 
     // Basic replacements - these are placeholders
     // Full implementation needs AST parsing to properly wrap expressions
@@ -181,21 +163,21 @@ fn transform_compiler_try_calls(
         }
     }
 
-    Ok(result)
+    result
 }
 
 /// Add test setup (#[global_allocator] and limit initialization) to test modules
-fn add_test_setup(content: &str, _file_path: &std::path::Path) -> Result<String, syn::Error> {
+fn add_test_setup(content: &str) -> String {
     // Check if this file has #[cfg(test)] modules
     if !content.contains("#[cfg(test)]") {
-        return Ok(content.to_string());
+        return content.to_string();
     }
 
     let mut result = content.to_string();
 
     // Check if setup_test_alloc! is already present
     if result.contains("setup_test_alloc!") || result.contains("#[global_allocator]") {
-        return Ok(result);
+        return result;
     }
 
     // Find #[cfg(test)] and add setup after it
@@ -224,5 +206,5 @@ fn add_test_setup(content: &str, _file_path: &std::path::Path) -> Result<String,
         }
     }
 
-    Ok(result)
+    result
 }

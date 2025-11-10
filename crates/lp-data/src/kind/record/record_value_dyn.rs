@@ -4,7 +4,7 @@
 //! This is in contrast to static record values, which are Rust structs that implement
 //! `RecordValue` directly via codegen.
 //!
-//! Uses `LpValueBox` for field storage, which allocates from lp-pool.
+//! Uses `LpValueBox` for field storage, which allocates through the global allocator.
 
 use crate::memory::{LpString, LpVec};
 
@@ -18,8 +18,8 @@ use crate::value::RuntimeError;
 
 /// Dynamic record value.
 ///
-/// Stores fields as name-value pairs in lp-pool allocated collections.
-/// All field values are stored as `LpValueBox`, which allocates from lp-pool.
+/// Stores fields as name-value pairs using allocator-aware wrappers.
+/// All field values are stored as `LpValueBox`, which respects the lp_alloc limits.
 pub struct RecordValueDyn {
     /// The shape of this record.
     shape: RecordShapeDyn,

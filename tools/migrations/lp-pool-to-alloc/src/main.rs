@@ -63,13 +63,7 @@ fn process_file(file_path: &Path, args: &Args) {
     };
 
     // Parse and transform the file
-    let transformed = match lp_pool_to_alloc::transform_file(&content, file_path) {
-        Ok(t) => t,
-        Err(e) => {
-            eprintln!("Error transforming {}: {}", file_path.display(), e);
-            return;
-        }
-    };
+    let transformed = lp_pool_to_alloc::transform_file(&content, file_path);
 
     if transformed != content {
         if args.verbose {
