@@ -1,4 +1,4 @@
-use crate::memory::LpBoxDyn;
+use alloc::boxed::Box;
 
 use crate::kind::value::{LpValueBox, LpValueRef, LpValueRefMut};
 use crate::kind::{LpValue, RecordShape};
@@ -50,8 +50,8 @@ pub trait RecordValue: LpValue {
     }
 }
 
-impl From<LpBoxDyn<dyn RecordValue>> for LpValueBox {
-    fn from(value: LpBoxDyn<dyn RecordValue>) -> Self {
+impl From<Box<dyn RecordValue>> for LpValueBox {
+    fn from(value: Box<dyn RecordValue>) -> Self {
         LpValueBox::Record(value)
     }
 }

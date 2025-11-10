@@ -1,6 +1,6 @@
 //! Value implementation for Enum.
 
-use crate::memory::LpBoxDyn;
+use alloc::boxed::Box;
 
 use crate::kind::value::{LpValueBox, LpValueRef, LpValueRefMut};
 use crate::kind::{EnumShape, LpValue};
@@ -31,8 +31,8 @@ pub trait EnumValue: LpValue {
     }
 }
 
-impl From<LpBoxDyn<dyn EnumValue>> for LpValueBox {
-    fn from(value: LpBoxDyn<dyn EnumValue>) -> Self {
+impl From<Box<dyn EnumValue>> for LpValueBox {
+    fn from(value: Box<dyn EnumValue>) -> Self {
         LpValueBox::Enum(value)
     }
 }

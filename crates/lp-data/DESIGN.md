@@ -24,7 +24,7 @@ Rust structs like `LfoConfig` directly implement `LpValue` and `RecordValue` tra
 **Rationale**:
 
 - Static shapes use `&'static str` for strings (zero-cost)
-- Dynamic shapes use `LpString` from lp-pool
+- Dynamic shapes use `String`
 - Both implement common traits (`LpShape`, `RecordShape`) for polymorphic access
 - Avoids duplication while maintaining performance for static cases
 - We absolutely need dynamic shapes (some shapes aren't known at compile time)
@@ -34,7 +34,7 @@ Rust structs like `LfoConfig` directly implement `LpValue` and `RecordValue` tra
 - `LpShape` trait as the common interface
 - `FixedShape` with optional metadata (static or dynamic)
 - `RecordShapeStatic` with `&'static [RecordFieldStatic]`
-- `RecordShapeDyn` with `LpVec<RecordFieldDyn>` allocated in lp-pool
+- `RecordShapeDyn` with `Vec<RecordFieldDyn>` allocated through `lp_alloc`
 
 ### 2. Metadata Storage
 
@@ -43,9 +43,9 @@ Rust structs like `LfoConfig` directly implement `LpValue` and `RecordValue` tra
 **Implementation**:
 
 - `FixedMetaStatic` with `&'static str` for strings (e.g., unit: "ms")
-- `FixedMetaDyn` with `LpString` for strings
+- `FixedMetaDyn` with `String` for strings
 - `RecordFieldMetaStatic` with `&'static str` for strings
-- `RecordFieldMetaDyn` with `LpString` for strings
+- `RecordFieldMetaDyn` with `String` for strings
 - Both static and dynamic shapes can have metadata (required for UI generation)
 
 **Rationale**: Zero-cost for static shapes, consistent allocation for dynamic shapes.
@@ -74,7 +74,7 @@ Rust structs like `LfoConfig` directly implement `LpValue` and `RecordValue` tra
 
 - **Value Enum**: Do we need a companion enum `enum LpValueEnum { Fixed(Fixed), Record(...) }` for easier typing/pattern matching? Or is trait-only sufficient?
 - **Value Storage**: For dynamic record values, how are fields stored?
-  - All values boxed (`LpVec<Box<dyn LpValue>>`)?
+  - All values boxed (`Vec<Box<dyn LpValue>>`)?
   - Direct ownership (enum of concrete value types)?
   - Hybrid (support references/pointers)?
   - How does this interplay with Rust's borrow checker?
@@ -151,8 +151,8 @@ RecordShapeStatic (struct)
 └── impl RecordShape
 
 RecordShapeDyn (struct, allocated in lp-pool)
-├── name: LpString
-├── fields: LpVec<RecordFieldDyn>
+├── name: String
+├── fields: Vec<RecordFieldDyn>
 └── impl RecordShape
 ```
 
@@ -165,17 +165,17 @@ FixedMetaStatic
 └── unit: Option<&'static str>
 
 FixedMetaDyn
-├── label: LpString
-├── desc_md: Option<LpString>
-└── unit: Option<LpString>
+├── label: String
+├── desc_md: Option<String>
+└── unit: Option<String>
 
 RecordFieldMetaStatic
 ├── ui_hints: &'static [UiHint]
 └── docs: Option<&'static str>
 
 RecordFieldMetaDyn
-├── ui_hints: LpVec<UiHint>
-└── docs: Option<LpString>
+├── ui_hints: Vec<UiHint>
+└── docs: Option<String>
 ```
 
 ### Value Hierarchy
@@ -215,7 +215,7 @@ RecordFieldStatic (struct)
 └── meta: RecordFieldMetaStatic
 
 RecordFieldDyn (struct, allocated in lp-pool)
-├── name: LpString
+├── name: String
 ├── shape: &'static dyn LpShape
 └── meta: RecordFieldMetaDyn
 ```
@@ -262,7 +262,7 @@ Do we need a companion enum for `LpValue`?
 
 How are fields stored in dynamic record values?
 
-- Option A: `LpVec<Box<dyn LpValue>>` (all boxed)
+- Option A: `Vec<Box<dyn LpValue>>` (all boxed)
 - Option B: Enum of concrete types (direct ownership)
 - Option C: Hybrid (support references/pointers)
 - **Status**: Open - need to understand borrow checker implications
@@ -301,7 +301,7 @@ What type should `set_field` accept?
 - Static shapes: Zero runtime cost (compile-time constants)
 - Dynamic shapes: Allocated in lp-pool, follow pool lifecycle
 - Values: Own their data, reference shapes (shapes outlive values)
-- Strings: Static use `&'static str`, dynamic use `LpString`
+- Strings: Static use `&'static str`, dynamic use `String`
 - Field shape references: Use `&'static dyn LpShape` (static shapes never deallocated)
 
 ## Script Access

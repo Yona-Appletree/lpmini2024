@@ -1,6 +1,6 @@
 //! Runtime error types for lp-data.
 
-use crate::memory::LpString;
+use alloc::string::String;
 
 /// Runtime errors that can occur when working with lp-data values.
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -8,17 +8,17 @@ pub enum RuntimeError {
     /// Field not found in a record.
     FieldNotFound {
         /// Name of the record type.
-        record_name: LpString,
+        record_name: String,
         /// Name of the field that was not found.
-        field_name: LpString,
+        field_name: String,
     },
 
     /// Type mismatch when setting a field value.
     TypeMismatch {
         /// Expected type name.
-        expected: LpString,
+        expected: String,
         /// Actual type name.
-        actual: LpString,
+        actual: String,
     },
 
     /// Index out of bounds.
@@ -35,10 +35,8 @@ impl RuntimeError {
     /// Panics if allocation fails (allocation failures in error contexts are unexpected).
     pub fn field_not_found(record_name: &str, field_name: &str) -> Self {
         RuntimeError::FieldNotFound {
-            record_name: LpString::try_from_str(record_name)
-                .expect("Failed to allocate string for error message"),
-            field_name: LpString::try_from_str(field_name)
-                .expect("Failed to allocate string for error message"),
+            record_name: record_name.to_string(),
+            field_name: field_name.to_string(),
         }
     }
 
@@ -46,10 +44,8 @@ impl RuntimeError {
     /// Panics if allocation fails (allocation failures in error contexts are unexpected).
     pub fn type_mismatch(expected: &str, actual: &str) -> Self {
         RuntimeError::TypeMismatch {
-            expected: LpString::try_from_str(expected)
-                .expect("Failed to allocate string for error message"),
-            actual: LpString::try_from_str(actual)
-                .expect("Failed to allocate string for error message"),
+            expected: expected.to_string(),
+            actual: actual.to_string(),
         }
     }
 }

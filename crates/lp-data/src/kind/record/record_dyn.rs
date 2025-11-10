@@ -1,6 +1,6 @@
 //! Dynamic shape implementation for Record.
 
-use crate::memory::{LpString, LpVec};
+use alloc::{string::String, vec::Vec};
 
 use super::record_meta::{RecordFieldMeta, RecordFieldMetaDyn, RecordMeta, RecordMetaDyn};
 use super::record_shape::{RecordFieldShape, RecordShape};
@@ -12,7 +12,7 @@ use crate::kind::shape::LpShape;
 /// Allocated in lp-pool.
 pub struct RecordFieldDyn {
     /// Field name.
-    pub name: LpString,
+    pub name: String,
 
     /// Shape of the field's value.
     pub shape: &'static dyn LpShape,
@@ -43,17 +43,17 @@ pub struct RecordShapeDyn {
     pub meta: RecordMetaDyn,
 
     /// Fields in this record.
-    pub fields: LpVec<RecordFieldDyn>,
+    pub fields: Vec<RecordFieldDyn>,
 }
 
 impl RecordShapeDyn {
     pub fn new() -> Self {
         Self {
             meta: RecordMetaDyn {
-                name: LpString::new(),
+                name: String::new(),
                 docs: None,
             },
-            fields: LpVec::new(),
+            fields: Vec::new(),
         }
     }
 }

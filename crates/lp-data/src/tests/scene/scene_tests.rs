@@ -5,8 +5,8 @@ use crate::tests::scene::print_lp_value::print_lp_value_to_string;
 use crate::tests::scene::test_node::{LfoWaveform, TestNode, TestNodeConfig};
 
 extern crate alloc;
-use crate::memory::{enter_global_alloc_allowance, AllocError, LpString};
-use lp_alloc::init_test_allocator;
+use alloc::{boxed::Box, string::String};
+use lp_alloc::{enter_global_alloc_allowance, init_test_allocator, AllocLimitError as AllocError};
 use lp_math::fixed::{Fixed, ToFixed, Vec2, Vec3, Vec4};
 
 use crate::kind::record::record_value::RecordValue;
@@ -49,10 +49,10 @@ fn build_demo_scene() -> Result<RecordValueDyn, AllocError> {
     // Convert TestNode to LpValueBox
     // TestNode implements RecordValue, so we box it as a RecordValue
     // The value is moved into pool memory, preventing double free
-    let test_boxed = crate::lp_box_dyn!(test_node, dyn RecordValue)?;
+    let test_boxed: Box<dyn RecordValue> = Box::new(test_node);
     let test_value_box = LpValueBox::from(test_boxed);
 
-    let name = LpString::try_from_str("test")?;
+    let name = "test".to_string();
     nodes
         .add_field(name, test_value_box)
         .map_err(|_| AllocError::SoftLimitExceeded)?;
@@ -102,7 +102,7 @@ fn test_scene_traversal() {
             let nodes = build_demo_scene()?;
 
             // Convert nodes to LpValueBox for traversal
-            let nodes_boxed = crate::lp_box_dyn!(nodes, dyn RecordValue)?;
+            let nodes_boxed: Box<dyn RecordValue> = Box::new(nodes);
             let nodes_value_box = LpValueBox::from(nodes_boxed);
 
             // Traverse and print the scene
@@ -491,7 +491,7 @@ fn test_print_all_primitive_types() {
             ),
         });
 
-        let test_boxed = crate::lp_box_dyn!(test_node, dyn RecordValue)?;
+        let test_boxed: Box<dyn RecordValue> = Box::new(test_node);
         let test_value_box = LpValueBox::from(test_boxed);
 
         let output = print_lp_value_to_string(test_value_box, 0);

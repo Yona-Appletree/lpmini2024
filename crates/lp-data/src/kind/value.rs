@@ -5,21 +5,22 @@
 #[cfg(feature = "alloc")]
 extern crate alloc;
 
-use crate::memory::LpBoxDyn;
+#[cfg(feature = "alloc")]
+use alloc::boxed::Box;
 
 use super::shape::LpShape;
 use crate::kind::enum_::enum_value::EnumValue;
 use crate::kind::record::record_value::RecordValue;
 
 pub enum LpValueBox {
-    Fixed(LpBoxDyn<dyn LpValue>),
-    Int32(LpBoxDyn<dyn LpValue>),
-    Bool(LpBoxDyn<dyn LpValue>),
-    Vec2(LpBoxDyn<dyn LpValue>),
-    Vec3(LpBoxDyn<dyn LpValue>),
-    Vec4(LpBoxDyn<dyn LpValue>),
-    Record(LpBoxDyn<dyn RecordValue>),
-    Enum(LpBoxDyn<dyn EnumValue>),
+    Fixed(Box<dyn LpValue>),
+    Int32(Box<dyn LpValue>),
+    Bool(Box<dyn LpValue>),
+    Vec2(Box<dyn LpValue>),
+    Vec3(Box<dyn LpValue>),
+    Vec4(Box<dyn LpValue>),
+    Record(Box<dyn RecordValue>),
+    Enum(Box<dyn EnumValue>),
 }
 
 /// Type-aware reference to a value.

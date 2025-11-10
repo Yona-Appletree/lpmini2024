@@ -54,6 +54,18 @@ pub use error::AllocLimitError;
 /// The default allocator instance. Use this as the `#[global_allocator]` to enable tracking.
 pub static ALLOCATOR: LimitedAllocator = LimitedAllocator::new();
 
+/// Token that restores the previous soft limit when dropped.
+pub struct GlobalAllocAllowanceGuard {
+    previous_limit: usize,
+}
+
+impl Drop for GlobalAllocAllowanceGuard {
+    fn drop(&mut self) {
+        // Restore the previous soft limit even if it was temporarily raised
+        ALLOCATOR.set_soft_limit(self.previous_limit);
+    }
+}
+
 #[cfg(test)]
 #[global_allocator]
 static TEST_ALLOCATOR: LimitedAllocator = ALLOCATOR;
@@ -117,6 +129,13 @@ where
     // Always restore the old limit, even if there was an error
     ALLOCATOR.set_soft_limit(old_limit);
     result
+}
+
+/// Temporarily disable the soft limit, restoring it when the returned guard is dropped.
+pub fn enter_global_alloc_allowance() -> GlobalAllocAllowanceGuard {
+    let previous_limit = ALLOCATOR.soft_limit();
+    ALLOCATOR.set_soft_limit(usize::MAX);
+    GlobalAllocAllowanceGuard { previous_limit }
 }
 
 /// Initialize the test allocator with default limits (10MB hard limit).

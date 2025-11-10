@@ -1,11 +1,11 @@
 //! Metadata types for Enum shapes.
 
-use crate::memory::LpString;
+use alloc::string::String;
 
 /// Trait for Enum shape metadata.
 ///
 /// This trait allows polymorphic access to metadata regardless of whether
-/// it's stored as static strings (`&'static str`) or dynamic strings (`LpString`).
+/// it's stored as static strings (`&'static str`) or dynamic `String` values.
 pub trait EnumMeta {
     /// Get the name of this enum type.
     fn name(&self) -> &str;
@@ -29,14 +29,14 @@ pub struct EnumMetaStatic {
 
 /// Dynamic metadata for an Enum shape.
 ///
-/// Uses `LpString` for runtime-allocated strings.
+/// Uses `String` for runtime-allocated strings.
 #[derive(Debug)]
 pub struct EnumMetaDyn {
     /// Name of this enum type.
-    pub name: LpString,
+    pub name: String,
 
     /// Documentation for this enum type.
-    pub docs: Option<LpString>,
+    pub docs: Option<String>,
 }
 
 impl EnumMeta for EnumMetaStatic {
@@ -76,11 +76,11 @@ pub struct EnumVariantMetaStatic {
 
 /// Dynamic metadata for an enum variant.
 ///
-/// Uses `LpString` for runtime-allocated strings.
+/// Uses `String` for runtime-allocated strings.
 #[derive(Debug)]
 pub struct EnumVariantMetaDyn {
     /// Documentation for this variant.
-    pub docs: Option<LpString>,
+    pub docs: Option<String>,
 }
 
 impl EnumVariantMeta for EnumVariantMetaStatic {

@@ -6,7 +6,7 @@
 //!
 //! Uses `LpValueBox` for field storage, which allocates through the global allocator.
 
-use crate::memory::{LpString, LpVec};
+use alloc::{string::String, vec::Vec};
 
 use crate::kind::record::record_dyn::{RecordFieldDyn, RecordShapeDyn};
 use crate::kind::record::record_meta::RecordFieldMetaDyn;
@@ -24,7 +24,7 @@ pub struct RecordValueDyn {
     /// The shape of this record.
     shape: RecordShapeDyn,
     /// Fields stored as (name, value) pairs.
-    fields: LpVec<(LpString, LpValueBox)>,
+    fields: Vec<(String, LpValueBox)>,
 }
 
 impl RecordValueDyn {
@@ -32,14 +32,14 @@ impl RecordValueDyn {
     pub fn new(shape: RecordShapeDyn) -> Self {
         Self {
             shape,
-            fields: LpVec::new(),
+            fields: Vec::new(),
         }
     }
 
     /// Add a field to this record.
     ///
     /// If a field with the same name already exists, it will be replaced.
-    pub fn add_field(&mut self, name: LpString, value: LpValueBox) -> Result<(), RuntimeError> {
+    pub fn add_field(&mut self, name: String, value: LpValueBox) -> Result<(), RuntimeError> {
         // Extract the shape reference first (shapes are 'static, so this is safe)
         let shape_ref: &'static dyn LpShape = match &value {
             LpValueBox::Fixed(boxed) => {
@@ -88,14 +88,10 @@ impl RecordValueDyn {
             meta: RecordFieldMetaDyn { docs: None },
         };
 
-        self.shape
-            .fields
-            .try_push(field_shape)
-            .map_err(|_| RuntimeError::IndexOutOfBounds { index: 0, len: 0 })?;
+        self.shape.fields.push(field_shape);
 
-        self.fields
-            .try_push((name, value))
-            .map_err(|_| RuntimeError::IndexOutOfBounds { index: 0, len: 0 })
+        self.fields.push((name, value));
+        Ok(())
     }
 
     /// Get the name of this record type.
@@ -223,9 +219,9 @@ impl serde::Serialize for RecordValueDyn {
 
 #[cfg(test)]
 mod tests {
-    use crate::memory::enter_global_alloc_allowance;
-    use crate::memory::AllocError;
-    use lp_alloc::init_test_allocator;
+    use lp_alloc::{
+        enter_global_alloc_allowance, init_test_allocator, AllocLimitError as AllocError,
+    };
     use lp_math::fixed::{Fixed, Vec2, Vec3, Vec4};
 
     use super::*;
@@ -253,13 +249,13 @@ mod tests {
     fn test_record_value_dyn_new() {
         let pool = setup_pool();
         pool.run(|| {
-            let shape_name = LpString::try_from_str("TestRecord")?;
+            let shape_name = Ok::<_, AllocError>("TestRecord".to_string())?;
             let shape = RecordShapeDyn {
                 meta: RecordMetaDyn {
                     name: shape_name,
                     docs: None,
                 },
-                fields: LpVec::new(),
+                fields: Vec::new(),
             };
             let record = RecordValueDyn::new(shape);
             assert_eq!(record.field_count(), 0);
@@ -272,19 +268,19 @@ mod tests {
     fn test_record_value_dyn_add_field() {
         let pool = setup_pool();
         pool.run(|| {
-            let shape_name = LpString::try_from_str("TestRecord")?;
+            let shape_name = Ok::<_, AllocError>("TestRecord".to_string())?;
             let shape = RecordShapeDyn {
                 meta: RecordMetaDyn {
                     name: shape_name,
                     docs: None,
                 },
-                fields: LpVec::new(),
+                fields: Vec::new(),
             };
             let mut record = RecordValueDyn::new(shape);
 
             // Create a Fixed value and convert it to LpValueBox
             let fixed_value = Fixed::ZERO;
-            let field_name = LpString::try_from_str("value")?;
+            let field_name = Ok::<_, AllocError>("value".to_string())?;
 
             let value_box = LpValueBox::from(fixed_value);
             record
@@ -307,19 +303,19 @@ mod tests {
     fn test_record_value_dyn_shape_matches_fields() {
         let pool = setup_pool();
         pool.run(|| {
-            let shape_name = LpString::try_from_str("TestRecord")?;
+            let shape_name = Ok::<_, AllocError>("TestRecord".to_string())?;
             let shape = RecordShapeDyn {
                 meta: RecordMetaDyn {
                     name: shape_name,
                     docs: None,
                 },
-                fields: LpVec::new(),
+                fields: Vec::new(),
             };
             let mut record = RecordValueDyn::new(shape);
 
             // Add multiple fields
-            let field1_name = LpString::try_from_str("field1")?;
-            let field2_name = LpString::try_from_str("field2")?;
+            let field1_name = Ok::<_, AllocError>("field1".to_string())?;
+            let field2_name = Ok::<_, AllocError>("field2".to_string())?;
             let value1 = LpValueBox::from(Fixed::ZERO);
             let value2 = LpValueBox::from(Fixed::ZERO);
 
@@ -357,18 +353,18 @@ mod tests {
     fn test_record_value_dyn_get_field() {
         let pool = setup_pool();
         pool.run(|| {
-            let shape_name = LpString::try_from_str("TestRecord")?;
+            let shape_name = Ok::<_, AllocError>("TestRecord".to_string())?;
             let shape = RecordShapeDyn {
                 meta: RecordMetaDyn {
                     name: shape_name,
                     docs: None,
                 },
-                fields: LpVec::new(),
+                fields: Vec::new(),
             };
             let mut record = RecordValueDyn::new(shape);
 
             let fixed_value = Fixed::ZERO; // Use ZERO for now
-            let field_name = LpString::try_from_str("value")?;
+            let field_name = Ok::<_, AllocError>("value".to_string())?;
 
             let value_box = LpValueBox::from(fixed_value);
             record
@@ -392,18 +388,18 @@ mod tests {
     fn test_record_value_dyn_remove_field() {
         let pool = setup_pool();
         pool.run(|| {
-            let shape_name = LpString::try_from_str("TestRecord")?;
+            let shape_name = Ok::<_, AllocError>("TestRecord".to_string())?;
             let shape = RecordShapeDyn {
                 meta: RecordMetaDyn {
                     name: shape_name,
                     docs: None,
                 },
-                fields: LpVec::new(),
+                fields: Vec::new(),
             };
             let mut record = RecordValueDyn::new(shape);
 
             let fixed_value = Fixed::ZERO;
-            let field_name = LpString::try_from_str("value")?;
+            let field_name = Ok::<_, AllocError>("value".to_string())?;
 
             let value_box = LpValueBox::from(fixed_value);
             record
@@ -434,27 +430,27 @@ mod tests {
     fn test_record_value_dyn_replace_field() {
         let pool = setup_pool();
         pool.run(|| {
-            let shape_name = LpString::try_from_str("TestRecord")?;
+            let shape_name = Ok::<_, AllocError>("TestRecord".to_string())?;
             let shape = RecordShapeDyn {
                 meta: RecordMetaDyn {
                     name: shape_name,
                     docs: None,
                 },
-                fields: LpVec::new(),
+                fields: Vec::new(),
             };
             let mut record = RecordValueDyn::new(shape);
 
             let value1 = Fixed::ZERO;
             let value2 = Fixed::ZERO;
-            let field_name = LpString::try_from_str("value")?;
+            let field_name = Ok::<_, AllocError>("value".to_string())?;
 
             let value_box1 = LpValueBox::from(value1);
             record
                 .add_field(field_name, value_box1)
                 .map_err(|_| AllocError::SoftLimitExceeded)?;
 
-            // Adding again should replace - create new LpString
-            let field_name2 = LpString::try_from_str("value")?;
+            // Adding again should replace - create new String
+            let field_name2 = Ok::<_, AllocError>("value".to_string())?;
             let value_box2 = LpValueBox::from(value2);
             record
                 .add_field(field_name2, value_box2)
@@ -477,13 +473,13 @@ mod tests {
     fn test_record_value_dyn_field_not_found() {
         let pool = setup_pool();
         pool.run(|| {
-            let shape_name = LpString::try_from_str("TestRecord")?;
+            let shape_name = Ok::<_, AllocError>("TestRecord".to_string())?;
             let shape = RecordShapeDyn {
                 meta: RecordMetaDyn {
                     name: shape_name,
                     docs: None,
                 },
-                fields: LpVec::new(),
+                fields: Vec::new(),
             };
             let record = RecordValueDyn::new(shape);
 
@@ -505,13 +501,13 @@ mod tests {
     fn test_record_value_dyn_multiple_fields() {
         let pool = setup_pool();
         pool.run(|| {
-            let shape_name = LpString::try_from_str("TestRecord")?;
+            let shape_name = Ok::<_, AllocError>("TestRecord".to_string())?;
             let shape = RecordShapeDyn {
                 meta: RecordMetaDyn {
                     name: shape_name,
                     docs: None,
                 },
-                fields: LpVec::new(),
+                fields: Vec::new(),
             };
             let mut record = RecordValueDyn::new(shape);
 
@@ -524,13 +520,13 @@ mod tests {
             let value_box3 = LpValueBox::from(value3);
 
             record
-                .add_field(LpString::try_from_str("a")?, value_box1)
+                .add_field(Ok::<_, AllocError>("a".to_string())?, value_box1)
                 .map_err(|_| AllocError::SoftLimitExceeded)?;
             record
-                .add_field(LpString::try_from_str("b")?, value_box2)
+                .add_field(Ok::<_, AllocError>("b".to_string())?, value_box2)
                 .map_err(|_| AllocError::SoftLimitExceeded)?;
             record
-                .add_field(LpString::try_from_str("c")?, value_box3)
+                .add_field(Ok::<_, AllocError>("c".to_string())?, value_box3)
                 .map_err(|_| AllocError::SoftLimitExceeded)?;
 
             assert_eq!(record.field_count(), 3);
@@ -560,18 +556,18 @@ mod tests {
     fn test_record_value_dyn_get_field_mut() {
         let pool = setup_pool();
         pool.run(|| {
-            let shape_name = LpString::try_from_str("TestRecord")?;
+            let shape_name = Ok::<_, AllocError>("TestRecord".to_string())?;
             let shape = RecordShapeDyn {
                 meta: RecordMetaDyn {
                     name: shape_name,
                     docs: None,
                 },
-                fields: LpVec::new(),
+                fields: Vec::new(),
             };
             let mut record = RecordValueDyn::new(shape);
 
             let fixed_value = Fixed::ZERO;
-            let field_name = LpString::try_from_str("value")?;
+            let field_name = Ok::<_, AllocError>("value".to_string())?;
 
             let value_box = LpValueBox::from(fixed_value);
             record
@@ -596,13 +592,13 @@ mod tests {
     fn test_record_value_dyn_shape() {
         let pool = setup_pool();
         pool.run(|| {
-            let shape_name = LpString::try_from_str("MyRecord")?;
+            let shape_name = Ok::<_, AllocError>("MyRecord".to_string())?;
             let shape = RecordShapeDyn {
                 meta: RecordMetaDyn {
                     name: shape_name,
                     docs: None,
                 },
-                fields: LpVec::new(),
+                fields: Vec::new(),
             };
             let record = RecordValueDyn::new(shape);
 
@@ -625,38 +621,44 @@ mod tests {
     fn test_record_value_dyn_with_all_primitive_types() {
         let pool = setup_pool();
         pool.run(|| {
-            let shape_name = LpString::try_from_str("TestRecord")?;
+            let shape_name = Ok::<_, AllocError>("TestRecord".to_string())?;
             let shape = RecordShapeDyn {
                 meta: RecordMetaDyn {
                     name: shape_name,
                     docs: None,
                 },
-                fields: LpVec::new(),
+                fields: Vec::new(),
             };
             let mut record = RecordValueDyn::new(shape);
 
             // Add all primitive types
             record
-                .add_field(LpString::try_from_str("count")?, LpValueBox::from(42i32))
-                .map_err(|_| AllocError::SoftLimitExceeded)?;
-            record
-                .add_field(LpString::try_from_str("enabled")?, LpValueBox::from(true))
+                .add_field(
+                    Ok::<_, AllocError>("count".to_string())?,
+                    LpValueBox::from(42i32),
+                )
                 .map_err(|_| AllocError::SoftLimitExceeded)?;
             record
                 .add_field(
-                    LpString::try_from_str("position")?,
+                    Ok::<_, AllocError>("enabled".to_string())?,
+                    LpValueBox::from(true),
+                )
+                .map_err(|_| AllocError::SoftLimitExceeded)?;
+            record
+                .add_field(
+                    Ok::<_, AllocError>("position".to_string())?,
                     LpValueBox::from(Vec2::new(Fixed::ZERO, Fixed::ZERO)),
                 )
                 .map_err(|_| AllocError::SoftLimitExceeded)?;
             record
                 .add_field(
-                    LpString::try_from_str("rotation")?,
+                    Ok::<_, AllocError>("rotation".to_string())?,
                     LpValueBox::from(Vec3::new(Fixed::ZERO, Fixed::ZERO, Fixed::ZERO)),
                 )
                 .map_err(|_| AllocError::SoftLimitExceeded)?;
             record
                 .add_field(
-                    LpString::try_from_str("color")?,
+                    Ok::<_, AllocError>("color".to_string())?,
                     LpValueBox::from(Vec4::new(
                         Fixed::ZERO,
                         Fixed::ZERO,
@@ -667,8 +669,8 @@ mod tests {
                 .map_err(|_| AllocError::SoftLimitExceeded)?;
             record
                 .add_field(
-                    LpString::try_from_str("frequency")?,
-                    LpValueBox::from(Fixed::ZERO),
+                    Ok::<_, AllocError>("frequency".to_string())?,
+                    LpValueBox::from(Fixed::from_i32(42)),
                 )
                 .map_err(|_| AllocError::SoftLimitExceeded)?;
 

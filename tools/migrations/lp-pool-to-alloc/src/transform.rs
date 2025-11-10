@@ -1,10 +1,10 @@
 //! Transformations for migrating from lp-pool to lp-alloc.
 
-use crate::patterns::*;
-
 /// Transform a Rust source file
 pub fn transform_file(content: &str, file_path: &std::path::Path) -> String {
-    let is_compiler = is_compiler_path(file_path);
+    let is_compiler = file_path
+        .to_string_lossy()
+        .contains("lp-script/src/compiler");
 
     // First do simple string-based replacements
     let mut transformed = content.to_string();

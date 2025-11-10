@@ -10,8 +10,8 @@ The old `lp_pool` crate has been retired in favour of `lp_alloc`, a lightweight 
 
 - **Global configuration:** use `lp_alloc::set_hard_limit`, `lp_alloc::set_soft_limit`, and `lp_alloc::allocated_bytes` to control memory at runtime.
 - **Scoped limits:** wrap fallible operations with `lp_alloc::try_alloc` or `lp_alloc::with_alloc_limit` to ensure large bursts of work stay within budget.
-- **Tests:** call `lp_alloc::init_test_allocator()` (or the `setup_test_alloc!` macro) to install the allocator with a 10 MB default limit. When a test needs extra headroom, call `lp_data::memory::enter_global_alloc_allowance()` to temporarily lift the soft limit.
-- **Dynamic helpers:** the `lp_data::memory` module exposes `LpString`, `LpVec`, and `lp_box_dyn!`—thin wrappers around `String`, `Vec`, and `Box` that keep the existing API surface while delegating to the new allocator.
+- **Tests:** call `lp_alloc::init_test_allocator()` (or the `setup_test_alloc!` macro) to install the allocator with a 10 MB default limit. When a test needs extra headroom, call `lp_alloc::enter_global_alloc_allowance()` to temporarily lift the soft limit.
+- **Dynamic helpers:** standard `String`, `Vec`, and `Box` types are used directly; allocator enforcement now happens entirely within `lp_alloc`.
 
 ## Exceptions
 
@@ -24,9 +24,9 @@ The custom `lp_pool_lint` tool is deprecated. Standard collections are allowed i
 
 ## Enforcement Matrix
 
-| Crate         | Runtime policy                                   | Tests                          |
-| ------------- | ------------------------------------------------ | ------------------------------ |
-| `lp-script`   | `lp_alloc` soft limit via `VmLimits`             | init allocator per test module |
-| `lp-data`     | Uses `LpVec`/`LpString` wrappers backed by `Vec` | init allocator per test module |
-| `lp-math`     | Standard allocations, subject to global limits   | unrestricted                   |
-| `engine-core` | Standard allocations, subject to global limits   | unrestricted                   |
+| Crate         | Runtime policy                                                | Tests                          |
+| ------------- | ------------------------------------------------------------- | ------------------------------ |
+| `lp-script`   | `lp_alloc` soft limit via `VmLimits`                          | init allocator per test module |
+| `lp-data`     | Standard `String`/`Vec` allocations routed through `lp_alloc` | init allocator per test module |
+| `lp-math`     | Standard allocations, subject to global limits                | unrestricted                   |
+| `engine-core` | Standard allocations, subject to global limits                | unrestricted                   |

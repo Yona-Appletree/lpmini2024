@@ -1,6 +1,6 @@
 //! Metadata types for Record field shapes and Record shapes.
 
-use crate::memory::LpString;
+use alloc::string::String;
 
 /// Trait for record field metadata.
 pub trait RecordFieldMeta {
@@ -19,11 +19,11 @@ pub struct RecordFieldMetaStatic {
 
 /// Dynamic metadata for a record field.
 ///
-/// Uses `LpString` for runtime-allocated strings.
+/// Uses `String` for runtime-allocated strings.
 #[derive(Debug)]
 pub struct RecordFieldMetaDyn {
     /// Documentation for this field.
-    pub docs: Option<LpString>,
+    pub docs: Option<String>,
 }
 
 impl RecordFieldMeta for RecordFieldMetaStatic {
@@ -41,7 +41,7 @@ impl RecordFieldMeta for RecordFieldMetaDyn {
 /// Trait for Record shape metadata.
 ///
 /// This trait allows polymorphic access to metadata regardless of whether
-/// it's stored as static strings (`&'static str`) or dynamic strings (`LpString`).
+/// it's stored as static strings (`&'static str`) or dynamic `String` values.
 pub trait RecordMeta {
     /// Get the name of this record type.
     fn name(&self) -> &str;
@@ -65,14 +65,14 @@ pub struct RecordMetaStatic {
 
 /// Dynamic metadata for a Record shape.
 ///
-/// Uses `LpString` for runtime-allocated strings.
+/// Uses `String` for runtime-allocated strings.
 #[derive(Debug)]
 pub struct RecordMetaDyn {
     /// Name of this record type.
-    pub name: LpString,
+    pub name: String,
 
     /// Documentation for this record type.
-    pub docs: Option<LpString>,
+    pub docs: Option<String>,
 }
 
 impl RecordMeta for RecordMetaStatic {

@@ -1,6 +1,6 @@
 //! Dynamic shape implementation for Enum.
 
-use crate::memory::{LpString, LpVec};
+use alloc::{string::String, vec::Vec};
 
 use super::enum_meta::{EnumMeta, EnumMetaDyn, EnumVariantMeta, EnumVariantMetaDyn};
 use super::enum_shape::{EnumShape, EnumVariantShape};
@@ -12,7 +12,7 @@ use crate::kind::shape::LpShape;
 /// Allocated in lp-pool.
 pub struct EnumVariantDyn {
     /// Variant name.
-    pub name: LpString,
+    pub name: String,
 
     /// Variant metadata.
     pub meta: EnumVariantMetaDyn,
@@ -36,17 +36,17 @@ pub struct EnumShapeDyn {
     pub meta: EnumMetaDyn,
 
     /// Variants in this enum.
-    pub variants: LpVec<EnumVariantDyn>,
+    pub variants: Vec<EnumVariantDyn>,
 }
 
 impl EnumShapeDyn {
     pub fn new() -> Self {
         Self {
             meta: EnumMetaDyn {
-                name: LpString::new(),
+                name: String::new(),
                 docs: None,
             },
-            variants: LpVec::new(),
+            variants: Vec::new(),
         }
     }
 }
