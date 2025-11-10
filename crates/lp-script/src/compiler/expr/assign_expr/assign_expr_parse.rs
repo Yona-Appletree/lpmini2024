@@ -1,4 +1,4 @@
-use lp_pool::LpBox;
+use alloc::boxed::Box;
 
 /// Assignment expression parsing
 use crate::compiler::ast::{Expr, ExprKind};
@@ -62,7 +62,7 @@ impl Parser {
     /// Helper for compound assignment operators
     fn parse_compound_assignment<F>(&mut self, expr: Expr, make_op: F) -> Result<Expr, ParseError>
     where
-        F: FnOnce(LpBox<Expr>, LpBox<Expr>) -> ExprKind,
+        F: FnOnce(Box<Expr>, Box<Expr>) -> ExprKind,
     {
         if let ExprKind::Variable(name) = &expr.kind {
             let name = name.clone();

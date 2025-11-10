@@ -1,4 +1,4 @@
-use lp_pool::LpBox;
+use alloc::boxed::Box;
 
 /// Ternary expression parsing
 use crate::compiler::ast::{Expr, ExprKind};

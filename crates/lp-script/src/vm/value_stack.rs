@@ -2,8 +2,6 @@
 extern crate alloc;
 use alloc::vec::Vec;
 
-use lp_pool::collections::vec::LpVec;
-
 use super::error::LpsVmError;
 use crate::fixed::{Fixed, Vec2, Vec3, Vec4};
 
@@ -12,7 +10,7 @@ use crate::fixed::{Fixed, Vec2, Vec3, Vec4};
 /// Internally stores raw i32 values for type-independence and performance,
 /// but provides type-safe push/pop methods for Fixed, Int32, and vector types.
 pub struct ValueStack {
-    data: LpVec<i32>,
+    data: Vec<i32>,
     sp: usize,
     max_size: usize,
 }
@@ -20,11 +18,11 @@ pub struct ValueStack {
 impl ValueStack {
     /// Create a new stack with the given maximum size
     pub fn try_new(max_size: usize) -> Result<Self, LpsVmError> {
-        let mut data = LpVec::new();
+        let mut data = Vec::new();
         if max_size > 0 {
-            data.try_reserve(max_size)?;
+            data.reserve(max_size);
             for _ in 0..max_size {
-                data.try_push(0)?;
+                data.push(0);
             }
         }
 

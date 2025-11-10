@@ -6,7 +6,7 @@ extern crate alloc;
 use alloc::string::String;
 use alloc::vec::Vec;
 
-use lp_pool::LpBox;
+use alloc::boxed::Box;
 
 use crate::compiler::ast::{Expr, ExprKind};
 use crate::shared::{Span, Type};

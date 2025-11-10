@@ -75,7 +75,6 @@ mod sin_table;
 extern crate alloc;
 use alloc::vec;
 use alloc::vec::Vec;
-use core::ptr::NonNull;
 
 #[allow(lp_pool_std_alloc)]
 pub mod shared;
@@ -92,7 +91,6 @@ pub use compiler::codegen::NativeFunction;
 pub use compiler::error::CompileError;
 pub use compiler::optimize::OptimizeOptions;
 use compiler::{codegen, lexer, optimize, parser, typechecker};
-use lp_pool::LpMemoryPool;
 pub use shared::{Span, Type};
 pub use vm::lps_vm::LpsVm;
 pub use vm::vm_limits::VmLimits;
@@ -121,55 +119,43 @@ pub fn compile_expr(input: &str) -> Result<LpsProgram, CompileError> {
 /// use lp_script::{compile_expr_with_options, OptimizeOptions};
 /// let program = compile_expr_with_options("2.0 + 3.0", &OptimizeOptions::all()).unwrap();
 /// ```
-#[allow(lp_pool_std_alloc)]
 pub fn compile_expr_with_options(
     input: &str,
     options: &OptimizeOptions,
 ) -> Result<LpsProgram, CompileError> {
-    const POOL_SIZE: usize = 128 * 1024;
-    let mut memory = [0u8; POOL_SIZE];
-    let memory_ptr =
-        NonNull::new(memory.as_mut_ptr()).expect("Failed to get non-null pointer for pool");
-    let pool = unsafe { LpMemoryPool::new(memory_ptr, POOL_SIZE).map_err(CompileError::from)? };
+    let mut lexer = lexer::Lexer::new(input);
+    let tokens = lexer.tokenize();
 
-    pool.run(|| -> Result<LpsProgram, CompileError> {
-        use lp_pool::LpMemoryPool;
-        LpMemoryPool::with_global_alloc(|| -> Result<LpsProgram, CompileError> {
-            let mut lexer = lexer::Lexer::new(input);
-            let tokens = lexer.tokenize();
+    let mut parser = parser::Parser::new(tokens);
+    let mut expr = parser.parse()?;
 
-            let mut parser = parser::Parser::new(tokens);
-            let mut expr = parser.parse()?;
+    // Type check the AST (in-place, mutating types on nodes)
+    typechecker::TypeChecker::check(&mut expr)?;
 
-            // Type check the AST (in-place, mutating types on nodes)
-            typechecker::TypeChecker::check(&mut expr)?;
+    // Optimize AST (mutates in place)
+    optimize::optimize_ast_expr(&mut expr, options);
 
-            // Optimize AST (mutates in place)
-            optimize::optimize_ast_expr(&mut expr, options);
-
-            // Determine the expression's return type after type checking
-            let expr_type = expr.ty.clone().ok_or_else(|| {
-                CompileError::TypeCheck(compiler::error::TypeError {
-                    kind: compiler::error::TypeErrorKind::UndefinedVariable(
-                        "expression has no inferred type".into(),
-                    ),
-                    span: expr.span,
-                })
-            })?;
-
-            // Generate and optimize opcodes
-            let opcodes = codegen::CodeGenerator::generate(&expr);
-            let optimized_opcodes = optimize::optimize_opcodes(opcodes, options);
-
-            // Create main function with the expression's actual return type
-            let main_function =
-                vm::FunctionDef::new("main".into(), expr_type).with_opcodes(optimized_opcodes);
-
-            Ok(LpsProgram::new("expr".into())
-                .with_functions(vec![main_function])
-                .with_source(input.into()))
+    // Determine the expression's return type after type checking
+    let expr_type = expr.ty.clone().ok_or_else(|| {
+        CompileError::TypeCheck(compiler::error::TypeError {
+            kind: compiler::error::TypeErrorKind::UndefinedVariable(
+                "expression has no inferred type".into(),
+            ),
+            span: expr.span,
         })
-    })
+    })?;
+
+    // Generate and optimize opcodes
+    let opcodes = codegen::CodeGenerator::generate(&expr);
+    let optimized_opcodes = optimize::optimize_opcodes(opcodes, options);
+
+    // Create main function with the expression's actual return type
+    let main_function =
+        vm::FunctionDef::new("main".into(), expr_type).with_opcodes(optimized_opcodes);
+
+    Ok(LpsProgram::new("expr".into())
+        .with_functions(vec![main_function])
+        .with_source(input.into()))
 }
 
 /// Compile a full script (with statements, variables, control flow)
@@ -201,57 +187,43 @@ pub fn compile_script(input: &str) -> Result<LpsProgram, CompileError> {
 /// let script = "float x = 2.0 + 3.0; return x;";
 /// let program = compile_script_with_options(script, &OptimizeOptions::all()).unwrap();
 /// ```
-#[allow(lp_pool_std_alloc)]
 pub fn compile_script_with_options(
     input: &str,
     options: &OptimizeOptions,
 ) -> Result<LpsProgram, CompileError> {
-    const POOL_SIZE: usize = 512 * 1024;
-    let mut memory = [0u8; POOL_SIZE];
-    let memory_ptr =
-        NonNull::new(memory.as_mut_ptr()).expect("Failed to get non-null pointer for pool");
-    let pool = unsafe { LpMemoryPool::new(memory_ptr, POOL_SIZE).map_err(CompileError::from)? };
+    let mut lexer = lexer::Lexer::new(input);
+    let tokens = lexer.tokenize();
 
-    pool.run(|| -> Result<LpsProgram, CompileError> {
-        use lp_pool::LpMemoryPool;
-        LpMemoryPool::with_global_alloc(|| -> Result<LpsProgram, CompileError> {
-            let mut lexer = lexer::Lexer::new(input);
-            let tokens = lexer.tokenize();
+    let parser = parser::Parser::new(tokens);
+    let mut program = parser.parse_program()?;
 
-            let parser = parser::Parser::new(tokens);
-            let mut program = parser.parse_program()?;
+    // Analyze program to build function types table
+    let func_table = compiler::analyzer::FunctionAnalyzer::analyze_program(&program)?;
 
-            // Analyze program to build function types table
-            let func_table = compiler::analyzer::FunctionAnalyzer::analyze_program(&program)?;
+    // Type check the program with the analyzed function table
+    typechecker::TypeChecker::check_program(&mut program, &func_table)?;
 
-            // Type check the program with the analyzed function table
-            typechecker::TypeChecker::check_program(&mut program, &func_table)?;
+    // Optimize program AST in place
+    optimize::optimize_ast_program(&mut program, options);
 
-            // Optimize program AST in place
-            optimize::optimize_ast_program(&mut program, options);
+    // Generate functions using new API with function table
+    let functions = codegen::CodeGenerator::generate_program_with_functions(&program, &func_table);
 
-            // Generate functions using new API with function table
-            let functions =
-                codegen::CodeGenerator::generate_program_with_functions(&program, &func_table);
-
-            // Optimize opcodes for each function
-            let optimized_functions: Vec<vm::FunctionDef> = functions
-                .into_iter()
-                .map(|func| {
-                    let optimized_opcodes =
-                        optimize::optimize_opcodes(func.opcodes.clone(), options);
-                    vm::FunctionDef::new(func.name.clone(), func.return_type.clone())
-                        .with_params(func.params.clone())
-                        .with_locals(func.locals.clone())
-                        .with_opcodes(optimized_opcodes)
-                })
-                .collect();
-
-            Ok(LpsProgram::new("script".into())
-                .with_functions(optimized_functions)
-                .with_source(input.into()))
+    // Optimize opcodes for each function
+    let optimized_functions: Vec<vm::FunctionDef> = functions
+        .into_iter()
+        .map(|func| {
+            let optimized_opcodes = optimize::optimize_opcodes(func.opcodes.clone(), options);
+            vm::FunctionDef::new(func.name.clone(), func.return_type.clone())
+                .with_params(func.params.clone())
+                .with_locals(func.locals.clone())
+                .with_opcodes(optimized_opcodes)
         })
-    })
+        .collect();
+
+    Ok(LpsProgram::new("script".into())
+        .with_functions(optimized_functions)
+        .with_source(input.into()))
 }
 
 /// Parse an expression string and generate a compiled LPS program
@@ -294,13 +266,12 @@ pub fn parse_script(input: &str) -> LpsProgram {
 
 #[cfg(test)]
 mod tests {
-    use lp_pool::collections::vec::LpVec;
+    use alloc::vec::Vec;
 
     #[test]
     fn auto_pool_supports_lp_vec_allocations() {
-        let mut vec = LpVec::new();
-        vec.try_push(42)
-            .expect("allocation inside lp_pool should succeed");
+        let mut vec = Vec::new();
+        vec.push(42);
         assert_eq!(vec.len(), 1);
     }
 }

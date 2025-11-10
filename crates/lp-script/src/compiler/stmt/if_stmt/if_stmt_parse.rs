@@ -1,4 +1,4 @@
-use lp_pool::LpBox;
+use alloc::boxed::Box;
 
 /// If statement parsing
 use crate::compiler::ast::{Stmt, StmtKind};

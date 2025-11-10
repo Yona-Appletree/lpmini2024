@@ -6,10 +6,13 @@ edition = "2021"
 [features]
 default = ["std"]
 std = ["thread_local"]
+# Temporary feature for migration compatibility with lp-pool
+lp-pool-compat = ["lp-pool"]
 
 [dependencies]
 spin = { version = "0.9", features = ["portable_atomic"] }
 thread_local = { version = "1.1", optional = true }
+lp-pool = { path = "../lp-pool", optional = true }
 
 [dev-dependencies]
 

@@ -6,7 +6,7 @@ extern crate alloc;
 use alloc::string::String;
 use alloc::vec::Vec;
 
-use lp_pool::LpBox;
+use alloc::boxed::Box;
 
 use crate::compiler::ast::{Expr, ExprKind, Program, Stmt, StmtKind};
 use crate::compiler::test_ast::AstBuilder as ExprBuilder;
@@ -175,7 +175,7 @@ impl StmtBuilder {
         }
     }
 
-    fn box_stmt(&mut self, stmt: Stmt) -> LpBox<Stmt> {
+    fn box_stmt(&mut self, stmt: Stmt) -> Box<Stmt> {
         LpBox::try_new(stmt).expect("LpBox allocation failed in StmtBuilder")
     }
 }

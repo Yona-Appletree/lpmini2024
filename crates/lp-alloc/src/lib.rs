@@ -114,6 +114,44 @@ where
     result
 }
 
+/// Initialize the test allocator with default limits (10MB hard limit).
+/// Call this in test modules to set up memory limits automatically.
+#[cfg(any(feature = "std", test))]
+pub fn init_test_allocator() {
+    const DEFAULT_TEST_LIMIT: usize = 10 * 1024 * 1024; // 10MB
+    set_hard_limit(DEFAULT_TEST_LIMIT);
+    set_soft_limit(DEFAULT_TEST_LIMIT);
+}
+
+/// Macro to set up the test allocator in test modules.
+/// This sets up the global allocator and initializes limits.
+///
+/// Usage:
+/// ```rust,no_run
+/// #[cfg(test)]
+/// mod tests {
+///     use lp_alloc::setup_test_alloc;
+///     setup_test_alloc!();
+///     
+///     #[test]
+///     fn my_test() {
+///         // Tests run here with 10MB limit
+///     }
+/// }
+/// ```
+#[cfg(any(feature = "std", test))]
+#[macro_export]
+macro_rules! setup_test_alloc {
+    () => {
+        #[global_allocator]
+        static TEST_ALLOC: $crate::LimitedAllocator = $crate::ALLOCATOR;
+
+        // Initialize limits on first test run
+        // Note: This runs once per test module, not per test
+        $crate::init_test_allocator();
+    };
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

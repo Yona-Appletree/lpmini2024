@@ -135,8 +135,8 @@ impl fmt::Display for LpsVmError {
     }
 }
 
-impl From<lp_pool::error::AllocError> for LpsVmError {
-    fn from(_: lp_pool::error::AllocError) -> Self {
+impl From<lp_alloc::AllocLimitError> for LpsVmError {
+    fn from(_: lp_alloc::AllocLimitError) -> Self {
         LpsVmError::PoolAllocationFailed
     }
 }

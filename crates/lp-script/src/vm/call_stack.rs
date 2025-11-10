@@ -1,4 +1,4 @@
-use lp_pool::collections::vec::LpVec;
+use alloc::vec::Vec;
 
 /// Call stack management for LPS VM function calls
 use super::error::LpsVmError;
@@ -31,7 +31,7 @@ impl Default for CallFrame {
 /// Supports variable-sized frames - each function can allocate the exact
 /// number of locals it needs, not a fixed size.
 pub struct CallStack {
-    frames: LpVec<CallFrame>,
+    frames: Vec<CallFrame>,
     depth: usize,
     max_depth: usize,
     frame_base: usize,     // Current frame's base local index
@@ -44,11 +44,11 @@ impl CallStack {
     /// # Arguments
     /// * `max_depth` - Maximum call depth (e.g., 64)
     pub fn try_new(max_depth: usize) -> Result<Self, LpsVmError> {
-        let mut frames = LpVec::new();
+        let mut frames = Vec::new();
         if max_depth > 0 {
-            frames.try_reserve(max_depth)?;
+            frames.reserve(max_depth);
             for _ in 0..max_depth {
-                frames.try_push(CallFrame::default())?;
+                frames.push(CallFrame::default());
             }
         }
 

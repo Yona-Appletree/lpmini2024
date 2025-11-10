@@ -1,4 +1,4 @@
-use lp_pool::LpBox;
+use alloc::boxed::Box;
 
 /// Literal parsing (numbers, parenthesized expressions)
 use crate::compiler::ast::{Expr, ExprKind};

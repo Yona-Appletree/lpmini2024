@@ -12,6 +12,7 @@ members = [
     "crates/lp-pool",
     "crates/lp-alloc",
     "tools/lints/lp_pool_lint",
+    "tools/migrations/lp-pool-to-alloc",
 ]
 # Exclude fw-esp32c3 from default builds since it requires ESP32 target
 # (it has its own .cargo/config.toml with target = "riscv32imc-unknown-none-elf")

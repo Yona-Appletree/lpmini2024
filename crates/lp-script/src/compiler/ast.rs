@@ -3,7 +3,7 @@ extern crate alloc;
 use alloc::string::String;
 use alloc::vec::Vec;
 
-use lp_pool::LpBox;
+use alloc::boxed::Box;
 
 use crate::shared::{Span, Type};
 
@@ -68,19 +68,19 @@ pub enum StmtKind {
     /// If statement: `if (cond) then_stmt else else_stmt`
     If {
         condition: Expr,
-        then_stmt: LpBox<Stmt>,
-        else_stmt: Option<LpBox<Stmt>>,
+        then_stmt: Box<Stmt>,
+        else_stmt: Option<Box<Stmt>>,
     },
 
     /// While loop: `while (cond) body`
-    While { condition: Expr, body: LpBox<Stmt> },
+    While { condition: Expr, body: Box<Stmt> },
 
     /// For loop: `for (init; condition; increment) body`
     For {
-        init: Option<LpBox<Stmt>>,
+        init: Option<Box<Stmt>>,
         condition: Option<Expr>,
         increment: Option<Expr>,
-        body: LpBox<Stmt>,
+        body: Box<Stmt>,
     },
 }
 
@@ -118,35 +118,35 @@ pub enum ExprKind {
     Variable(String),
 
     // Binary operations
-    Add(LpBox<Expr>, LpBox<Expr>),
-    Sub(LpBox<Expr>, LpBox<Expr>),
-    Mul(LpBox<Expr>, LpBox<Expr>),
-    Div(LpBox<Expr>, LpBox<Expr>),
-    Mod(LpBox<Expr>, LpBox<Expr>),
+    Add(Box<Expr>, Box<Expr>),
+    Sub(Box<Expr>, Box<Expr>),
+    Mul(Box<Expr>, Box<Expr>),
+    Div(Box<Expr>, Box<Expr>),
+    Mod(Box<Expr>, Box<Expr>),
 
     // Bitwise operations (Int32 only)
-    BitwiseAnd(LpBox<Expr>, LpBox<Expr>),
-    BitwiseOr(LpBox<Expr>, LpBox<Expr>),
-    BitwiseXor(LpBox<Expr>, LpBox<Expr>),
-    BitwiseNot(LpBox<Expr>),
-    LeftShift(LpBox<Expr>, LpBox<Expr>),
-    RightShift(LpBox<Expr>, LpBox<Expr>),
+    BitwiseAnd(Box<Expr>, Box<Expr>),
+    BitwiseOr(Box<Expr>, Box<Expr>),
+    BitwiseXor(Box<Expr>, Box<Expr>),
+    BitwiseNot(Box<Expr>),
+    LeftShift(Box<Expr>, Box<Expr>),
+    RightShift(Box<Expr>, Box<Expr>),
 
     // Comparisons
-    Less(LpBox<Expr>, LpBox<Expr>),
-    Greater(LpBox<Expr>, LpBox<Expr>),
-    LessEq(LpBox<Expr>, LpBox<Expr>),
-    GreaterEq(LpBox<Expr>, LpBox<Expr>),
-    Eq(LpBox<Expr>, LpBox<Expr>),
-    NotEq(LpBox<Expr>, LpBox<Expr>),
+    Less(Box<Expr>, Box<Expr>),
+    Greater(Box<Expr>, Box<Expr>),
+    LessEq(Box<Expr>, Box<Expr>),
+    GreaterEq(Box<Expr>, Box<Expr>),
+    Eq(Box<Expr>, Box<Expr>),
+    NotEq(Box<Expr>, Box<Expr>),
 
     // Logical
-    And(LpBox<Expr>, LpBox<Expr>),
-    Or(LpBox<Expr>, LpBox<Expr>),
-    Not(LpBox<Expr>),
+    And(Box<Expr>, Box<Expr>),
+    Or(Box<Expr>, Box<Expr>),
+    Not(Box<Expr>),
 
     // Unary
-    Neg(LpBox<Expr>),
+    Neg(Box<Expr>),
 
     // Increment/Decrement (require l-values)
     PreIncrement(String),
@@ -156,16 +156,16 @@ pub enum ExprKind {
 
     // Ternary
     Ternary {
-        condition: LpBox<Expr>,
-        true_expr: LpBox<Expr>,
-        false_expr: LpBox<Expr>,
+        condition: Box<Expr>,
+        true_expr: Box<Expr>,
+        false_expr: Box<Expr>,
     },
 
     // Assignment expression (returns the assigned value)
     // In C/GLSL, assignments are expressions: x = y = 5
     Assign {
         target: String,
-        value: LpBox<Expr>,
+        value: Box<Expr>,
     },
 
     // Function call
@@ -181,7 +181,7 @@ pub enum ExprKind {
 
     // Swizzle (component access/reordering)
     Swizzle {
-        expr: LpBox<Expr>,
+        expr: Box<Expr>,
         components: String, // e.g. "xy", "yx", "rgba", "x", etc.
     },
 }

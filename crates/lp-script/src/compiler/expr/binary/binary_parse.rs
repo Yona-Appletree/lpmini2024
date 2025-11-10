@@ -1,4 +1,4 @@
-use lp_pool::LpBox;
+use alloc::boxed::Box;
 
 /// Binary operator parsing (+, -, *, /, %, ^)
 use crate::compiler::ast::{Expr, ExprKind};

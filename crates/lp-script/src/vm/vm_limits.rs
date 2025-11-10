@@ -18,15 +18,13 @@ impl Default for VmLimits {
 
 #[cfg(test)]
 mod tests {
-    use lp_pool::allow_global_alloc;
-
     use super::*;
     use crate::vm::LpsVm;
 
     #[test]
     fn test_vm_limits() {
         use crate::parse_expr;
-        let program = allow_global_alloc(|| parse_expr("1.0"));
+        let program = parse_expr("1.0");
 
         let custom_limits = VmLimits {
             max_call_stack_depth: 32,

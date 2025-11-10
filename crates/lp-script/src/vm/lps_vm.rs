@@ -1,6 +1,7 @@
 use alloc::vec::Vec;
 
-use lp_pool::{lp_format, write_lp_string, LpString};
+use alloc::format;
+use alloc::string::String;
 
 use crate::fixed::{Fixed, Vec2, Vec3, Vec4};
 use crate::vm::vm_limits::VmLimits;
@@ -296,30 +297,24 @@ impl<'a> LpsVm<'a> {
     }
 
     /// Format a runtime error with full context
-    pub fn format_error(&self, error: &RuntimeErrorWithContext) -> LpString {
-        let mut output = lp_format(format_args!("{}\n", error)).unwrap_or_else(|_| LpString::new());
-        let _ = write_lp_string(
-            &mut output,
-            format_args!("  at PC {} ({})\n", error.pc, error.opcode),
-        );
-        let _ = write_lp_string(
-            &mut output,
-            format_args!("  stack pointer: {}\n", self.stack.sp()),
-        );
+    pub fn format_error(&self, error: &RuntimeErrorWithContext) -> String {
+        let mut output = format!("{}\n", error);
+        output.push_str(&format!("  at PC {} ({})\n", error.pc, error.opcode));
+        output.push_str(&format!("  stack pointer: {}\n", self.stack.sp()));
 
         // Show top of stack
         let sp = self.stack.sp();
         if sp > 0 {
-            let _ = write_lp_string(&mut output, format_args!("  stack (top 5): ["));
+            output.push_str("  stack (top 5): [");
             let start = sp.saturating_sub(5);
             for i in start..sp {
                 if i > start {
-                    let _ = write_lp_string(&mut output, format_args!(", "));
+                    output.push_str(", ");
                 }
                 let value = Fixed(self.stack.raw_slice()[i]).to_f32();
-                let _ = write_lp_string(&mut output, format_args!("{}", value));
+                output.push_str(&format!("{}", value));
             }
-            let _ = write_lp_string(&mut output, format_args!("]\n"));
+            output.push_str("]\n");
         }
 
         // Show source if available
@@ -329,7 +324,7 @@ impl<'a> LpsVm<'a> {
                 let end = span.end.min(source.len());
                 if span.start < end {
                     let snippet = &source[span.start..end];
-                    let _ = write_lp_string(&mut output, format_args!("  source: {}\n", snippet));
+                    output.push_str(&format!("  source: {}\n", snippet));
                 }
             }
         }
@@ -340,14 +335,12 @@ impl<'a> LpsVm<'a> {
 
 #[cfg(test)]
 mod tests {
-    use lp_pool::allow_global_alloc;
-
     use super::*;
 
     #[test]
     fn test_vm_creation() {
         use crate::parse_expr;
-        let program = allow_global_alloc(|| parse_expr("1.0 + 2.0"));
+        let program = parse_expr("1.0 + 2.0");
         let vm = LpsVm::new(&program, VmLimits::default()).unwrap();
 
         // Verify VM can be created with correct initialization

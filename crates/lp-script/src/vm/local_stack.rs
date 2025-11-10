@@ -3,10 +3,6 @@ extern crate alloc;
 use alloc::string::String;
 use alloc::vec::Vec;
 
-use lp_pool::allow_global_alloc;
-use lp_pool::collections::string::LpString;
-use lp_pool::collections::vec::LpVec;
-
 use super::error::LpsVmError;
 use super::lps_program::LocalVarDef;
 use crate::fixed::Fixed;
@@ -19,17 +15,17 @@ impl LocalStack {
     /// Example: if max depth is 64 and average function uses 20 i32s of locals,
     /// capacity should be at least 64 * 20 = 1280.
     pub fn try_new(capacity: usize) -> Result<Self, LpsVmError> {
-        let mut data = LpVec::new();
+        let mut data = Vec::new();
         if capacity > 0 {
-            data.try_reserve(capacity)?;
+            data.reserve(capacity);
             for _ in 0..capacity {
-                data.try_push(0)?;
+                data.push(0);
             }
         }
 
         Ok(LocalStack {
             data,
-            metadata: LpVec::new(),
+            metadata: Vec::new(),
             capacity,
             sp: 0,
             local_count: 0,
@@ -60,8 +56,8 @@ impl LocalStack {
             }
 
             // Add types
-            let name = LpString::try_from_str(def.name.as_str())?;
-            self.metadata.try_push(LocalMetadata {
+            let name = String::from(def.name.as_str());
+            self.metadata.push(LocalMetadata {
                 name,
                 ty: def.ty.clone(),
                 offset,
@@ -432,12 +428,10 @@ impl LocalStack {
 
     /// List all locals with their names and types (for debugging)
     pub fn list_locals(&self) -> Vec<(String, Type)> {
-        allow_global_alloc(|| {
-            self.metadata
-                .iter()
-                .map(|m| (alloc::string::String::from(m.name.as_str()), m.ty.clone()))
-                .collect()
-        })
+        self.metadata
+            .iter()
+            .map(|m| (alloc::string::String::from(m.name.as_str()), m.ty.clone()))
+            .collect()
     }
 }
 
@@ -447,10 +441,10 @@ impl LocalStack {
 /// This enables efficient storage: Fixed uses 1 i32, Vec2 uses 2, Vec4 uses 4, etc.
 #[derive(Debug)]
 struct LocalMetadata {
-    name: LpString, // For debugging
-    ty: Type,       // Type of this local
-    offset: usize,  // Offset in i32 array where data starts
-    size: usize,    // Size in i32 units
+    name: String,  // For debugging
+    ty: Type,      // Type of this local
+    offset: usize, // Offset in i32 array where data starts
+    size: usize,   // Size in i32 units
 }
 
 /// Storage for local variables with optimized memory layout
@@ -465,11 +459,11 @@ struct LocalMetadata {
 /// Locals are allocated in a stack-like manner as functions are called,
 /// and deallocated when functions return.
 pub struct LocalStack {
-    data: LpVec<i32>,               // Raw i32 storage
-    metadata: LpVec<LocalMetadata>, // Per-local type info (indexed by absolute local idx)
-    capacity: usize,                // Max i32s available
-    sp: usize,                      // Current stack pointer (in i32s)
-    local_count: usize,             // Number of logical locals allocated
+    data: Vec<i32>,               // Raw i32 storage
+    metadata: Vec<LocalMetadata>, // Per-local type info (indexed by absolute local idx)
+    capacity: usize,              // Max i32s available
+    sp: usize,                    // Current stack pointer (in i32s)
+    local_count: usize,           // Number of logical locals allocated
 }
 
 #[cfg(test)]
