@@ -6,9 +6,6 @@
 //!
 //! Uses `LpValueBox` for field storage, which allocates from lp-pool.
 
-#[cfg(feature = "alloc")]
-extern crate alloc;
-
 use lp_pool::{LpString, LpVec};
 
 use crate::kind::{
@@ -83,16 +80,7 @@ impl RecordValueDyn {
                 }
             }
         }
-        Err(RuntimeError::FieldNotFound {
-            #[cfg(feature = "alloc")]
-            record_name: alloc::string::String::from("RecordValueDyn"),
-            #[cfg(not(feature = "alloc"))]
-            record_name: "RecordValueDyn",
-            #[cfg(feature = "alloc")]
-            field_name: alloc::string::String::from(name),
-            #[cfg(not(feature = "alloc"))]
-            field_name: name,
-        })
+        Err(RuntimeError::field_not_found("RecordValueDyn", name))
     }
 }
 
@@ -116,16 +104,7 @@ impl RecordValue for RecordValueDyn {
                 });
             }
         }
-        Err(RuntimeError::FieldNotFound {
-            #[cfg(feature = "alloc")]
-            record_name: alloc::string::String::from("RecordValueDyn"),
-            #[cfg(not(feature = "alloc"))]
-            record_name: "RecordValueDyn",
-            #[cfg(feature = "alloc")]
-            field_name: alloc::string::String::from(name),
-            #[cfg(not(feature = "alloc"))]
-            field_name: name,
-        })
+        Err(RuntimeError::field_not_found("RecordValueDyn", name))
     }
 
     fn get_field_mut(&mut self, name: &str) -> Result<LpValueRefMut<'_>, RuntimeError> {
@@ -137,34 +116,17 @@ impl RecordValue for RecordValueDyn {
                 });
             }
         }
-        Err(RuntimeError::FieldNotFound {
-            #[cfg(feature = "alloc")]
-            record_name: alloc::string::String::from("RecordValueDyn"),
-            #[cfg(not(feature = "alloc"))]
-            record_name: "RecordValueDyn",
-            #[cfg(feature = "alloc")]
-            field_name: alloc::string::String::from(name),
-            #[cfg(not(feature = "alloc"))]
-            field_name: name,
-        })
+        Err(RuntimeError::field_not_found("RecordValueDyn", name))
     }
 
     fn set_field(&mut self, _name: &str, _value: &dyn LpValue) -> Result<(), RuntimeError> {
         // For now, we can't easily clone values, so we'll need to handle this differently
         // This is a limitation - we'd need a way to clone or take ownership
         // For now, return an error indicating this isn't fully implemented
-        Err(RuntimeError::TypeMismatch {
-            #[cfg(feature = "alloc")]
-            expected: alloc::string::String::from(
-                "set_field not fully implemented for RecordValueDyn",
-            ),
-            #[cfg(not(feature = "alloc"))]
-            expected: "set_field not fully implemented",
-            #[cfg(feature = "alloc")]
-            actual: alloc::string::String::from("use add_field instead"),
-            #[cfg(not(feature = "alloc"))]
-            actual: "use add_field instead",
-        })
+        Err(RuntimeError::type_mismatch(
+            "set_field not fully implemented for RecordValueDyn",
+            "use add_field instead",
+        ))
     }
 
     fn field_count(&self) -> usize {
@@ -377,7 +339,7 @@ mod tests {
             assert!(result.is_err());
 
             if let Err(RuntimeError::FieldNotFound { field_name, .. }) = result {
-                assert_eq!(field_name, "nonexistent");
+                assert_eq!(field_name.as_str(), "nonexistent");
             } else {
                 panic!("Expected FieldNotFound error");
             }

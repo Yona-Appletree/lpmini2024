@@ -1,8 +1,5 @@
 //! LFO (Low Frequency Oscillator) node.
 
-#[cfg(feature = "alloc")]
-extern crate alloc;
-
 use crate::kind::{
     fixed::{fixed_meta::FixedMetaStatic, fixed_static::FixedShapeStatic},
     record::{
@@ -59,46 +56,19 @@ impl RecordValue for LfoConfig {
     fn get_field(&self, name: &str) -> Result<LpValueRef<'_>, RuntimeError> {
         match name {
             "period" => Ok(LpValueRef::Fixed(&self.period as &dyn LpValue)),
-            _ => Err(RuntimeError::FieldNotFound {
-                #[cfg(feature = "alloc")]
-                record_name: alloc::string::String::from("LfoConfig"),
-                #[cfg(not(feature = "alloc"))]
-                record_name: "LfoConfig",
-                #[cfg(feature = "alloc")]
-                field_name: alloc::string::String::from(name),
-                #[cfg(not(feature = "alloc"))]
-                field_name: name,
-            }),
+            _ => Err(RuntimeError::field_not_found("LfoConfig", name)),
         }
     }
 
     fn get_field_mut(&mut self, name: &str) -> Result<LpValueRefMut<'_>, RuntimeError> {
         match name {
             "period" => Ok(LpValueRefMut::Fixed(&mut self.period as &mut dyn LpValue)),
-            _ => Err(RuntimeError::FieldNotFound {
-                #[cfg(feature = "alloc")]
-                record_name: alloc::string::String::from("LfoConfig"),
-                #[cfg(not(feature = "alloc"))]
-                record_name: "LfoConfig",
-                #[cfg(feature = "alloc")]
-                field_name: alloc::string::String::from(name),
-                #[cfg(not(feature = "alloc"))]
-                field_name: name,
-            }),
+            _ => Err(RuntimeError::field_not_found("LfoConfig", name)),
         }
     }
 
     fn set_field(&mut self, _name: &str, _value: &dyn LpValue) -> Result<(), RuntimeError> {
-        Err(RuntimeError::TypeMismatch {
-            #[cfg(feature = "alloc")]
-            expected: alloc::string::String::from("Fixed"),
-            #[cfg(not(feature = "alloc"))]
-            expected: "Fixed",
-            #[cfg(feature = "alloc")]
-            actual: alloc::string::String::from("unknown"),
-            #[cfg(not(feature = "alloc"))]
-            actual: "unknown",
-        })
+        Err(RuntimeError::type_mismatch("Fixed", "unknown"))
     }
 
     fn field_count(&self) -> usize {
@@ -178,16 +148,7 @@ impl RecordValue for LfoNode {
         match name {
             "config" => Ok(LpValueRef::Record(&self.config as &dyn RecordValue)),
             "output" => Ok(LpValueRef::Fixed(&self.output as &dyn LpValue)),
-            _ => Err(RuntimeError::FieldNotFound {
-                #[cfg(feature = "alloc")]
-                record_name: alloc::string::String::from("LfoNode"),
-                #[cfg(not(feature = "alloc"))]
-                record_name: "LfoNode",
-                #[cfg(feature = "alloc")]
-                field_name: alloc::string::String::from(name),
-                #[cfg(not(feature = "alloc"))]
-                field_name: name,
-            }),
+            _ => Err(RuntimeError::field_not_found("LfoNode", name)),
         }
     }
 
@@ -197,30 +158,15 @@ impl RecordValue for LfoNode {
                 &mut self.config as &mut dyn RecordValue,
             )),
             "output" => Ok(LpValueRefMut::Fixed(&mut self.output as &mut dyn LpValue)),
-            _ => Err(RuntimeError::FieldNotFound {
-                #[cfg(feature = "alloc")]
-                record_name: alloc::string::String::from("LfoNode"),
-                #[cfg(not(feature = "alloc"))]
-                record_name: "LfoNode",
-                #[cfg(feature = "alloc")]
-                field_name: alloc::string::String::from(name),
-                #[cfg(not(feature = "alloc"))]
-                field_name: name,
-            }),
+            _ => Err(RuntimeError::field_not_found("LfoNode", name)),
         }
     }
 
     fn set_field(&mut self, _name: &str, _value: &dyn LpValue) -> Result<(), RuntimeError> {
-        Err(RuntimeError::TypeMismatch {
-            #[cfg(feature = "alloc")]
-            expected: alloc::string::String::from("set_field not implemented"),
-            #[cfg(not(feature = "alloc"))]
-            expected: "set_field not implemented",
-            #[cfg(feature = "alloc")]
-            actual: alloc::string::String::from("unknown"),
-            #[cfg(not(feature = "alloc"))]
-            actual: "unknown",
-        })
+        Err(RuntimeError::type_mismatch(
+            "set_field not implemented",
+            "unknown",
+        ))
     }
 
     fn field_count(&self) -> usize {
