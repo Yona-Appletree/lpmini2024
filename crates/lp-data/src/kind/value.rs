@@ -6,12 +6,14 @@
 extern crate alloc;
 
 use super::shape::LpShape;
+use crate::kind::enum_::enum_value::EnumValue;
 use crate::kind::record::record_value::RecordValue;
 use lp_pool::LpBoxDyn;
 
 pub enum LpValueBox {
     Fixed(LpBoxDyn<dyn LpValue>),
     Record(LpBoxDyn<dyn RecordValue>),
+    Enum(LpBoxDyn<dyn EnumValue>),
 }
 
 /// Type-aware reference to a value.
@@ -21,6 +23,7 @@ pub enum LpValueBox {
 pub enum LpValueRef<'a> {
     Fixed(&'a dyn LpValue),
     Record(&'a dyn RecordValue),
+    Enum(&'a dyn EnumValue),
 }
 
 impl<'a> LpValueRef<'a> {
@@ -29,6 +32,7 @@ impl<'a> LpValueRef<'a> {
         match self {
             LpValueRef::Fixed(v) => *v,
             LpValueRef::Record(v) => *v as &dyn LpValue,
+            LpValueRef::Enum(v) => *v as &dyn LpValue,
         }
     }
 }
@@ -48,6 +52,7 @@ impl<'a> core::ops::Deref for LpValueRef<'a> {
 pub enum LpValueRefMut<'a> {
     Fixed(&'a mut dyn LpValue),
     Record(&'a mut dyn RecordValue),
+    Enum(&'a mut dyn EnumValue),
 }
 
 impl<'a> LpValueRefMut<'a> {
@@ -56,6 +61,7 @@ impl<'a> LpValueRefMut<'a> {
         match self {
             LpValueRefMut::Fixed(v) => *v,
             LpValueRefMut::Record(v) => *v as &mut dyn LpValue,
+            LpValueRefMut::Enum(v) => *v as &mut dyn LpValue,
         }
     }
 }
@@ -67,6 +73,7 @@ impl<'a> core::ops::Deref for LpValueRefMut<'a> {
         match self {
             LpValueRefMut::Fixed(v) => *v,
             LpValueRefMut::Record(v) => *v as &dyn LpValue,
+            LpValueRefMut::Enum(v) => *v as &dyn LpValue,
         }
     }
 }
@@ -76,6 +83,7 @@ impl<'a> core::ops::DerefMut for LpValueRefMut<'a> {
         match self {
             LpValueRefMut::Fixed(v) => *v,
             LpValueRefMut::Record(v) => *v as &mut dyn LpValue,
+            LpValueRefMut::Enum(v) => *v as &mut dyn LpValue,
         }
     }
 }
@@ -89,6 +97,10 @@ pub trait LpValue {
     fn shape(&self) -> &dyn LpShape;
 }
 
+/// Helper functions to convert LpValue to LpValueRef based on shape kind.
+/// These use unsafe to construct trait objects when we know the type implements
+/// the trait based on runtime shape information.
+
 #[cfg(any(feature = "serde", feature = "serde_json"))]
 impl serde::Serialize for LpValueBox {
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
@@ -99,6 +111,7 @@ impl serde::Serialize for LpValueBox {
             match self {
                 LpValueBox::Fixed(boxed) => LpValueRef::Fixed(boxed.as_ref()),
                 LpValueBox::Record(boxed) => LpValueRef::Record(boxed.as_ref()),
+                LpValueBox::Enum(boxed) => LpValueRef::Enum(boxed.as_ref()),
             },
             serializer,
         )
@@ -138,6 +151,13 @@ where
             }
             map.end()
         }
+        LpValueRef::Enum(enum_ref) => {
+            // Serialize enum as the variant name string
+            let variant_name = enum_ref
+                .variant_name()
+                .map_err(|_| serde::ser::Error::custom("Failed to get enum variant name"))?;
+            serializer.serialize_str(variant_name)
+        }
     }
 }
 
@@ -154,6 +174,7 @@ impl<'a> serde::Serialize for LpValueRefSerializer<'a> {
         let value_ref = match self.0 {
             LpValueRef::Fixed(fixed_ref) => LpValueRef::Fixed(fixed_ref),
             LpValueRef::Record(record_ref) => LpValueRef::Record(record_ref),
+            LpValueRef::Enum(enum_ref) => LpValueRef::Enum(enum_ref),
         };
         serialize_lp_value_ref(value_ref, serializer)
     }

@@ -7,6 +7,7 @@ pub mod kind;
 pub mod shape;
 pub mod value;
 
+pub mod enum_;
 pub mod fixed;
 pub mod record;
 
@@ -18,3 +19,6 @@ pub use value::LpValue;
 // Re-export record traits and metadata from record module
 pub use record::record_value::RecordValue;
 pub use record::{RecordFieldMeta, RecordFieldShape, RecordShape};
+
+// Re-export enum traits and metadata from enum module
+pub use enum_::{EnumMeta, EnumShape, EnumValue, EnumVariantMeta, EnumVariantShape};

@@ -116,6 +116,7 @@ impl RecordValue for RecordValueDyn {
         let value_ref = match field_value {
             LpValueBox::Fixed(boxed) => LpValueRef::Fixed(boxed.as_ref()),
             LpValueBox::Record(boxed) => LpValueRef::Record(boxed.as_ref()),
+            LpValueBox::Enum(boxed) => LpValueRef::Enum(boxed.as_ref()),
         };
 
         Ok(value_ref)
@@ -131,6 +132,7 @@ impl RecordValue for RecordValueDyn {
         let value_ref_mut = match field_value {
             LpValueBox::Fixed(boxed) => LpValueRefMut::Fixed(boxed.as_mut()),
             LpValueBox::Record(boxed) => LpValueRefMut::Record(boxed.as_mut()),
+            LpValueBox::Enum(boxed) => LpValueRefMut::Enum(boxed.as_mut()),
         };
 
         Ok(value_ref_mut)

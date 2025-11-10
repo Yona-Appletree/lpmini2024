@@ -61,6 +61,7 @@ impl<'a> LpValueRef<'a> {
         match self {
             LpValueRef::Fixed(_) => None,
             LpValueRef::Record(v) => Some(*v),
+            LpValueRef::Enum(_) => None,
         }
     }
 }
@@ -71,6 +72,7 @@ impl<'a> LpValueRefMut<'a> {
         match self {
             LpValueRefMut::Fixed(_) => None,
             LpValueRefMut::Record(v) => Some(*v),
+            LpValueRefMut::Enum(_) => None,
         }
     }
 }

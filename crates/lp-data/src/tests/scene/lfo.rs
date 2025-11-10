@@ -2,6 +2,24 @@
 
 use lp_math::fixed::Fixed;
 
+/// LFO waveform shape enumeration
+#[derive(
+    Debug,
+    Clone,
+    Copy,
+    PartialEq,
+    Eq,
+    lp_data_derive::EnumValue,
+    serde::Serialize,
+    serde::Deserialize,
+)]
+pub enum LfoWaveform {
+    Sine,
+    Square,
+    Triangle,
+    Sawtooth,
+}
+
 /// Configuration for an LFO node.
 #[derive(
     Debug, Clone, PartialEq, lp_data_derive::RecordValue, serde::Serialize, serde::Deserialize,
@@ -9,6 +27,10 @@ use lp_math::fixed::Fixed;
 pub struct LfoConfig {
     /// Oscillation period in seconds.
     pub period: Fixed,
+
+    /// Waveform shape
+    #[lp(enum)]
+    pub waveform: LfoWaveform,
 }
 
 /// Runtime structure for an LFO node.

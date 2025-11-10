@@ -1,7 +1,7 @@
 //! Tests for scene graph traversal.
 use crate::kind::{record::record_dyn::RecordShapeDyn, value::LpValueBox};
 use crate::tests::scene::{
-    lfo::{LfoConfig, LfoNode},
+    lfo::{LfoConfig, LfoNode, LfoWaveform},
     print_lp_value::print_lp_value,
 };
 use core::ptr::NonNull;
@@ -27,6 +27,7 @@ fn build_demo_scene() -> Result<RecordValueDyn, lp_pool::AllocError> {
     // Create an LFO node
     let lfo_node = LfoNode::new(LfoConfig {
         period: 2.0f32.to_fixed(),
+        waveform: LfoWaveform::Sine,
     });
 
     // Convert LfoNode to LpValueBox
@@ -48,6 +49,7 @@ fn test_record_metadata() {
     // Test that derived RecordValue types have correct metadata
     let lfo_config = LfoConfig {
         period: 2.0f32.to_fixed(),
+        waveform: LfoWaveform::Square,
     };
 
     use crate::kind::record::record_value::RecordValue;
@@ -110,6 +112,22 @@ fn test_scene_traversal() {
                 );
                 assert_eq!(lfo_shape.field_count(), 2, "LfoNode should have 2 fields");
 
+                // Verify LfoConfig has waveform field
+                if let Ok(config_ref) = lfo_ref.get_field_by_index(0) {
+                    if let crate::kind::value::LpValueRef::Record(config_record) = config_ref {
+                        let config_shape = RecordValue::shape(config_record);
+                        assert_eq!(
+                            config_shape.field_count(),
+                            2,
+                            "LfoConfig should have 2 fields"
+                        );
+                        if let Some(waveform_field) = config_shape.find_field("waveform") {
+                            // Verify waveform field exists
+                            assert_eq!(waveform_field.name(), "waveform");
+                        }
+                    }
+                }
+
                 // Verify field names
                 if let Some(field0) = lfo_shape.get_field(0) {
                     assert_eq!(field0.name(), "config", "First field should be 'config'");
@@ -158,6 +176,7 @@ fn test_lfo_node_serialization() {
     // Test serialization of individual LFO node
     let lfo_node = LfoNode::new(LfoConfig {
         period: 2.0f32.to_fixed(),
+        waveform: LfoWaveform::Triangle,
     });
 
     // Serialize to JSON
@@ -167,7 +186,10 @@ fn test_lfo_node_serialization() {
     // Verify JSON structure
     assert!(json.contains("config"));
     assert!(json.contains("period"));
+    assert!(json.contains("waveform"));
     assert!(json.contains("output"));
+    // Verify enum is serialized as string
+    assert!(json.contains("\"Triangle\"") || json.contains("Triangle"));
 }
 
 #[cfg(feature = "serde_json")]
@@ -177,6 +199,7 @@ fn test_lfo_node_deserialization() {
 
     let original_node = LfoNode::new(LfoConfig {
         period: 2.0f32.to_fixed(),
+        waveform: LfoWaveform::Sawtooth,
     });
 
     // Serialize and deserialize
@@ -187,6 +210,10 @@ fn test_lfo_node_deserialization() {
     assert_eq!(
         original_node.config.period.to_f32(),
         deserialized_node.config.period.to_f32()
+    );
+    assert_eq!(
+        original_node.config.waveform,
+        deserialized_node.config.waveform
     );
     assert_eq!(
         original_node.output.to_f32(),
@@ -201,6 +228,7 @@ fn test_lfo_node_round_trip() {
 
     let original_node = LfoNode::new(LfoConfig {
         period: 2.0f32.to_fixed(),
+        waveform: LfoWaveform::Sine,
     });
 
     // Round-trip through JSON
@@ -212,6 +240,10 @@ fn test_lfo_node_round_trip() {
         original_node.config.period.to_f32(),
         round_tripped_node.config.period.to_f32(),
         "Period should match after round-trip"
+    );
+    assert_eq!(
+        original_node.config.waveform, round_tripped_node.config.waveform,
+        "Waveform should match after round-trip"
     );
     assert_eq!(
         original_node.output.to_f32(),

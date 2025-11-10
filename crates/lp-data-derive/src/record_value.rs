@@ -75,10 +75,27 @@ fn expand_struct(input: &DeriveInput, data: &DataStruct) -> Result<TokenStream2,
             .as_ref()
             .ok_or_else(|| Error::new(field.span(), "expected named field"))?;
 
-        let field_shape = get_field_shape(struct_ident, field_ident, &field.ty)?;
+        let field_attrs = FieldAttrs::from_attrs(&field.attrs)?;
+
+        // Check if field is marked as enum via attribute, or check naming convention
+        let is_enum_field = field_attrs.is_enum || {
+            // Fallback: check if type name ends with "Enum"
+            if let Type::Path(path) = &field.ty {
+                if let Some(seg) = path.path.segments.last() {
+                    seg.ident.to_string().ends_with("Enum")
+                } else {
+                    false
+                }
+            } else {
+                false
+            }
+        };
+
+        let field_shape = get_field_shape(struct_ident, field_ident, &field.ty, is_enum_field)?;
         where_bounds.extend(field_shape.bounds);
 
         let is_fixed_type = matches!(&field.ty, Type::Path(path) if is_fixed(path));
+        let field_ty = &field.ty;
 
         if is_fixed_type {
             field_getters.push(quote! {
@@ -88,14 +105,43 @@ fn expand_struct(input: &DeriveInput, data: &DataStruct) -> Result<TokenStream2,
                 #index => Ok(crate::kind::value::LpValueRefMut::Fixed(&mut self.#field_ident as &mut dyn crate::kind::value::LpValue)),
             });
         } else {
-            let field_ty = &field.ty;
-            where_bounds.push(quote! { #field_ty: crate::kind::record::record_value::RecordValue });
-            field_getters.push(quote! {
-                #index => Ok(crate::kind::value::LpValueRef::Record(&self.#field_ident as &dyn crate::kind::record::record_value::RecordValue)),
-            });
-            field_getters_mut.push(quote! {
-                #index => Ok(crate::kind::value::LpValueRefMut::Record(&mut self.#field_ident as &mut dyn crate::kind::record::record_value::RecordValue)),
-            });
+            // We know at compile time if this is an enum or record via attribute/naming convention
+            if field_shape.is_enum {
+                // Field is an enum - only require EnumValue trait
+                where_bounds.push(quote! { #field_ty: crate::kind::enum_::enum_value::EnumValue });
+                field_getters.push(quote! {
+                    #index => {
+                        let value: &#field_ty = &self.#field_ident;
+                        let enum_value: &dyn crate::kind::enum_::enum_value::EnumValue = value;
+                        Ok(crate::kind::value::LpValueRef::Enum(enum_value))
+                    },
+                });
+                field_getters_mut.push(quote! {
+                    #index => {
+                        let value: &mut #field_ty = &mut self.#field_ident;
+                        let enum_value: &mut dyn crate::kind::enum_::enum_value::EnumValue = value;
+                        Ok(crate::kind::value::LpValueRefMut::Enum(enum_value))
+                    },
+                });
+            } else {
+                // Field is a record - only require RecordValue trait
+                where_bounds
+                    .push(quote! { #field_ty: crate::kind::record::record_value::RecordValue });
+                field_getters.push(quote! {
+                    #index => {
+                        let value: &#field_ty = &self.#field_ident;
+                        let record_value: &dyn crate::kind::record::record_value::RecordValue = value;
+                        Ok(crate::kind::value::LpValueRef::Record(record_value))
+                    },
+                });
+                field_getters_mut.push(quote! {
+                    #index => {
+                        let value: &mut #field_ty = &mut self.#field_ident;
+                        let record_value: &mut dyn crate::kind::record::record_value::RecordValue = value;
+                        Ok(crate::kind::value::LpValueRefMut::Record(record_value))
+                    },
+                });
+            }
         }
     }
 
@@ -165,7 +211,21 @@ fn generate_record_shape_static(
         let field_attrs = FieldAttrs::from_attrs(&field.attrs)?;
         let field_docs = merge_docs(extract_doc_comments(&field.attrs), field_attrs.docs.clone());
 
-        let field_shape = get_field_shape(struct_ident, field_ident, &field.ty)?;
+        // Check if field is marked as enum via attribute, or check naming convention
+        let is_enum_field = field_attrs.is_enum || {
+            // Fallback: check if type name ends with "Enum"
+            if let Type::Path(path) = &field.ty {
+                if let Some(seg) = path.path.segments.last() {
+                    seg.ident.to_string().ends_with("Enum")
+                } else {
+                    false
+                }
+            } else {
+                false
+            }
+        };
+
+        let field_shape = get_field_shape(struct_ident, field_ident, &field.ty, is_enum_field)?;
         where_bounds.extend(field_shape.bounds);
 
         let field_meta = if let Some(docs) = field_docs {
@@ -238,12 +298,14 @@ fn generate_record_shape_static(
 struct FieldShape {
     shape_expr: TokenStream2,
     bounds: Vec<TokenStream2>,
+    is_enum: bool, // Whether this field is an enum type (determined at compile time)
 }
 
 fn get_field_shape(
     _struct_ident: &Ident,
     _field_ident: &Ident,
     ty: &Type,
+    is_enum_field: bool,
 ) -> Result<FieldShape, Error> {
     match ty {
         Type::Path(path) => {
@@ -253,11 +315,12 @@ fn get_field_shape(
                         &crate::kind::fixed::fixed_static::FIXED_SHAPE
                     },
                     bounds: Vec::new(),
+                    is_enum: false,
                 })
             } else {
-                // Assume it's a record type - reference its shape
+                // Could be either enum or record type - we know at compile time via attribute/naming
                 let mut bounds = Vec::new();
-                bounds.push(quote! { #ty: crate::kind::value::LpValue });
+                // Don't add LpValue bound here - it will be added conditionally based on is_enum_field
 
                 // For same-crate types, reference the generated shape constant directly
                 let shape_ref = if path.path.segments.len() == 1 {
@@ -267,8 +330,6 @@ fn get_field_shape(
                     quote! { &#shape_const_name }
                 } else {
                     // For external types, we need to call shape() at runtime
-                    // But we can't do that in a const context, so we'll need a different approach
-                    // For now, assume same-crate types
                     let type_ident = path.path.segments.last().unwrap();
                     let shape_const_name = format_ident!(
                         "__LP_VALUE_{}_SHAPE",
@@ -280,12 +341,13 @@ fn get_field_shape(
                 Ok(FieldShape {
                     shape_expr: shape_ref,
                     bounds,
+                    is_enum: is_enum_field,
                 })
             }
         }
         _ => Err(Error::new(
             ty.span(),
-            "unsupported field type; expected Fixed or record types",
+            "unsupported field type; expected Fixed, enum, or record types",
         )),
     }
 }
@@ -340,6 +402,7 @@ impl StructAttrs {
 #[derive(Default, Clone)]
 struct FieldAttrs {
     docs: Option<String>,
+    is_enum: bool,
 }
 
 impl FieldAttrs {
@@ -361,6 +424,10 @@ impl FieldAttrs {
                             Err(field_meta.error("supported field directives are docs = \"...\""))
                         }
                     })?;
+                    Ok(())
+                } else if meta.path.is_ident("enum") {
+                    // #[lp_data(enum)] attribute marks this field as an enum type
+                    result.is_enum = true;
                     Ok(())
                 } else {
                     Err(meta.error("unknown lp directive"))
