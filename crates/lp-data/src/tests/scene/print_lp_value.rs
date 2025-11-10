@@ -33,10 +33,13 @@ fn print_lp_value_ref(value_ref: LpValueRef, indent: usize) {
                 println!("Record({})", record_name);
             }
             // Iterate over fields using get_field_by_index and recursively print them
-            for i in 0..record_ref.field_count() {
-                if let Ok((field_name, field_value_ref)) = record_ref.get_field_by_index(i) {
-                    print!("{:>indent$}  {}: ", "", field_name);
-                    print_lp_value_ref(field_value_ref, indent + 2);
+            let shape = RecordValue::shape(record_ref);
+            for i in 0..shape.field_count() {
+                if let Some(field_shape) = shape.get_field(i) {
+                    if let Ok(field_value_ref) = record_ref.get_field_by_index(i) {
+                        print!("{:>indent$}  {}: ", "", field_shape.name());
+                        print_lp_value_ref(field_value_ref, indent + 2);
+                    }
                 }
             }
         }

@@ -53,42 +53,24 @@ impl RecordValue for LfoConfig {
         &LFO_CONFIG_SHAPE
     }
 
-    fn get_field(&self, name: &str) -> Result<LpValueRef<'_>, RuntimeError> {
-        match name {
-            "period" => Ok(LpValueRef::Fixed(&self.period as &dyn LpValue)),
-            _ => Err(RuntimeError::field_not_found("LfoConfig", name)),
+    fn get_field_by_index(&self, index: usize) -> Result<LpValueRef<'_>, RuntimeError> {
+        match index {
+            0 => Ok(LpValueRef::Fixed(&self.period as &dyn LpValue)),
+            _ => Err(RuntimeError::IndexOutOfBounds {
+                index,
+                len: LFO_CONFIG_SHAPE.field_count(),
+            }),
         }
     }
 
-    fn get_field_mut(&mut self, name: &str) -> Result<LpValueRefMut<'_>, RuntimeError> {
-        match name {
-            "period" => Ok(LpValueRefMut::Fixed(&mut self.period as &mut dyn LpValue)),
-            _ => Err(RuntimeError::field_not_found("LfoConfig", name)),
+    fn get_field_by_index_mut(&mut self, index: usize) -> Result<LpValueRefMut<'_>, RuntimeError> {
+        match index {
+            0 => Ok(LpValueRefMut::Fixed(&mut self.period as &mut dyn LpValue)),
+            _ => Err(RuntimeError::IndexOutOfBounds {
+                index,
+                len: LFO_CONFIG_SHAPE.field_count(),
+            }),
         }
-    }
-
-    fn set_field(&mut self, _name: &str, _value: &dyn LpValue) -> Result<(), RuntimeError> {
-        Err(RuntimeError::type_mismatch("Fixed", "unknown"))
-    }
-
-    fn field_count(&self) -> usize {
-        1
-    }
-
-    fn get_field_by_index(&self, index: usize) -> Result<(&str, LpValueRef<'_>), RuntimeError> {
-        // For LfoConfig, we know the shape is LFO_CONFIG_SHAPE
-        let record_shape = &LFO_CONFIG_SHAPE;
-        let field_shape =
-            record_shape
-                .get_field(index)
-                .ok_or_else(|| RuntimeError::IndexOutOfBounds {
-                    index,
-                    len: record_shape.field_count(),
-                })?;
-
-        let field_name = field_shape.name();
-        let field_value = self.get_field(field_name)?;
-        Ok((field_name, field_value))
     }
 }
 
@@ -145,49 +127,28 @@ impl RecordValue for LfoNode {
         &LFO_NODE_SHAPE
     }
 
-    fn get_field(&self, name: &str) -> Result<LpValueRef<'_>, RuntimeError> {
-        match name {
-            "config" => Ok(LpValueRef::Record(&self.config as &dyn RecordValue)),
-            "output" => Ok(LpValueRef::Fixed(&self.output as &dyn LpValue)),
-            _ => Err(RuntimeError::field_not_found("LfoNode", name)),
+    fn get_field_by_index(&self, index: usize) -> Result<LpValueRef<'_>, RuntimeError> {
+        match index {
+            0 => Ok(LpValueRef::Record(&self.config as &dyn RecordValue)),
+            1 => Ok(LpValueRef::Fixed(&self.output as &dyn LpValue)),
+            _ => Err(RuntimeError::IndexOutOfBounds {
+                index,
+                len: LFO_NODE_SHAPE.field_count(),
+            }),
         }
     }
 
-    fn get_field_mut(&mut self, name: &str) -> Result<LpValueRefMut<'_>, RuntimeError> {
-        match name {
-            "config" => Ok(LpValueRefMut::Record(
+    fn get_field_by_index_mut(&mut self, index: usize) -> Result<LpValueRefMut<'_>, RuntimeError> {
+        match index {
+            0 => Ok(LpValueRefMut::Record(
                 &mut self.config as &mut dyn RecordValue,
             )),
-            "output" => Ok(LpValueRefMut::Fixed(&mut self.output as &mut dyn LpValue)),
-            _ => Err(RuntimeError::field_not_found("LfoNode", name)),
+            1 => Ok(LpValueRefMut::Fixed(&mut self.output as &mut dyn LpValue)),
+            _ => Err(RuntimeError::IndexOutOfBounds {
+                index,
+                len: LFO_NODE_SHAPE.field_count(),
+            }),
         }
-    }
-
-    fn set_field(&mut self, _name: &str, _value: &dyn LpValue) -> Result<(), RuntimeError> {
-        Err(RuntimeError::type_mismatch(
-            "set_field not implemented",
-            "unknown",
-        ))
-    }
-
-    fn field_count(&self) -> usize {
-        2 // config, output
-    }
-
-    fn get_field_by_index(&self, index: usize) -> Result<(&str, LpValueRef<'_>), RuntimeError> {
-        // For LfoNode, we know the shape is LFO_NODE_SHAPE
-        let record_shape = &LFO_NODE_SHAPE;
-        let field_shape =
-            record_shape
-                .get_field(index)
-                .ok_or_else(|| RuntimeError::IndexOutOfBounds {
-                    index,
-                    len: record_shape.field_count(),
-                })?;
-
-        let field_name = field_shape.name();
-        let field_value = self.get_field(field_name)?;
-        Ok((field_name, field_value))
     }
 }
 

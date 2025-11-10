@@ -58,6 +58,14 @@ impl RecordValueDyn {
         self.shape.meta().name()
     }
 
+    /// Get the number of fields in this record value.
+    ///
+    /// This returns the actual number of fields stored in the value,
+    /// which may differ from `shape().field_count()` for dynamic records.
+    pub fn field_count(&self) -> usize {
+        self.fields.len()
+    }
+
     /// Remove a field by name.
     pub fn remove_field(&mut self, name: &str) -> Result<(), RuntimeError> {
         // Find and remove the field using swap-remove
@@ -96,46 +104,8 @@ impl RecordValue for RecordValueDyn {
         &self.shape
     }
 
-    fn get_field(&self, name: &str) -> Result<LpValueRef<'_>, RuntimeError> {
-        for (field_name, field_value) in self.fields.iter() {
-            if field_name.as_str() == name {
-                return Ok(match field_value {
-                    LpValueBox::Fixed(boxed) => LpValueRef::Fixed(boxed.as_ref()),
-                    LpValueBox::Record(boxed) => LpValueRef::Record(boxed.as_ref()),
-                });
-            }
-        }
-        Err(RuntimeError::field_not_found("RecordValueDyn", name))
-    }
-
-    fn get_field_mut(&mut self, name: &str) -> Result<LpValueRefMut<'_>, RuntimeError> {
-        for (field_name, field_value) in self.fields.iter_mut() {
-            if field_name.as_str() == name {
-                return Ok(match field_value {
-                    LpValueBox::Fixed(boxed) => LpValueRefMut::Fixed(boxed.as_mut()),
-                    LpValueBox::Record(boxed) => LpValueRefMut::Record(boxed.as_mut()),
-                });
-            }
-        }
-        Err(RuntimeError::field_not_found("RecordValueDyn", name))
-    }
-
-    fn set_field(&mut self, _name: &str, _value: &dyn LpValue) -> Result<(), RuntimeError> {
-        // For now, we can't easily clone values, so we'll need to handle this differently
-        // This is a limitation - we'd need a way to clone or take ownership
-        // For now, return an error indicating this isn't fully implemented
-        Err(RuntimeError::type_mismatch(
-            "set_field not fully implemented for RecordValueDyn",
-            "use add_field instead",
-        ))
-    }
-
-    fn field_count(&self) -> usize {
-        self.fields.len()
-    }
-
-    fn get_field_by_index(&self, index: usize) -> Result<(&str, LpValueRef<'_>), RuntimeError> {
-        let (field_name, field_value) =
+    fn get_field_by_index(&self, index: usize) -> Result<LpValueRef<'_>, RuntimeError> {
+        let (_, field_value) =
             self.fields
                 .get(index)
                 .ok_or_else(|| RuntimeError::IndexOutOfBounds {
@@ -148,7 +118,22 @@ impl RecordValue for RecordValueDyn {
             LpValueBox::Record(boxed) => LpValueRef::Record(boxed.as_ref()),
         };
 
-        Ok((field_name.as_str(), value_ref))
+        Ok(value_ref)
+    }
+
+    fn get_field_by_index_mut(&mut self, index: usize) -> Result<LpValueRefMut<'_>, RuntimeError> {
+        let len = self.fields.len();
+        let (_, field_value) = self
+            .fields
+            .get_mut(index)
+            .ok_or_else(|| RuntimeError::IndexOutOfBounds { index, len })?;
+
+        let value_ref_mut = match field_value {
+            LpValueBox::Fixed(boxed) => LpValueRefMut::Fixed(boxed.as_mut()),
+            LpValueBox::Record(boxed) => LpValueRefMut::Record(boxed.as_mut()),
+        };
+
+        Ok(value_ref_mut)
     }
 }
 
