@@ -1,7 +1,7 @@
 //! Tests for scene graph traversal.
 use crate::kind::{
     record::record_dyn::RecordShapeDyn,
-    value::{LpValue, LpValueBox, RecordValue},
+    value::{LpValueBox, RecordValue},
 };
 use crate::tests::scene::{
     lfo::{LfoConfig, LfoNode},

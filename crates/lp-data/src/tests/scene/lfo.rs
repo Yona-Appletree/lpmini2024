@@ -11,7 +11,7 @@ use crate::kind::{
         record_static::{RecordFieldStatic, RecordShapeStatic},
     },
     shape::LpShape,
-    value::{LpValue, LpValueBox, LpValueRef, LpValueRefMut, RecordValue},
+    value::{LpValue, LpValueRef, LpValueRefMut, RecordValue},
 };
 use crate::value::RuntimeError;
 use lp_math::fixed::Fixed;
@@ -56,7 +56,7 @@ impl RecordValue for LfoConfig {
         &LFO_CONFIG_SHAPE
     }
 
-    fn get_field(&self, name: &str) -> Result<LpValueRef, RuntimeError> {
+    fn get_field(&self, name: &str) -> Result<LpValueRef<'_>, RuntimeError> {
         match name {
             "period" => Ok(LpValueRef::Fixed(&self.period as &dyn LpValue)),
             _ => Err(RuntimeError::FieldNotFound {
@@ -72,7 +72,7 @@ impl RecordValue for LfoConfig {
         }
     }
 
-    fn get_field_mut(&mut self, name: &str) -> Result<LpValueRefMut, RuntimeError> {
+    fn get_field_mut(&mut self, name: &str) -> Result<LpValueRefMut<'_>, RuntimeError> {
         match name {
             "period" => Ok(LpValueRefMut::Fixed(&mut self.period as &mut dyn LpValue)),
             _ => Err(RuntimeError::FieldNotFound {
@@ -105,7 +105,7 @@ impl RecordValue for LfoConfig {
         1
     }
 
-    fn get_field_by_index(&self, index: usize) -> Result<(&str, LpValueRef), RuntimeError> {
+    fn get_field_by_index(&self, index: usize) -> Result<(&str, LpValueRef<'_>), RuntimeError> {
         // For LfoConfig, we know the shape is LFO_CONFIG_SHAPE
         let record_shape = &LFO_CONFIG_SHAPE;
         let field_shape =
@@ -174,7 +174,7 @@ impl RecordValue for LfoNode {
         &LFO_NODE_SHAPE
     }
 
-    fn get_field(&self, name: &str) -> Result<LpValueRef, RuntimeError> {
+    fn get_field(&self, name: &str) -> Result<LpValueRef<'_>, RuntimeError> {
         match name {
             "config" => Ok(LpValueRef::Record(&self.config as &dyn RecordValue)),
             "output" => Ok(LpValueRef::Fixed(&self.output as &dyn LpValue)),
@@ -191,7 +191,7 @@ impl RecordValue for LfoNode {
         }
     }
 
-    fn get_field_mut(&mut self, name: &str) -> Result<LpValueRefMut, RuntimeError> {
+    fn get_field_mut(&mut self, name: &str) -> Result<LpValueRefMut<'_>, RuntimeError> {
         match name {
             "config" => Ok(LpValueRefMut::Record(
                 &mut self.config as &mut dyn RecordValue,
@@ -227,7 +227,7 @@ impl RecordValue for LfoNode {
         2 // config, output
     }
 
-    fn get_field_by_index(&self, index: usize) -> Result<(&str, LpValueRef), RuntimeError> {
+    fn get_field_by_index(&self, index: usize) -> Result<(&str, LpValueRef<'_>), RuntimeError> {
         // For LfoNode, we know the shape is LFO_NODE_SHAPE
         let record_shape = &LFO_NODE_SHAPE;
         let field_shape =

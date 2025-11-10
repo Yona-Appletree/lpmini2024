@@ -107,7 +107,7 @@ impl RecordValue for RecordValueDyn {
         &self.shape
     }
 
-    fn get_field(&self, name: &str) -> Result<LpValueRef, RuntimeError> {
+    fn get_field(&self, name: &str) -> Result<LpValueRef<'_>, RuntimeError> {
         for (field_name, field_value) in self.fields.iter() {
             if field_name.as_str() == name {
                 return Ok(match field_value {
@@ -128,7 +128,7 @@ impl RecordValue for RecordValueDyn {
         })
     }
 
-    fn get_field_mut(&mut self, name: &str) -> Result<LpValueRefMut, RuntimeError> {
+    fn get_field_mut(&mut self, name: &str) -> Result<LpValueRefMut<'_>, RuntimeError> {
         for (field_name, field_value) in self.fields.iter_mut() {
             if field_name.as_str() == name {
                 return Ok(match field_value {
@@ -171,7 +171,7 @@ impl RecordValue for RecordValueDyn {
         self.fields.len()
     }
 
-    fn get_field_by_index(&self, index: usize) -> Result<(&str, LpValueRef), RuntimeError> {
+    fn get_field_by_index(&self, index: usize) -> Result<(&str, LpValueRef<'_>), RuntimeError> {
         let (field_name, field_value) =
             self.fields
                 .get(index)
@@ -192,11 +192,10 @@ impl RecordValue for RecordValueDyn {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::kind::fixed::fixed_static::FIXED_SHAPE;
     use crate::kind::record::{record_dyn::RecordShapeDyn, record_meta::RecordMetaDyn};
     use core::ptr::NonNull;
     use lp_math::fixed::Fixed;
-    use lp_pool::{allow_global_alloc, LpMemoryPool, LpString};
+    use lp_pool::{LpMemoryPool, LpString};
 
     fn setup_pool() -> LpMemoryPool {
         let mut memory = [0u8; 16384];

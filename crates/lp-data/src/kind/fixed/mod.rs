@@ -13,4 +13,3 @@ pub use fixed_dyn::FixedShapeDyn;
 pub use fixed_meta::{FixedMeta, FixedMetaDyn, FixedMetaStatic};
 pub use fixed_shape::FixedShape;
 pub use fixed_static::{FixedShapeStatic, FIXED_SHAPE};
-pub use fixed_value::*;

@@ -200,7 +200,7 @@ fn expand_struct(input: &DeriveInput, data: &DataStruct) -> Result<TokenStream2,
     let record_name_lit = LitStr::new(&record_name, Span::call_site());
     let type_name_lit = LitStr::new(&type_name_literal, Span::call_site());
 
-    let doc_expr = struct_docs.map(|doc| {
+    let _doc_expr = struct_docs.map(|doc| {
         let doc_lit = LitStr::new(&doc, Span::call_site());
         quote! { .with_docs(#doc_lit) }
     });
@@ -1009,7 +1009,8 @@ fn primitive_shape_expr(
                 None | Some(UiAttr::NumberTextbox) => {
                     quote! { lp_data::shape::int32::StaticInt32Shape::default() }
                 }
-                Some(UiAttr::NumberSlider { min, max, step: _ }) => {
+                Some(UiAttr::NumberSlider { min, max, step }) => {
+                    let _ = step; // step is parsed but not yet used in shape generation
                     let slider_ui = quote! { lp_data::shape::int32::int32_meta::Int32Ui::Slider { min: (#min) as i32, max: (#max) as i32 } };
                     quote! { lp_data::shape::int32::StaticInt32Shape::new(#slider_ui) }
                 }
@@ -1036,7 +1037,8 @@ fn primitive_shape_expr(
                 None | Some(UiAttr::NumberTextbox) => {
                     quote! { lp_data::shape::fixed::StaticFixedShape::default() }
                 }
-                Some(UiAttr::NumberSlider { min, max, step: _ }) => {
+                Some(UiAttr::NumberSlider { min, max, step }) => {
+                    let _ = step; // step is parsed but not yet used in shape generation
                     let slider_ui = quote! { lp_data::shape::fixed::fixed_meta::FixedUi::Slider { min: (#min) as i32, max: (#max) as i32 } };
                     quote! { lp_data::shape::fixed::StaticFixedShape::new(#slider_ui) }
                 }
@@ -1057,80 +1059,6 @@ fn primitive_shape_expr(
                 quote! { FixedShapeRef },
             ))
         }
-    }
-}
-
-fn primitive_meta_expr(
-    kind: PrimitiveKind,
-    ui: &Option<UiAttr>,
-    span: Span,
-) -> Result<TokenStream2, Error> {
-    match kind {
-        PrimitiveKind::String => match ui {
-            None | Some(UiAttr::StringSingleLine) | Some(UiAttr::NumberTextbox) => {
-                Ok(quote! { lp_data::LpTypeMeta::new(lp_data::LpType::string()) })
-            }
-            Some(UiAttr::StringMultiline) => Ok(quote! {
-                lp_data::LpTypeMeta::new(lp_data::LpType::String(lp_data::StringScalar {
-                    ui: lp_data::StringUi::MultiLine,
-                }))
-            }),
-            Some(other) => Err(Error::new(
-                span,
-                format!(
-                    "ui {:?} not valid for string fields",
-                    other_variant_name(other)
-                ),
-            )),
-        },
-        PrimitiveKind::Int32 => match ui {
-            None | Some(UiAttr::NumberTextbox) => Ok(quote! {
-                lp_data::LpTypeMeta::new(lp_data::LpType::int32())
-            }),
-            Some(UiAttr::NumberSlider { min, max, step }) => {
-                let slider = if let Some(step) = step {
-                    quote! { lp_data::SliderUi::new((#min) as f64, (#max) as f64).with_step((#step) as f64) }
-                } else {
-                    quote! { lp_data::SliderUi::new((#min) as f64, (#max) as f64) }
-                };
-                Ok(quote! {
-                    lp_data::LpTypeMeta::new(lp_data::LpType::Int32(lp_data::Int32Scalar {
-                        ui: lp_data::NumberUi::Slider(#slider),
-                    }))
-                })
-            }
-            Some(other) => Err(Error::new(
-                span,
-                format!(
-                    "ui {:?} not valid for numeric fields",
-                    other_variant_name(other)
-                ),
-            )),
-        },
-        PrimitiveKind::Fixed => match ui {
-            None | Some(UiAttr::NumberTextbox) => Ok(quote! {
-                lp_data::LpTypeMeta::new(lp_data::LpType::fixed())
-            }),
-            Some(UiAttr::NumberSlider { min, max, step }) => {
-                let slider = if let Some(step) = step {
-                    quote! { lp_data::SliderUi::new((#min) as f64, (#max) as f64).with_step((#step) as f64) }
-                } else {
-                    quote! { lp_data::SliderUi::new((#min) as f64, (#max) as f64) }
-                };
-                Ok(quote! {
-                    lp_data::LpTypeMeta::new(lp_data::LpType::Fixed(lp_data::FixedScalar {
-                        ui: lp_data::NumberUi::Slider(#slider),
-                    }))
-                })
-            }
-            Some(other) => Err(Error::new(
-                span,
-                format!(
-                    "ui {:?} not valid for numeric fields",
-                    other_variant_name(other)
-                ),
-            )),
-        },
     }
 }
 
@@ -1288,26 +1216,6 @@ fn vector_meta_expr(
                 ),
             )),
         },
-    }
-}
-
-fn bool_meta_expr(ui: &Option<UiAttr>, span: Span) -> Result<TokenStream2, Error> {
-    match ui {
-        None | Some(UiAttr::BoolCheckbox) | Some(UiAttr::NumberTextbox) => Ok(quote! {
-            lp_data::LpTypeMeta::new(lp_data::LpType::boolean())
-        }),
-        Some(UiAttr::BoolToggle) => Ok(quote! {
-            lp_data::LpTypeMeta::new(lp_data::LpType::Bool(lp_data::BoolScalar {
-                ui: lp_data::BoolUi::Toggle,
-            }))
-        }),
-        Some(other) => Err(Error::new(
-            span,
-            format!(
-                "ui {:?} not valid for bool fields",
-                other_variant_name(other)
-            ),
-        )),
     }
 }
 

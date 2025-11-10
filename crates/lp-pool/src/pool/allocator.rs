@@ -41,17 +41,8 @@ impl LpAllocator {
         })
     }
 
-    /// Create a pool allocator from a memory region
-    ///
-    /// This is equivalent to `new()` and exists for API consistency.
-    ///
-    /// # Safety
-    /// Same as `new()` - memory must be valid and large enough
-    pub unsafe fn from_region(memory: NonNull<u8>, size: usize) -> Result<Self, AllocError> {
-        Self::new(memory, size)
-    }
-
     /// Reset the pool (free all blocks)
+    #[cfg(test)]
     pub fn reset(&mut self) {
         unsafe {
             let base_ptr = self.memory.as_ptr();
@@ -66,12 +57,8 @@ impl LpAllocator {
         }
     }
 
-    /// Get a pointer to the underlying memory (for sub-region allocation)
-    pub fn memory_ptr(&self) -> NonNull<u8> {
-        self.memory
-    }
-
     /// Get the size of the memory region
+    #[cfg(test)]
     pub fn size(&self) -> usize {
         self.capacity
     }

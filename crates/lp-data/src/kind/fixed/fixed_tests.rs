@@ -2,7 +2,6 @@
 
 #[cfg(test)]
 mod tests {
-    use lp_math::fixed::Fixed;
     use lp_math::fixed::ToFixed;
 
     use crate::kind::{
@@ -23,7 +22,7 @@ mod tests {
 
     #[test]
     fn test_fixed_shape_with_meta() {
-        use crate::kind::fixed::fixed_meta::{FixedMeta, FixedMetaStatic};
+        use crate::kind::fixed::fixed_meta::FixedMetaStatic;
         use crate::kind::fixed::fixed_shape::FixedShape;
         use crate::kind::fixed::fixed_static::FixedShapeStatic;
 

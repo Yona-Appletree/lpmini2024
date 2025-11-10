@@ -128,10 +128,10 @@ pub trait RecordValue: LpValue {
     fn shape(&self) -> &dyn RecordShape;
 
     /// Get a field by name (immutable).
-    fn get_field(&self, name: &str) -> Result<LpValueRef, RuntimeError>;
+    fn get_field(&self, name: &str) -> Result<LpValueRef<'_>, RuntimeError>;
 
     /// Get a field by name (mutable).
-    fn get_field_mut(&mut self, name: &str) -> Result<LpValueRefMut, RuntimeError>;
+    fn get_field_mut(&mut self, name: &str) -> Result<LpValueRefMut<'_>, RuntimeError>;
 
     /// Set a field value.
     ///
@@ -145,5 +145,5 @@ pub trait RecordValue: LpValue {
     ///
     /// Returns `(field_name, field_value)` for the field at the given index.
     /// This allows iteration over fields without cloning.
-    fn get_field_by_index(&self, index: usize) -> Result<(&str, LpValueRef), RuntimeError>;
+    fn get_field_by_index(&self, index: usize) -> Result<(&str, LpValueRef<'_>), RuntimeError>;
 }
