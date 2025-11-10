@@ -10,7 +10,11 @@ use lp_pool::{LpString, LpVec};
 
 use crate::kind::record::record_value::RecordValue;
 use crate::kind::{
-    record::{record_dyn::RecordShapeDyn, RecordShape},
+    record::{
+        record_dyn::{RecordFieldDyn, RecordShapeDyn},
+        record_meta::RecordFieldMetaDyn,
+        RecordShape,
+    },
     shape::LpShape,
     value::{LpValue, LpValueBox, LpValueRef, LpValueRefMut},
 };
@@ -40,14 +44,44 @@ impl RecordValueDyn {
     ///
     /// If a field with the same name already exists, it will be replaced.
     pub fn add_field(&mut self, name: LpString, value: LpValueBox) -> Result<(), RuntimeError> {
+        // Extract the shape reference first (shapes are 'static, so this is safe)
+        let shape_ref: &'static dyn LpShape = match &value {
+            LpValueBox::Fixed(boxed) => {
+                // SAFETY: Shapes are 'static - either static constants or pool-allocated
+                unsafe { core::mem::transmute(LpValue::shape(boxed.as_ref())) }
+            }
+            LpValueBox::Record(boxed) => unsafe {
+                core::mem::transmute(LpValue::shape(boxed.as_ref()))
+            },
+            LpValueBox::Enum(boxed) => unsafe {
+                core::mem::transmute(LpValue::shape(boxed.as_ref()))
+            },
+        };
+
         // Check if field already exists and replace it
-        for (existing_name, existing_value) in self.fields.iter_mut() {
+        for (i, (existing_name, existing_value)) in self.fields.iter_mut().enumerate() {
             if existing_name.as_str() == name.as_str() {
                 *existing_value = value;
+                // Update the shape field as well
+                if let Some(shape_field) = self.shape.fields.get_mut(i) {
+                    shape_field.shape = shape_ref;
+                }
                 return Ok(());
             }
         }
-        // Add new field
+
+        // Add new field to both value and shape
+        let field_shape = RecordFieldDyn {
+            name: name.clone(),
+            shape: shape_ref,
+            meta: RecordFieldMetaDyn { docs: None },
+        };
+
+        self.shape
+            .fields
+            .try_push(field_shape)
+            .map_err(|_| RuntimeError::IndexOutOfBounds { index: 0, len: 0 })?;
+
         self.fields
             .try_push((name, value))
             .map_err(|_| RuntimeError::IndexOutOfBounds { index: 0, len: 0 })
@@ -61,7 +95,7 @@ impl RecordValueDyn {
     /// Get the number of fields in this record value.
     ///
     /// This returns the actual number of fields stored in the value,
-    /// which may differ from `shape().field_count()` for dynamic records.
+    /// which should always match `shape().field_count()` for dynamic records.
     pub fn field_count(&self) -> usize {
         self.fields.len()
     }
@@ -75,8 +109,13 @@ impl RecordValueDyn {
                     let last_idx = self.fields.len() - 1;
                     if i != last_idx {
                         unsafe {
+                            // Swap-remove from fields
                             let ptr = self.fields.as_mut_slice().as_mut_ptr();
                             core::ptr::swap(ptr.add(i), ptr.add(last_idx));
+
+                            // Swap-remove from shape fields
+                            let shape_ptr = self.shape.fields.as_mut_slice().as_mut_ptr();
+                            core::ptr::swap(shape_ptr.add(i), shape_ptr.add(last_idx));
                         }
                     }
                     self.fields
@@ -84,6 +123,13 @@ impl RecordValueDyn {
                         .ok_or_else(|| RuntimeError::IndexOutOfBounds {
                             index: i,
                             len: self.fields.len(),
+                        })?;
+                    self.shape
+                        .fields
+                        .pop()
+                        .ok_or_else(|| RuntimeError::IndexOutOfBounds {
+                            index: i,
+                            len: self.shape.fields.len(),
                         })?;
                     return Ok(());
                 }
@@ -211,6 +257,62 @@ mod tests {
                 .map_err(|_| lp_pool::AllocError::PoolExhausted)?;
 
             assert_eq!(record.field_count(), 1);
+            // Shape should match the actual field count
+            assert_eq!(
+                RecordValue::shape(&record).field_count(),
+                1,
+                "Shape field count should match actual field count"
+            );
+            Ok::<(), lp_pool::AllocError>(())
+        })
+        .unwrap();
+    }
+
+    #[test]
+    fn test_record_value_dyn_shape_matches_fields() {
+        let pool = setup_pool();
+        pool.run(|| {
+            let shape_name = LpString::try_from_str("TestRecord")?;
+            let shape = RecordShapeDyn {
+                meta: RecordMetaDyn {
+                    name: shape_name,
+                    docs: None,
+                },
+                fields: LpVec::new(),
+            };
+            let mut record = RecordValueDyn::new(shape);
+
+            // Add multiple fields
+            let field1_name = LpString::try_from_str("field1")?;
+            let field2_name = LpString::try_from_str("field2")?;
+            let value1 = LpValueBox::from(Fixed::ZERO);
+            let value2 = LpValueBox::from(Fixed::ZERO);
+
+            record
+                .add_field(field1_name, value1)
+                .map_err(|_| lp_pool::AllocError::PoolExhausted)?;
+            record
+                .add_field(field2_name, value2)
+                .map_err(|_| lp_pool::AllocError::PoolExhausted)?;
+
+            // Shape should match actual fields
+            assert_eq!(record.field_count(), 2);
+            assert_eq!(
+                RecordValue::shape(&record).field_count(),
+                2,
+                "Shape field count should match actual field count"
+            );
+
+            // Shape should have the correct field names
+            let shape_ref = RecordValue::shape(&record);
+            assert_eq!(shape_ref.get_field(0).unwrap().name(), "field1");
+            assert_eq!(shape_ref.get_field(1).unwrap().name(), "field2");
+
+            // Can get fields by name through shape
+            assert!(shape_ref.find_field("field1").is_some());
+            assert!(shape_ref.find_field("field2").is_some());
+            assert!(shape_ref.find_field("nonexistent").is_none());
+
             Ok::<(), lp_pool::AllocError>(())
         })
         .unwrap();
@@ -278,6 +380,12 @@ mod tests {
                 .remove_field("value")
                 .map_err(|_| lp_pool::AllocError::PoolExhausted)?;
             assert_eq!(record.field_count(), 0);
+            // Shape should also be empty
+            assert_eq!(
+                RecordValue::shape(&record).field_count(),
+                0,
+                "Shape field count should match actual field count after removal"
+            );
 
             // Try to get removed field - should fail
             assert!(record.get_field("value").is_err());
@@ -318,6 +426,12 @@ mod tests {
                 .map_err(|_| lp_pool::AllocError::PoolExhausted)?;
 
             assert_eq!(record.field_count(), 1);
+            // Shape should still match after replacement
+            assert_eq!(
+                RecordValue::shape(&record).field_count(),
+                1,
+                "Shape field count should match actual field count after replacement"
+            );
 
             Ok::<(), lp_pool::AllocError>(())
         })
@@ -385,10 +499,22 @@ mod tests {
                 .map_err(|_| lp_pool::AllocError::PoolExhausted)?;
 
             assert_eq!(record.field_count(), 3);
+            // Shape should match
+            assert_eq!(
+                RecordValue::shape(&record).field_count(),
+                3,
+                "Shape field count should match actual field count"
+            );
 
             assert!(record.get_field("a").is_ok());
             assert!(record.get_field("b").is_ok());
             assert!(record.get_field("c").is_ok());
+
+            // Verify shape has the correct field names
+            let shape_ref = RecordValue::shape(&record);
+            assert_eq!(shape_ref.get_field(0).unwrap().name(), "a");
+            assert_eq!(shape_ref.get_field(1).unwrap().name(), "b");
+            assert_eq!(shape_ref.get_field(2).unwrap().name(), "c");
 
             Ok::<(), lp_pool::AllocError>(())
         })
@@ -448,9 +574,12 @@ mod tests {
             use crate::kind::record::record_value::RecordValue;
             let record_shape = RecordValue::shape(&record);
             assert_eq!(record_shape.kind(), crate::kind::kind::LpKind::Record);
-
-            // Can't easily verify the name without downcasting, but we can verify the kind
-            // The shape is stored internally, so we know it's correct
+            assert_eq!(record_shape.meta().name(), "MyRecord");
+            assert_eq!(
+                record_shape.field_count(),
+                0,
+                "Empty record should have 0 fields"
+            );
 
             Ok::<(), lp_pool::AllocError>(())
         })

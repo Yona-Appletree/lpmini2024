@@ -319,7 +319,7 @@ fn get_field_shape(
                 })
             } else {
                 // Could be either enum or record type - we know at compile time via attribute/naming
-                let mut bounds = Vec::new();
+                let bounds = Vec::new();
                 // Don't add LpValue bound here - it will be added conditionally based on is_enum_field
 
                 // For same-crate types, reference the generated shape constant directly

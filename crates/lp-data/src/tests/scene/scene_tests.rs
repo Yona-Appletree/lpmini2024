@@ -2,7 +2,7 @@
 use crate::kind::{record::record_dyn::RecordShapeDyn, value::LpValueBox};
 use crate::tests::scene::{
     lfo::{LfoConfig, LfoNode, LfoWaveform},
-    print_lp_value::print_lp_value,
+    print_lp_value::print_lp_value_to_string,
 };
 use core::ptr::NonNull;
 
@@ -80,8 +80,8 @@ fn test_scene_traversal() {
         let nodes_value_box = LpValueBox::from(nodes_boxed);
 
         // Traverse and print the scene
-        LpMemoryPool::with_global_alloc(|| {
-            println!("Scene graph:");
+        let output = LpMemoryPool::with_global_alloc(|| {
+            let mut output = String::new();
 
             // Verify nodes structure
             let nodes_ref = match &nodes_value_box {
@@ -137,9 +137,49 @@ fn test_scene_traversal() {
                 }
             }
 
-            // Print the scene graph
-            print_lp_value(nodes_value_box, 0);
+            // Print the scene graph and capture output
+            output.push_str("Scene graph:\n");
+            let printed = print_lp_value_to_string(nodes_value_box, 0);
+            output.push_str(&printed);
+            output
         });
+
+        // Verify the output matches expected format
+        let expected_lines = vec![
+            "Scene graph:",
+            "Record (anonymous)",
+            "  test: Record(LfoNode)",
+            "    config: Record(LfoConfig)",
+            "      period: Fixed(2)",
+            "      waveform: Enum(LfoWaveform)::Sine",
+            "    output: Fixed(0)",
+        ];
+
+        let output_lines: Vec<&str> = output.lines().collect();
+        for (i, expected_line) in expected_lines.iter().enumerate() {
+            assert!(
+                output_lines.get(i).map(|s| s.trim()) == Some(expected_line.trim()),
+                "Line {} mismatch: expected '{}', got '{}'",
+                i,
+                expected_line,
+                output_lines.get(i).unwrap_or(&"<missing>")
+            );
+        }
+
+        // Also verify it contains key elements
+        assert!(
+            output.contains("LfoNode"),
+            "Output should contain 'LfoNode'"
+        );
+        assert!(
+            output.contains("LfoConfig"),
+            "Output should contain 'LfoConfig'"
+        );
+        assert!(
+            output.contains("waveform"),
+            "Output should contain 'waveform'"
+        );
+        assert!(output.contains("Sine"), "Output should contain 'Sine'");
 
         Ok::<(), lp_pool::AllocError>(())
     })
