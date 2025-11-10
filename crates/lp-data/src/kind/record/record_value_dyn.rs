@@ -137,6 +137,21 @@ impl RecordValue for RecordValueDyn {
     }
 }
 
+#[cfg(any(feature = "serde", feature = "serde_json"))]
+impl serde::Serialize for RecordValueDyn {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        use serde::ser::SerializeMap;
+        let mut map = serializer.serialize_map(Some(self.fields.len()))?;
+        for (name, value) in self.fields.iter() {
+            map.serialize_entry(name.as_str(), value)?;
+        }
+        map.end()
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

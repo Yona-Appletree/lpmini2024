@@ -35,7 +35,15 @@ fn expand_struct(input: &DeriveInput, data: &DataStruct) -> Result<TokenStream2,
     let struct_ident = &input.ident;
     let struct_name = struct_ident.to_string();
 
-    let _struct_attrs = StructAttrs::from_attrs(&input.attrs)?;
+    let struct_attrs = StructAttrs::from_attrs(&input.attrs)?;
+    let struct_docs = merge_docs(
+        extract_doc_comments(&input.attrs),
+        struct_attrs.docs.clone(),
+    );
+    let record_name = struct_attrs
+        .name
+        .clone()
+        .unwrap_or_else(|| struct_name.clone());
 
     let fields = match &data.fields {
         Fields::Named(fields) => &fields.named,
@@ -47,8 +55,10 @@ fn expand_struct(input: &DeriveInput, data: &DataStruct) -> Result<TokenStream2,
         }
     };
 
-    // RecordValue assumes LpValue is also derived, so we reuse the shape constant
-    // Don't generate it again to avoid duplicates
+    // RecordValue extends LpValue, so generate both the shape constant and both impls
+    let shape_constant =
+        generate_record_shape_static(struct_ident, &record_name, struct_docs, fields)?;
+
     let shape_const_ident = format_ident!(
         "__LP_VALUE_{}_SHAPE",
         struct_ident.to_string().to_uppercase()
@@ -96,6 +106,14 @@ fn expand_struct(input: &DeriveInput, data: &DataStruct) -> Result<TokenStream2,
     };
 
     let tokens = quote! {
+        #shape_constant
+
+        impl crate::kind::value::LpValue for #struct_ident {
+            fn shape(&self) -> &dyn crate::kind::shape::LpShape {
+                &#shape_const_ident
+            }
+        }
+
         impl crate::kind::record::record_value::RecordValue for #struct_ident #where_clause {
             fn shape(&self) -> &dyn crate::kind::record::record_shape::RecordShape {
                 &#shape_const_ident

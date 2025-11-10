@@ -88,3 +88,73 @@ pub trait LpValue {
     /// Get the shape reference for this value.
     fn shape(&self) -> &dyn LpShape;
 }
+
+#[cfg(any(feature = "serde", feature = "serde_json"))]
+impl serde::Serialize for LpValueBox {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        serialize_lp_value_ref(
+            match self {
+                LpValueBox::Fixed(boxed) => LpValueRef::Fixed(boxed.as_ref()),
+                LpValueBox::Record(boxed) => LpValueRef::Record(boxed.as_ref()),
+            },
+            serializer,
+        )
+    }
+}
+
+#[cfg(any(feature = "serde", feature = "serde_json"))]
+fn serialize_lp_value_ref<S>(value_ref: LpValueRef, serializer: S) -> Result<S::Ok, S::Error>
+where
+    S: serde::Serializer,
+{
+    match value_ref {
+        LpValueRef::Fixed(fixed_ref) => {
+            use lp_math::fixed::Fixed;
+            use serde::Serialize;
+            // SAFETY: We know this is a Fixed because it's in the Fixed variant
+            // The vtable pointer points to Fixed's implementation
+            let fixed_value = unsafe { &*(fixed_ref as *const dyn LpValue as *const Fixed) };
+            fixed_value.serialize(serializer)
+        }
+        LpValueRef::Record(record_ref) => {
+            use crate::kind::record::record_value::RecordValue;
+            use serde::ser::SerializeMap;
+            let shape = RecordValue::shape(record_ref);
+            let field_count = shape.field_count();
+            let mut map = serializer.serialize_map(Some(field_count))?;
+            for i in 0..field_count {
+                if let Some(field_shape) = shape.get_field(i) {
+                    if let Ok(field_value_ref) = record_ref.get_field_by_index(i) {
+                        // Recursively serialize the field value
+                        map.serialize_entry(
+                            field_shape.name(),
+                            &LpValueRefSerializer(field_value_ref),
+                        )?;
+                    }
+                }
+            }
+            map.end()
+        }
+    }
+}
+
+#[cfg(any(feature = "serde", feature = "serde_json"))]
+struct LpValueRefSerializer<'a>(LpValueRef<'a>);
+
+#[cfg(any(feature = "serde", feature = "serde_json"))]
+impl<'a> serde::Serialize for LpValueRefSerializer<'a> {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        // LpValueRef doesn't implement Copy, but we can reconstruct it from the reference
+        let value_ref = match self.0 {
+            LpValueRef::Fixed(fixed_ref) => LpValueRef::Fixed(fixed_ref),
+            LpValueRef::Record(record_ref) => LpValueRef::Record(record_ref),
+        };
+        serialize_lp_value_ref(value_ref, serializer)
+    }
+}
