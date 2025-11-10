@@ -9,12 +9,12 @@
 #[cfg(feature = "alloc")]
 extern crate alloc;
 
-use lp_pool::{LpBoxDyn, LpString, LpVec};
+use lp_pool::{LpString, LpVec};
 
 use crate::kind::{
     record::record_dyn::RecordShapeDyn,
     shape::LpShape,
-    value::{LpValue, LpValueBox, RecordValue},
+    value::{LpValue, LpValueBox, LpValueRef, LpValueRefMut, RecordValue},
 };
 use crate::value::RuntimeError;
 
@@ -103,13 +103,13 @@ impl LpValue for RecordValueDyn {
 }
 
 impl RecordValue for RecordValueDyn {
-    fn get_field(&self, name: &str) -> Result<&dyn LpValue, RuntimeError> {
+    fn get_field(&self, name: &str) -> Result<LpValueRef, RuntimeError> {
         for (field_name, field_value) in self.fields.iter() {
             if field_name.as_str() == name {
-                match field_value {
-                    LpValueBox::Fixed(boxed) => return Ok(boxed.as_ref()),
-                    LpValueBox::Record(boxed) => return Ok(boxed.as_ref()),
-                }
+                return Ok(match field_value {
+                    LpValueBox::Fixed(boxed) => LpValueRef::Fixed(boxed.as_ref()),
+                    LpValueBox::Record(boxed) => LpValueRef::Record(boxed.as_ref()),
+                });
             }
         }
         Err(RuntimeError::FieldNotFound {
@@ -124,13 +124,13 @@ impl RecordValue for RecordValueDyn {
         })
     }
 
-    fn get_field_mut(&mut self, name: &str) -> Result<&mut dyn LpValue, RuntimeError> {
+    fn get_field_mut(&mut self, name: &str) -> Result<LpValueRefMut, RuntimeError> {
         for (field_name, field_value) in self.fields.iter_mut() {
             if field_name.as_str() == name {
-                match field_value {
-                    LpValueBox::Fixed(boxed) => return Ok(boxed.as_mut()),
-                    LpValueBox::Record(boxed) => return Ok(boxed.as_mut()),
-                }
+                return Ok(match field_value {
+                    LpValueBox::Fixed(boxed) => LpValueRefMut::Fixed(boxed.as_mut()),
+                    LpValueBox::Record(boxed) => LpValueRefMut::Record(boxed.as_mut()),
+                });
             }
         }
         Err(RuntimeError::FieldNotFound {
@@ -165,6 +165,23 @@ impl RecordValue for RecordValueDyn {
 
     fn field_count(&self) -> usize {
         self.fields.len()
+    }
+
+    fn get_field_by_index(&self, index: usize) -> Result<(&str, LpValueRef), RuntimeError> {
+        let (field_name, field_value) =
+            self.fields
+                .get(index)
+                .ok_or_else(|| RuntimeError::IndexOutOfBounds {
+                    index,
+                    len: self.fields.len(),
+                })?;
+
+        let value_ref = match field_value {
+            LpValueBox::Fixed(boxed) => LpValueRef::Fixed(boxed.as_ref()),
+            LpValueBox::Record(boxed) => LpValueRef::Record(boxed.as_ref()),
+        };
+
+        Ok((field_name.as_str(), value_ref))
     }
 }
 
@@ -247,7 +264,10 @@ mod tests {
             let retrieved = record
                 .get_field("value")
                 .map_err(|_| lp_pool::AllocError::PoolExhausted)?;
-            assert_eq!(retrieved.shape().kind(), crate::kind::kind::LpKind::Fixed);
+            assert_eq!(
+                retrieved.as_lp_value().shape().kind(),
+                crate::kind::kind::LpKind::Fixed
+            );
 
             Ok::<(), lp_pool::AllocError>(())
         })
@@ -406,10 +426,13 @@ mod tests {
                 .map_err(|_| lp_pool::AllocError::PoolExhausted)?;
 
             // Can get mutable reference
-            let mut_field = record
+            let mut mut_field = record
                 .get_field_mut("value")
                 .map_err(|_| lp_pool::AllocError::PoolExhausted)?;
-            assert_eq!(mut_field.shape().kind(), crate::kind::kind::LpKind::Fixed);
+            assert_eq!(
+                mut_field.as_lp_value_mut().shape().kind(),
+                crate::kind::kind::LpKind::Fixed
+            );
 
             Ok::<(), lp_pool::AllocError>(())
         })

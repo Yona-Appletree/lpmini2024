@@ -1,30 +1,38 @@
-use crate::kind::value::{LpValue, LpValueBox, RecordValue};
+use crate::kind::value::{LpValue, LpValueBox, LpValueRef, RecordValue};
 use lp_math::fixed::Fixed;
 
 /// Traverse the scene graph and print all data generically.
 pub fn print_lp_value(value_box: LpValueBox, indent: usize) {
     match value_box {
         LpValueBox::Fixed(boxed) => {
-            // Extract the Fixed value from the box
-            // We need to downcast to get the actual Fixed value
-            // This is a bit of a hack - ideally we'd have a way to downcast
+            print_lp_value_ref(LpValueRef::Fixed(boxed.as_ref()), indent);
+        }
+        LpValueBox::Record(boxed) => {
+            print_lp_value_ref(LpValueRef::Record(boxed.as_ref()), indent);
+        }
+    }
+}
+
+/// Print a value reference recursively.
+fn print_lp_value_ref(value_ref: LpValueRef, indent: usize) {
+    match value_ref {
+        LpValueRef::Fixed(fixed_ref) => {
             let fixed_value = unsafe {
                 // SAFETY: We know this is a Fixed because it's in the Fixed variant
                 // The vtable pointer points to Fixed's implementation
-                &*(boxed.as_ref() as *const dyn LpValue as *const Fixed)
+                &*(fixed_ref as *const dyn LpValue as *const Fixed)
             };
-            println!("{:>indent$}Fixed: {}", "", fixed_value.to_f32());
+            println!("Fixed({})", fixed_value.to_f32());
         }
-        LpValueBox::Record(boxed) => {
-            let record_ref: &dyn RecordValue = boxed.as_ref();
-            // Note: iter_fields was removed to avoid cloning
-            // For now, we can't iterate over fields without knowing field names
-            // This is a limitation - field iteration requires knowing field names
-            println!(
-                "{:>indent$}Record ({} fields)",
-                "",
-                record_ref.field_count()
-            );
+        LpValueRef::Record(record_ref) => {
+            println!("Record");
+            // Iterate over fields using get_field_by_index and recursively print them
+            for i in 0..record_ref.field_count() {
+                if let Ok((field_name, field_value_ref)) = record_ref.get_field_by_index(i) {
+                    print!("{:>indent$}  {}: ", "", field_name);
+                    print_lp_value_ref(field_value_ref, indent + 2);
+                }
+            }
         }
     }
 }
