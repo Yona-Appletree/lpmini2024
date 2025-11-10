@@ -7,6 +7,9 @@ pub mod kind;
 pub mod shape;
 pub mod value;
 
+#[macro_use]
+mod primitives;
+
 pub mod enum_;
 pub mod fixed;
 pub mod record;
