@@ -77,12 +77,15 @@ use alloc::vec;
 use alloc::vec::Vec;
 use core::ptr::NonNull;
 
+#[allow(lp_pool_std_alloc)]
 pub mod shared;
+#[allow(lp_pool_std_alloc)]
 pub mod vm;
 
 // Re-export fixed from lp-fixed crate
 pub use lp_math::fixed;
 
+#[allow(lp_pool_std_alloc)]
 mod compiler;
 
 pub use compiler::codegen::NativeFunction;
@@ -118,6 +121,7 @@ pub fn compile_expr(input: &str) -> Result<LpsProgram, CompileError> {
 /// use lp_script::{compile_expr_with_options, OptimizeOptions};
 /// let program = compile_expr_with_options("2.0 + 3.0", &OptimizeOptions::all()).unwrap();
 /// ```
+#[allow(lp_pool_std_alloc)]
 pub fn compile_expr_with_options(
     input: &str,
     options: &OptimizeOptions,
@@ -197,6 +201,7 @@ pub fn compile_script(input: &str) -> Result<LpsProgram, CompileError> {
 /// let script = "float x = 2.0 + 3.0; return x;";
 /// let program = compile_script_with_options(script, &OptimizeOptions::all()).unwrap();
 /// ```
+#[allow(lp_pool_std_alloc)]
 pub fn compile_script_with_options(
     input: &str,
     options: &OptimizeOptions,

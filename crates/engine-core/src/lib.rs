@@ -15,9 +15,11 @@
 extern crate alloc;
 
 /// Image types (grayscale, RGB)
+#[allow(lp_pool_std_alloc)]
 pub mod image;
 
 /// Test engine - modular rendering pipeline for LED effects
+#[allow(lp_pool_std_alloc)]
 pub mod test_engine;
 
 // Re-export lp-script and fixed for convenience

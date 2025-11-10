@@ -60,6 +60,11 @@ fn lp_shape_to_zod(
             let fixed_shape: &dyn FixedShape = unsafe { core::mem::transmute(shape) };
             fixed_to_zod(fixed_shape)
         }
+        LpKind::Int32 => "z.number().int()".to_string(),
+        LpKind::Bool => "z.boolean()".to_string(),
+        LpKind::Vec2 => "z.tuple([z.number(), z.number()])".to_string(),
+        LpKind::Vec3 => "z.tuple([z.number(), z.number(), z.number()])".to_string(),
+        LpKind::Vec4 => "z.tuple([z.number(), z.number(), z.number(), z.number()])".to_string(),
         LpKind::Record => {
             // SAFETY: We know this is a Record because kind() returned Record
             // Shapes are 'static, so transmuting the reference is safe
