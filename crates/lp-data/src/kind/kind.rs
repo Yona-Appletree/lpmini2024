@@ -6,6 +6,21 @@ pub enum LpKind {
     /// Fixed-point number (16.16 format)
     Fixed,
 
+    /// 32-bit signed integer
+    Int32,
+
+    /// Boolean value
+    Bool,
+
+    /// 2D vector (Vec2)
+    Vec2,
+
+    /// 3D vector (Vec3)
+    Vec3,
+
+    /// 4D vector (Vec4)
+    Vec4,
+
     /// Record (struct-like composite type)
     Record,
 

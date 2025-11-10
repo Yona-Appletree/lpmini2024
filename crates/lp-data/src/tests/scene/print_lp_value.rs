@@ -1,11 +1,26 @@
 use crate::kind::value::{LpValue, LpValueBox, LpValueRef};
-use lp_math::fixed::Fixed;
+use lp_math::fixed::{Fixed, Vec2, Vec3, Vec4};
 
 /// Traverse the scene graph and print all data generically.
 pub fn print_lp_value(value_box: LpValueBox, indent: usize) {
     match value_box {
         LpValueBox::Fixed(boxed) => {
             print_lp_value_ref(LpValueRef::Fixed(boxed.as_ref()), indent);
+        }
+        LpValueBox::Int32(boxed) => {
+            print_lp_value_ref(LpValueRef::Int32(boxed.as_ref()), indent);
+        }
+        LpValueBox::Bool(boxed) => {
+            print_lp_value_ref(LpValueRef::Bool(boxed.as_ref()), indent);
+        }
+        LpValueBox::Vec2(boxed) => {
+            print_lp_value_ref(LpValueRef::Vec2(boxed.as_ref()), indent);
+        }
+        LpValueBox::Vec3(boxed) => {
+            print_lp_value_ref(LpValueRef::Vec3(boxed.as_ref()), indent);
+        }
+        LpValueBox::Vec4(boxed) => {
+            print_lp_value_ref(LpValueRef::Vec4(boxed.as_ref()), indent);
         }
         LpValueBox::Record(boxed) => {
             print_lp_value_ref(LpValueRef::Record(boxed.as_ref()), indent);
@@ -21,6 +36,21 @@ pub fn print_lp_value_to_string(value_box: LpValueBox, indent: usize) -> String 
     match value_box {
         LpValueBox::Fixed(boxed) => {
             print_lp_value_ref_to_string(LpValueRef::Fixed(boxed.as_ref()), indent)
+        }
+        LpValueBox::Int32(boxed) => {
+            print_lp_value_ref_to_string(LpValueRef::Int32(boxed.as_ref()), indent)
+        }
+        LpValueBox::Bool(boxed) => {
+            print_lp_value_ref_to_string(LpValueRef::Bool(boxed.as_ref()), indent)
+        }
+        LpValueBox::Vec2(boxed) => {
+            print_lp_value_ref_to_string(LpValueRef::Vec2(boxed.as_ref()), indent)
+        }
+        LpValueBox::Vec3(boxed) => {
+            print_lp_value_ref_to_string(LpValueRef::Vec3(boxed.as_ref()), indent)
+        }
+        LpValueBox::Vec4(boxed) => {
+            print_lp_value_ref_to_string(LpValueRef::Vec4(boxed.as_ref()), indent)
         }
         LpValueBox::Record(boxed) => {
             print_lp_value_ref_to_string(LpValueRef::Record(boxed.as_ref()), indent)
@@ -41,6 +71,52 @@ fn print_lp_value_ref(value_ref: LpValueRef, indent: usize) {
                 &*(fixed_ref as *const dyn LpValue as *const Fixed)
             };
             println!("Fixed({})", fixed_value.to_f32());
+        }
+        LpValueRef::Int32(int32_ref) => {
+            let int32_value = unsafe {
+                // SAFETY: We know this is an i32 because it's in the Int32 variant
+                &*(int32_ref as *const dyn LpValue as *const i32)
+            };
+            println!("Int32({})", int32_value);
+        }
+        LpValueRef::Bool(bool_ref) => {
+            let bool_value = unsafe {
+                // SAFETY: We know this is a bool because it's in the Bool variant
+                &*(bool_ref as *const dyn LpValue as *const bool)
+            };
+            println!("Bool({})", bool_value);
+        }
+        LpValueRef::Vec2(vec2_ref) => {
+            let vec2_value = unsafe {
+                // SAFETY: We know this is a Vec2 because it's in the Vec2 variant
+                &*(vec2_ref as *const dyn LpValue as *const Vec2)
+            };
+            println!("Vec2({}, {})", vec2_value.x.to_f32(), vec2_value.y.to_f32());
+        }
+        LpValueRef::Vec3(vec3_ref) => {
+            let vec3_value = unsafe {
+                // SAFETY: We know this is a Vec3 because it's in the Vec3 variant
+                &*(vec3_ref as *const dyn LpValue as *const Vec3)
+            };
+            println!(
+                "Vec3({}, {}, {})",
+                vec3_value.x.to_f32(),
+                vec3_value.y.to_f32(),
+                vec3_value.z.to_f32()
+            );
+        }
+        LpValueRef::Vec4(vec4_ref) => {
+            let vec4_value = unsafe {
+                // SAFETY: We know this is a Vec4 because it's in the Vec4 variant
+                &*(vec4_ref as *const dyn LpValue as *const Vec4)
+            };
+            println!(
+                "Vec4({}, {}, {}, {})",
+                vec4_value.x.to_f32(),
+                vec4_value.y.to_f32(),
+                vec4_value.z.to_f32(),
+                vec4_value.w.to_f32()
+            );
         }
         LpValueRef::Record(record_ref) => {
             use crate::kind::record::record_value::RecordValue;
@@ -87,6 +163,56 @@ fn print_lp_value_ref_to_string(value_ref: LpValueRef, indent: usize) -> String 
                 &*(fixed_ref as *const dyn LpValue as *const Fixed)
             };
             format!("Fixed({})\n", fixed_value.to_f32())
+        }
+        LpValueRef::Int32(int32_ref) => {
+            let int32_value = unsafe {
+                // SAFETY: We know this is an i32 because it's in the Int32 variant
+                &*(int32_ref as *const dyn LpValue as *const i32)
+            };
+            format!("Int32({})\n", int32_value)
+        }
+        LpValueRef::Bool(bool_ref) => {
+            let bool_value = unsafe {
+                // SAFETY: We know this is a bool because it's in the Bool variant
+                &*(bool_ref as *const dyn LpValue as *const bool)
+            };
+            format!("Bool({})\n", bool_value)
+        }
+        LpValueRef::Vec2(vec2_ref) => {
+            let vec2_value = unsafe {
+                // SAFETY: We know this is a Vec2 because it's in the Vec2 variant
+                &*(vec2_ref as *const dyn LpValue as *const Vec2)
+            };
+            format!(
+                "Vec2({}, {})\n",
+                vec2_value.x.to_f32(),
+                vec2_value.y.to_f32()
+            )
+        }
+        LpValueRef::Vec3(vec3_ref) => {
+            let vec3_value = unsafe {
+                // SAFETY: We know this is a Vec3 because it's in the Vec3 variant
+                &*(vec3_ref as *const dyn LpValue as *const Vec3)
+            };
+            format!(
+                "Vec3({}, {}, {})\n",
+                vec3_value.x.to_f32(),
+                vec3_value.y.to_f32(),
+                vec3_value.z.to_f32()
+            )
+        }
+        LpValueRef::Vec4(vec4_ref) => {
+            let vec4_value = unsafe {
+                // SAFETY: We know this is a Vec4 because it's in the Vec4 variant
+                &*(vec4_ref as *const dyn LpValue as *const Vec4)
+            };
+            format!(
+                "Vec4({}, {}, {}, {})\n",
+                vec4_value.x.to_f32(),
+                vec4_value.y.to_f32(),
+                vec4_value.z.to_f32(),
+                vec4_value.w.to_f32()
+            )
         }
         LpValueRef::Record(record_ref) => {
             use crate::kind::record::record_value::RecordValue;

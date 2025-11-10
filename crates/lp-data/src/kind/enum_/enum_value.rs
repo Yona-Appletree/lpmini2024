@@ -41,6 +41,11 @@ impl<'a> LpValueRef<'a> {
     pub fn as_enum(&self) -> Option<&'a dyn EnumValue> {
         match self {
             LpValueRef::Fixed(_) => None,
+            LpValueRef::Int32(_) => None,
+            LpValueRef::Bool(_) => None,
+            LpValueRef::Vec2(_) => None,
+            LpValueRef::Vec3(_) => None,
+            LpValueRef::Vec4(_) => None,
             LpValueRef::Record(_) => None,
             LpValueRef::Enum(v) => Some(*v),
         }
@@ -52,6 +57,11 @@ impl<'a> LpValueRefMut<'a> {
     pub fn as_enum_mut(&mut self) -> Option<&mut dyn EnumValue> {
         match self {
             LpValueRefMut::Fixed(_) => None,
+            LpValueRefMut::Int32(_) => None,
+            LpValueRefMut::Bool(_) => None,
+            LpValueRefMut::Vec2(_) => None,
+            LpValueRefMut::Vec3(_) => None,
+            LpValueRefMut::Vec4(_) => None,
             LpValueRefMut::Record(_) => None,
             LpValueRefMut::Enum(v) => Some(*v),
         }

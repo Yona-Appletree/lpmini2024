@@ -50,6 +50,21 @@ impl RecordValueDyn {
                 // SAFETY: Shapes are 'static - either static constants or pool-allocated
                 unsafe { core::mem::transmute(LpValue::shape(boxed.as_ref())) }
             }
+            LpValueBox::Int32(boxed) => unsafe {
+                core::mem::transmute(LpValue::shape(boxed.as_ref()))
+            },
+            LpValueBox::Bool(boxed) => unsafe {
+                core::mem::transmute(LpValue::shape(boxed.as_ref()))
+            },
+            LpValueBox::Vec2(boxed) => unsafe {
+                core::mem::transmute(LpValue::shape(boxed.as_ref()))
+            },
+            LpValueBox::Vec3(boxed) => unsafe {
+                core::mem::transmute(LpValue::shape(boxed.as_ref()))
+            },
+            LpValueBox::Vec4(boxed) => unsafe {
+                core::mem::transmute(LpValue::shape(boxed.as_ref()))
+            },
             LpValueBox::Record(boxed) => unsafe {
                 core::mem::transmute(LpValue::shape(boxed.as_ref()))
             },
@@ -161,6 +176,11 @@ impl RecordValue for RecordValueDyn {
 
         let value_ref = match field_value {
             LpValueBox::Fixed(boxed) => LpValueRef::Fixed(boxed.as_ref()),
+            LpValueBox::Int32(boxed) => LpValueRef::Int32(boxed.as_ref()),
+            LpValueBox::Bool(boxed) => LpValueRef::Bool(boxed.as_ref()),
+            LpValueBox::Vec2(boxed) => LpValueRef::Vec2(boxed.as_ref()),
+            LpValueBox::Vec3(boxed) => LpValueRef::Vec3(boxed.as_ref()),
+            LpValueBox::Vec4(boxed) => LpValueRef::Vec4(boxed.as_ref()),
             LpValueBox::Record(boxed) => LpValueRef::Record(boxed.as_ref()),
             LpValueBox::Enum(boxed) => LpValueRef::Enum(boxed.as_ref()),
         };
@@ -177,6 +197,11 @@ impl RecordValue for RecordValueDyn {
 
         let value_ref_mut = match field_value {
             LpValueBox::Fixed(boxed) => LpValueRefMut::Fixed(boxed.as_mut()),
+            LpValueBox::Int32(boxed) => LpValueRefMut::Int32(boxed.as_mut()),
+            LpValueBox::Bool(boxed) => LpValueRefMut::Bool(boxed.as_mut()),
+            LpValueBox::Vec2(boxed) => LpValueRefMut::Vec2(boxed.as_mut()),
+            LpValueBox::Vec3(boxed) => LpValueRefMut::Vec3(boxed.as_mut()),
+            LpValueBox::Vec4(boxed) => LpValueRefMut::Vec4(boxed.as_mut()),
             LpValueBox::Record(boxed) => LpValueRefMut::Record(boxed.as_mut()),
             LpValueBox::Enum(boxed) => LpValueRefMut::Enum(boxed.as_mut()),
         };

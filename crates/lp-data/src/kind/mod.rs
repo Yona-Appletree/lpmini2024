@@ -10,9 +10,14 @@ pub mod value;
 #[macro_use]
 mod primitives;
 
+pub mod bool;
 pub mod enum_;
 pub mod fixed;
+pub mod int32;
 pub mod record;
+pub mod vec2;
+pub mod vec3;
+pub mod vec4;
 
 // Re-export commonly used items
 pub use kind::LpKind;
