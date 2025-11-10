@@ -1,4 +1,4 @@
-use lp_pool::LpBoxDyn;
+use crate::memory::LpBoxDyn;
 
 use crate::kind::value::{LpValueBox, LpValueRef, LpValueRefMut};
 use crate::kind::{LpValue, RecordShape};

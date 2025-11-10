@@ -155,80 +155,52 @@ impl Parser {
 
 #[cfg(test)]
 mod tests {
-    use core::ptr::NonNull;
-
-    use lp_pool::LpMemoryPool;
+    use lp_alloc::init_test_allocator;
 
     use super::*;
     use crate::compiler::ast::ExprKind;
     use crate::compiler::lexer::Lexer;
 
-    const POOL_SIZE: usize = 512 * 1024;
-
     #[test]
     fn test_parse_simple_expression() {
-        let mut memory = vec![0u8; POOL_SIZE];
-        let memory_ptr = NonNull::new(memory.as_mut_ptr()).expect("pool memory null");
-        let pool = unsafe { LpMemoryPool::new(memory_ptr, POOL_SIZE).expect("pool init failed") };
+        init_test_allocator();
 
-        pool.run(|| -> Result<(), ParseError> {
-            use lp_pool::LpMemoryPool;
-            LpMemoryPool::with_global_alloc(|| -> Result<(), ParseError> {
-                let mut lexer = Lexer::new("1.0 + 2.0");
-                let tokens = lexer.tokenize();
-                let mut parser = Parser::new(tokens);
-                let expr = parser.parse()?;
+        let mut lexer = Lexer::new("1.0 + 2.0");
+        let tokens = lexer.tokenize();
+        let mut parser = Parser::new(tokens);
+        let expr = parser.parse().expect("parser should succeed");
 
-                assert!(matches!(expr.kind, ExprKind::Add(_, _)));
-                Ok(())
-            })
-        })
-        .unwrap();
+        assert!(matches!(expr.kind, ExprKind::Add(_, _)));
     }
 
     #[test]
     fn test_parse_program_with_statements() {
-        let mut memory = vec![0u8; POOL_SIZE];
-        let memory_ptr = NonNull::new(memory.as_mut_ptr()).expect("pool memory null");
-        let pool = unsafe { LpMemoryPool::new(memory_ptr, POOL_SIZE).expect("pool init failed") };
+        init_test_allocator();
 
-        pool.run(|| -> Result<(), ParseError> {
-            use lp_pool::LpMemoryPool;
-            LpMemoryPool::with_global_alloc(|| -> Result<(), ParseError> {
-                let mut lexer = Lexer::new("float x = 5.0; return x;");
-                let tokens = lexer.tokenize();
-                let parser = Parser::new(tokens);
-                let program = parser.parse_program()?;
+        let mut lexer = Lexer::new("float x = 5.0; return x;");
+        let tokens = lexer.tokenize();
+        let parser = Parser::new(tokens);
+        let program = parser
+            .parse_program()
+            .expect("program parsing should succeed");
 
-                assert_eq!(program.stmts.len(), 2);
-                assert!(program.functions.is_empty());
-                Ok(())
-            })
-        })
-        .unwrap();
+        assert_eq!(program.stmts.len(), 2);
+        assert!(program.functions.is_empty());
     }
 
     #[test]
     fn test_parse_program_with_function() {
-        let mut memory = vec![0u8; POOL_SIZE];
-        let memory_ptr = NonNull::new(memory.as_mut_ptr()).expect("pool memory null");
-        let pool = unsafe { LpMemoryPool::new(memory_ptr, POOL_SIZE).expect("pool init failed") };
+        init_test_allocator();
 
-        pool.run(|| -> Result<(), ParseError> {
-            use lp_pool::LpMemoryPool;
-            LpMemoryPool::with_global_alloc(|| -> Result<(), ParseError> {
-                let mut lexer = Lexer::new(
-                    "float add(float a, float b) { return a + b; } return add(1.0, 2.0);",
-                );
-                let tokens = lexer.tokenize();
-                let parser = Parser::new(tokens);
-                let program = parser.parse_program()?;
+        let mut lexer =
+            Lexer::new("float add(float a, float b) { return a + b; } return add(1.0, 2.0);");
+        let tokens = lexer.tokenize();
+        let parser = Parser::new(tokens);
+        let program = parser
+            .parse_program()
+            .expect("program parsing should succeed");
 
-                assert_eq!(program.functions.len(), 1);
-                assert_eq!(program.stmts.len(), 1);
-                Ok(())
-            })
-        })
-        .unwrap();
+        assert_eq!(program.functions.len(), 1);
+        assert_eq!(program.stmts.len(), 1);
     }
 }

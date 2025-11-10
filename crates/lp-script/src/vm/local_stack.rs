@@ -62,7 +62,7 @@ impl LocalStack {
                 ty: def.ty.clone(),
                 offset,
                 size,
-            })?;
+            });
 
             // Initialize with provided value or zero
             if let Some(ref init_value) = def.initial_value {

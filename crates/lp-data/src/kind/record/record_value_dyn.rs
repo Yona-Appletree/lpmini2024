@@ -6,7 +6,7 @@
 //!
 //! Uses `LpValueBox` for field storage, which allocates from lp-pool.
 
-use lp_pool::{LpString, LpVec};
+use crate::memory::{LpString, LpVec};
 
 use crate::kind::record::record_dyn::{RecordFieldDyn, RecordShapeDyn};
 use crate::kind::record::record_meta::RecordFieldMetaDyn;
@@ -223,19 +223,30 @@ impl serde::Serialize for RecordValueDyn {
 
 #[cfg(test)]
 mod tests {
-    use core::ptr::NonNull;
-
+    use crate::memory::enter_global_alloc_allowance;
+    use crate::memory::AllocError;
+    use lp_alloc::init_test_allocator;
     use lp_math::fixed::{Fixed, Vec2, Vec3, Vec4};
-    use lp_pool::{LpMemoryPool, LpString};
 
     use super::*;
     use crate::kind::record::record_dyn::RecordShapeDyn;
     use crate::kind::record::record_meta::RecordMetaDyn;
 
-    fn setup_pool() -> LpMemoryPool {
-        let mut memory = [0u8; 16384];
-        let memory_ptr = NonNull::new(memory.as_mut_ptr()).unwrap();
-        unsafe { LpMemoryPool::new(memory_ptr, 16384).unwrap() }
+    struct TestPool;
+
+    impl TestPool {
+        fn run<F, R>(&self, f: F) -> R
+        where
+            F: FnOnce() -> R,
+        {
+            let _guard = enter_global_alloc_allowance();
+            f()
+        }
+    }
+
+    fn setup_pool() -> TestPool {
+        init_test_allocator();
+        TestPool
     }
 
     #[test]
@@ -252,7 +263,7 @@ mod tests {
             };
             let record = RecordValueDyn::new(shape);
             assert_eq!(record.field_count(), 0);
-            Ok::<(), lp_pool::AllocError>(())
+            Ok::<(), AllocError>(())
         })
         .unwrap();
     }
@@ -278,7 +289,7 @@ mod tests {
             let value_box = LpValueBox::from(fixed_value);
             record
                 .add_field(field_name, value_box)
-                .map_err(|_| lp_pool::AllocError::PoolExhausted)?;
+                .map_err(|_| AllocError::SoftLimitExceeded)?;
 
             assert_eq!(record.field_count(), 1);
             // Shape should match the actual field count
@@ -287,7 +298,7 @@ mod tests {
                 1,
                 "Shape field count should match actual field count"
             );
-            Ok::<(), lp_pool::AllocError>(())
+            Ok::<(), AllocError>(())
         })
         .unwrap();
     }
@@ -314,10 +325,10 @@ mod tests {
 
             record
                 .add_field(field1_name, value1)
-                .map_err(|_| lp_pool::AllocError::PoolExhausted)?;
+                .map_err(|_| AllocError::SoftLimitExceeded)?;
             record
                 .add_field(field2_name, value2)
-                .map_err(|_| lp_pool::AllocError::PoolExhausted)?;
+                .map_err(|_| AllocError::SoftLimitExceeded)?;
 
             // Shape should match actual fields
             assert_eq!(record.field_count(), 2);
@@ -337,7 +348,7 @@ mod tests {
             assert!(shape_ref.find_field("field2").is_some());
             assert!(shape_ref.find_field("nonexistent").is_none());
 
-            Ok::<(), lp_pool::AllocError>(())
+            Ok::<(), AllocError>(())
         })
         .unwrap();
     }
@@ -362,17 +373,17 @@ mod tests {
             let value_box = LpValueBox::from(fixed_value);
             record
                 .add_field(field_name, value_box)
-                .map_err(|_| lp_pool::AllocError::PoolExhausted)?;
+                .map_err(|_| AllocError::SoftLimitExceeded)?;
 
             let retrieved = record
                 .get_field("value")
-                .map_err(|_| lp_pool::AllocError::PoolExhausted)?;
+                .map_err(|_| AllocError::SoftLimitExceeded)?;
             assert_eq!(
                 retrieved.as_lp_value().shape().kind(),
                 crate::kind::kind::LpKind::Fixed
             );
 
-            Ok::<(), lp_pool::AllocError>(())
+            Ok::<(), AllocError>(())
         })
         .unwrap();
     }
@@ -397,12 +408,12 @@ mod tests {
             let value_box = LpValueBox::from(fixed_value);
             record
                 .add_field(field_name, value_box)
-                .map_err(|_| lp_pool::AllocError::PoolExhausted)?;
+                .map_err(|_| AllocError::SoftLimitExceeded)?;
             assert_eq!(record.field_count(), 1);
 
             record
                 .remove_field("value")
-                .map_err(|_| lp_pool::AllocError::PoolExhausted)?;
+                .map_err(|_| AllocError::SoftLimitExceeded)?;
             assert_eq!(record.field_count(), 0);
             // Shape should also be empty
             assert_eq!(
@@ -414,7 +425,7 @@ mod tests {
             // Try to get removed field - should fail
             assert!(record.get_field("value").is_err());
 
-            Ok::<(), lp_pool::AllocError>(())
+            Ok::<(), AllocError>(())
         })
         .unwrap();
     }
@@ -440,14 +451,14 @@ mod tests {
             let value_box1 = LpValueBox::from(value1);
             record
                 .add_field(field_name, value_box1)
-                .map_err(|_| lp_pool::AllocError::PoolExhausted)?;
+                .map_err(|_| AllocError::SoftLimitExceeded)?;
 
             // Adding again should replace - create new LpString
             let field_name2 = LpString::try_from_str("value")?;
             let value_box2 = LpValueBox::from(value2);
             record
                 .add_field(field_name2, value_box2)
-                .map_err(|_| lp_pool::AllocError::PoolExhausted)?;
+                .map_err(|_| AllocError::SoftLimitExceeded)?;
 
             assert_eq!(record.field_count(), 1);
             // Shape should still match after replacement
@@ -457,7 +468,7 @@ mod tests {
                 "Shape field count should match actual field count after replacement"
             );
 
-            Ok::<(), lp_pool::AllocError>(())
+            Ok::<(), AllocError>(())
         })
         .unwrap();
     }
@@ -485,7 +496,7 @@ mod tests {
                 panic!("Expected FieldNotFound error");
             }
 
-            Ok::<(), lp_pool::AllocError>(())
+            Ok::<(), AllocError>(())
         })
         .unwrap();
     }
@@ -514,13 +525,13 @@ mod tests {
 
             record
                 .add_field(LpString::try_from_str("a")?, value_box1)
-                .map_err(|_| lp_pool::AllocError::PoolExhausted)?;
+                .map_err(|_| AllocError::SoftLimitExceeded)?;
             record
                 .add_field(LpString::try_from_str("b")?, value_box2)
-                .map_err(|_| lp_pool::AllocError::PoolExhausted)?;
+                .map_err(|_| AllocError::SoftLimitExceeded)?;
             record
                 .add_field(LpString::try_from_str("c")?, value_box3)
-                .map_err(|_| lp_pool::AllocError::PoolExhausted)?;
+                .map_err(|_| AllocError::SoftLimitExceeded)?;
 
             assert_eq!(record.field_count(), 3);
             // Shape should match
@@ -540,7 +551,7 @@ mod tests {
             assert_eq!(shape_ref.get_field(1).unwrap().name(), "b");
             assert_eq!(shape_ref.get_field(2).unwrap().name(), "c");
 
-            Ok::<(), lp_pool::AllocError>(())
+            Ok::<(), AllocError>(())
         })
         .unwrap();
     }
@@ -565,18 +576,18 @@ mod tests {
             let value_box = LpValueBox::from(fixed_value);
             record
                 .add_field(field_name, value_box)
-                .map_err(|_| lp_pool::AllocError::PoolExhausted)?;
+                .map_err(|_| AllocError::SoftLimitExceeded)?;
 
             // Can get mutable reference
             let mut mut_field = record
                 .get_field_mut("value")
-                .map_err(|_| lp_pool::AllocError::PoolExhausted)?;
+                .map_err(|_| AllocError::SoftLimitExceeded)?;
             assert_eq!(
                 mut_field.as_lp_value_mut().shape().kind(),
                 crate::kind::kind::LpKind::Fixed
             );
 
-            Ok::<(), lp_pool::AllocError>(())
+            Ok::<(), AllocError>(())
         })
         .unwrap();
     }
@@ -605,7 +616,7 @@ mod tests {
                 "Empty record should have 0 fields"
             );
 
-            Ok::<(), lp_pool::AllocError>(())
+            Ok::<(), AllocError>(())
         })
         .unwrap();
     }
@@ -627,22 +638,22 @@ mod tests {
             // Add all primitive types
             record
                 .add_field(LpString::try_from_str("count")?, LpValueBox::from(42i32))
-                .map_err(|_| lp_pool::AllocError::PoolExhausted)?;
+                .map_err(|_| AllocError::SoftLimitExceeded)?;
             record
                 .add_field(LpString::try_from_str("enabled")?, LpValueBox::from(true))
-                .map_err(|_| lp_pool::AllocError::PoolExhausted)?;
+                .map_err(|_| AllocError::SoftLimitExceeded)?;
             record
                 .add_field(
                     LpString::try_from_str("position")?,
                     LpValueBox::from(Vec2::new(Fixed::ZERO, Fixed::ZERO)),
                 )
-                .map_err(|_| lp_pool::AllocError::PoolExhausted)?;
+                .map_err(|_| AllocError::SoftLimitExceeded)?;
             record
                 .add_field(
                     LpString::try_from_str("rotation")?,
                     LpValueBox::from(Vec3::new(Fixed::ZERO, Fixed::ZERO, Fixed::ZERO)),
                 )
-                .map_err(|_| lp_pool::AllocError::PoolExhausted)?;
+                .map_err(|_| AllocError::SoftLimitExceeded)?;
             record
                 .add_field(
                     LpString::try_from_str("color")?,
@@ -653,19 +664,19 @@ mod tests {
                         Fixed::ZERO,
                     )),
                 )
-                .map_err(|_| lp_pool::AllocError::PoolExhausted)?;
+                .map_err(|_| AllocError::SoftLimitExceeded)?;
             record
                 .add_field(
                     LpString::try_from_str("frequency")?,
                     LpValueBox::from(Fixed::ZERO),
                 )
-                .map_err(|_| lp_pool::AllocError::PoolExhausted)?;
+                .map_err(|_| AllocError::SoftLimitExceeded)?;
 
             // Verify all fields can be retrieved and have correct types
             assert_eq!(
                 record
                     .get_field("count")
-                    .map_err(|_| lp_pool::AllocError::PoolExhausted)?
+                    .map_err(|_| AllocError::SoftLimitExceeded)?
                     .as_lp_value()
                     .shape()
                     .kind(),
@@ -674,7 +685,7 @@ mod tests {
             assert_eq!(
                 record
                     .get_field("enabled")
-                    .map_err(|_| lp_pool::AllocError::PoolExhausted)?
+                    .map_err(|_| AllocError::SoftLimitExceeded)?
                     .as_lp_value()
                     .shape()
                     .kind(),
@@ -683,7 +694,7 @@ mod tests {
             assert_eq!(
                 record
                     .get_field("position")
-                    .map_err(|_| lp_pool::AllocError::PoolExhausted)?
+                    .map_err(|_| AllocError::SoftLimitExceeded)?
                     .as_lp_value()
                     .shape()
                     .kind(),
@@ -692,7 +703,7 @@ mod tests {
             assert_eq!(
                 record
                     .get_field("rotation")
-                    .map_err(|_| lp_pool::AllocError::PoolExhausted)?
+                    .map_err(|_| AllocError::SoftLimitExceeded)?
                     .as_lp_value()
                     .shape()
                     .kind(),
@@ -701,7 +712,7 @@ mod tests {
             assert_eq!(
                 record
                     .get_field("color")
-                    .map_err(|_| lp_pool::AllocError::PoolExhausted)?
+                    .map_err(|_| AllocError::SoftLimitExceeded)?
                     .as_lp_value()
                     .shape()
                     .kind(),
@@ -710,14 +721,14 @@ mod tests {
             assert_eq!(
                 record
                     .get_field("frequency")
-                    .map_err(|_| lp_pool::AllocError::PoolExhausted)?
+                    .map_err(|_| AllocError::SoftLimitExceeded)?
                     .as_lp_value()
                     .shape()
                     .kind(),
                 crate::kind::kind::LpKind::Fixed
             );
 
-            Ok::<(), lp_pool::AllocError>(())
+            Ok::<(), AllocError>(())
         })
         .unwrap();
     }

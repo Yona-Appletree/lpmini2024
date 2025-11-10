@@ -21,7 +21,7 @@ impl Parser {
                     let right = self.multiplicative()?;
                     let end = right.span.end;
                     expr = Expr::new(
-                        ExprKind::Add(LpBox::try_new(expr)?, LpBox::try_new(right)?),
+                        ExprKind::Add(Box::new(expr), Box::new(right)),
                         Span::new(start, end),
                     );
                 }
@@ -30,7 +30,7 @@ impl Parser {
                     let right = self.multiplicative()?;
                     let end = right.span.end;
                     expr = Expr::new(
-                        ExprKind::Sub(LpBox::try_new(expr)?, LpBox::try_new(right)?),
+                        ExprKind::Sub(Box::new(expr), Box::new(right)),
                         Span::new(start, end),
                     );
                 }
@@ -55,7 +55,7 @@ impl Parser {
                     let right = self.exponential()?;
                     let end = right.span.end;
                     expr = Expr::new(
-                        ExprKind::Mul(LpBox::try_new(expr)?, LpBox::try_new(right)?),
+                        ExprKind::Mul(Box::new(expr), Box::new(right)),
                         Span::new(start, end),
                     );
                 }
@@ -64,7 +64,7 @@ impl Parser {
                     let right = self.exponential()?;
                     let end = right.span.end;
                     expr = Expr::new(
-                        ExprKind::Div(LpBox::try_new(expr)?, LpBox::try_new(right)?),
+                        ExprKind::Div(Box::new(expr), Box::new(right)),
                         Span::new(start, end),
                     );
                 }
@@ -73,7 +73,7 @@ impl Parser {
                     let right = self.exponential()?;
                     let end = right.span.end;
                     expr = Expr::new(
-                        ExprKind::Mod(LpBox::try_new(expr)?, LpBox::try_new(right)?),
+                        ExprKind::Mod(Box::new(expr), Box::new(right)),
                         Span::new(start, end),
                     );
                 }

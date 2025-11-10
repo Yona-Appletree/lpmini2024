@@ -6,8 +6,6 @@ use alloc::string::String;
 use alloc::vec::Vec;
 use alloc::{format, vec};
 
-use lp_pool::{allow_global_alloc, LpMemoryPool};
-
 use crate::compiler::ast::Expr;
 use crate::compiler::optimize::OptimizeOptions;
 use crate::compiler::test_ast::AstBuilder;
@@ -210,240 +208,215 @@ impl ExprTest {
     /// Run all expectations and return result
     /// Collects all errors instead of stopping at the first one
     pub fn run(self) -> Result<(), String> {
-        let pool = LpMemoryPool::global();
-        pool.run(move || {
-            let ExprTest {
-                input,
-                declared_locals,
-                local_initial_values,
-                expected_ast_builder,
-                expected_opcodes,
-                expected_result,
-                expected_locals,
-                optimize_options,
-                x,
-                y,
-                time,
-            } = self;
+        lp_alloc::init_test_allocator();
 
-            allow_global_alloc(|| {
-                let mut errors = Vec::new();
+        let ExprTest {
+            input,
+            declared_locals,
+            local_initial_values,
+            expected_ast_builder,
+            expected_opcodes,
+            expected_result,
+            expected_locals,
+            optimize_options,
+            x,
+            y,
+            time,
+        } = self;
 
-                let mut lexer = lexer::Lexer::new(&input);
-                let tokens = lexer.tokenize();
-                let mut parser = parser::Parser::new(tokens);
-                let mut expr = match parser.parse() {
-                    Ok(expr) => expr,
-                    Err(e) => {
-                        errors.push(format!("Parse error: {}", e));
-                        return Err(errors.join("\n\n"));
-                    }
-                };
+        let mut errors = Vec::new();
 
-                if let Err(e) = typechecker::TypeChecker::check(&mut expr) {
-                    errors.push(format!("Type check error: {}", e));
-                    return Err(errors.join("\n\n"));
+        let mut lexer = lexer::Lexer::new(&input);
+        let tokens = lexer.tokenize();
+        let mut parser = parser::Parser::new(tokens);
+        let mut expr = match parser.parse() {
+            Ok(expr) => expr,
+            Err(e) => {
+                errors.push(format!("Parse error: {}", e));
+                return Err(errors.join("\n\n"));
+            }
+        };
+
+        if let Err(e) = typechecker::TypeChecker::check(&mut expr) {
+            errors.push(format!("Type check error: {}", e));
+            return Err(errors.join("\n\n"));
+        }
+
+        if let Some(builder_fn) = expected_ast_builder {
+            let mut expected_builder = AstBuilder::new();
+            let expected_expr = builder_fn(&mut expected_builder);
+            if !expr_eq_ignore_spans(&expr, &expected_expr) {
+                errors.push(format!(
+                    "AST mismatch:\nExpected: {:?}\nActual:   {:?}",
+                    expected_expr, expr
+                ));
+            }
+        }
+
+        if let Some(ref options) = optimize_options {
+            optimize::optimize_ast_expr(&mut expr, options);
+        }
+
+        let mut opcodes = if !declared_locals.is_empty() {
+            let predeclared: Vec<(String, u32, Type)> = declared_locals
+                .iter()
+                .enumerate()
+                .map(|(idx, (name, ty))| (name.clone(), idx as u32, ty.clone()))
+                .collect();
+            codegen::CodeGenerator::generate_with_locals(&expr, predeclared)
+        } else {
+            codegen::CodeGenerator::generate(&expr)
+        };
+
+        if let Some(ref options) = optimize_options {
+            opcodes = optimize::optimize_opcodes(opcodes, options);
+        }
+
+        let local_defs: Vec<crate::LocalVarDef> = declared_locals
+            .iter()
+            .map(|(name, ty)| {
+                let mut def = crate::LocalVarDef::new(name.clone(), ty.clone());
+                if let Some((_, init_val)) = local_initial_values.iter().find(|(n, _)| n == name) {
+                    def = def.with_initial_value(init_val.clone());
                 }
-
-                if let Some(builder_fn) = expected_ast_builder {
-                    let mut expected_builder = AstBuilder::new();
-                    let expected_expr = builder_fn(&mut expected_builder);
-                    if !expr_eq_ignore_spans(&expr, &expected_expr) {
-                        errors.push(format!(
-                            "AST mismatch:
-Expected: {:?}
-Actual:   {:?}",
-                            expected_expr, expr
-                        ));
-                    }
-                }
-
-                if let Some(ref options) = optimize_options {
-                    optimize::optimize_ast_expr(&mut expr, options);
-                }
-
-                let mut opcodes = if !declared_locals.is_empty() {
-                    let predeclared: Vec<(String, u32, Type)> = declared_locals
-                        .iter()
-                        .enumerate()
-                        .map(|(idx, (name, ty))| (name.clone(), idx as u32, ty.clone()))
-                        .collect();
-                    codegen::CodeGenerator::generate_with_locals(&expr, predeclared)
-                } else {
-                    codegen::CodeGenerator::generate(&expr)
-                };
-
-                if let Some(ref options) = optimize_options {
-                    opcodes = optimize::optimize_opcodes(opcodes, options);
-                }
-
-                let local_defs: Vec<crate::LocalVarDef> = declared_locals
-                    .iter()
-                    .map(|(name, ty)| {
-                        let mut def = crate::LocalVarDef::new(name.clone(), ty.clone());
-                        if let Some((_, init_val)) =
-                            local_initial_values.iter().find(|(n, _)| n == name)
-                        {
-                            def = def.with_initial_value(init_val.clone());
-                        }
-                        def
-                    })
-                    .collect();
-
-                let program = LpsProgram::new("test".into())
-                    .with_functions(vec![crate::vm::FunctionDef::new("main".into(), Type::Void)
-                        .with_locals(local_defs)
-                        .with_opcodes(opcodes.clone())])
-                    .with_source(input.clone());
-
-                if let Some(expected) = &expected_opcodes {
-                    if let Some(main_fn) = program.main_function() {
-                        if &main_fn.opcodes != expected {
-                            errors.push(format!(
-                                "Opcode mismatch:
-Expected: {:#?}
-Actual:   {:#?}",
-                                expected, main_fn.opcodes
-                            ));
-                        }
-                    } else {
-                        errors.push(String::from("Program has no main function"));
-                    }
-                }
-
-                if expected_result.is_some() || !expected_locals.is_empty() {
-                    match LpsVm::new(&program, VmLimits::default()) {
-                        Ok(mut vm) => {
-                            if let Some(expected_result) = expected_result {
-                                match expected_result {
-                                    TestResult::Fixed(expected) => {
-                                        match vm.run_scalar(x, y, time) {
-                                            Ok(actual) => {
-                                                let diff =
-                                                    (expected.to_f32() - actual.to_f32()).abs();
-                                                if diff > 0.01 {
-                                                    errors.push(format!(
-                                                        "Result mismatch:
-Expected: {}
-Actual:   {}
-Diff:     {}",
-                                                        expected.to_f32(),
-                                                        actual.to_f32(),
-                                                        diff
-                                                    ));
-                                                }
-                                            }
-                                            Err(e) => {
-                                                errors.push(format!("Runtime error: {:?}", e))
-                                            }
-                                        }
-                                    }
-                                    TestResult::Vec2(expected) => match vm.run_vec2(x, y, time) {
-                                        Ok(actual) => {
-                                            let diffs = [
-                                                (expected.x.to_f32() - actual.x.to_f32()).abs(),
-                                                (expected.y.to_f32() - actual.y.to_f32()).abs(),
-                                            ];
-                                            if diffs.iter().any(|d| *d > 0.0001) {
-                                                errors.push(format!(
-                                                    "Vec2 result mismatch:
-Expected: ({}, {})
-Actual:   ({}, {})",
-                                                    expected.x.to_f32(),
-                                                    expected.y.to_f32(),
-                                                    actual.x.to_f32(),
-                                                    actual.y.to_f32()
-                                                ));
-                                            }
-                                        }
-                                        Err(e) => errors.push(format!("Runtime error: {:?}", e)),
-                                    },
-                                    TestResult::Vec3(expected) => match vm.run_vec3(x, y, time) {
-                                        Ok(actual) => {
-                                            let diffs = [
-                                                (expected.x.to_f32() - actual.x.to_f32()).abs(),
-                                                (expected.y.to_f32() - actual.y.to_f32()).abs(),
-                                                (expected.z.to_f32() - actual.z.to_f32()).abs(),
-                                            ];
-                                            if diffs.iter().any(|d| *d > 0.0001) {
-                                                errors.push(format!(
-                                                    "Vec3 result mismatch:
-Expected: ({}, {}, {})
-Actual:   ({}, {}, {})",
-                                                    expected.x.to_f32(),
-                                                    expected.y.to_f32(),
-                                                    expected.z.to_f32(),
-                                                    actual.x.to_f32(),
-                                                    actual.y.to_f32(),
-                                                    actual.z.to_f32()
-                                                ));
-                                            }
-                                        }
-                                        Err(e) => errors.push(format!("Runtime error: {:?}", e)),
-                                    },
-                                    TestResult::Vec4(expected) => match vm.run_vec4(x, y, time) {
-                                        Ok(actual) => {
-                                            let diffs = [
-                                                (expected.x.to_f32() - actual.x.to_f32()).abs(),
-                                                (expected.y.to_f32() - actual.y.to_f32()).abs(),
-                                                (expected.z.to_f32() - actual.z.to_f32()).abs(),
-                                                (expected.w.to_f32() - actual.w.to_f32()).abs(),
-                                            ];
-                                            if diffs.iter().any(|d| *d > 0.0001) {
-                                                errors.push(format!(
-                                                    "Vec4 result mismatch:
-Expected: ({}, {}, {}, {})
-Actual:   ({}, {}, {}, {})",
-                                                    expected.x.to_f32(),
-                                                    expected.y.to_f32(),
-                                                    expected.z.to_f32(),
-                                                    expected.w.to_f32(),
-                                                    actual.x.to_f32(),
-                                                    actual.y.to_f32(),
-                                                    actual.z.to_f32(),
-                                                    actual.w.to_f32()
-                                                ));
-                                            }
-                                        }
-                                        Err(e) => errors.push(format!("Runtime error: {:?}", e)),
-                                    },
-                                }
-                            }
-
-                            if !expected_locals.is_empty() {
-                                for (name, expected_val) in &expected_locals {
-                                    match vm.get_local_by_name(name) {
-                                        Some(value) => {
-                                            let diff =
-                                                (expected_val.to_f32() - value.to_f32()).abs();
-                                            if diff > 0.01 {
-                                                errors.push(format!(
-                                                "Local '{}' mismatch:\nExpected: {}\nActual:   {}",
-                                                name,
-                                                expected_val.to_f32(),
-                                                value.to_f32()
-                                            ));
-                                            }
-                                        }
-                                        None => errors.push(format!(
-                                            "Local '{}' not found in VM locals",
-                                            name
-                                        )),
-                                    }
-                                }
-                            }
-                        }
-                        Err(e) => errors.push(format!("Failed to create VM: {:?}", e)),
-                    }
-                }
-
-                if errors.is_empty() {
-                    Ok(())
-                } else {
-                    Err(errors.join("\n\n"))
-                }
+                def
             })
-        })
+            .collect();
+
+        let program = LpsProgram::new("test".into())
+            .with_functions(vec![crate::vm::FunctionDef::new("main".into(), Type::Void)
+                .with_locals(local_defs)
+                .with_opcodes(opcodes.clone())])
+            .with_source(input.clone());
+
+        if let Some(expected) = &expected_opcodes {
+            if let Some(main_fn) = program.main_function() {
+                if &main_fn.opcodes != expected {
+                    errors.push(format!(
+                        "Opcode mismatch:\nExpected: {:#?}\nActual:   {:#?}",
+                        expected, main_fn.opcodes
+                    ));
+                }
+            } else {
+                errors.push(String::from("Program has no main function"));
+            }
+        }
+
+        if expected_result.is_some() || !expected_locals.is_empty() {
+            match LpsVm::new(&program, VmLimits::default()) {
+                Ok(mut vm) => {
+                    if let Some(expected_result) = expected_result {
+                        match expected_result {
+                            TestResult::Fixed(expected) => match vm.run_scalar(x, y, time) {
+                                Ok(actual) => {
+                                    let diff = (expected.to_f32() - actual.to_f32()).abs();
+                                    if diff > 0.01 {
+                                        errors.push(format!(
+                                            "Result mismatch:\nExpected: {}\nActual:   {}\nDiff:     {}",
+                                            expected.to_f32(),
+                                            actual.to_f32(),
+                                            diff
+                                        ));
+                                    }
+                                }
+                                Err(e) => errors.push(format!("Runtime error: {:?}", e)),
+                            },
+                            TestResult::Vec2(expected) => match vm.run_vec2(x, y, time) {
+                                Ok(actual) => {
+                                    let diffs = [
+                                        (expected.x.to_f32() - actual.x.to_f32()).abs(),
+                                        (expected.y.to_f32() - actual.y.to_f32()).abs(),
+                                    ];
+                                    if diffs.iter().any(|d| *d > 0.0001) {
+                                        errors.push(format!(
+                                            "Vec2 result mismatch:\nExpected: ({}, {})\nActual:   ({}, {})",
+                                            expected.x.to_f32(),
+                                            expected.y.to_f32(),
+                                            actual.x.to_f32(),
+                                            actual.y.to_f32()
+                                        ));
+                                    }
+                                }
+                                Err(e) => errors.push(format!("Runtime error: {:?}", e)),
+                            },
+                            TestResult::Vec3(expected) => match vm.run_vec3(x, y, time) {
+                                Ok(actual) => {
+                                    let diffs = [
+                                        (expected.x.to_f32() - actual.x.to_f32()).abs(),
+                                        (expected.y.to_f32() - actual.y.to_f32()).abs(),
+                                        (expected.z.to_f32() - actual.z.to_f32()).abs(),
+                                    ];
+                                    if diffs.iter().any(|d| *d > 0.0001) {
+                                        errors.push(format!(
+                                            "Vec3 result mismatch:\nExpected: ({}, {}, {})\nActual:   ({}, {}, {})",
+                                            expected.x.to_f32(),
+                                            expected.y.to_f32(),
+                                            expected.z.to_f32(),
+                                            actual.x.to_f32(),
+                                            actual.y.to_f32(),
+                                            actual.z.to_f32()
+                                        ));
+                                    }
+                                }
+                                Err(e) => errors.push(format!("Runtime error: {:?}", e)),
+                            },
+                            TestResult::Vec4(expected) => match vm.run_vec4(x, y, time) {
+                                Ok(actual) => {
+                                    let diffs = [
+                                        (expected.x.to_f32() - actual.x.to_f32()).abs(),
+                                        (expected.y.to_f32() - actual.y.to_f32()).abs(),
+                                        (expected.z.to_f32() - actual.z.to_f32()).abs(),
+                                        (expected.w.to_f32() - actual.w.to_f32()).abs(),
+                                    ];
+                                    if diffs.iter().any(|d| *d > 0.0001) {
+                                        errors.push(format!(
+                                            "Vec4 result mismatch:\nExpected: ({}, {}, {}, {})\nActual:   ({}, {}, {}, {})",
+                                            expected.x.to_f32(),
+                                            expected.y.to_f32(),
+                                            expected.z.to_f32(),
+                                            expected.w.to_f32(),
+                                            actual.x.to_f32(),
+                                            actual.y.to_f32(),
+                                            actual.z.to_f32(),
+                                            actual.w.to_f32()
+                                        ));
+                                    }
+                                }
+                                Err(e) => errors.push(format!("Runtime error: {:?}", e)),
+                            },
+                        }
+                    }
+
+                    if !expected_locals.is_empty() {
+                        for (name, expected_val) in &expected_locals {
+                            match vm.get_local_by_name(name) {
+                                Some(value) => {
+                                    let diff = (expected_val.to_f32() - value.to_f32()).abs();
+                                    if diff > 0.01 {
+                                        errors.push(format!(
+                                            "Local '{}' mismatch:\nExpected: {}\nActual:   {}",
+                                            name,
+                                            expected_val.to_f32(),
+                                            value.to_f32()
+                                        ));
+                                    }
+                                }
+                                None => {
+                                    errors.push(format!("Local '{}' not found in VM locals", name))
+                                }
+                            }
+                        }
+                    }
+                }
+                Err(e) => errors.push(format!("Failed to create VM: {:?}", e)),
+            }
+        }
+
+        if errors.is_empty() {
+            Ok(())
+        } else {
+            Err(errors.join("\n\n"))
+        }
     }
 }
 

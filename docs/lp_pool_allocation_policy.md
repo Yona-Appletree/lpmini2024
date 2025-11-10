@@ -1,73 +1,32 @@
-<!-- lp_pool allocation policy -->
+<!-- Memory allocation policy overview -->
 
-# LpPool Allocation Policy
+# Memory Allocation Policy
 
-## Scope
+## Summary
 
-This policy applies to all non-test Rust code in the crates `lp-script`, `lp-data`, `lp-math`, and `engine-core`. Unit tests, benchmarks, and dev-only utilities may continue to use standard allocation APIs.
+The old `lp_pool` crate has been retired in favour of `lp_alloc`, a lightweight global allocator wrapper with configurable soft and hard limits. Runtime crates (`lp-script`, `lp-data`, `lp-math`, `engine-core`) now allocate through the standard library collections while the global allocator tracks usage and enforces limits.
 
-## Rationale
+## Guidelines
 
-We must limit dynamic memory to the custom `LpPool` allocator to guarantee deterministic usage on constrained targets. Standard library heap allocations are disallowed unless a specific exception is documented and reviewed.
-
-## Banned APIs
-
-The linter flags the following constructors and macros whenever they appear outside of allowed scopes:
-
-- `Box::{new, try_new, pin}`
-- `Vec::{new, with_capacity, from, from_iter, default}`
-- `String::{new, with_capacity, from}`
-- `VecDeque::new`, `BinaryHeap::new`, `LinkedList::new`
-- `HashMap::{new, with_capacity}`, `HashSet::{new, with_capacity}`
-- `BTreeMap::new`, `BTreeSet::new`
-- `Rc::new`, `Arc::new`
-- `alloc::alloc`, `alloc::alloc_zeroed`, `alloc::dealloc`
-- Macros: `vec![]`, `format!`
-
-The list is intentionally conservative—if a standard allocator entry point is missing, add it to the tool’s deny-list before merging new usage.
-
-## Allowed Alternatives
-
-Use the corresponding `LpPool` collections:
-
-- `lp_pool::collections::box_::LpBox`
-- `lp_pool::collections::vec::LpVec`
-- `lp_pool::collections::string::LpString`
-- `lp_pool::collections::map::LpBTreeMap`
-- `lp_pool::collections::set::LpBTreeSet`
-- `lp_pool::collections::deque::LpVecDeque` (if available)
-
-Direct allocations must go through `LpMemoryPool::try_alloc` or helpers on `LpPoolHandle`.
+- **Global configuration:** use `lp_alloc::set_hard_limit`, `lp_alloc::set_soft_limit`, and `lp_alloc::allocated_bytes` to control memory at runtime.
+- **Scoped limits:** wrap fallible operations with `lp_alloc::try_alloc` or `lp_alloc::with_alloc_limit` to ensure large bursts of work stay within budget.
+- **Tests:** call `lp_alloc::init_test_allocator()` (or the `setup_test_alloc!` macro) to install the allocator with a 10 MB default limit. When a test needs extra headroom, call `lp_data::memory::enter_global_alloc_allowance()` to temporarily lift the soft limit.
+- **Dynamic helpers:** the `lp_data::memory` module exposes `LpString`, `LpVec`, and `lp_box_dyn!`—thin wrappers around `String`, `Vec`, and `Box` that keep the existing API surface while delegating to the new allocator.
 
 ## Exceptions
 
-- Mark narrowly-scoped exceptions with `#[allow(lp_pool_std_alloc)]` and add a comment explaining why the allocation is required.
-- Prefer wrapping the smallest enclosing expression or function rather than entire modules.
-- File a follow-up issue for every permanent exception.
-
-Annotating a module or function with `#[cfg(test)]` automatically suppresses lint findings in that scope.
+- Prefer `lp_alloc::with_alloc_limit` to keep limits explicit. If a module truly requires unlimited allocation, document the rationale in the code and restore the previous limit afterwards (see `enter_global_alloc_allowance`).
+- Test-only modules can continue to use unrestricted allocations.
 
 ## Tooling
 
-Run the linter locally before pushing:
-
-```
-$ cargo run -p lp_pool_lint
-```
-
-By default it scans `crates/lp-script`, `crates/lp-data`, `crates/lp-math`, and `crates/engine-core`. Provide extra paths if needed:
-
-```
-$ cargo run -p lp_pool_lint -- crates/engine-core/src/test_engine
-```
-
-The tool exits with a non-zero status when it encounters disallowed allocations.
+The custom `lp_pool_lint` tool is deprecated. Standard collections are allowed in production code; allocator limits are enforced through `lp_alloc` at runtime. Continuous integration runs `cargo check` and the existing test suite to ensure the allocator remains wired up correctly.
 
 ## Enforcement Matrix
 
-| Crate         | Non-test code | Tests/benches |
-| ------------- | ------------- | ------------- |
-| `lp-script`   | `LpPool` only | unrestricted  |
-| `lp-data`     | `LpPool` only | unrestricted  |
-| `lp-math`     | `LpPool` only | unrestricted  |
-| `engine-core` | `LpPool` only | unrestricted  |
+| Crate         | Runtime policy                                   | Tests                          |
+| ------------- | ------------------------------------------------ | ------------------------------ |
+| `lp-script`   | `lp_alloc` soft limit via `VmLimits`             | init allocator per test module |
+| `lp-data`     | Uses `LpVec`/`LpString` wrappers backed by `Vec` | init allocator per test module |
+| `lp-math`     | Standard allocations, subject to global limits   | unrestricted                   |
+| `engine-core` | Standard allocations, subject to global limits   | unrestricted                   |

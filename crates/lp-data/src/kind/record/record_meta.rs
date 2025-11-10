@@ -1,6 +1,6 @@
 //! Metadata types for Record field shapes and Record shapes.
 
-use lp_pool::LpString;
+use crate::memory::LpString;
 
 /// Trait for record field metadata.
 pub trait RecordFieldMeta {

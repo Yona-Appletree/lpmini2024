@@ -74,7 +74,7 @@ pub(crate) fn expand_componentwise_call(name: &str, args: &[Expr], span: Span) -
                     // Clone the arg for the swizzle
                     Expr::new(
                         ExprKind::Swizzle {
-                            expr: LpBox::try_new(arg.clone()).ok()?,
+                            expr: Box::new(arg.clone()),
                             components: String::from(component),
                         },
                         span,

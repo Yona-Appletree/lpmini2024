@@ -222,12 +222,7 @@
       "cache": true
     },
     "//#check:rust:lp-pool-lint": {
-      "inputs": [
-        "Cargo.toml",
-        "Cargo.lock",
-        "tools/lints/lp_pool_lint/**",
-        "crates/lp-pool/**/*.rs"
-      ],
+      "inputs": ["Cargo.toml", "Cargo.lock", "crates/lp-pool/**/*.rs"],
       "cache": true
     },
     "//#test:rust": {

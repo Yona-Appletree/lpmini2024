@@ -76,15 +76,12 @@ extern crate alloc;
 use alloc::vec;
 use alloc::vec::Vec;
 
-#[allow(lp_pool_std_alloc)]
 pub mod shared;
-#[allow(lp_pool_std_alloc)]
 pub mod vm;
 
 // Re-export fixed from lp-fixed crate
 pub use lp_math::fixed;
 
-#[allow(lp_pool_std_alloc)]
 mod compiler;
 
 pub use compiler::codegen::NativeFunction;

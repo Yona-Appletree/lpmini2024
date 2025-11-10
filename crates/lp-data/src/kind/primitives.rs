@@ -74,9 +74,9 @@ macro_rules! define_primitive_shape {
         // Dynamic metadata
         #[derive(Debug)]
         pub struct $meta_dyn {
-            pub label: lp_pool::LpString,
-            pub desc_md: Option<lp_pool::LpString>,
-            pub unit: Option<lp_pool::LpString>,
+            pub label: $crate::memory::LpString,
+            pub desc_md: Option<$crate::memory::LpString>,
+            pub unit: Option<$crate::memory::LpString>,
         }
 
         impl $meta_trait for $meta_dyn {
@@ -183,7 +183,7 @@ macro_rules! define_primitive_value {
         impl From<$rust_type> for $crate::kind::value::LpValueBox {
             fn from(value: $rust_type) -> Self {
                 let boxed =
-                    lp_pool::lp_box_dyn!(value, dyn $crate::kind::value::LpValue).expect(concat!(
+                    $crate::lp_box_dyn!(value, dyn $crate::kind::value::LpValue).expect(concat!(
                         "Failed to allocate ",
                         stringify!($rust_type),
                         " value in pool"

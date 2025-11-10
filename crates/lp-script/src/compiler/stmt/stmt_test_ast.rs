@@ -176,6 +176,6 @@ impl StmtBuilder {
     }
 
     fn box_stmt(&mut self, stmt: Stmt) -> Box<Stmt> {
-        LpBox::try_new(stmt).expect("LpBox allocation failed in StmtBuilder")
+        Box::new(stmt)
     }
 }

@@ -1,27 +1,37 @@
 //! Tests for scene graph traversal.
-use core::ptr::NonNull;
-
 use crate::kind::record::record_dyn::RecordShapeDyn;
 use crate::kind::value::LpValueBox;
 use crate::tests::scene::print_lp_value::print_lp_value_to_string;
 use crate::tests::scene::test_node::{LfoWaveform, TestNode, TestNodeConfig};
 
 extern crate alloc;
+use crate::memory::{enter_global_alloc_allowance, AllocError, LpString};
+use lp_alloc::init_test_allocator;
 use lp_math::fixed::{Fixed, ToFixed, Vec2, Vec3, Vec4};
-use lp_pool::{enter_global_alloc_allowance, lp_box_dyn, LpMemoryPool, LpString};
 
 use crate::kind::record::record_value::RecordValue;
 use crate::kind::record::RecordValueDyn;
 
-fn setup_pool() -> LpMemoryPool {
-    let mut memory = [0u8; 16384];
-    let memory_ptr = NonNull::new(memory.as_mut_ptr()).unwrap();
-    unsafe { LpMemoryPool::new(memory_ptr, 16384).unwrap() }
+struct TestPool;
+
+impl TestPool {
+    fn run<F, R>(&self, f: F) -> R
+    where
+        F: FnOnce() -> R,
+    {
+        let _guard = enter_global_alloc_allowance();
+        f()
+    }
+}
+
+fn setup_pool() -> TestPool {
+    init_test_allocator();
+    TestPool
 }
 
 /// Build a demo scene with a module containing nodes.
 /// Must be called within a pool context.
-fn build_demo_scene() -> Result<RecordValueDyn, lp_pool::AllocError> {
+fn build_demo_scene() -> Result<RecordValueDyn, AllocError> {
     // Create a simple scene with a module containing nodes
     let mut nodes = RecordValueDyn::new(RecordShapeDyn::new());
 
@@ -39,13 +49,13 @@ fn build_demo_scene() -> Result<RecordValueDyn, lp_pool::AllocError> {
     // Convert TestNode to LpValueBox
     // TestNode implements RecordValue, so we box it as a RecordValue
     // The value is moved into pool memory, preventing double free
-    let test_boxed = lp_box_dyn!(test_node, dyn RecordValue)?;
+    let test_boxed = crate::lp_box_dyn!(test_node, dyn RecordValue)?;
     let test_value_box = LpValueBox::from(test_boxed);
 
     let name = LpString::try_from_str("test")?;
     nodes
         .add_field(name, test_value_box)
-        .map_err(|_| lp_pool::AllocError::PoolExhausted)?;
+        .map_err(|_| AllocError::SoftLimitExceeded)?;
 
     Ok(nodes)
 }
@@ -86,16 +96,16 @@ fn test_record_metadata() {
 fn test_scene_traversal() {
     let _allow = enter_global_alloc_allowance();
     let pool = setup_pool();
-    pool.run(|| {
-        // Create a scene with nodes
-        let nodes = build_demo_scene()?;
+    let output = pool
+        .run(|| -> Result<String, AllocError> {
+            // Create a scene with nodes
+            let nodes = build_demo_scene()?;
 
-        // Convert nodes to LpValueBox for traversal
-        let nodes_boxed = lp_box_dyn!(nodes, dyn RecordValue)?;
-        let nodes_value_box = LpValueBox::from(nodes_boxed);
+            // Convert nodes to LpValueBox for traversal
+            let nodes_boxed = crate::lp_box_dyn!(nodes, dyn RecordValue)?;
+            let nodes_value_box = LpValueBox::from(nodes_boxed);
 
-        // Traverse and print the scene
-        let output = LpMemoryPool::with_global_alloc(|| {
+            // Traverse and print the scene
             let mut output = String::new();
 
             // Verify nodes structure
@@ -156,74 +166,71 @@ fn test_scene_traversal() {
             output.push_str("Scene graph:\n");
             let printed = print_lp_value_to_string(nodes_value_box, 0);
             output.push_str(&printed);
-            output
-        });
+            Ok(output)
+        })
+        .unwrap();
 
-        // Verify the output matches expected format
-        let expected_lines = vec![
-            "Scene graph:",
-            "Record (anonymous)",
-            "  test: Record(TestNode)",
-            "    config: Record(TestNodeConfig)",
-            "      period: Fixed(2)",
-            "      waveform: Enum(LfoWaveform)::Sine",
-            "      count: Int32(42)",
-            "      enabled: Bool(true)",
-            "      position: Vec2(0, 0)",
-            "      rotation: Vec3(0, 0, 0)",
-            "      color: Vec4(0, 0, 0, 0)",
-            "    output: Fixed(0)",
-        ];
+    // Verify the output matches expected format
+    let expected_lines = vec![
+        "Scene graph:",
+        "Record (anonymous)",
+        "  test: Record(TestNode)",
+        "    config: Record(TestNodeConfig)",
+        "      period: Fixed(2)",
+        "      waveform: Enum(LfoWaveform)::Sine",
+        "      count: Int32(42)",
+        "      enabled: Bool(true)",
+        "      position: Vec2(0, 0)",
+        "      rotation: Vec3(0, 0, 0)",
+        "      color: Vec4(0, 0, 0, 0)",
+        "    output: Fixed(0)",
+    ];
 
-        let output_lines: Vec<&str> = output.lines().collect();
-        for (i, expected_line) in expected_lines.iter().enumerate() {
-            assert!(
-                output_lines.get(i).map(|s| s.trim()) == Some(expected_line.trim()),
-                "Line {} mismatch: expected '{}', got '{}'",
-                i,
-                expected_line,
-                output_lines.get(i).unwrap_or(&"<missing>")
-            );
-        }
+    let output_lines: Vec<&str> = output.lines().collect();
+    for (i, expected_line) in expected_lines.iter().enumerate() {
+        assert!(
+            output_lines.get(i).map(|s| s.trim()) == Some(expected_line.trim()),
+            "Line {} mismatch: expected '{}', got '{}'",
+            i,
+            expected_line,
+            output_lines.get(i).unwrap_or(&"<missing>")
+        );
+    }
 
-        // Also verify it contains key elements
-        assert!(
-            output.contains("TestNode"),
-            "Output should contain 'TestNode'"
-        );
-        assert!(
-            output.contains("TestNodeConfig"),
-            "Output should contain 'TestNodeConfig'"
-        );
-        assert!(
-            output.contains("waveform"),
-            "Output should contain 'waveform'"
-        );
-        assert!(output.contains("Sine"), "Output should contain 'Sine'");
-        assert!(
-            output.contains("Int32(42)"),
-            "Output should contain 'Int32(42)'"
-        );
-        assert!(
-            output.contains("Bool(true)"),
-            "Output should contain 'Bool(true)'"
-        );
-        assert!(
-            output.contains("Vec2(0, 0)"),
-            "Output should contain 'Vec2(0, 0)'"
-        );
-        assert!(
-            output.contains("Vec3(0, 0, 0)"),
-            "Output should contain 'Vec3(0, 0, 0)'"
-        );
-        assert!(
-            output.contains("Vec4(0, 0, 0, 0)"),
-            "Output should contain 'Vec4(0, 0, 0, 0)'"
-        );
-
-        Ok::<(), lp_pool::AllocError>(())
-    })
-    .unwrap();
+    // Also verify it contains key elements
+    assert!(
+        output.contains("TestNode"),
+        "Output should contain 'TestNode'"
+    );
+    assert!(
+        output.contains("TestNodeConfig"),
+        "Output should contain 'TestNodeConfig'"
+    );
+    assert!(
+        output.contains("waveform"),
+        "Output should contain 'waveform'"
+    );
+    assert!(output.contains("Sine"), "Output should contain 'Sine'");
+    assert!(
+        output.contains("Int32(42)"),
+        "Output should contain 'Int32(42)'"
+    );
+    assert!(
+        output.contains("Bool(true)"),
+        "Output should contain 'Bool(true)'"
+    );
+    assert!(
+        output.contains("Vec2(0, 0)"),
+        "Output should contain 'Vec2(0, 0)'"
+    );
+    assert!(
+        output.contains("Vec3(0, 0, 0)"),
+        "Output should contain 'Vec3(0, 0, 0)'"
+    );
+    assert!(
+        output.contains("Vec4(0, 0, 0, 0)"),
+        "Output should contain 'Vec4(0, 0, 0, 0)'"
+    );
 }
 
 #[cfg(feature = "serde_json")]
@@ -243,7 +250,7 @@ fn test_scene_serialization() {
         // Verify JSON structure contains the test node
         assert!(json.contains("test"), "JSON should contain 'test' field");
 
-        Ok::<(), lp_pool::AllocError>(())
+        Ok::<(), AllocError>(())
     })
     .unwrap();
 }
@@ -484,11 +491,10 @@ fn test_print_all_primitive_types() {
             ),
         });
 
-        let test_boxed = lp_box_dyn!(test_node, dyn RecordValue)?;
+        let test_boxed = crate::lp_box_dyn!(test_node, dyn RecordValue)?;
         let test_value_box = LpValueBox::from(test_boxed);
 
-        let output =
-            LpMemoryPool::with_global_alloc(|| print_lp_value_to_string(test_value_box, 0));
+        let output = print_lp_value_to_string(test_value_box, 0);
 
         // Verify all primitive types are printed correctly
         assert!(
@@ -518,7 +524,7 @@ fn test_print_all_primitive_types() {
             output
         );
 
-        Ok::<(), lp_pool::AllocError>(())
+        Ok::<(), AllocError>(())
     })
     .unwrap();
 }

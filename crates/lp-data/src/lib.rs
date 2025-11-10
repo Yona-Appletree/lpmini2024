@@ -10,6 +10,7 @@ extern crate alloc;
 
 // pub mod registry; // TODO: Implement registry module
 pub mod kind;
+pub mod memory;
 pub mod value;
 
 // Re-export new registries

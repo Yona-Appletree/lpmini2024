@@ -73,6 +73,11 @@ pub fn allocated_bytes() -> usize {
     ALLOCATOR.allocated_bytes()
 }
 
+/// Get the current soft memory limit in bytes.
+pub fn soft_limit() -> usize {
+    ALLOCATOR.soft_limit()
+}
+
 /// Try to allocate memory by running a closure. Returns an error if the soft limit is exceeded.
 ///
 /// The `scope` and `item` parameters are reserved for future logging functionality.

@@ -1,6 +1,6 @@
 //! Runtime error types for lp-data.
 
-use lp_pool::LpString;
+use crate::memory::LpString;
 
 /// Runtime errors that can occur when working with lp-data values.
 #[derive(Debug, Clone, PartialEq, Eq)]

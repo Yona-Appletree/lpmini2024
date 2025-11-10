@@ -1,6 +1,6 @@
 //! Metadata types for Enum shapes.
 
-use lp_pool::LpString;
+use crate::memory::LpString;
 
 /// Trait for Enum shape metadata.
 ///

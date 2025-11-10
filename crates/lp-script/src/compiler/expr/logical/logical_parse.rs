@@ -19,7 +19,7 @@ impl Parser {
             let right = self.logical_and()?;
             let end = right.span.end;
             expr = Expr::new(
-                ExprKind::Or(LpBox::try_new(expr)?, LpBox::try_new(right)?),
+                ExprKind::Or(Box::new(expr), Box::new(right)),
                 Span::new(start, end),
             );
         }
@@ -39,7 +39,7 @@ impl Parser {
             let right = self.bitwise_or()?;
             let end = right.span.end;
             expr = Expr::new(
-                ExprKind::And(LpBox::try_new(expr)?, LpBox::try_new(right)?),
+                ExprKind::And(Box::new(expr), Box::new(right)),
                 Span::new(start, end),
             );
         }

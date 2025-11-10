@@ -27,7 +27,7 @@ impl Parser {
 
                         expr = Expr::new(
                             ExprKind::Swizzle {
-                                expr: LpBox::try_new(expr)?,
+                                expr: Box::new(expr),
                                 components,
                             },
                             Span::new(start, end),

@@ -3,7 +3,7 @@ extern crate alloc;
 use alloc::format;
 use alloc::string::String;
 
-use lp_pool::{allow_global_alloc, LpMemoryPool};
+use lp_alloc::init_test_allocator;
 
 use crate::compiler::ast::{Program, Stmt};
 use crate::compiler::expr::expr_test_util::expr_eq_ignore_spans;
@@ -226,8 +226,8 @@ impl ScriptTest {
     }
 
     pub fn run(self) -> Result<(), String> {
-        let pool = LpMemoryPool::global();
-        pool.run(move || allow_global_alloc(|| self.execute()))
+        init_test_allocator();
+        self.execute()
     }
 
     fn execute(self) -> Result<(), String> {

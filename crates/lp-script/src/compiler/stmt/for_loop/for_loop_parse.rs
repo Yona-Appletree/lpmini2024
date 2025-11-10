@@ -23,14 +23,14 @@ impl Parser {
             // Parse var decl inline without consuming semicolon
             let decl = self.parse_var_decl_no_semicolon()?;
             self.expect(TokenKind::Semicolon);
-            Some(LpBox::try_new(decl)?)
+            Some(Box::new(decl))
         } else {
             // Parse expression and consume its semicolon
             let expr = self.ternary()?;
             self.expect(TokenKind::Semicolon);
             let span = expr.span;
             let stmt = Stmt::new(StmtKind::Expr(expr), span);
-            Some(LpBox::try_new(stmt)?)
+            Some(Box::new(stmt))
         };
 
         // Parse condition
@@ -60,7 +60,7 @@ impl Parser {
                 init,
                 condition,
                 increment,
-                body: LpBox::try_new(body)?,
+                body: Box::new(body),
             },
             Span::new(start, end),
         ));

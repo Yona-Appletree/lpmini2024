@@ -5,7 +5,7 @@
 #[cfg(feature = "alloc")]
 extern crate alloc;
 
-use lp_pool::LpBoxDyn;
+use crate::memory::LpBoxDyn;
 
 use super::shape::LpShape;
 use crate::kind::enum_::enum_value::EnumValue;

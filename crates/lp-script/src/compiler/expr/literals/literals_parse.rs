@@ -70,7 +70,7 @@ impl Parser {
                         Span::new(token.span.start, end),
                     )),
                     _ => Ok(Expr::new(
-                        ExprKind::Neg(LpBox::try_new(operand)?),
+                        ExprKind::Neg(Box::new(operand)),
                         Span::new(token.span.start, end),
                     )),
                 }
@@ -80,7 +80,7 @@ impl Parser {
                 let operand = self.unary()?;
                 let end = operand.span.end;
                 Ok(Expr::new(
-                    ExprKind::Not(LpBox::try_new(operand)?),
+                    ExprKind::Not(Box::new(operand)),
                     Span::new(token.span.start, end),
                 ))
             }
@@ -89,7 +89,7 @@ impl Parser {
                 let operand = self.unary()?;
                 let end = operand.span.end;
                 Ok(Expr::new(
-                    ExprKind::BitwiseNot(LpBox::try_new(operand)?),
+                    ExprKind::BitwiseNot(Box::new(operand)),
                     Span::new(token.span.start, end),
                 ))
             }

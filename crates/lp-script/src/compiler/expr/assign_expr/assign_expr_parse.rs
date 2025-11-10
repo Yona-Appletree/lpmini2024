@@ -30,7 +30,7 @@ impl Parser {
                     Ok(Expr::new(
                         ExprKind::Assign {
                             target: name,
-                            value: LpBox::try_new(value)?,
+                            value: Box::new(value),
                         },
                         Span::new(start, end),
                     ))
@@ -76,7 +76,7 @@ impl Parser {
             // Create the binary operation
             let end = rhs.span.end;
             let op = Expr::new(
-                make_op(LpBox::try_new(var_ref)?, LpBox::try_new(rhs)?),
+                make_op(Box::new(var_ref), Box::new(rhs)),
                 Span::new(start, end),
             );
 
@@ -84,7 +84,7 @@ impl Parser {
             Ok(Expr::new(
                 ExprKind::Assign {
                     target: name,
-                    value: LpBox::try_new(op)?,
+                    value: Box::new(op),
                 },
                 Span::new(start, end),
             ))
