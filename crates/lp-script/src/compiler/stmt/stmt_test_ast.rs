@@ -3,10 +3,9 @@
 /// Helper functions for building expected statement AST in tests using the
 /// recursive `LpBox` AST.
 extern crate alloc;
+use alloc::boxed::Box;
 use alloc::string::String;
 use alloc::vec::Vec;
-
-use alloc::boxed::Box;
 
 use crate::compiler::ast::{Expr, ExprKind, Program, Stmt, StmtKind};
 use crate::compiler::test_ast::AstBuilder as ExprBuilder;

@@ -6,23 +6,12 @@ use super::error::LpsVmError;
 /// Call frame for function calls
 ///
 /// Tracks where to return and how to restore the locals allocation state.
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, Default)]
 pub struct CallFrame {
     pub return_pc: usize,         // PC to return to
     pub return_fn_idx: usize,     // Function index to return to
     pub frame_base: usize,        // Base local index for this frame
     pub locals_restore_sp: usize, // Local count to restore on return
-}
-
-impl Default for CallFrame {
-    fn default() -> Self {
-        CallFrame {
-            return_pc: 0,
-            return_fn_idx: 0,
-            frame_base: 0,
-            locals_restore_sp: 0,
-        }
-    }
 }
 
 /// Call stack for managing function call frames

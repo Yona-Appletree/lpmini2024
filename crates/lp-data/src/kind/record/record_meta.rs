@@ -34,7 +34,7 @@ impl RecordFieldMeta for RecordFieldMetaStatic {
 
 impl RecordFieldMeta for RecordFieldMetaDyn {
     fn docs(&self) -> Option<&str> {
-        self.docs.as_ref().map(|s| s.as_str())
+        self.docs.as_deref()
     }
 }
 
@@ -91,6 +91,6 @@ impl RecordMeta for RecordMetaDyn {
     }
 
     fn docs(&self) -> Option<&str> {
-        self.docs.as_ref().map(|s| s.as_str())
+        self.docs.as_deref()
     }
 }

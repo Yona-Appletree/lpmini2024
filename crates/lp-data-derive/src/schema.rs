@@ -638,10 +638,11 @@ impl TypeTokens {
             TypeInfo::Describe(path) => {
                 // For types that implement LpDescribe, we can reference the static ShapeRef directly
                 let mut bounds = Vec::new();
+                let path = path.as_ref();
                 bounds.push(quote! { #path: lp_data::LpDescribe });
 
                 // Check if this is a same-crate type (simple ident, not a path)
-                let type_ref = if let Type::Path(ref type_path) = path {
+                let type_ref = if let Type::Path(type_path) = path {
                     if type_path.path.segments.len() == 1 {
                         // Same-crate type - reference the static ShapeRef directly
                         let type_ident = &type_path.path.segments[0].ident;
@@ -776,7 +777,8 @@ impl TypeTokens {
             )),
             TypeInfo::Describe(path) => {
                 // For same-crate types, reference the static ShapeRef directly
-                let type_ref = if let Type::Path(ref type_path) = path {
+                let path = path.as_ref();
+                let type_ref = if let Type::Path(type_path) = path {
                     if type_path.path.segments.len() == 1 {
                         let type_ident = &type_path.path.segments[0].ident;
                         let shape_ref_name = format_ident!(
@@ -807,7 +809,7 @@ enum TypeInfo {
     Vector(VectorKind),
     Bool,
     Array(Box<TypeInfo>),
-    Describe(Type),
+    Describe(Box<Type>),
 }
 
 #[derive(Clone, Copy)]
@@ -857,7 +859,7 @@ fn classify_type(ty: &Type) -> Result<TypeInfo, Error> {
                 let inner = classify_type(&elem)?;
                 Ok(TypeInfo::Array(Box::new(inner)))
             } else {
-                Ok(TypeInfo::Describe(Type::Path(path.clone())))
+                Ok(TypeInfo::Describe(Box::new(Type::Path(path.clone()))))
             }
         }
         _ => Err(Error::new(

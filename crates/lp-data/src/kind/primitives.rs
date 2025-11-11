@@ -85,11 +85,11 @@ macro_rules! define_primitive_shape {
             }
 
             fn desc_md(&self) -> Option<&str> {
-                self.desc_md.as_ref().map(|s| s.as_str())
+                self.desc_md.as_deref()
             }
 
             fn unit(&self) -> Option<&str> {
-                self.unit.as_ref().map(|s| s.as_str())
+                self.unit.as_deref()
             }
         }
 
@@ -105,6 +105,12 @@ macro_rules! define_primitive_shape {
 
             pub const fn with_meta(meta: $meta_static) -> Self {
                 Self { meta: Some(meta) }
+            }
+        }
+
+        impl Default for $shape_static {
+            fn default() -> Self {
+                Self::new()
             }
         }
 
@@ -134,6 +140,12 @@ macro_rules! define_primitive_shape {
 
             pub fn with_meta(meta: $meta_dyn) -> Self {
                 Self { meta: Some(meta) }
+            }
+        }
+
+        impl Default for $shape_dyn {
+            fn default() -> Self {
+                Self::new()
             }
         }
 

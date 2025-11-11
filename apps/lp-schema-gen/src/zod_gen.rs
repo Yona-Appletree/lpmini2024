@@ -44,7 +44,7 @@ fn generate_type_schema(
     all_types: &BTreeMap<&'static str, &dyn LpShape>,
 ) -> String {
     let schema_expr = lp_shape_to_zod(shape, all_types);
-    let schema_name = format!("{}", name);
+    let schema_name = name.to_string();
 
     format!("export const {schema_name} = ZodFactory('{schema_name}', {schema_expr});")
 }

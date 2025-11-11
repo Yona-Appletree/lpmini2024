@@ -78,6 +78,7 @@ static_cell = "2.1.1"
 trouble-host = { version = "0.1.0", features = ["gatt"] }
 cfg-if = "1.0.3"
 smart-leds = "0.4.0"
+portable-atomic = { version = "1.11.1", features = ["critical-section"] }
 
 # Need 0.16.0 which isn't released yet, which support esp-hal rc0
 # See https://github.com/esp-rs/esp-hal-community/pull/34

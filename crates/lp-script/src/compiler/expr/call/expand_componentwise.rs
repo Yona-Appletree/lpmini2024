@@ -3,10 +3,9 @@
 /// Transforms function calls on vectors into component-wise scalar calls.
 /// For example: `sin(vec2(a, b))` becomes `vec2(sin(vec2(a, b).x), sin(vec2(a, b).y))`
 extern crate alloc;
+use alloc::boxed::Box;
 use alloc::string::String;
 use alloc::vec::Vec;
-
-use alloc::boxed::Box;
 
 use crate::compiler::ast::{Expr, ExprKind};
 use crate::shared::{Span, Type};

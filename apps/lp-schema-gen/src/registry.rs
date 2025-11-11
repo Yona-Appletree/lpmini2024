@@ -2,12 +2,14 @@ use std::collections::BTreeMap;
 
 use lp_data::kind::shape::LpShape;
 
+#[allow(dead_code)]
 /// Trait for types that can provide their shape and name
 pub trait LpDescribe: lp_data::kind::value::LpValue + Default {
     /// Get the type name
     fn type_name() -> &'static str;
 }
 
+#[allow(dead_code)]
 /// Registry wrapper for lp-data types
 ///
 /// Stores instances of types so we can get their shapes when needed.
@@ -16,11 +18,13 @@ pub struct SchemaRegistry {
     types: Vec<Box<dyn TypeEntry>>,
 }
 
+#[allow(dead_code)]
 trait TypeEntry: 'static {
     fn name(&self) -> &'static str;
     fn shape(&self) -> &'static dyn LpShape;
 }
 
+#[allow(dead_code)]
 struct TypeEntryImpl<T: LpDescribe + 'static> {
     instance: T,
 }
@@ -44,6 +48,7 @@ impl SchemaRegistry {
     }
 
     /// Register a type that implements LpDescribe
+    #[allow(dead_code)]
     pub fn register<T: LpDescribe + 'static>(&mut self) {
         let entry = TypeEntryImpl::<T> {
             instance: T::default(),

@@ -1,14 +1,64 @@
+#[cfg(all(not(feature = "std"), not(test)))]
+use core::alloc::{GlobalAlloc, Layout};
+#[cfg(target_has_atomic = "ptr")]
 use core::sync::atomic::{AtomicUsize, Ordering};
-
 #[cfg(any(feature = "std", test))]
 use std::alloc::{GlobalAlloc, Layout, System};
 #[cfg(any(feature = "std", test))]
 use std::eprintln;
 #[cfg(any(feature = "std", test))]
 use std::thread_local;
+#[cfg(not(target_has_atomic = "ptr"))]
+mod atomic_fallback {
+    use core::cell::Cell;
 
-#[cfg(all(not(feature = "std"), not(test)))]
-use core::alloc::{GlobalAlloc, Layout};
+    use critical_section::Mutex;
+
+    pub struct AtomicUsize {
+        inner: Mutex<Cell<usize>>,
+    }
+
+    impl AtomicUsize {
+        pub const fn new(value: usize) -> Self {
+            Self {
+                inner: Mutex::new(Cell::new(value)),
+            }
+        }
+
+        pub fn load(&self, _: Ordering) -> usize {
+            critical_section::with(|cs| self.inner.borrow(cs).get())
+        }
+
+        pub fn store(&self, value: usize, _: Ordering) {
+            critical_section::with(|cs| self.inner.borrow(cs).set(value));
+        }
+
+        pub fn fetch_add(&self, value: usize, _: Ordering) -> usize {
+            critical_section::with(|cs| {
+                let cell = self.inner.borrow(cs);
+                let previous = cell.get();
+                cell.set(previous + value);
+                previous
+            })
+        }
+
+        pub fn fetch_sub(&self, value: usize, _: Ordering) -> usize {
+            critical_section::with(|cs| {
+                let cell = self.inner.borrow(cs);
+                let previous = cell.get();
+                cell.set(previous - value);
+                previous
+            })
+        }
+    }
+
+    #[derive(Copy, Clone)]
+    pub enum Ordering {
+        Relaxed,
+    }
+}
+#[cfg(not(target_has_atomic = "ptr"))]
+use atomic_fallback::{AtomicUsize, Ordering};
 
 #[cfg(all(not(feature = "std"), not(test)))]
 extern crate alloc;
@@ -41,6 +91,12 @@ static GLOBAL_SOFT_LIMIT: AtomicUsize = AtomicUsize::new(usize::MAX);
 /// as the global allocator and the tracking will work correctly.
 #[derive(Copy, Clone)]
 pub struct LimitedAllocator;
+
+impl Default for LimitedAllocator {
+    fn default() -> Self {
+        Self::new()
+    }
+}
 
 impl LimitedAllocator {
     pub const fn new() -> Self {

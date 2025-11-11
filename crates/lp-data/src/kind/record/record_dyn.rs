@@ -1,6 +1,7 @@
 //! Dynamic shape implementation for Record.
 
-use alloc::{string::String, vec::Vec};
+use alloc::string::String;
+use alloc::vec::Vec;
 
 use super::record_meta::{RecordFieldMeta, RecordFieldMetaDyn, RecordMeta, RecordMetaDyn};
 use super::record_shape::{RecordFieldShape, RecordShape};
@@ -55,6 +56,12 @@ impl RecordShapeDyn {
             },
             fields: Vec::new(),
         }
+    }
+}
+
+impl Default for RecordShapeDyn {
+    fn default() -> Self {
+        Self::new()
     }
 }
 

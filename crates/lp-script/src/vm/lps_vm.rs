@@ -1,7 +1,6 @@
-use alloc::vec::Vec;
-
 use alloc::format;
 use alloc::string::String;
+use alloc::vec::Vec;
 
 use crate::fixed::{Fixed, Vec2, Vec3, Vec4};
 use crate::vm::vm_limits::VmLimits;

@@ -1,6 +1,7 @@
-use clap::Parser;
 use std::fs;
 use std::path::{Path, PathBuf};
+
+use clap::Parser;
 use walkdir::WalkDir;
 
 #[derive(Parser)]

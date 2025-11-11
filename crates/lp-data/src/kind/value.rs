@@ -27,6 +27,7 @@ pub enum LpValueBox {
 ///
 /// Preserves type information so that RecordValue methods can be called
 /// without downcasting. This is the reference equivalent of LpValueBox.
+#[derive(Copy, Clone)]
 pub enum LpValueRef<'a> {
     Fixed(&'a dyn LpValue),
     Int32(&'a dyn LpValue),
@@ -137,7 +138,6 @@ pub trait LpValue {
 /// Helper functions to convert LpValue to LpValueRef based on shape kind.
 /// These use unsafe to construct trait objects when we know the type implements
 /// the trait based on runtime shape information.
-
 #[cfg(any(feature = "serde", feature = "serde_json"))]
 impl serde::Serialize for LpValueBox {
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
@@ -247,16 +247,6 @@ impl<'a> serde::Serialize for LpValueRefSerializer<'a> {
         S: serde::Serializer,
     {
         // LpValueRef doesn't implement Copy, but we can reconstruct it from the reference
-        let value_ref = match self.0 {
-            LpValueRef::Fixed(fixed_ref) => LpValueRef::Fixed(fixed_ref),
-            LpValueRef::Int32(int32_ref) => LpValueRef::Int32(int32_ref),
-            LpValueRef::Bool(bool_ref) => LpValueRef::Bool(bool_ref),
-            LpValueRef::Vec2(vec2_ref) => LpValueRef::Vec2(vec2_ref),
-            LpValueRef::Vec3(vec3_ref) => LpValueRef::Vec3(vec3_ref),
-            LpValueRef::Vec4(vec4_ref) => LpValueRef::Vec4(vec4_ref),
-            LpValueRef::Record(record_ref) => LpValueRef::Record(record_ref),
-            LpValueRef::Enum(enum_ref) => LpValueRef::Enum(enum_ref),
-        };
-        serialize_lp_value_ref(value_ref, serializer)
+        serialize_lp_value_ref(self.0, serializer)
     }
 }

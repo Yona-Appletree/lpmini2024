@@ -4,10 +4,9 @@
 /// Helper functions for building expected AST expressions in tests using the
 /// new recursive `LpBox`-backed AST.
 extern crate alloc;
+use alloc::boxed::Box;
 use alloc::string::String;
 use alloc::vec::Vec;
-
-use alloc::boxed::Box;
 
 use crate::compiler::ast::{Expr, ExprKind, Stmt, StmtKind};
 use crate::shared::{Span, Type};

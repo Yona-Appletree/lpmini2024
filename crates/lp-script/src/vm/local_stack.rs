@@ -1,6 +1,7 @@
 /// Local variable storage for LPS VM (optimized with raw i32 array)
 extern crate alloc;
 use alloc::string::String;
+use alloc::vec;
 use alloc::vec::Vec;
 
 use super::error::LpsVmError;
@@ -15,13 +16,11 @@ impl LocalStack {
     /// Example: if max depth is 64 and average function uses 20 i32s of locals,
     /// capacity should be at least 64 * 20 = 1280.
     pub fn try_new(capacity: usize) -> Result<Self, LpsVmError> {
-        let mut data = Vec::new();
-        if capacity > 0 {
-            data.reserve(capacity);
-            for _ in 0..capacity {
-                data.push(0);
-            }
-        }
+        let data = if capacity > 0 {
+            vec![0; capacity]
+        } else {
+            Vec::new()
+        };
 
         Ok(LocalStack {
             data,
@@ -359,12 +358,7 @@ impl LocalStack {
             .find(|m| m.name.as_str() == name)
             .map(|m| (m.offset, m.size))?;
 
-        Some(
-            self.data.as_slice()[offset..offset + size]
-                .iter()
-                .copied()
-                .collect(),
-        )
+        Some(self.data[offset..offset + size].to_vec())
     }
 
     /// Get a Fixed local by name (for debugging/testing)

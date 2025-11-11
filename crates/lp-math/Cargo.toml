@@ -3,5 +3,9 @@ name = "lp-math"
 version.workspace = true
 edition.workspace = true
 
+[features]
+default = ["serde"]
+serde = ["dep:serde"]
+
 [dependencies]
-serde = { version = "1", features = ["derive"] }
+serde = { version = "1", features = ["derive"], optional = true, default-features = false }

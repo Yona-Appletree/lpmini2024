@@ -2,6 +2,7 @@ use lp_math::fixed::{Fixed, Vec2, Vec3, Vec4};
 
 use crate::kind::value::{LpValue, LpValueBox, LpValueRef};
 
+#[allow(dead_code)]
 /// Traverse the scene graph and print all data generically.
 pub fn print_lp_value(value_box: LpValueBox, indent: usize) {
     match value_box {
@@ -62,6 +63,7 @@ pub fn print_lp_value_to_string(value_box: LpValueBox, indent: usize) -> String 
     }
 }
 
+#[allow(dead_code)]
 /// Print a value reference recursively.
 fn print_lp_value_ref(value_ref: LpValueRef, indent: usize) {
     match value_ref {

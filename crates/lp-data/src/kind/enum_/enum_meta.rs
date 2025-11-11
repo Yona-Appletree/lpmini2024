@@ -55,7 +55,7 @@ impl EnumMeta for EnumMetaDyn {
     }
 
     fn docs(&self) -> Option<&str> {
-        self.docs.as_ref().map(|s| s.as_str())
+        self.docs.as_deref()
     }
 }
 
@@ -91,6 +91,6 @@ impl EnumVariantMeta for EnumVariantMetaStatic {
 
 impl EnumVariantMeta for EnumVariantMetaDyn {
     fn docs(&self) -> Option<&str> {
-        self.docs.as_ref().map(|s| s.as_str())
+        self.docs.as_deref()
     }
 }

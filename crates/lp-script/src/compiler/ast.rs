@@ -1,9 +1,8 @@
 /// Abstract Syntax Tree for expressions and statements
 extern crate alloc;
+use alloc::boxed::Box;
 use alloc::string::String;
 use alloc::vec::Vec;
-
-use alloc::boxed::Box;
 
 use crate::shared::{Span, Type};
 

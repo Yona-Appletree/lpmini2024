@@ -1,6 +1,7 @@
 use lp_math::fixed::Fixed;
 use serde::{Deserialize, Serialize};
 
+#[allow(dead_code)]
 /// Configuration for a UI slider control
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct UiSliderConfig {

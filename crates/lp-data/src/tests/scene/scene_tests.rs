@@ -5,7 +5,9 @@ use crate::tests::scene::print_lp_value::print_lp_value_to_string;
 use crate::tests::scene::test_node::{LfoWaveform, TestNode, TestNodeConfig};
 
 extern crate alloc;
-use alloc::{boxed::Box, string::String};
+use alloc::boxed::Box;
+use alloc::string::String;
+
 use lp_alloc::{enter_global_alloc_allowance, init_test_allocator, AllocLimitError as AllocError};
 use lp_math::fixed::{Fixed, ToFixed, Vec2, Vec3, Vec4};
 
@@ -138,18 +140,18 @@ fn test_scene_traversal() {
                 assert_eq!(lfo_shape.field_count(), 2, "TestNode should have 2 fields");
 
                 // Verify LfoConfig has waveform field
-                if let Ok(config_ref) = lfo_ref.get_field_by_index(0) {
-                    if let crate::kind::value::LpValueRef::Record(config_record) = config_ref {
-                        let config_shape = RecordValue::shape(config_record);
-                        assert_eq!(
-                            config_shape.field_count(),
-                            7,
-                            "TestNodeConfig should have 7 fields"
-                        );
-                        if let Some(waveform_field) = config_shape.find_field("waveform") {
-                            // Verify waveform field exists
-                            assert_eq!(waveform_field.name(), "waveform");
-                        }
+                if let Ok(crate::kind::value::LpValueRef::Record(config_record)) =
+                    lfo_ref.get_field_by_index(0)
+                {
+                    let config_shape = RecordValue::shape(config_record);
+                    assert_eq!(
+                        config_shape.field_count(),
+                        7,
+                        "TestNodeConfig should have 7 fields"
+                    );
+                    if let Some(waveform_field) = config_shape.find_field("waveform") {
+                        // Verify waveform field exists
+                        assert_eq!(waveform_field.name(), "waveform");
                     }
                 }
 
@@ -477,7 +479,7 @@ fn test_print_all_primitive_types() {
     let pool = setup_pool();
     pool.run(|| {
         let test_node = TestNode::new(TestNodeConfig {
-            period: 3.14f32.to_fixed(),
+            period: core::f32::consts::PI.to_fixed(),
             waveform: LfoWaveform::Square,
             count: 999,
             enabled: true,

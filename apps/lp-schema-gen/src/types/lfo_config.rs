@@ -1,22 +1,19 @@
 use lp_math::fixed::Fixed;
 use serde::{Deserialize, Serialize};
 
+#[allow(dead_code)]
 /// LFO waveform shape enumeration
-#[derive(Serialize, Deserialize, Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Default, Serialize, Deserialize, Debug, Clone, Copy, PartialEq, Eq)]
 pub enum LfoWaveformShape {
+    #[default]
     Sine,
     Square,
     Triangle,
     Sawtooth,
 }
 
-impl Default for LfoWaveformShape {
-    fn default() -> Self {
-        LfoWaveformShape::Sine
-    }
-}
-
 /// Range type for LFO (min, max as Fixed)
+#[allow(dead_code)]
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct LfoRange {
     /// Minimum value
@@ -36,6 +33,7 @@ impl Default for LfoRange {
 }
 
 /// Configuration for an LFO (Low Frequency Oscillator)
+#[allow(dead_code)]
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct LfoConfig {
     /// Period of oscillation in milliseconds
@@ -59,6 +57,7 @@ impl Default for LfoConfig {
 }
 
 // Type aliases for backward compatibility
+#[allow(dead_code)]
 pub type LfoShape = LfoWaveformShape;
 
 // Manual implementations until LpSchema derive is fixed

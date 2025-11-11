@@ -178,8 +178,9 @@ macro_rules! setup_test_alloc {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
     use alloc::vec;
+
+    use super::*;
 
     // TEST_ALLOCATOR uses the same instance as ALLOCATOR, and since
     // all instances share the same global state, tracking works correctly.

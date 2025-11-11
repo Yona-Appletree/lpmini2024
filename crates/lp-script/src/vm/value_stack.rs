@@ -1,5 +1,6 @@
 /// Type-safe VM stack implementation
 extern crate alloc;
+use alloc::vec;
 use alloc::vec::Vec;
 
 use super::error::LpsVmError;
@@ -18,13 +19,11 @@ pub struct ValueStack {
 impl ValueStack {
     /// Create a new stack with the given maximum size
     pub fn try_new(max_size: usize) -> Result<Self, LpsVmError> {
-        let mut data = Vec::new();
-        if max_size > 0 {
-            data.reserve(max_size);
-            for _ in 0..max_size {
-                data.push(0);
-            }
-        }
+        let data = if max_size > 0 {
+            vec![0; max_size]
+        } else {
+            Vec::new()
+        };
 
         Ok(ValueStack {
             data,

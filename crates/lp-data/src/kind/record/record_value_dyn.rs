@@ -6,7 +6,8 @@
 //!
 //! Uses `LpValueBox` for field storage, which allocates through the global allocator.
 
-use alloc::{string::String, vec::Vec};
+use alloc::string::String;
+use alloc::vec::Vec;
 
 use crate::kind::record::record_dyn::{RecordFieldDyn, RecordShapeDyn};
 use crate::kind::record::record_meta::RecordFieldMetaDyn;
@@ -36,37 +37,25 @@ impl RecordValueDyn {
         }
     }
 
+    fn static_shape_of(value: &dyn LpValue) -> &'static dyn LpShape {
+        // SAFETY: shapes are either static singletons or pool-allocated with 'static lifetime guarantees.
+        unsafe { core::mem::transmute::<&dyn LpShape, &'static dyn LpShape>(value.shape()) }
+    }
+
     /// Add a field to this record.
     ///
     /// If a field with the same name already exists, it will be replaced.
     pub fn add_field(&mut self, name: String, value: LpValueBox) -> Result<(), RuntimeError> {
         // Extract the shape reference first (shapes are 'static, so this is safe)
         let shape_ref: &'static dyn LpShape = match &value {
-            LpValueBox::Fixed(boxed) => {
-                // SAFETY: Shapes are 'static - either static constants or pool-allocated
-                unsafe { core::mem::transmute(LpValue::shape(boxed.as_ref())) }
-            }
-            LpValueBox::Int32(boxed) => unsafe {
-                core::mem::transmute(LpValue::shape(boxed.as_ref()))
-            },
-            LpValueBox::Bool(boxed) => unsafe {
-                core::mem::transmute(LpValue::shape(boxed.as_ref()))
-            },
-            LpValueBox::Vec2(boxed) => unsafe {
-                core::mem::transmute(LpValue::shape(boxed.as_ref()))
-            },
-            LpValueBox::Vec3(boxed) => unsafe {
-                core::mem::transmute(LpValue::shape(boxed.as_ref()))
-            },
-            LpValueBox::Vec4(boxed) => unsafe {
-                core::mem::transmute(LpValue::shape(boxed.as_ref()))
-            },
-            LpValueBox::Record(boxed) => unsafe {
-                core::mem::transmute(LpValue::shape(boxed.as_ref()))
-            },
-            LpValueBox::Enum(boxed) => unsafe {
-                core::mem::transmute(LpValue::shape(boxed.as_ref()))
-            },
+            LpValueBox::Fixed(boxed) => Self::static_shape_of(boxed.as_ref()),
+            LpValueBox::Int32(boxed) => Self::static_shape_of(boxed.as_ref()),
+            LpValueBox::Bool(boxed) => Self::static_shape_of(boxed.as_ref()),
+            LpValueBox::Vec2(boxed) => Self::static_shape_of(boxed.as_ref()),
+            LpValueBox::Vec3(boxed) => Self::static_shape_of(boxed.as_ref()),
+            LpValueBox::Vec4(boxed) => Self::static_shape_of(boxed.as_ref()),
+            LpValueBox::Record(boxed) => Self::static_shape_of(boxed.as_ref()),
+            LpValueBox::Enum(boxed) => Self::static_shape_of(boxed.as_ref()),
         };
 
         // Check if field already exists and replace it
@@ -125,18 +114,18 @@ impl RecordValueDyn {
                             core::ptr::swap(shape_ptr.add(i), shape_ptr.add(last_idx));
                         }
                     }
-                    self.fields
-                        .pop()
-                        .ok_or_else(|| RuntimeError::IndexOutOfBounds {
-                            index: i,
-                            len: self.fields.len(),
-                        })?;
+                    let field_len = self.fields.len();
+                    self.fields.pop().ok_or(RuntimeError::IndexOutOfBounds {
+                        index: i,
+                        len: field_len,
+                    })?;
+                    let shape_len = self.shape.fields.len();
                     self.shape
                         .fields
                         .pop()
-                        .ok_or_else(|| RuntimeError::IndexOutOfBounds {
+                        .ok_or(RuntimeError::IndexOutOfBounds {
                             index: i,
-                            len: self.shape.fields.len(),
+                            len: shape_len,
                         })?;
                     return Ok(());
                 }
@@ -158,13 +147,11 @@ impl RecordValue for RecordValueDyn {
     }
 
     fn get_field_by_index(&self, index: usize) -> Result<LpValueRef<'_>, RuntimeError> {
-        let (_, field_value) =
-            self.fields
-                .get(index)
-                .ok_or_else(|| RuntimeError::IndexOutOfBounds {
-                    index,
-                    len: self.fields.len(),
-                })?;
+        let len = self.fields.len();
+        let (_, field_value) = self
+            .fields
+            .get(index)
+            .ok_or(RuntimeError::IndexOutOfBounds { index, len })?;
 
         let value_ref = match field_value {
             LpValueBox::Fixed(boxed) => LpValueRef::Fixed(boxed.as_ref()),
@@ -185,7 +172,7 @@ impl RecordValue for RecordValueDyn {
         let (_, field_value) = self
             .fields
             .get_mut(index)
-            .ok_or_else(|| RuntimeError::IndexOutOfBounds { index, len })?;
+            .ok_or(RuntimeError::IndexOutOfBounds { index, len })?;
 
         let value_ref_mut = match field_value {
             LpValueBox::Fixed(boxed) => LpValueRefMut::Fixed(boxed.as_mut()),

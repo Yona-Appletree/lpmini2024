@@ -4,8 +4,9 @@ use alloc::string::String;
 use alloc::vec::Vec;
 use core::fmt;
 
-use crate::shared::{Span, Type};
 use lp_alloc::AllocLimitError;
+
+use crate::shared::{Span, Type};
 
 /// Comprehensive compilation error
 #[derive(Debug)]

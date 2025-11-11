@@ -3,6 +3,7 @@
 //! This module provides the foundation for the introspectable data system,
 //! separating type kinds, shapes (metadata), and values (runtime data).
 
+#[allow(clippy::module_inception)]
 pub mod kind;
 pub mod shape;
 pub mod value;

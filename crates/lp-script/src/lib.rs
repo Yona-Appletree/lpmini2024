@@ -267,8 +267,7 @@ mod tests {
 
     #[test]
     fn auto_pool_supports_lp_vec_allocations() {
-        let mut vec = Vec::new();
-        vec.push(42);
+        let vec = Vec::from([42]);
         assert_eq!(vec.len(), 1);
     }
 }

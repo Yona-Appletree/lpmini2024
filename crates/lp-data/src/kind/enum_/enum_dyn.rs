@@ -1,6 +1,7 @@
 //! Dynamic shape implementation for Enum.
 
-use alloc::{string::String, vec::Vec};
+use alloc::string::String;
+use alloc::vec::Vec;
 
 use super::enum_meta::{EnumMeta, EnumMetaDyn, EnumVariantMeta, EnumVariantMetaDyn};
 use super::enum_shape::{EnumShape, EnumVariantShape};
@@ -48,6 +49,12 @@ impl EnumShapeDyn {
             },
             variants: Vec::new(),
         }
+    }
+}
+
+impl Default for EnumShapeDyn {
+    fn default() -> Self {
+        Self::new()
     }
 }
 
