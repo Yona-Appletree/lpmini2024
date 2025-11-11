@@ -6,6 +6,8 @@ set -o pipefail
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "${ROOT_DIR}"
 
+source "${ROOT_DIR}/scripts/lib/github_checks.sh"
+
 LOG_ROOT="${ROOT_DIR}/.git_action_logs"
 mkdir -p "${LOG_ROOT}"
 
@@ -176,78 +178,66 @@ commit_sha="$(git rev-parse HEAD)"
 info "Waiting for GitHub Actions workflow for commit ${commit_sha}."
 
 max_wait_seconds=30
-spinner_frames=('|' '/' '-' '\')
-elapsed_seconds=0
-run_json=""
-
-while (( elapsed_seconds < max_wait_seconds )); do
-  run_json="$(
-    gh run list \
-      --limit 20 \
-      --json databaseId,headSha,status,conclusion,workflowName,displayTitle \
-      2>/dev/null | jq --arg sha "${commit_sha}" 'map(select(.headSha == $sha)) | first' || true
-  )"
-
-  if [[ -n "${run_json}" && "${run_json}" != "null" ]]; then
-    break
-  fi
-
-  spinner_frame="${spinner_frames[elapsed_seconds % ${#spinner_frames[@]}]}"
-  printf '\r[push-pr] Waiting for workflow run (%s) %s' "${commit_sha}" "${spinner_frame}"
-  sleep 1
-  ((elapsed_seconds++))
-done
-
-clear_spinner_line
-
-if [[ -z "${run_json}" || "${run_json}" == "null" ]]; then
-  warn "No workflow run found for commit ${commit_sha}."
-  warn "If workflows are expected, verify the GitHub Actions configuration or trigger the workflow manually."
-  exit 0
+wait_status=0
+if ! await_build_then_checks "${commit_sha}" "${pr_number}" "${max_wait_seconds}"; then
+  wait_status=$?
 fi
 
-run_id="$(printf '%s' "${run_json}" | jq -r '.databaseId')"
-workflow_name="$(printf '%s' "${run_json}" | jq -r '.workflowName // "workflow"')"
-display_title="$(printf '%s' "${run_json}" | jq -r '.displayTitle // ""')"
+case "${wait_status}" in
+  0)
+    info "Workflow completed successfully for commit ${commit_sha}."
+    if [[ -n "${pr_url}" ]]; then
+      info "PR ready: ${pr_url}"
+    fi
 
-if [[ -z "${run_id}" || "${run_id}" == "null" ]]; then
-  warn "Unable to extract workflow run ID from GitHub CLI output."
-  exit 0
-fi
-
-info "Monitoring workflow \"${workflow_name}\" (${display_title}) [run id: ${run_id}]."
-
-if gh run watch "${run_id}" --exit-status; then
-  info "Workflow completed successfully for commit ${commit_sha}."
-  if [[ -n "${pr_url}" ]]; then
-    info "PR ready: ${pr_url}"
-  fi
-
-  if [[ "${merge_pr}" == "true" ]]; then
-    if [[ -z "${pr_number}" ]]; then
-      warn "PR number unavailable; skipping merge."
-    else
-      merge_state="$(gh pr view "${pr_number}" --json state --jq '.state' 2>/dev/null || true)"
-      if [[ "${merge_state}" != "OPEN" ]]; then
-        warn "Cannot merge PR #${pr_number}; state is ${merge_state}."
+    if [[ "${merge_pr}" == "true" ]]; then
+      if [[ -z "${pr_number}" ]]; then
+        warn "PR number unavailable; skipping merge."
       else
-        info "Merging PR #${pr_number}."
-        if gh pr merge "${pr_number}" --merge --auto; then
-          info "PR #${pr_number} merged."
+        merge_state="$(gh pr view "${pr_number}" --json state --jq '.state' 2>/dev/null || true)"
+        if [[ "${merge_state}" != "OPEN" ]]; then
+          warn "Cannot merge PR #${pr_number}; state is ${merge_state}."
         else
-          warn "Failed to merge PR #${pr_number}. Review GitHub CLI output."
+          info "Merging PR #${pr_number}."
+          if gh pr merge "${pr_number}" --merge --auto; then
+            info "PR #${pr_number} merged."
+          else
+            warn "Failed to merge PR #${pr_number}. Review GitHub CLI output."
+          fi
         fi
       fi
     fi
-  fi
-  exit 0
+    exit 0
+    ;;
+  10)
+    exit 0
+    ;;
+  11)
+    warn "Workflow failed for commit ${commit_sha}. Downloading logs."
+    ;;
+  12)
+    warn "PR checks failed for commit ${commit_sha}. Gathering workflow logs."
+    ;;
+  *)
+    exit "${wait_status}"
+    ;;
+esac
+
+run_id="${AWAIT_BUILD_RUN_ID:-}"
+if [[ -z "${run_id}" ]]; then
+  warn "Unable to determine workflow run ID for commit ${commit_sha}."
+  exit 1
 fi
 
-warn "Workflow failed for commit ${commit_sha}. Downloading logs."
+failure_context="GitHub Actions run failed."
+if [[ "${wait_status}" -eq 12 ]]; then
+  failure_context="PR checks failed."
+fi
+
 log_dir="$(mktemp -d "${LOG_ROOT}/run_${commit_sha}_XXXXXX")"
 log_file="${log_dir}/workflow.log"
 if NO_COLOR=1 gh run view "${run_id}" --log >"${log_file}" 2>&1; then
-  error "GitHub Actions run failed. Logs saved at: ${log_file}"
+  error "${failure_context} Logs saved at: ${log_file}"
   warn "Inspect the logs and iterate on the reported failures before re-running this script."
   info "Extracting relevant log lines:"
   if command -v rg >/dev/null 2>&1; then
