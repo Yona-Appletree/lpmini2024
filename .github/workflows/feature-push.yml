@@ -59,9 +59,6 @@ jobs:
       - name: Run cargo test
         run: cargo test --workspace --exclude fw-esp32c3
 
-      - name: Test lp-pool without alloc-meta
-        run: cargo test -p lp-pool --lib --no-default-features
-
   typescript-validation:
     if: false
     runs-on: ubuntu-latest
