@@ -28,7 +28,7 @@
 
     // Test: unit tests, storybook tests, etc...
     "test": {
-      "dependsOn": ["test:vitest", "//#test:rust", "//#test:rust:fw-esp32c3"]
+      "dependsOn": ["test:vitest", "//#test:rust"]
     },
 
     // E2E: end-to-end tests that should be run against an environment.
@@ -41,15 +41,7 @@
 
     // Validate: run locally before committing to ensure correctness.
     "validate": {
-      "dependsOn": [
-        "//#fix",
-        "//#check",
-        "//#test",
-        "//#build:rust:fw-esp32c3",
-        "//#test:rust:fw-esp32c3",
-        "check",
-        "test"
-      ]
+      "dependsOn": ["//#fix", "//#check", "//#test", "//#build", "check", "test"]
     },
 
     // Pre-commit: run before committing to ensure the code is in a good state.
@@ -196,6 +188,11 @@
       "cache": true
     },
 
+    // Build
+    "//#build": {
+      "dependsOn": ["//#build:rust:fw-esp32c3"]
+    },
+
     // Fix
     "//#fix": {
       "dependsOn": ["//#fix:syncpack-mismatches", "//#fix:syncpack-format", "//#fix:prettier"],
@@ -217,7 +214,7 @@
 
     // Test
     "//#test": {
-      "dependsOn": []
+      "dependsOn": ["//#test:rust"]
     },
 
     // Rust root tasks
@@ -231,16 +228,6 @@
     },
     "//#test:rust": {
       "inputs": ["Cargo.toml", "Cargo.lock", "**/*.rs", "rust-toolchain.toml"],
-      "cache": true
-    },
-    "//#test:rust:fw-esp32c3": {
-      "inputs": [
-        "Cargo.toml",
-        "Cargo.lock",
-        "apps/fw-esp32c3/**",
-        "rust-toolchain.toml",
-        "apps/fw-esp32c3/rust-toolchain.toml"
-      ],
       "cache": true
     },
     "//#build:rust:fw-esp32c3": {

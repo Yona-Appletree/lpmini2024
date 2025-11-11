@@ -3,7 +3,6 @@ use esp_hal::gpio::Level;
 use esp_hal::interrupt::{InterruptHandler, Priority};
 use esp_hal::rmt::{Error as RmtError, TxChannel, TxChannelConfig, TxChannelCreator};
 use esp_hal::Blocking;
-use smart_leds::hsv::hsv2rgb;
 use smart_leds::RGB8;
 
 // Configuration constants
@@ -19,11 +18,8 @@ const HALF_BUFFER_SIZE: usize = (BUFFER_LEDS * BITS_PER_LED) / 2;
 const BUFFER_SIZE: usize = BUFFER_LEDS * BITS_PER_LED;
 
 // Global state for interrupt handling
-static mut RMT_BUFFER: [u32; BUFFER_SIZE] = [0; BUFFER_SIZE];
 static mut FRAME_COUNTER: usize = 0;
 static mut LED_COUNTER: usize = 0; // Track current LED position in the strip
-static mut INTERRUPT_ENABLED: bool = false;
-static mut RMT_PTR: *mut u32 = 0 as *mut u32;
 
 static mut RMT_STATS_COUNT: i32 = 0;
 static mut RMT_STATS_SUM: i32 = 0;
@@ -31,7 +27,7 @@ static mut FRAME_COMPLETE: bool = true; // Signal when frame transmission is com
 
 const SRC_CLOCK_MHZ: u32 = 80;
 const PULSE_ZERO: u32 = // Zero
-    pulseCode(
+    pulse_code(
         Level::High,
         ((SK68XX_T0H_NS * SRC_CLOCK_MHZ) / 1000) as u16,
         Level::Low,
@@ -39,7 +35,7 @@ const PULSE_ZERO: u32 = // Zero
     );
 
 // One
-const PULSE_ONE: u32 = pulseCode(
+const PULSE_ONE: u32 = pulse_code(
     Level::High,
     ((SK68XX_T1H_NS * SRC_CLOCK_MHZ) / 1000) as u16,
     Level::Low,
@@ -48,9 +44,14 @@ const PULSE_ONE: u32 = pulseCode(
 
 // Latch - WS2812 requires 50us+ low to latch
 // At 80MHz: 50us = 4000 ticks, split as 2000+2000
-const PULSE_LATCH: u32 = pulseCode(Level::Low, 2000u16, Level::Low, 2000u16);
+const PULSE_LATCH: u32 = pulse_code(
+    Level::Low,
+    ((SK68XX_LATCH_NS / 2 * SRC_CLOCK_MHZ) / 1000) as u16,
+    Level::Low,
+    ((SK68XX_LATCH_NS / 2 * SRC_CLOCK_MHZ) / 1000) as u16,
+);
 
-const fn pulseCode(level1: Level, length1: u16, level2: Level, length2: u16) -> u32 {
+const fn pulse_code(level1: Level, length1: u16, level2: Level, length2: u16) -> u32 {
     let level1 = (level_bit(level1)) | (length1 as u32 & 0b111_1111_1111_1111);
     let level2 = (level_bit(level2)) | (length2 as u32 & 0b111_1111_1111_1111);
     level1 | (level2 << 16)
@@ -86,20 +87,6 @@ unsafe fn write_ws2811_byte(base_ptr: *mut u32, byte_value: u8, byte_offset: usi
     ptr.add(5).write_volatile(bit_pulse(0x04));
     ptr.add(6).write_volatile(bit_pulse(0x02));
     ptr.add(7).write_volatile(bit_pulse(0x01));
-}
-
-// Generate rainbow pattern for LED buffer (test pattern)
-fn generate_rainbow_pattern(buffer: &mut [RGB8], num_leds: usize, frame_offset: u8) {
-    let mut hsv = smart_leds::hsv::Hsv {
-        hue: 0,
-        sat: 255,
-        val: 5,
-    };
-
-    for (i, led) in buffer.iter_mut().enumerate().take(num_leds) {
-        hsv.hue = (((i as u32 * 255 / num_leds as u32) + frame_offset as u32) % 255) as u8;
-        *led = hsv2rgb(hsv);
-    }
 }
 
 // Start transmission of current LED buffer
@@ -237,7 +224,7 @@ extern "C" fn rmt_interrupt_handler() {
                     .modify(|_, w| w.tx_lim().bits(HALF_BUFFER_SIZE as u16));
             }
 
-            if (write_half_buffer(is_halfway)) {
+            if write_half_buffer(is_halfway) {
                 // info!("end reached");
             }
 
@@ -281,7 +268,7 @@ unsafe fn write_half_buffer(is_first_half: bool) -> bool {
         }
     }
 
-    return false;
+    false
 }
 
 /// Initialize the WS2811/WS2812 LED driver
@@ -324,7 +311,7 @@ where
     // HACK: If we don't call transmit_continuously, things work, but the debug output stops
     //       working.
     //
-    let dummy_buffer = [pulseCode(Level::Low, 1, Level::Low, 1)];
+    let dummy_buffer = [pulse_code(Level::Low, 1, Level::Low, 1)];
     let transaction = channel.transmit_continuously(&dummy_buffer)?;
 
     Ok(transaction)
