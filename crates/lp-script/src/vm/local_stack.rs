@@ -15,16 +15,24 @@ impl LocalStack {
     /// Capacity should be large enough for all locals across max call depth.
     /// Example: if max depth is 64 and average function uses 20 i32s of locals,
     /// capacity should be at least 64 * 20 = 1280.
-    pub fn new(capacity: usize) -> Self {
-        let data = vec![0; capacity];
+    pub fn try_new(capacity: usize) -> Result<Self, LpsVmError> {
+        let data = if capacity > 0 {
+            vec![0; capacity]
+        } else {
+            Vec::new()
+        };
 
-        LocalStack {
+        Ok(LocalStack {
             data,
             metadata: Vec::new(),
             capacity,
             sp: 0,
             local_count: 0,
-        }
+        })
+    }
+
+    pub fn new(capacity: usize) -> Self {
+        Self::try_new(capacity).expect("local stack allocation failed")
     }
 
     /// Allocate space for a batch of locals (typically for a function)
@@ -46,9 +54,10 @@ impl LocalStack {
                 });
             }
 
-            // Add metadata
+            // Add types
+            let name = String::from(def.name.as_str());
             self.metadata.push(LocalMetadata {
-                name: def.name.clone(),
+                name,
                 ty: def.ty.clone(),
                 offset,
                 size,
@@ -92,8 +101,10 @@ impl LocalStack {
                 self.sp = meta.offset;
             }
 
-            // Remove metadata for deallocated locals
-            self.metadata.truncate(local_idx);
+            // Remove types for deallocated locals
+            while self.metadata.len() > local_idx {
+                self.metadata.pop();
+            }
             self.local_count = local_idx;
         }
     }
@@ -300,7 +311,7 @@ impl LocalStack {
         Ok(())
     }
 
-    /// Get metadata for a local (private helper)
+    /// Get types for a local (private helper)
     #[inline(always)]
     fn get_metadata(&self, idx: usize) -> Result<&LocalMetadata, LpsVmError> {
         self.metadata.get(idx).ok_or(LpsVmError::LocalOutOfBounds {
@@ -344,7 +355,7 @@ impl LocalStack {
         let (offset, size) = self
             .metadata
             .iter()
-            .find(|m| m.name == name)
+            .find(|m| m.name.as_str() == name)
             .map(|m| (m.offset, m.size))?;
 
         Some(self.data[offset..offset + size].to_vec())
@@ -352,7 +363,7 @@ impl LocalStack {
 
     /// Get a Fixed local by name (for debugging/testing)
     pub fn get_fixed_by_name(&self, name: &str) -> Option<Fixed> {
-        let meta = self.metadata.iter().find(|m| m.name == name)?;
+        let meta = self.metadata.iter().find(|m| m.name.as_str() == name)?;
         if meta.ty == Type::Fixed || meta.ty == Type::Bool {
             Some(Fixed(self.data[meta.offset]))
         } else {
@@ -362,7 +373,7 @@ impl LocalStack {
 
     /// Get an Int32 local by name (for debugging/testing)
     pub fn get_int32_by_name(&self, name: &str) -> Option<i32> {
-        let meta = self.metadata.iter().find(|m| m.name == name)?;
+        let meta = self.metadata.iter().find(|m| m.name.as_str() == name)?;
         if meta.ty == Type::Int32 {
             Some(self.data[meta.offset])
         } else {
@@ -372,7 +383,7 @@ impl LocalStack {
 
     /// Get a Vec2 local by name (for debugging/testing)
     pub fn get_vec2_by_name(&self, name: &str) -> Option<(Fixed, Fixed)> {
-        let meta = self.metadata.iter().find(|m| m.name == name)?;
+        let meta = self.metadata.iter().find(|m| m.name.as_str() == name)?;
         if meta.ty == Type::Vec2 {
             let x = Fixed(self.data[meta.offset]);
             let y = Fixed(self.data[meta.offset + 1]);
@@ -384,7 +395,7 @@ impl LocalStack {
 
     /// Get a Vec3 local by name (for debugging/testing)
     pub fn get_vec3_by_name(&self, name: &str) -> Option<(Fixed, Fixed, Fixed)> {
-        let meta = self.metadata.iter().find(|m| m.name == name)?;
+        let meta = self.metadata.iter().find(|m| m.name.as_str() == name)?;
         if meta.ty == Type::Vec3 {
             let x = Fixed(self.data[meta.offset]);
             let y = Fixed(self.data[meta.offset + 1]);
@@ -413,7 +424,7 @@ impl LocalStack {
     pub fn list_locals(&self) -> Vec<(String, Type)> {
         self.metadata
             .iter()
-            .map(|m| (m.name.clone(), m.ty.clone()))
+            .map(|m| (alloc::string::String::from(m.name.as_str()), m.ty.clone()))
             .collect()
     }
 }
@@ -422,7 +433,7 @@ impl LocalStack {
 ///
 /// Maps a logical local index to its physical location and type in the i32 array.
 /// This enables efficient storage: Fixed uses 1 i32, Vec2 uses 2, Vec4 uses 4, etc.
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 struct LocalMetadata {
     name: String,  // For debugging
     ty: Type,      // Type of this local

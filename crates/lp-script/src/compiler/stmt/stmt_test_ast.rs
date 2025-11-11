@@ -3,10 +3,9 @@
 /// Helper functions for building expected statement AST in tests using the
 /// recursive `LpBox` AST.
 extern crate alloc;
+use alloc::boxed::Box;
 use alloc::string::String;
 use alloc::vec::Vec;
-
-use lp_pool::LpBox;
 
 use crate::compiler::ast::{Expr, ExprKind, Program, Stmt, StmtKind};
 use crate::compiler::test_ast::AstBuilder as ExprBuilder;
@@ -175,7 +174,7 @@ impl StmtBuilder {
         }
     }
 
-    fn box_stmt(&mut self, stmt: Stmt) -> LpBox<Stmt> {
-        LpBox::try_new(stmt).expect("LpBox allocation failed in StmtBuilder")
+    fn box_stmt(&mut self, stmt: Stmt) -> Box<Stmt> {
+        Box::new(stmt)
     }
 }

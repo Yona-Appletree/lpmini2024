@@ -7,8 +7,10 @@ members = [
     "apps/lp-debug",
     "crates/lp-data",
     "crates/lp-data-derive",
-    "crates/lp-script", "crates/lp-math",
-    "crates/lp-pool",
+    "crates/lp-script",
+    "crates/lp-math",
+    "crates/lp-alloc",
+    "tools/migrations/lp-pool-to-alloc",
 ]
 # Exclude fw-esp32c3 from default builds since it requires ESP32 target
 # (it has its own .cargo/config.toml with target = "riscv32imc-unknown-none-elf")
@@ -44,3 +46,17 @@ debug = false
 [profile.dev.package.fw-esp32c3]
 opt-level = "z"
 debug = true
+
+[profile.release.package.fw-esp32c3]
+codegen-units = 1     # LLVM can perform better optimizations using a single thread
+debug = 2
+debug-assertions = false
+incremental = false
+opt-level = 's'
+overflow-checks = false
+
+# Force portable-atomic to not use unsafe-assume-single-core feature
+# The riscv32imc-unknown-none-elf target supports atomic operations, so this feature is incompatible
+# This works by ensuring our explicit dependency (with default-features = false) takes precedence
+[workspace.dependencies]
+portable-atomic-override = { package = "portable-atomic", version = "1.11.1", default-features = false }

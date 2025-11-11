@@ -29,8 +29,11 @@
   "packageManager": "pnpm@10.13.1",
   "private": true,
   "scripts": {
+    "build:rust:fw-esp32c3": "bash -c 'rustup target list --installed | grep -q \"^riscv32imc-unknown-none-elf$\" || rustup target add riscv32imc-unknown-none-elf' && cd apps/fw-esp32c3 && cargo build --release --locked",
     "check:lockfile": "pnpm install && if [[ -n \"$(git status --porcelain pnpm-lock.yaml)\" ]]; then echo \"Error: pnpm-lock.yaml was modified. Please commit the updated lockfile.\"; exit 1; fi",
     "check:prettier": "prettier --check .",
+    "check:rust:clippy": "cargo clippy --all-targets --all-features -- -D warnings",
+    "check:rust:fmt": "rustup run nightly cargo fmt --all -- --check",
     "check:syncpack": "syncpack lint",
     "fix-staged-all": "lint-staged --config .lintstagedrc.all.json",
     "fix-staged-fast": "lint-staged --config .lintstagedrc.fast.json",
@@ -38,6 +41,7 @@
     "fix:syncpack-format": "syncpack format",
     "fix:syncpack-mismatches": "syncpack fix-mismatches",
     "install-playwright": "pnpm --filter @lpmini/control exec playwright install --with-deps",
-    "prepare": "husky"
+    "prepare": "husky",
+    "test:rust": "cargo test"
   }
 }

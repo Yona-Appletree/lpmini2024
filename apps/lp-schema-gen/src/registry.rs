@@ -1,48 +1,68 @@
 use std::collections::BTreeMap;
 
-use schemars::{JsonSchema, Schema};
+use lp_data::kind::shape::LpShape;
 
-/// Registry for all registered LP data types using schemars
+#[allow(dead_code)]
+/// Trait for types that can provide their shape and name
+pub trait LpDescribe: lp_data::kind::value::LpValue + Default {
+    /// Get the type name
+    fn type_name() -> &'static str;
+}
+
+#[allow(dead_code)]
+/// Registry wrapper for lp-data types
+///
+/// Stores instances of types so we can get their shapes when needed.
+/// The shapes are 'static, so this is safe.
 pub struct SchemaRegistry {
-    schemas: BTreeMap<String, Schema>,
+    types: Vec<Box<dyn TypeEntry>>,
+}
+
+#[allow(dead_code)]
+trait TypeEntry: 'static {
+    fn name(&self) -> &'static str;
+    fn shape(&self) -> &'static dyn LpShape;
+}
+
+#[allow(dead_code)]
+struct TypeEntryImpl<T: LpDescribe + 'static> {
+    instance: T,
+}
+
+impl<T: LpDescribe + 'static> TypeEntry for TypeEntryImpl<T> {
+    fn name(&self) -> &'static str {
+        T::type_name()
+    }
+
+    fn shape(&self) -> &'static dyn LpShape {
+        // SAFETY: Shapes returned by LpValue::shape() are 'static
+        // (they're either static constants or pool-allocated with 'static lifetime)
+        unsafe { core::mem::transmute(self.instance.shape()) }
+    }
 }
 
 impl SchemaRegistry {
     /// Create a new empty registry
     pub fn new() -> Self {
-        Self {
-            schemas: BTreeMap::new(),
+        Self { types: Vec::new() }
+    }
+
+    /// Register a type that implements LpDescribe
+    #[allow(dead_code)]
+    pub fn register<T: LpDescribe + 'static>(&mut self) {
+        let entry = TypeEntryImpl::<T> {
+            instance: T::default(),
+        };
+        self.types.push(Box::new(entry));
+    }
+
+    /// Get all registered types as a map of name -> shape
+    pub fn all_types(&self) -> BTreeMap<&'static str, &dyn LpShape> {
+        let mut map = BTreeMap::new();
+        for entry in &self.types {
+            map.insert(entry.name(), entry.shape());
         }
-    }
-
-    /// Register a type that implements JsonSchema
-    pub fn register<T: JsonSchema>(&mut self) {
-        let schema = schemars::schema_for!(T);
-        let name = T::schema_name().to_string();
-        self.schemas.insert(name, schema);
-    }
-
-    /// Register a type with a custom name
-    #[allow(dead_code)]
-    pub fn register_with_name(&mut self, name: String, schema: Schema) {
-        self.schemas.insert(name, schema);
-    }
-
-    /// Get a schema by type name
-    #[allow(dead_code)]
-    pub fn get(&self, name: &str) -> Option<&Schema> {
-        self.schemas.get(name)
-    }
-
-    /// Get all registered type names
-    #[allow(dead_code)]
-    pub fn type_names(&self) -> Vec<String> {
-        self.schemas.keys().cloned().collect()
-    }
-
-    /// Get all schemas
-    pub fn all_schemas(&self) -> &BTreeMap<String, Schema> {
-        &self.schemas
+        map
     }
 }
 

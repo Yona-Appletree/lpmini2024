@@ -4,6 +4,8 @@ use alloc::string::String;
 use alloc::vec::Vec;
 use core::fmt;
 
+use lp_alloc::AllocLimitError;
+
 use crate::shared::{Span, Type};
 
 /// Comprehensive compilation error
@@ -92,8 +94,8 @@ impl fmt::Display for ParseError {
     }
 }
 
-impl From<lp_pool::AllocError> for ParseError {
-    fn from(e: lp_pool::AllocError) -> Self {
+impl From<AllocLimitError> for ParseError {
+    fn from(e: AllocLimitError) -> Self {
         use alloc::format;
         ParseError {
             kind: ParseErrorKind::AllocationFailed(format!("{}", e)),
@@ -204,8 +206,8 @@ impl From<TypeError> for CompileError {
     }
 }
 
-impl From<lp_pool::AllocError> for CompileError {
-    fn from(e: lp_pool::AllocError) -> Self {
+impl From<AllocLimitError> for CompileError {
+    fn from(e: AllocLimitError) -> Self {
         use alloc::format;
         CompileError::Codegen(CodegenError {
             kind: CodegenErrorKind::AllocationFailed(format!("{}", e)),

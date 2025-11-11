@@ -1,4 +1,4 @@
-use lp_pool::LpBox;
+use alloc::boxed::Box;
 
 /// While loop parsing
 use crate::compiler::ast::{Stmt, StmtKind};
@@ -23,7 +23,7 @@ impl Parser {
         let result = Ok(Stmt::new(
             StmtKind::While {
                 condition,
-                body: LpBox::try_new(body)?,
+                body: Box::new(body),
             },
             Span::new(start, end),
         ));

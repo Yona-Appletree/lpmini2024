@@ -14,7 +14,7 @@ use crate::vm::{FunctionDef as VmFunctionDef, LocalVarDef, ParamDef};
 /// Generate code for a single user-defined function
 ///
 /// This is the core function generation logic using the pool-based API.
-/// It handles parameter allocation, function body code generation, and metadata conversion.
+/// It handles parameter allocation, function body code generation, and types conversion.
 pub fn gen_user_function(
     ast_func: &AstFunctionDef,
     func_table: &FunctionTable,
@@ -22,10 +22,10 @@ pub fn gen_user_function(
 ) -> VmFunctionDef {
     let mut func_code = Vec::new();
 
-    // Get pre-analyzed metadata for this function
+    // Get pre-analyzed types for this function
     let metadata: &FunctionMetadata = func_table
         .lookup(&ast_func.name)
-        .expect("Function should have metadata from analysis pass");
+        .expect("Function should have types from analysis pass");
 
     // Create a fresh LocalAllocator and allocate parameters
     // This must match the order used in the analyzer
@@ -62,7 +62,7 @@ pub fn gen_user_function(
         }
     }
 
-    // Convert to VmFunctionDef using metadata
+    // Convert to VmFunctionDef using types
     let params_defs: Vec<ParamDef> = ast_func
         .params
         .iter()

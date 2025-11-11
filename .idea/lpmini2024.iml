@@ -22,6 +22,10 @@
       <sourceFolder url="file://$MODULE_DIR$/crates/lp-math/src" isTestSource="false" />
       <sourceFolder url="file://$MODULE_DIR$/crates/lp-pool/src" isTestSource="false" />
       <sourceFolder url="file://$MODULE_DIR$/crates/lpcore/src" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/crates/lp-alloc/src" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/tools/lints/lp_pool_lint/src" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/tools/lints/lp_pool_std_alloc/src" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/tools/migrations/lp-pool-to-alloc/src" isTestSource="false" />
       <excludeFolder url="file://$MODULE_DIR$/node_modules" />
       <excludeFolder url="file://$MODULE_DIR$/target" />
     </content>

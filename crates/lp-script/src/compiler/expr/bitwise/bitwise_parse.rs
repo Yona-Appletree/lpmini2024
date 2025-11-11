@@ -1,4 +1,4 @@
-use lp_pool::LpBox;
+use alloc::boxed::Box;
 
 /// Bitwise operator parsing (&, |, ^, ~, <<, >>)
 use crate::compiler::ast::{Expr, ExprKind};
@@ -19,7 +19,7 @@ impl Parser {
             let right = self.bitwise_xor()?;
             let end = right.span.end;
             expr = Expr::new(
-                ExprKind::BitwiseOr(LpBox::try_new(expr)?, LpBox::try_new(right)?),
+                ExprKind::BitwiseOr(Box::new(expr), Box::new(right)),
                 Span::new(start, end),
             );
         }
@@ -39,7 +39,7 @@ impl Parser {
             let right = self.bitwise_and()?;
             let end = right.span.end;
             expr = Expr::new(
-                ExprKind::BitwiseXor(LpBox::try_new(expr)?, LpBox::try_new(right)?),
+                ExprKind::BitwiseXor(Box::new(expr), Box::new(right)),
                 Span::new(start, end),
             );
         }
@@ -59,7 +59,7 @@ impl Parser {
             let right = self.equality()?;
             let end = right.span.end;
             expr = Expr::new(
-                ExprKind::BitwiseAnd(LpBox::try_new(expr)?, LpBox::try_new(right)?),
+                ExprKind::BitwiseAnd(Box::new(expr), Box::new(right)),
                 Span::new(start, end),
             );
         }
@@ -81,7 +81,7 @@ impl Parser {
                     let right = self.additive()?;
                     let end = right.span.end;
                     expr = Expr::new(
-                        ExprKind::LeftShift(LpBox::try_new(expr)?, LpBox::try_new(right)?),
+                        ExprKind::LeftShift(Box::new(expr), Box::new(right)),
                         Span::new(start, end),
                     );
                 }
@@ -90,7 +90,7 @@ impl Parser {
                     let right = self.additive()?;
                     let end = right.span.end;
                     expr = Expr::new(
-                        ExprKind::RightShift(LpBox::try_new(expr)?, LpBox::try_new(right)?),
+                        ExprKind::RightShift(Box::new(expr), Box::new(right)),
                         Span::new(start, end),
                     );
                 }

@@ -210,6 +210,24 @@ mod tests {
         let zf = z.frac();
         let result = perlin3_single(x, y, z);
         let _f = result.to_f32();
+
+        assert!(
+            xi < 256 && yi < 256 && zi < 256,
+            "indices must remain within table"
+        );
+        assert!(
+            xf >= Fixed::ZERO
+                && xf <= Fixed::ONE
+                && yf >= Fixed::ZERO
+                && yf <= Fixed::ONE
+                && zf >= Fixed::ZERO
+                && zf <= Fixed::ONE
+        );
+        let f = result.to_f32();
+        assert!(
+            f >= -1.0 && f <= 1.0,
+            "perlin3_single should remain normalized"
+        );
     }
 
     #[test]
@@ -229,6 +247,11 @@ mod tests {
         let g = grad(1, 1i32.to_fixed(), 1i32.to_fixed(), 1i32.to_fixed());
         // Grad can be zero for some hashes, but test a few
         let g2 = grad(5, 1i32.to_fixed(), 0i32.to_fixed(), 0i32.to_fixed());
+
+        assert!(
+            g.to_f32().abs() <= 1.5 && g2.to_f32().abs() <= 1.5,
+            "gradient outputs should stay bounded"
+        );
     }
 
     #[test]

@@ -1,0 +1,117 @@
+//! Dynamic shape implementation for Record.
+
+use alloc::string::String;
+use alloc::vec::Vec;
+
+use super::record_meta::{RecordFieldMeta, RecordFieldMetaDyn, RecordMeta, RecordMetaDyn};
+use super::record_shape::{RecordFieldShape, RecordShape};
+use crate::kind::kind::LpKind;
+use crate::kind::shape::LpShape;
+
+/// Dynamic field in a record shape.
+///
+/// Allocated in lp-pool.
+pub struct RecordFieldDyn {
+    /// Field name.
+    pub name: String,
+
+    /// Shape of the field's value.
+    pub shape: &'static dyn LpShape,
+
+    /// Field metadata.
+    pub meta: RecordFieldMetaDyn,
+}
+
+impl RecordFieldShape for RecordFieldDyn {
+    fn name(&self) -> &str {
+        self.name.as_str()
+    }
+
+    fn shape(&self) -> &'static dyn LpShape {
+        self.shape
+    }
+
+    fn meta(&self) -> &dyn RecordFieldMeta {
+        &self.meta
+    }
+}
+
+/// Dynamic record shape.
+///
+/// Allocated in lp-pool.
+pub struct RecordShapeDyn {
+    /// Metadata for this record shape.
+    pub meta: RecordMetaDyn,
+
+    /// Fields in this record.
+    pub fields: Vec<RecordFieldDyn>,
+}
+
+impl RecordShapeDyn {
+    pub fn new() -> Self {
+        Self {
+            meta: RecordMetaDyn {
+                name: String::new(),
+                docs: None,
+            },
+            fields: Vec::new(),
+        }
+    }
+}
+
+impl Default for RecordShapeDyn {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+impl LpShape for RecordShapeDyn {
+    fn kind(&self) -> LpKind {
+        LpKind::Record
+    }
+}
+
+impl RecordShape for RecordShapeDyn {
+    fn meta(&self) -> &dyn RecordMeta {
+        &self.meta as &dyn RecordMeta
+    }
+
+    fn field_count(&self) -> usize {
+        self.fields.len()
+    }
+
+    fn get_field(&self, index: usize) -> Option<&dyn RecordFieldShape> {
+        self.fields.get(index).map(|f| f as &dyn RecordFieldShape)
+    }
+
+    fn find_field(&self, name: &str) -> Option<&dyn RecordFieldShape> {
+        self.fields
+            .iter()
+            .find(|f| f.name.as_str() == name)
+            .map(|f| f as &dyn RecordFieldShape)
+    }
+}
+
+impl Clone for RecordFieldDyn {
+    fn clone(&self) -> Self {
+        RecordFieldDyn {
+            name: self.name.clone(),
+            shape: self.shape,
+            meta: RecordFieldMetaDyn {
+                docs: self.meta.docs.clone(),
+            },
+        }
+    }
+}
+
+impl Clone for RecordShapeDyn {
+    fn clone(&self) -> Self {
+        RecordShapeDyn {
+            meta: RecordMetaDyn {
+                name: self.meta.name.clone(),
+                docs: self.meta.docs.clone(),
+            },
+            fields: self.fields.clone(),
+        }
+    }
+}

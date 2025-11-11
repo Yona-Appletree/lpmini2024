@@ -4,10 +4,9 @@
 /// Helper functions for building expected AST expressions in tests using the
 /// new recursive `LpBox`-backed AST.
 extern crate alloc;
+use alloc::boxed::Box;
 use alloc::string::String;
 use alloc::vec::Vec;
-
-use lp_pool::LpBox;
 
 use crate::compiler::ast::{Expr, ExprKind, Stmt, StmtKind};
 use crate::shared::{Span, Type};
@@ -257,7 +256,7 @@ impl AstBuilder {
     // ---------------------------------------------------------------------
     fn binary<F>(&mut self, make_kind: F, left: Expr, right: Expr, ty: Option<Type>) -> Expr
     where
-        F: FnOnce(LpBox<Expr>, LpBox<Expr>) -> ExprKind,
+        F: FnOnce(Box<Expr>, Box<Expr>) -> ExprKind,
     {
         let kind = make_kind(self.box_expr(left), self.box_expr(right));
         self.expr_with_type(kind, ty)
@@ -265,7 +264,7 @@ impl AstBuilder {
 
     fn unary<F>(&mut self, make_kind: F, value: Expr, ty: Option<Type>) -> Expr
     where
-        F: FnOnce(LpBox<Expr>) -> ExprKind,
+        F: FnOnce(Box<Expr>) -> ExprKind,
     {
         let kind = make_kind(self.box_expr(value));
         self.expr_with_type(kind, ty)
@@ -277,7 +276,7 @@ impl AstBuilder {
         expr
     }
 
-    fn box_expr(&mut self, expr: Expr) -> LpBox<Expr> {
-        LpBox::try_new(expr).expect("LpBox allocation failed in AstBuilder")
+    fn box_expr(&mut self, expr: Expr) -> Box<Expr> {
+        Box::new(expr)
     }
 }

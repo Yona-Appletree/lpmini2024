@@ -2,8 +2,8 @@
 ///
 /// These tests verify the multi-pass compilation architecture:
 /// 1. Parse: AST construction
-/// 2. Analyze: Build function metadata table (signatures + locals)
-/// 3. Type Check: Validate types using metadata (includes return type validation)
+/// 2. Analyze: Build function types table (signatures + locals)
+/// 3. Type Check: Validate types using types (includes return type validation)
 /// 4. Codegen: Generate bytecode using pre-analyzed locals
 ///
 /// Key features tested:
@@ -17,13 +17,6 @@
 mod tests {
     extern crate alloc;
 
-    use alloc::boxed::Box;
-    use core::ptr::NonNull;
-    use std::cell::RefCell;
-    use std::thread_local;
-
-    use lp_pool::LpMemoryPool;
-
     use crate::compiler::analyzer::FunctionAnalyzer;
     use crate::compiler::ast::Program;
     use crate::compiler::codegen::CodeGenerator;
@@ -34,30 +27,7 @@ mod tests {
     use crate::shared::Type;
     use crate::{compile_script_with_options, OptimizeOptions};
 
-    thread_local! {
-        static THREAD_POOL_STATE: RefCell<Option<&'static mut [u8]>> = const { RefCell::new(None) };
-    }
-
-    fn ensure_pool() {
-        const POOL_SIZE: usize = 512 * 1024;
-
-        THREAD_POOL_STATE.with(|state| {
-            if state.borrow().is_none() {
-                let boxed = vec![0u8; POOL_SIZE].into_boxed_slice();
-                let leaked = Box::leak(boxed);
-                let memory_ptr = NonNull::new(leaked.as_mut_ptr())
-                    .expect("pool memory pointer must be non-null");
-                unsafe {
-                    LpMemoryPool::new(memory_ptr, POOL_SIZE).expect("failed to initialize lp-pool");
-                }
-                state.borrow_mut().replace(leaked);
-            }
-        });
-    }
-
     fn parse_and_analyze(source: &str) -> (Program, FunctionTable) {
-        ensure_pool();
-
         let mut lexer = Lexer::new(source);
         let tokens = lexer.tokenize();
         let parser = Parser::new(tokens);

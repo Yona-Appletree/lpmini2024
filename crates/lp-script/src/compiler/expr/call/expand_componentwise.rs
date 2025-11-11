@@ -3,10 +3,9 @@
 /// Transforms function calls on vectors into component-wise scalar calls.
 /// For example: `sin(vec2(a, b))` becomes `vec2(sin(vec2(a, b).x), sin(vec2(a, b).y))`
 extern crate alloc;
+use alloc::boxed::Box;
 use alloc::string::String;
 use alloc::vec::Vec;
-
-use lp_pool::LpBox;
 
 use crate::compiler::ast::{Expr, ExprKind};
 use crate::shared::{Span, Type};
@@ -74,7 +73,7 @@ pub(crate) fn expand_componentwise_call(name: &str, args: &[Expr], span: Span) -
                     // Clone the arg for the swizzle
                     Expr::new(
                         ExprKind::Swizzle {
-                            expr: LpBox::try_new(arg.clone()).ok()?,
+                            expr: Box::new(arg.clone()),
                             components: String::from(component),
                         },
                         span,

@@ -1,26 +1,30 @@
+mod enum_value;
+mod lp_value;
+mod record_value;
+mod schema;
+
 use proc_macro::TokenStream;
-use quote::quote;
-use syn::{parse_macro_input, DeriveInput};
 
-/// Derive macro for LP data types
-///
-/// This macro derives `JsonSchema` from schemars and optionally
-/// `Serialize` and `Deserialize` from serde.
-///
-/// It also supports `#[lpschema(...)]` attributes that map to schemars metadata.
-#[proc_macro_derive(LpDataType, attributes(lpschema))]
-pub fn lp_data_type_derive(input: TokenStream) -> TokenStream {
-    let input = parse_macro_input!(input as DeriveInput);
+/// Derive macro for LP schema types.
+#[proc_macro_derive(LpSchema, attributes(lp))]
+pub fn lp_schema_derive(input: TokenStream) -> TokenStream {
+    schema::derive(input)
+}
 
-    // Add JsonSchema to the existing derives
-    // For now, we just ensure JsonSchema is derived - in the future we can process
-    // #[lpschema(...)] attributes to map to schemars metadata
-    // All Data variants (Struct, Enum, Union) are handled the same way
+/// Derive macro for LpValue trait.
+#[proc_macro_derive(LpValue, attributes(lp))]
+pub fn lp_value_derive(input: TokenStream) -> TokenStream {
+    lp_value::derive(input)
+}
 
-    // Just pass through the input unchanged for now
-    // Users should include JsonSchema in their derive list
-    quote! {
-        #input
-    }
-    .into()
+/// Derive macro for RecordValue trait.
+#[proc_macro_derive(RecordValue, attributes(lp))]
+pub fn record_value_derive(input: TokenStream) -> TokenStream {
+    record_value::derive(input)
+}
+
+/// Derive macro for EnumValue trait.
+#[proc_macro_derive(EnumValue, attributes(lp))]
+pub fn enum_value_derive(input: TokenStream) -> TokenStream {
+    enum_value::derive(input)
 }

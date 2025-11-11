@@ -43,6 +43,7 @@ pub enum LpsVmError {
         depth: usize,
     },
     InvalidFunctionIndex,
+    PoolAllocationFailed,
 }
 
 impl LpsVmError {
@@ -127,7 +128,16 @@ impl fmt::Display for LpsVmError {
             LpsVmError::InvalidFunctionIndex => {
                 write!(f, "Invalid function index")
             }
+            LpsVmError::PoolAllocationFailed => {
+                write!(f, "Failed to allocate memory from LpPool")
+            }
         }
+    }
+}
+
+impl From<lp_alloc::AllocLimitError> for LpsVmError {
+    fn from(_: lp_alloc::AllocLimitError) -> Self {
+        LpsVmError::PoolAllocationFailed
     }
 }
 

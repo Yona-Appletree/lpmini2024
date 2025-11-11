@@ -1,4 +1,4 @@
-use lp_pool::LpBox;
+use alloc::boxed::Box;
 
 /// Comparison operator parsing (<, >, <=, >=, ==, !=)
 use crate::compiler::ast::{Expr, ExprKind};
@@ -21,7 +21,7 @@ impl Parser {
                     let right = self.relational()?;
                     let end = right.span.end;
                     expr = Expr::new(
-                        ExprKind::Eq(LpBox::try_new(expr)?, LpBox::try_new(right)?),
+                        ExprKind::Eq(Box::new(expr), Box::new(right)),
                         Span::new(start, end),
                     );
                 }
@@ -30,7 +30,7 @@ impl Parser {
                     let right = self.relational()?;
                     let end = right.span.end;
                     expr = Expr::new(
-                        ExprKind::NotEq(LpBox::try_new(expr)?, LpBox::try_new(right)?),
+                        ExprKind::NotEq(Box::new(expr), Box::new(right)),
                         Span::new(start, end),
                     );
                 }
@@ -55,7 +55,7 @@ impl Parser {
                     let right = self.shift()?;
                     let end = right.span.end;
                     expr = Expr::new(
-                        ExprKind::Less(LpBox::try_new(expr)?, LpBox::try_new(right)?),
+                        ExprKind::Less(Box::new(expr), Box::new(right)),
                         Span::new(start, end),
                     );
                 }
@@ -64,7 +64,7 @@ impl Parser {
                     let right = self.shift()?;
                     let end = right.span.end;
                     expr = Expr::new(
-                        ExprKind::Greater(LpBox::try_new(expr)?, LpBox::try_new(right)?),
+                        ExprKind::Greater(Box::new(expr), Box::new(right)),
                         Span::new(start, end),
                     );
                 }
@@ -73,7 +73,7 @@ impl Parser {
                     let right = self.shift()?;
                     let end = right.span.end;
                     expr = Expr::new(
-                        ExprKind::LessEq(LpBox::try_new(expr)?, LpBox::try_new(right)?),
+                        ExprKind::LessEq(Box::new(expr), Box::new(right)),
                         Span::new(start, end),
                     );
                 }
@@ -82,7 +82,7 @@ impl Parser {
                     let right = self.shift()?;
                     let end = right.span.end;
                     expr = Expr::new(
-                        ExprKind::GreaterEq(LpBox::try_new(expr)?, LpBox::try_new(right)?),
+                        ExprKind::GreaterEq(Box::new(expr), Box::new(right)),
                         Span::new(start, end),
                     );
                 }

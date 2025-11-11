@@ -1,4 +1,4 @@
-use lp_pool::LpBox;
+use alloc::boxed::Box;
 
 /// Ternary expression parsing
 use crate::compiler::ast::{Expr, ExprKind};
@@ -25,9 +25,9 @@ impl Parser {
 
                 expr = Expr::new(
                     ExprKind::Ternary {
-                        condition: LpBox::try_new(expr)?,
-                        true_expr: LpBox::try_new(true_expr)?,
-                        false_expr: LpBox::try_new(false_expr)?,
+                        condition: Box::new(expr),
+                        true_expr: Box::new(true_expr),
+                        false_expr: Box::new(false_expr),
                     },
                     Span::new(start, end),
                 );

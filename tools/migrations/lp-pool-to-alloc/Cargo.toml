@@ -1,0 +1,13 @@
+[package]
+name = "lp-pool-to-alloc"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "lp-pool-to-alloc"
+path = "src/main.rs"
+
+[dependencies]
+clap = { version = "4.0", features = ["derive"] }
+walkdir = "2.0"
+

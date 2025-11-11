@@ -1,4 +1,4 @@
-use lp_pool::LpBox;
+use alloc::boxed::Box;
 
 /// Assignment expression parsing
 use crate::compiler::ast::{Expr, ExprKind};
@@ -30,7 +30,7 @@ impl Parser {
                     Ok(Expr::new(
                         ExprKind::Assign {
                             target: name,
-                            value: LpBox::try_new(value)?,
+                            value: Box::new(value),
                         },
                         Span::new(start, end),
                     ))
@@ -62,7 +62,7 @@ impl Parser {
     /// Helper for compound assignment operators
     fn parse_compound_assignment<F>(&mut self, expr: Expr, make_op: F) -> Result<Expr, ParseError>
     where
-        F: FnOnce(LpBox<Expr>, LpBox<Expr>) -> ExprKind,
+        F: FnOnce(Box<Expr>, Box<Expr>) -> ExprKind,
     {
         if let ExprKind::Variable(name) = &expr.kind {
             let name = name.clone();
@@ -76,7 +76,7 @@ impl Parser {
             // Create the binary operation
             let end = rhs.span.end;
             let op = Expr::new(
-                make_op(LpBox::try_new(var_ref)?, LpBox::try_new(rhs)?),
+                make_op(Box::new(var_ref), Box::new(rhs)),
                 Span::new(start, end),
             );
 
@@ -84,7 +84,7 @@ impl Parser {
             Ok(Expr::new(
                 ExprKind::Assign {
                     target: name,
-                    value: LpBox::try_new(op)?,
+                    value: Box::new(op),
                 },
                 Span::new(start, end),
             ))

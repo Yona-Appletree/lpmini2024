@@ -4,9 +4,8 @@ extern crate alloc;
 use alloc::format;
 use alloc::string::String;
 use alloc::vec::Vec;
-use core::ptr::NonNull;
 
-use lp_pool::LpMemoryPool;
+use lp_alloc::init_test_allocator;
 
 use crate::compiler::ast::Expr;
 use crate::compiler::expr::expr_test_util::expr_eq_ignore_spans;
@@ -80,11 +79,7 @@ impl AstOptTest {
     }
 
     pub fn run(self) -> Result<(), String> {
-        const POOL_SIZE: usize = 512 * 1024;
-        let mut memory = vec![0u8; POOL_SIZE];
-        let memory_ptr =
-            NonNull::new(memory.as_mut_ptr()).ok_or_else(|| String::from("pool memory null"))?;
-        let pool = unsafe { LpMemoryPool::new(memory_ptr, POOL_SIZE).map_err(String::from)? };
+        init_test_allocator();
 
         let AstOptTest {
             input,
@@ -95,75 +90,70 @@ impl AstOptTest {
             y,
             time,
         } = self;
+        let mut errors = Vec::new();
 
-        pool.run(|| {
-            let mut errors = Vec::new();
-
-            // Parse input
-            let mut lexer = lexer::Lexer::new(&input);
-            let tokens = lexer.tokenize();
-            let mut parser = parser::Parser::new(tokens);
-            let mut expr = match parser.parse() {
-                Ok(expr) => expr,
-                Err(e) => {
-                    errors.push(format!("Parse error: {}", e));
-                    return Err(errors.join("\n\n"));
-                }
-            };
-
-            // Type check
-            if let Err(e) = typechecker::TypeChecker::check(&mut expr) {
-                errors.push(format!("Type check error: {}", e));
+        // Parse input
+        let mut lexer = lexer::Lexer::new(&input);
+        let tokens = lexer.tokenize();
+        let mut parser = parser::Parser::new(tokens);
+        let mut expr = match parser.parse() {
+            Ok(expr) => expr,
+            Err(e) => {
+                errors.push(format!("Parse error: {}", e));
                 return Err(errors.join("\n\n"));
             }
+        };
 
-            let mut optimized_expr = expr.clone();
+        // Type check
+        if let Err(e) = typechecker::TypeChecker::check(&mut expr) {
+            errors.push(format!("Type check error: {}", e));
+            return Err(errors.join("\n\n"));
+        }
 
-            if let Some(pass_fn) = pass {
-                pass_fn(&mut optimized_expr);
-            } else {
-                errors.push("No optimization pass specified - call .with_pass()".to_string());
-                return Err(errors.join("\n\n"));
+        let mut optimized_expr = expr.clone();
+
+        if let Some(pass_fn) = pass {
+            pass_fn(&mut optimized_expr);
+        } else {
+            errors.push("No optimization pass specified - call .with_pass()".to_string());
+            return Err(errors.join("\n\n"));
+        }
+
+        // Structural assertion
+        if let Some(builder_fn) = expected_ast_builder.take() {
+            let mut expected_builder = crate::compiler::test_ast::AstBuilder::new();
+            let expected_expr = builder_fn(&mut expected_builder);
+            if !expr_eq_ignore_spans(&optimized_expr, &expected_expr) {
+                errors.push(format!(
+                    "AST mismatch after optimization:\nExpected: {:?}\nActual:   {:?}",
+                    expected_expr, optimized_expr
+                ));
             }
+        }
 
-            // Structural assertion
-            if let Some(builder_fn) = expected_ast_builder.take() {
-                let mut expected_builder = crate::compiler::test_ast::AstBuilder::new();
-                let expected_expr = builder_fn(&mut expected_builder);
-                if !expr_eq_ignore_spans(&optimized_expr, &expected_expr) {
-                    errors.push(format!(
-                        "AST mismatch after optimization:
-Expected: {:?}
-Actual:   {:?}",
-                        expected_expr, optimized_expr
-                    ));
-                }
-            }
-
-            // Semantic preservation
-            if check_semantics {
-                match (
-                    evaluate_expr(&expr, &input, x, y, time),
-                    evaluate_expr(&optimized_expr, &input, x, y, time),
-                ) {
-                    (Ok(expected), Ok(actual)) => {
-                        if !expected.approx_eq(&actual) {
-                            errors.push(format!(
-                                "Semantic mismatch:\nExpected: {:?}\nActual:   {:?}",
-                                expected, actual
-                            ));
-                        }
+        // Semantic preservation
+        if check_semantics {
+            match (
+                evaluate_expr(&expr, &input, x, y, time),
+                evaluate_expr(&optimized_expr, &input, x, y, time),
+            ) {
+                (Ok(expected), Ok(actual)) => {
+                    if !expected.approx_eq(&actual) {
+                        errors.push(format!(
+                            "Semantic mismatch:\nExpected: {:?}\nActual:   {:?}",
+                            expected, actual
+                        ));
                     }
-                    (Err(e), _) | (_, Err(e)) => errors.push(e),
                 }
+                (Err(e), _) | (_, Err(e)) => errors.push(e),
             }
+        }
 
-            if errors.is_empty() {
-                Ok(())
-            } else {
-                Err(errors.join("\n\n"))
-            }
-        })
+        if errors.is_empty() {
+            Ok(())
+        } else {
+            Err(errors.join("\n\n"))
+        }
     }
 }
 

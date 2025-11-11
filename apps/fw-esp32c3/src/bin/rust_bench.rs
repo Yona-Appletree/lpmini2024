@@ -8,7 +8,7 @@ use engine_core::test_engine::scene::SceneRuntime;
 use engine_core::test_engine::RuntimeOptions;
 use esp_hal::clock::CpuClock;
 use esp_hal::timer::systimer::SystemTimer;
-use lp_script::fixed::{Fixed, ToFixed};
+use lp_script::fixed::ToFixed;
 use panic_rtt_target as _;
 
 esp_bootloader_esp_idf::esp_app_desc!();

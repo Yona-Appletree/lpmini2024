@@ -1,3 +1,5 @@
+use alloc::format;
+use alloc::string::String;
 use alloc::vec::Vec;
 
 use crate::fixed::{Fixed, Vec2, Vec3, Vec4};
@@ -25,7 +27,7 @@ impl<'a> LpsVm<'a> {
         // Pre-allocate locals storage for frame-based allocation
         // Estimate: 32 i32s per frame * 64 max frames = 2048 i32s
         let local_capacity = 32 * limits.max_call_stack_depth;
-        let mut locals = LocalStack::new(local_capacity);
+        let mut locals = LocalStack::try_new(local_capacity)?;
 
         // Allocate main function's locals (function 0)
         if let Some(main_fn) = program.main_function() {
@@ -34,10 +36,10 @@ impl<'a> LpsVm<'a> {
 
         Ok(LpsVm {
             program,
-            stack: ValueStack::new(limits.max_stack_size),
+            stack: ValueStack::try_new(limits.max_stack_size)?,
             pc: 0,
             locals,
-            call_stack: CallStack::new(limits.max_call_stack_depth),
+            call_stack: CallStack::try_new(limits.max_call_stack_depth)?,
             limits,
             current_fn_idx: 0, // Start in main
         })
@@ -294,9 +296,7 @@ impl<'a> LpsVm<'a> {
     }
 
     /// Format a runtime error with full context
-    pub fn format_error(&self, error: &RuntimeErrorWithContext) -> alloc::string::String {
-        use alloc::format;
-
+    pub fn format_error(&self, error: &RuntimeErrorWithContext) -> String {
         let mut output = format!("{}\n", error);
         output.push_str(&format!("  at PC {} ({})\n", error.pc, error.opcode));
         output.push_str(&format!("  stack pointer: {}\n", self.stack.sp()));
@@ -310,20 +310,20 @@ impl<'a> LpsVm<'a> {
                 if i > start {
                     output.push_str(", ");
                 }
-                output.push_str(&format!("{}", Fixed(self.stack.raw_slice()[i]).to_f32()));
+                let value = Fixed(self.stack.raw_slice()[i]).to_f32();
+                output.push_str(&format!("{}", value));
             }
             output.push_str("]\n");
         }
 
         // Show source if available
-        if let Some(ref source) = self.program.source {
-            if let Some(ref source_map) = self.program.source_map {
-                if error.pc < source_map.len() {
-                    let span = source_map[error.pc];
-                    output.push_str(&format!(
-                        "  source: {}\n",
-                        &source[span.start..span.end.min(source.len())]
-                    ));
+        if let (Some(source), Some(source_map)) = (&self.program.source, &self.program.source_map) {
+            if error.pc < source_map.len() {
+                let span = source_map[error.pc];
+                let end = span.end.min(source.len());
+                if span.start < end {
+                    let snippet = &source[span.start..end];
+                    output.push_str(&format!("  source: {}\n", snippet));
                 }
             }
         }

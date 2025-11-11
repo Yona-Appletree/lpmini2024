@@ -1,100 +1,84 @@
-use alloc::collections::BTreeMap;
+//! Runtime error types for lp-data.
+
 use alloc::string::String;
-use alloc::vec::Vec;
 
-use serde::{Deserialize, Serialize};
+/// Runtime errors that can occur when working with lp-data values.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum RuntimeError {
+    /// Field not found in a record.
+    FieldNotFound {
+        /// Name of the record type.
+        record_name: String,
+        /// Name of the field that was not found.
+        field_name: String,
+    },
 
-#[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize)]
-pub struct Fixed32(pub f32);
+    /// Type mismatch when setting a field value.
+    TypeMismatch {
+        /// Expected type name.
+        expected: String,
+        /// Actual type name.
+        actual: String,
+    },
 
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
-pub struct Vec2Value {
-    pub x: Fixed32,
-    pub y: Fixed32,
+    /// Index out of bounds.
+    IndexOutOfBounds {
+        /// The index that was accessed.
+        index: usize,
+        /// The length of the collection.
+        len: usize,
+    },
 }
 
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
-pub struct Vec3Value {
-    pub x: Fixed32,
-    pub y: Fixed32,
-    pub z: Fixed32,
-}
-
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
-pub struct Vec4Value {
-    pub x: Fixed32,
-    pub y: Fixed32,
-    pub z: Fixed32,
-    pub w: Fixed32,
-}
-
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
-#[serde(tag = "kind", content = "value")]
-pub enum LpValue {
-    Int32(i32),
-    Fixed32(Fixed32),
-    Bool(bool),
-    Vec2(Vec2Value),
-    Vec3(Vec3Value),
-    Vec4(Vec4Value),
-    Struct(BTreeMap<String, LpValue>),
-    Array(Vec<LpValue>),
-    Enum { name: String, variant: String },
-}
-
-impl LpValue {
-    pub fn int32(value: i32) -> Self {
-        LpValue::Int32(value)
-    }
-
-    pub fn fixed32(value: f32) -> Self {
-        LpValue::Fixed32(Fixed32(value))
-    }
-
-    pub fn boolean(value: bool) -> Self {
-        LpValue::Bool(value)
-    }
-
-    pub fn array(values: Vec<LpValue>) -> Self {
-        LpValue::Array(values)
-    }
-
-    pub fn structure(fields: impl IntoIterator<Item = (impl Into<String>, LpValue)>) -> Self {
-        let mut map = BTreeMap::new();
-        for (key, value) in fields {
-            map.insert(key.into(), value);
-        }
-        LpValue::Struct(map)
-    }
-
-    pub fn enumeration(name: impl Into<String>, variant: impl Into<String>) -> Self {
-        LpValue::Enum {
-            name: name.into(),
-            variant: variant.into(),
+impl RuntimeError {
+    /// Helper function to create a FieldNotFound error from static strings.
+    /// Panics if allocation fails (allocation failures in error contexts are unexpected).
+    pub fn field_not_found(record_name: &str, field_name: &str) -> Self {
+        RuntimeError::FieldNotFound {
+            record_name: record_name.to_string(),
+            field_name: field_name.to_string(),
         }
     }
 
-    pub fn vec2(x: f32, y: f32) -> Self {
-        LpValue::Vec2(Vec2Value {
-            x: Fixed32(x),
-            y: Fixed32(y),
-        })
-    }
-
-    pub fn vec3(x: f32, y: f32, z: f32) -> Self {
-        LpValue::Vec3(Vec3Value {
-            x: Fixed32(x),
-            y: Fixed32(y),
-            z: Fixed32(z),
-        })
-    }
-
-    pub fn vec4(x: f32, y: f32, z: f32, w: f32) -> Self {
-        LpValue::Vec4(Vec4Value {
-            x: Fixed32(x),
-            y: Fixed32(y),
-            z: Fixed32(z),
-            w: Fixed32(w),
-        })
+    /// Helper function to create a TypeMismatch error from static strings.
+    /// Panics if allocation fails (allocation failures in error contexts are unexpected).
+    pub fn type_mismatch(expected: &str, actual: &str) -> Self {
+        RuntimeError::TypeMismatch {
+            expected: expected.to_string(),
+            actual: actual.to_string(),
+        }
     }
 }
+
+#[cfg(feature = "std")]
+impl std::fmt::Display for RuntimeError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            RuntimeError::FieldNotFound {
+                record_name,
+                field_name,
+            } => {
+                write!(
+                    f,
+                    "Field '{}' not found in record '{}'",
+                    field_name.as_str(),
+                    record_name.as_str()
+                )
+            }
+            RuntimeError::TypeMismatch { expected, actual } => {
+                write!(
+                    f,
+                    "Type mismatch: expected '{}', got '{}'",
+                    expected.as_str(),
+                    actual.as_str()
+                )
+            }
+            RuntimeError::IndexOutOfBounds { index, len } => {
+                write!(f, "Index {} out of bounds for length {}", index, len)
+            }
+        }
+    }
+}
+
+#[cfg(feature = "std")]
+impl std::error::Error for RuntimeError {}

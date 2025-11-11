@@ -1,4 +1,4 @@
-use lp_pool::LpBox;
+use alloc::boxed::Box;
 
 /// If statement parsing
 use crate::compiler::ast::{Stmt, StmtKind};
@@ -22,7 +22,7 @@ impl Parser {
         let else_stmt = if matches!(self.current().kind, TokenKind::Else) {
             self.advance(); // consume 'else'
             let stmt = self.parse_stmt()?;
-            Some(LpBox::try_new(stmt)?)
+            Some(Box::new(stmt))
         } else {
             None
         };
@@ -35,7 +35,7 @@ impl Parser {
         let result = Ok(Stmt::new(
             StmtKind::If {
                 condition,
-                then_stmt: LpBox::try_new(then_stmt)?,
+                then_stmt: Box::new(then_stmt),
                 else_stmt,
             },
             Span::new(start, end),

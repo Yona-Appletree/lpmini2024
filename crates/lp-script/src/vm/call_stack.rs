@@ -1,14 +1,12 @@
-/// Call stack management for LPS VM function calls
-extern crate alloc;
-use alloc::vec;
 use alloc::vec::Vec;
 
+/// Call stack management for LPS VM function calls
 use super::error::LpsVmError;
 
 /// Call frame for function calls
 ///
 /// Tracks where to return and how to restore the locals allocation state.
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, Default)]
 pub struct CallFrame {
     pub return_pc: usize,         // PC to return to
     pub return_fn_idx: usize,     // Function index to return to
@@ -34,22 +32,26 @@ impl CallStack {
     ///
     /// # Arguments
     /// * `max_depth` - Maximum call depth (e.g., 64)
-    pub fn new(max_depth: usize) -> Self {
-        CallStack {
-            frames: vec![
-                CallFrame {
-                    return_pc: 0,
-                    return_fn_idx: 0,
-                    frame_base: 0,
-                    locals_restore_sp: 0,
-                };
-                max_depth
-            ],
+    pub fn try_new(max_depth: usize) -> Result<Self, LpsVmError> {
+        let mut frames = Vec::new();
+        if max_depth > 0 {
+            frames.reserve(max_depth);
+            for _ in 0..max_depth {
+                frames.push(CallFrame::default());
+            }
+        }
+
+        Ok(CallStack {
+            frames,
             depth: 0,
             max_depth,
             frame_base: 0,
             current_fn_idx: 0,
-        }
+        })
+    }
+
+    pub fn new(max_depth: usize) -> Self {
+        Self::try_new(max_depth).expect("call stack allocation failed")
     }
 
     /// Reset the call stack for a new execution

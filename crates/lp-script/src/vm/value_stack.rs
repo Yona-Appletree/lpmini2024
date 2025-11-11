@@ -18,12 +18,23 @@ pub struct ValueStack {
 
 impl ValueStack {
     /// Create a new stack with the given maximum size
-    pub fn new(max_size: usize) -> Self {
-        ValueStack {
-            data: vec![0; max_size],
+    pub fn try_new(max_size: usize) -> Result<Self, LpsVmError> {
+        let data = if max_size > 0 {
+            vec![0; max_size]
+        } else {
+            Vec::new()
+        };
+
+        Ok(ValueStack {
+            data,
             sp: 0,
             max_size,
-        }
+        })
+    }
+
+    /// Create a new stack and panic if allocation fails.
+    pub fn new(max_size: usize) -> Self {
+        Self::try_new(max_size).expect("value stack allocation failed")
     }
 
     /// Reset the stack pointer to 0
@@ -41,13 +52,13 @@ impl ValueStack {
     /// Get raw slice access (read-only)
     #[inline(always)]
     pub fn raw_slice(&self) -> &[i32] {
-        &self.data
+        self.data.as_slice()
     }
 
     /// Get mutable raw slice access
     #[inline(always)]
     pub fn raw_slice_mut(&mut self) -> &mut [i32] {
-        &mut self.data
+        self.data.as_mut_slice()
     }
 
     /// Get current stack contents as Vec<Fixed>
@@ -56,7 +67,13 @@ impl ValueStack {
     /// This allocates a new Vec - use sparingly.
     #[inline(always)]
     pub fn to_vec_fixed(&self) -> Vec<Fixed> {
-        self.data[0..self.sp].iter().map(|&i| Fixed(i)).collect()
+        self.data
+            .as_slice()
+            .iter()
+            .take(self.sp)
+            .copied()
+            .map(Fixed)
+            .collect()
     }
 
     // === Basic push/pop for single values ===

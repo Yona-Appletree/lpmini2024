@@ -18,7 +18,7 @@ pub(crate) struct LocalVarInfo {
     pub(crate) index: u32,
 }
 
-/// Function metadata including signature and local variables
+/// Function types including signature and local variables
 #[derive(Debug, Clone)]
 pub(crate) struct FunctionMetadata {
     pub(crate) params: Vec<Type>,
@@ -43,7 +43,7 @@ impl FunctionTable {
         }
     }
 
-    /// Declare a function with full metadata (params, return type, locals)
+    /// Declare a function with full types (params, return type, locals)
     pub(crate) fn declare_with_metadata(
         &mut self,
         name: String,
@@ -56,7 +56,7 @@ impl FunctionTable {
         Ok(())
     }
 
-    /// Get function metadata
+    /// Get function types
     pub(crate) fn lookup(&self, name: &str) -> Option<&FunctionMetadata> {
         self.functions.get(name)
     }

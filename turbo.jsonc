@@ -22,13 +22,13 @@
         "check:prettier",
         "check:typescript",
         "check:svelte",
-        "check:prettier"
+        "check:rust"
       ]
     },
 
     // Test: unit tests, storybook tests, etc...
     "test": {
-      "dependsOn": ["test:vitest"]
+      "dependsOn": ["test:vitest", "//#test:rust"]
     },
 
     // E2E: end-to-end tests that should be run against an environment.
@@ -41,7 +41,7 @@
 
     // Validate: run locally before committing to ensure correctness.
     "validate": {
-      "dependsOn": ["//#fix", "//#check", "check", "test"]
+      "dependsOn": ["//#fix", "//#check", "//#test", "//#build", "check", "test"]
     },
 
     // Pre-commit: run before committing to ensure the code is in a good state.
@@ -116,6 +116,10 @@
       ],
       "cache": true
     },
+    "check:rust": {
+      "dependsOn": ["//#check:rust:fmt", "//#check:rust:clippy"],
+      "cache": true
+    },
 
     // =============================================================================================
     // Test tasks
@@ -184,6 +188,11 @@
       "cache": true
     },
 
+    // Build
+    "//#build": {
+      "dependsOn": ["//#build:rust:fw-esp32c3"]
+    },
+
     // Fix
     "//#fix": {
       "dependsOn": ["//#fix:syncpack-mismatches", "//#fix:syncpack-format", "//#fix:prettier"],
@@ -202,6 +211,36 @@
     },
     "//#fix:syncpack-mismatches": {},
     "//#fix:syncpack-format": {},
+
+    // Test
+    "//#test": {
+      "dependsOn": ["//#test:rust"]
+    },
+
+    // Rust root tasks
+    "//#check:rust:fmt": {
+      "inputs": ["Cargo.toml", "Cargo.lock", "**/*.rs", "rust-toolchain.toml", "rustfmt.toml"],
+      "cache": true
+    },
+    "//#check:rust:clippy": {
+      "inputs": ["Cargo.toml", "Cargo.lock", "**/*.rs", "rust-toolchain.toml"],
+      "cache": true
+    },
+    "//#test:rust": {
+      "inputs": ["Cargo.toml", "Cargo.lock", "**/*.rs", "rust-toolchain.toml"],
+      "cache": true
+    },
+    "//#build:rust:fw-esp32c3": {
+      "inputs": [
+        "Cargo.toml",
+        "Cargo.lock",
+        "apps/fw-esp32c3/**",
+        "crates/**/*.rs",
+        "rust-toolchain.toml"
+      ],
+      "outputs": ["target/riscv32imc-unknown-none-elf/release/**"],
+      "cache": true
+    },
 
     // Other
     "//#install-playwright": {
