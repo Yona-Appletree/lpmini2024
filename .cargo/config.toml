@@ -1,4 +1,4 @@
 [alias]
 profile = "run --bin profile --package lp-debug"
 demo = "run --bin visualizer --package lp-debug"
-
+flash="run --package fw-esp32c3 --bin fw-esp32c3"
