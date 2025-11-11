@@ -46,3 +46,9 @@ debug = false
 [profile.dev.package.fw-esp32c3]
 opt-level = "z"
 debug = true
+
+# Patch esp-hal to use vendor copy that fixes portable-atomic feature issue
+# The vendor copy removes unsafe-assume-single-core from esp32c3 feature
+# since riscv32imc-unknown-none-elf supports atomic operations
+[patch.crates-io]
+esp-hal = { path = "vendor/esp-hal" }

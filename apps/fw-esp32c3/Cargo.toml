@@ -78,7 +78,6 @@ static_cell = "2.1.1"
 trouble-host = { version = "0.1.0", features = ["gatt"] }
 cfg-if = "1.0.3"
 smart-leds = "0.4.0"
-portable-atomic = { version = "1.11.1", features = ["critical-section"] }
 
 # Need 0.16.0 which isn't released yet, which support esp-hal rc0
 # See https://github.com/esp-rs/esp-hal-community/pull/34
@@ -95,17 +94,3 @@ embedded-test = { version = "0.6.0", features = [
     "embassy",
     "external-executor",
 ] }
-
-[profile.dev]
-# Rust debug is too slow.
-# For debug builds always builds with some optimization
-opt-level = "s"
-
-[profile.release]
-codegen-units = 1     # LLVM can perform better optimizations using a single thread
-debug = 2
-debug-assertions = false
-incremental = false
-lto = 'fat'
-opt-level = 's'
-overflow-checks = false
