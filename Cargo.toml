@@ -47,8 +47,16 @@ debug = false
 opt-level = "z"
 debug = true
 
-# Patch esp-hal to use vendor copy that fixes portable-atomic feature issue
-# The vendor copy removes unsafe-assume-single-core from esp32c3 feature
-# since riscv32imc-unknown-none-elf supports atomic operations
-[patch.crates-io]
-esp-hal = { path = "vendor/esp-hal" }
+[profile.release.package.fw-esp32c3]
+codegen-units = 1     # LLVM can perform better optimizations using a single thread
+debug = 2
+debug-assertions = false
+incremental = false
+opt-level = 's'
+overflow-checks = false
+
+# Force portable-atomic to not use unsafe-assume-single-core feature
+# The riscv32imc-unknown-none-elf target supports atomic operations, so this feature is incompatible
+# This works by ensuring our explicit dependency (with default-features = false) takes precedence
+[workspace.dependencies]
+portable-atomic-override = { package = "portable-atomic", version = "1.11.1", default-features = false }
