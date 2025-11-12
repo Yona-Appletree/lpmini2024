@@ -21,6 +21,9 @@ pub enum LpKind {
     /// 4D vector (Vec4)
     Vec4,
 
+    /// 3x3 matrix (Mat3)
+    Mat3,
+
     /// Record (struct-like composite type)
     Record,
 

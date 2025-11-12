@@ -68,6 +68,7 @@ fn lp_shape_to_zod(
         LpKind::Vec2 => "z.tuple([z.number(), z.number()])".to_string(),
         LpKind::Vec3 => "z.tuple([z.number(), z.number(), z.number()])".to_string(),
         LpKind::Vec4 => "z.tuple([z.number(), z.number(), z.number(), z.number()])".to_string(),
+        LpKind::Mat3 => "z.tuple([z.number(), z.number(), z.number(), z.number(), z.number(), z.number(), z.number(), z.number(), z.number()])".to_string(),
         LpKind::Record => {
             // SAFETY: We know this is a Record because kind() returned Record
             // Shapes are 'static, so transmuting the reference is safe

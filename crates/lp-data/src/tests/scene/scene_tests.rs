@@ -10,7 +10,7 @@ use alloc::boxed::Box;
 use alloc::string::String;
 
 use lp_alloc::{enter_global_alloc_allowance, init_test_allocator, AllocLimitError as AllocError};
-use lp_math::fixed::{Fixed, ToFixed, Vec2, Vec3, Vec4};
+use lp_math::fixed::{Fixed, Mat3, ToFixed, Vec2, Vec3, Vec4};
 
 use crate::kind::record::record_value::RecordValue;
 use crate::kind::record::RecordValueDyn;
@@ -46,6 +46,7 @@ fn build_demo_scene() -> Result<RecordValueDyn, AllocError> {
         position: Vec2::new(Fixed::ZERO, Fixed::ZERO),
         rotation: Vec3::new(Fixed::ZERO, Fixed::ZERO, Fixed::ZERO),
         color: Vec4::new(Fixed::ZERO, Fixed::ZERO, Fixed::ZERO, Fixed::ZERO),
+        transform: Mat3::identity(),
         steps: vec![StepConfig::Expr {
             output: Fixed::ZERO,
             param_count: 0,
@@ -79,6 +80,7 @@ fn test_record_metadata() {
         position: Vec2::new(Fixed::ZERO, Fixed::ZERO),
         rotation: Vec3::new(Fixed::ZERO, Fixed::ZERO, Fixed::ZERO),
         color: Vec4::new(Fixed::ZERO, Fixed::ZERO, Fixed::ZERO, Fixed::ZERO),
+        transform: Mat3::identity(),
         steps: vec![StepConfig::Palette {
             size: 256,
             brightness: Fixed::ONE,
@@ -94,6 +96,11 @@ fn test_record_metadata() {
         meta.name(),
         "TestNodeConfig",
         "TestNodeConfig should have name 'TestNodeConfig'"
+    );
+    assert_eq!(
+        record_shape.field_count(),
+        11,
+        "TestNodeConfig should have 11 fields"
     );
 
     let test_node = TestNode::new(test_config);
@@ -158,8 +165,8 @@ fn test_scene_traversal() {
                     let config_shape = RecordValue::shape(config_record);
                     assert_eq!(
                         config_shape.field_count(),
-                        10,
-                        "TestNodeConfig should have 10 fields"
+                        11,
+                        "TestNodeConfig should have 11 fields"
                     );
                     if let Some(waveform_field) = config_shape.find_field("waveform") {
                         // Verify waveform field exists
@@ -197,6 +204,7 @@ fn test_scene_traversal() {
         "      position: Vec2(0, 0)",
         "      rotation: Vec3(0, 0, 0)",
         "      color: Vec4(0, 0, 0, 0)",
+        "      transform: Mat3(1, 0, 0, 0, 1, 0, 0, 0, 1)",
         "      steps: Array[1]",
         "        [0]: Union(StepConfig)::Expr",
         "          value: Record(Expr)",
@@ -301,6 +309,7 @@ fn test_lfo_node_serialization() {
             0.7f32.to_fixed(),
             1.0f32.to_fixed(),
         ),
+        transform: Mat3::identity(),
         steps: vec![StepConfig::Blur {
             radius: 1.to_fixed(), // 1.0
         }],
@@ -347,6 +356,7 @@ fn test_lfo_node_deserialization() {
             0.3f32.to_fixed(),
             0.4f32.to_fixed(),
         ),
+        transform: Mat3::identity(),
         steps: vec![StepConfig::Expr {
             output: Fixed::ZERO,
             param_count: 2,
@@ -433,6 +443,7 @@ fn test_lfo_node_round_trip() {
             1.0f32.to_fixed(),
             0.5f32.to_fixed(),
         ),
+        transform: Mat3::identity(),
         steps: vec![StepConfig::Palette {
             size: 128,
             brightness: 1.5f32.to_fixed(), // 1.5
@@ -533,6 +544,7 @@ fn test_print_all_primitive_types() {
                 0.75f32.to_fixed(),
                 1.0f32.to_fixed(),
             ),
+            transform: Mat3::identity(),
             steps: vec![StepConfig::Blur {
                 radius: 2.0f32.to_fixed(), // 2.0
             }],

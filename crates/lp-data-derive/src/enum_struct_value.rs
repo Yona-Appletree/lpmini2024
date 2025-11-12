@@ -151,6 +151,8 @@ fn expand_enum_struct(input: &DeriveInput, data: &DataEnum) -> Result<TokenStrea
                         Some(quote! { Vec3 })
                     } else if is_vec4(path) {
                         Some(quote! { Vec4 })
+                    } else if is_mat3(path) {
+                        Some(quote! { Mat3 })
                     } else {
                         None
                     }
@@ -375,6 +377,14 @@ Ok(FieldShape {
     bounds: Vec::new(),
     is_enum: false,
 })
+            } else if is_mat3(path) {
+Ok(FieldShape {
+    shape_expr: quote! {
+        &crate::kind::mat3::mat3_static::MAT3_SHAPE
+    },
+    bounds: Vec::new(),
+    is_enum: false,
+})
             } else {
 // Could be either enum or record type
 let bounds = Vec::new();
@@ -401,7 +411,7 @@ Ok(FieldShape {
         }
         _ => Err(Error::new(
             ty.span(),
-            "unsupported field type; expected Fixed, Int32, Bool, Vec2, Vec3, Vec4, enum, or record types",
+            "unsupported field type; expected Fixed, Int32, Bool, Vec2, Vec3, Vec4, Mat3, enum, or record types",
         )),
     }
 }
@@ -656,6 +666,14 @@ fn is_vec4(path: &TypePath) -> bool {
         .segments
         .last()
         .map(|seg| seg.ident == "Vec4")
+        .unwrap_or(false)
+}
+
+fn is_mat3(path: &TypePath) -> bool {
+    path.path
+        .segments
+        .last()
+        .map(|seg| seg.ident == "Mat3")
         .unwrap_or(false)
 }
 

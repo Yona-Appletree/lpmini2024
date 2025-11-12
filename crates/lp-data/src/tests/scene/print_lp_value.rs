@@ -1,4 +1,4 @@
-use lp_math::fixed::{Fixed, Vec2, Vec3, Vec4};
+use lp_math::fixed::{Fixed, Mat3, Vec2, Vec3, Vec4};
 
 use crate::kind::value::{LpValue, LpValueBox, LpValueRef};
 
@@ -23,6 +23,9 @@ pub fn print_lp_value(value_box: LpValueBox, indent: usize) {
         }
         LpValueBox::Vec4(boxed) => {
             print_lp_value_ref(LpValueRef::Vec4(boxed.as_ref()), indent);
+        }
+        LpValueBox::Mat3(boxed) => {
+            print_lp_value_ref(LpValueRef::Mat3(boxed.as_ref()), indent);
         }
         LpValueBox::Record(boxed) => {
             print_lp_value_ref(LpValueRef::Record(boxed.as_ref()), indent);
@@ -62,6 +65,9 @@ pub fn print_lp_value_to_string(value_box: LpValueBox, indent: usize) -> String 
         }
         LpValueBox::Vec4(boxed) => {
             print_lp_value_ref_to_string(LpValueRef::Vec4(boxed.as_ref()), indent)
+        }
+        LpValueBox::Mat3(boxed) => {
+            print_lp_value_ref_to_string(LpValueRef::Mat3(boxed.as_ref()), indent)
         }
         LpValueBox::Record(boxed) => {
             print_lp_value_ref_to_string(LpValueRef::Record(boxed.as_ref()), indent)
@@ -137,6 +143,24 @@ fn print_lp_value_ref(value_ref: LpValueRef, indent: usize) {
                 vec4_value.y.to_f32(),
                 vec4_value.z.to_f32(),
                 vec4_value.w.to_f32()
+            );
+        }
+        LpValueRef::Mat3(mat3_ref) => {
+            let mat3_value = unsafe {
+                // SAFETY: We know this is a Mat3 because it's in the Mat3 variant
+                &*(mat3_ref as *const dyn LpValue as *const Mat3)
+            };
+            println!(
+                "Mat3({}, {}, {}, {}, {}, {}, {}, {}, {})",
+                mat3_value.m[0].to_f32(),
+                mat3_value.m[1].to_f32(),
+                mat3_value.m[2].to_f32(),
+                mat3_value.m[3].to_f32(),
+                mat3_value.m[4].to_f32(),
+                mat3_value.m[5].to_f32(),
+                mat3_value.m[6].to_f32(),
+                mat3_value.m[7].to_f32(),
+                mat3_value.m[8].to_f32()
             );
         }
         LpValueRef::Record(record_ref) => {
@@ -287,6 +311,24 @@ fn print_lp_value_ref_to_string(value_ref: LpValueRef, indent: usize) -> String 
                 vec4_value.y.to_f32(),
                 vec4_value.z.to_f32(),
                 vec4_value.w.to_f32()
+            )
+        }
+        LpValueRef::Mat3(mat3_ref) => {
+            let mat3_value = unsafe {
+                // SAFETY: We know this is a Mat3 because it's in the Mat3 variant
+                &*(mat3_ref as *const dyn LpValue as *const Mat3)
+            };
+            format!(
+                "Mat3({}, {}, {}, {}, {}, {}, {}, {}, {})\n",
+                mat3_value.m[0].to_f32(),
+                mat3_value.m[1].to_f32(),
+                mat3_value.m[2].to_f32(),
+                mat3_value.m[3].to_f32(),
+                mat3_value.m[4].to_f32(),
+                mat3_value.m[5].to_f32(),
+                mat3_value.m[6].to_f32(),
+                mat3_value.m[7].to_f32(),
+                mat3_value.m[8].to_f32()
             )
         }
         LpValueRef::Record(record_ref) => {

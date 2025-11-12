@@ -17,6 +17,7 @@ pub mod enum_struct;
 pub mod enum_unit;
 pub mod fixed;
 pub mod int32;
+pub mod mat3;
 pub mod option;
 pub mod record;
 pub mod vec2;

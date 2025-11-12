@@ -113,6 +113,8 @@ fn expand_struct(input: &DeriveInput, data: &DataStruct) -> Result<TokenStream2,
                     Some(quote! { Vec3 })
                 } else if is_vec4(path) {
                     Some(quote! { Vec4 })
+                } else if is_mat3(path) {
+                    Some(quote! { Mat3 })
                 } else {
                     None
                 }
@@ -138,7 +140,7 @@ fn expand_struct(input: &DeriveInput, data: &DataStruct) -> Result<TokenStream2,
                 where_bounds.push(quote! { #elem_ty: crate::kind::value::LpValue });
 
                 // Check if element type is likely an enum_struct (not a primitive type)
-                // Primitives: Fixed, i32, bool, Vec2, Vec3, Vec4
+                // Primitives: Fixed, i32, bool, Vec2, Vec3, Vec4, Mat3
                 let is_primitive = if let Type::Path(elem_path) = &elem_ty {
                     is_fixed(elem_path)
                         || is_i32(elem_path)
@@ -146,6 +148,7 @@ fn expand_struct(input: &DeriveInput, data: &DataStruct) -> Result<TokenStream2,
                         || is_vec2(elem_path)
                         || is_vec3(elem_path)
                         || is_vec4(elem_path)
+                        || is_mat3(elem_path)
                 } else {
                     false
                 };
@@ -710,12 +713,20 @@ fn get_field_shape_for_vec_element(
                     bounds: Vec::new(),
                     is_enum: false,
                 })
+            } else if is_mat3(path) {
+                Ok(FieldShape {
+                    shape_expr: quote! {
+                        &crate::kind::mat3::mat3_static::MAT3_SHAPE
+                    },
+                    bounds: Vec::new(),
+                    is_enum: false,
+                })
             } else if let Some(elem_ty) = extract_vec_element(path) {
                 // Vec<T> - create array shape
                 // Check if element type is an enum_struct (not a primitive)
                 let is_primitive_elem = if let Type::Path(elem_path) = &elem_ty {
                     is_fixed(elem_path) || is_i32(elem_path) || is_bool(elem_path) ||
-                    is_vec2(elem_path) || is_vec3(elem_path) || is_vec4(elem_path)
+                    is_vec2(elem_path) || is_vec3(elem_path) || is_vec4(elem_path) || is_mat3(elem_path)
                 } else {
                     false
                 };
@@ -828,7 +839,7 @@ fn get_field_shape_for_vec_element(
         }
         _ => Err(Error::new(
             ty.span(),
-            "unsupported field type; expected Fixed, Int32, Bool, Vec2, Vec3, Vec4, Vec<T>, Option<T>, enum, or record types",
+            "unsupported field type; expected Fixed, Int32, Bool, Vec2, Vec3, Vec4, Mat3, Vec<T>, Option<T>, enum, or record types",
         )),
     }
 }
@@ -870,6 +881,14 @@ fn is_vec4(path: &TypePath) -> bool {
         .segments
         .last()
         .map(|seg| seg.ident == "Vec4")
+        .unwrap_or(false)
+}
+
+fn is_mat3(path: &TypePath) -> bool {
+    path.path
+        .segments
+        .last()
+        .map(|seg| seg.ident == "Mat3")
         .unwrap_or(false)
 }
 

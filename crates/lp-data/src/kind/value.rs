@@ -22,6 +22,7 @@ pub enum LpValueBox {
     Vec2(Box<dyn LpValue>),
     Vec3(Box<dyn LpValue>),
     Vec4(Box<dyn LpValue>),
+    Mat3(Box<dyn LpValue>),
     Record(Box<dyn RecordValue>),
     EnumUnit(Box<dyn EnumUnitValue>),
     EnumStruct(Box<dyn EnumStructValue>),
@@ -41,6 +42,7 @@ pub enum LpValueRef<'a> {
     Vec2(&'a dyn LpValue),
     Vec3(&'a dyn LpValue),
     Vec4(&'a dyn LpValue),
+    Mat3(&'a dyn LpValue),
     Record(&'a dyn RecordValue),
     EnumUnit(&'a dyn EnumUnitValue),
     EnumStruct(&'a dyn EnumStructValue),
@@ -58,6 +60,7 @@ impl<'a> LpValueRef<'a> {
             LpValueRef::Vec2(v) => *v,
             LpValueRef::Vec3(v) => *v,
             LpValueRef::Vec4(v) => *v,
+            LpValueRef::Mat3(v) => *v,
             LpValueRef::Record(v) => *v as &dyn LpValue,
             LpValueRef::EnumUnit(v) => *v as &dyn LpValue,
             LpValueRef::EnumStruct(v) => *v as &dyn LpValue,
@@ -86,6 +89,7 @@ pub enum LpValueRefMut<'a> {
     Vec2(&'a mut dyn LpValue),
     Vec3(&'a mut dyn LpValue),
     Vec4(&'a mut dyn LpValue),
+    Mat3(&'a mut dyn LpValue),
     Record(&'a mut dyn RecordValue),
     EnumUnit(&'a mut dyn EnumUnitValue),
     EnumStruct(&'a mut dyn EnumStructValue),
@@ -103,6 +107,7 @@ impl<'a> LpValueRefMut<'a> {
             LpValueRefMut::Vec2(v) => *v,
             LpValueRefMut::Vec3(v) => *v,
             LpValueRefMut::Vec4(v) => *v,
+            LpValueRefMut::Mat3(v) => *v,
             LpValueRefMut::Record(v) => *v as &mut dyn LpValue,
             LpValueRefMut::EnumUnit(v) => *v as &mut dyn LpValue,
             LpValueRefMut::EnumStruct(v) => *v as &mut dyn LpValue,
@@ -123,6 +128,7 @@ impl<'a> core::ops::Deref for LpValueRefMut<'a> {
             LpValueRefMut::Vec2(v) => *v,
             LpValueRefMut::Vec3(v) => *v,
             LpValueRefMut::Vec4(v) => *v,
+            LpValueRefMut::Mat3(v) => *v,
             LpValueRefMut::Record(v) => *v as &dyn LpValue,
             LpValueRefMut::EnumUnit(v) => *v as &dyn LpValue,
             LpValueRefMut::EnumStruct(v) => *v as &dyn LpValue,
@@ -141,6 +147,7 @@ impl<'a> core::ops::DerefMut for LpValueRefMut<'a> {
             LpValueRefMut::Vec2(v) => *v,
             LpValueRefMut::Vec3(v) => *v,
             LpValueRefMut::Vec4(v) => *v,
+            LpValueRefMut::Mat3(v) => *v,
             LpValueRefMut::Record(v) => *v as &mut dyn LpValue,
             LpValueRefMut::EnumUnit(v) => *v as &mut dyn LpValue,
             LpValueRefMut::EnumStruct(v) => *v as &mut dyn LpValue,
@@ -176,6 +183,7 @@ impl serde::Serialize for LpValueBox {
                 LpValueBox::Vec2(boxed) => LpValueRef::Vec2(boxed.as_ref()),
                 LpValueBox::Vec3(boxed) => LpValueRef::Vec3(boxed.as_ref()),
                 LpValueBox::Vec4(boxed) => LpValueRef::Vec4(boxed.as_ref()),
+                LpValueBox::Mat3(boxed) => LpValueRef::Mat3(boxed.as_ref()),
                 LpValueBox::Record(boxed) => LpValueRef::Record(boxed.as_ref()),
                 LpValueBox::EnumUnit(boxed) => LpValueRef::EnumUnit(boxed.as_ref()),
                 LpValueBox::EnumStruct(boxed) => LpValueRef::EnumStruct(boxed.as_ref()),
@@ -234,6 +242,13 @@ where
             // SAFETY: We know this is a Vec4 because it's in the Vec4 variant
             let vec4_value = unsafe { &*(vec4_ref as *const dyn LpValue as *const Vec4) };
             vec4_value.serialize(serializer)
+        }
+        LpValueRef::Mat3(mat3_ref) => {
+            use lp_math::fixed::Mat3;
+            use serde::Serialize;
+            // SAFETY: We know this is a Mat3 because it's in the Mat3 variant
+            let mat3_value = unsafe { &*(mat3_ref as *const dyn LpValue as *const Mat3) };
+            mat3_value.serialize(serializer)
         }
         LpValueRef::Record(record_ref) => {
             use serde::ser::SerializeMap;

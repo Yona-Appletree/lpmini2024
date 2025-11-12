@@ -1,6 +1,6 @@
 //! Test node with all primitive types.
 
-use lp_math::fixed::{Fixed, Vec2, Vec3, Vec4};
+use lp_math::fixed::{Fixed, Mat3, Vec2, Vec3, Vec4};
 
 use crate::tests::scene::step_config::StepConfig;
 
@@ -48,6 +48,9 @@ pub struct TestNodeConfig {
 
     /// 4D color (RGBA)
     pub color: Vec4,
+
+    /// 3x3 transformation matrix
+    pub transform: Mat3,
 
     /// Array of step configurations (enum_struct type example)
     pub steps: Vec<StepConfig>,
