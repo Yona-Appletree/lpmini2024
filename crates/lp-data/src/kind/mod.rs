@@ -17,6 +17,7 @@ pub mod enum_struct;
 pub mod enum_unit;
 pub mod fixed;
 pub mod int32;
+pub mod option;
 pub mod record;
 pub mod vec2;
 pub mod vec3;
@@ -36,6 +37,11 @@ pub use enum_unit::{
     EnumUnitMeta, EnumUnitShape, EnumUnitValue, EnumUnitVariantMeta, EnumUnitVariantShape,
 };
 pub use kind::LpKind;
+// Re-export option traits and metadata from option module
+pub use option::{
+    OptionMeta, OptionMetaDyn, OptionMetaStatic, OptionShape, OptionShapeDyn, OptionShapeStatic,
+    OptionValue, OptionValueDyn,
+};
 // Re-export record traits and metadata from record module
 pub use record::record_value::RecordValue;
 pub use record::{RecordFieldMeta, RecordFieldShape, RecordShape};

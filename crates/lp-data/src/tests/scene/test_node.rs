@@ -52,6 +52,12 @@ pub struct TestNodeConfig {
     /// Step configuration (enum_struct type example)
     #[lp(enum_struct)]
     pub step_config: StepConfig,
+
+    /// Array of integer values
+    pub values: Vec<i32>,
+
+    /// Optional count field
+    pub optional_count: Option<i32>,
 }
 
 /// Runtime structure for a test node.

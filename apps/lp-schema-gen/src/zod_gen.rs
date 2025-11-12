@@ -5,6 +5,7 @@ use lp_data::kind::enum_struct::EnumStructShape;
 use lp_data::kind::enum_unit::EnumUnitShape;
 use lp_data::kind::fixed::FixedShape;
 use lp_data::kind::kind::LpKind;
+use lp_data::kind::option::OptionShape;
 use lp_data::kind::record::{RecordFieldShape, RecordShape};
 use lp_data::kind::shape::LpShape;
 
@@ -91,6 +92,12 @@ fn lp_shape_to_zod(
             let array_shape: &dyn ArrayShape = unsafe { core::mem::transmute(shape) };
             array_to_zod(array_shape, all_types)
         }
+        LpKind::Option => {
+            // SAFETY: We know this is an Option because kind() returned Option
+            // Shapes are 'static, so transmuting the reference is safe
+            let option_shape: &dyn OptionShape = unsafe { core::mem::transmute(shape) };
+            option_to_zod(option_shape, all_types)
+        }
     }
 }
 
@@ -169,6 +176,15 @@ fn array_to_zod(
     let element_shape = array_shape.element_shape();
     let element_zod = lp_shape_to_zod(element_shape, all_types);
     format!("z.array({})", element_zod)
+}
+
+fn option_to_zod(
+    option_shape: &dyn OptionShape,
+    all_types: &BTreeMap<&'static str, &dyn LpShape>,
+) -> String {
+    let inner_shape = option_shape.inner_shape();
+    let inner_zod = lp_shape_to_zod(inner_shape, all_types);
+    format!("z.nullable({})", inner_zod)
 }
 
 fn field_shape_to_zod(

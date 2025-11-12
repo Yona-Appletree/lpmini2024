@@ -28,6 +28,9 @@ pub enum RuntimeError {
         /// The length of the collection.
         len: usize,
     },
+
+    /// Attempted to access value of an Option that is None.
+    OptionIsNone,
 }
 
 impl RuntimeError {
@@ -75,6 +78,9 @@ impl std::fmt::Display for RuntimeError {
             }
             RuntimeError::IndexOutOfBounds { index, len } => {
                 write!(f, "Index {} out of bounds for length {}", index, len)
+            }
+            RuntimeError::OptionIsNone => {
+                write!(f, "Attempted to access value of Option that is None")
             }
         }
     }

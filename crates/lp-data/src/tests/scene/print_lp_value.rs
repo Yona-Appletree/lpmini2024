@@ -36,6 +36,9 @@ pub fn print_lp_value(value_box: LpValueBox, indent: usize) {
         LpValueBox::Array(boxed) => {
             print_lp_value_ref(LpValueRef::Array(boxed.as_ref()), indent);
         }
+        LpValueBox::Option(boxed) => {
+            print_lp_value_ref(LpValueRef::Option(boxed.as_ref()), indent);
+        }
     }
 }
 
@@ -71,6 +74,9 @@ pub fn print_lp_value_to_string(value_box: LpValueBox, indent: usize) -> String 
         }
         LpValueBox::Array(boxed) => {
             print_lp_value_ref_to_string(LpValueRef::Array(boxed.as_ref()), indent)
+        }
+        LpValueBox::Option(boxed) => {
+            print_lp_value_ref_to_string(LpValueRef::Option(boxed.as_ref()), indent)
         }
     }
 }
@@ -197,6 +203,27 @@ fn print_lp_value_ref(value_ref: LpValueRef, indent: usize) {
                 if let Ok(element_ref) = array_ref.get_element(i) {
                     print!("{:>indent$}  [{}]: ", "", i);
                     print_lp_value_ref(element_ref, indent + 2);
+                }
+            }
+        }
+        LpValueRef::Option(option_ref) => {
+            use crate::kind::option::option_value::OptionValue;
+            let option_name = OptionValue::shape(option_ref).meta().name();
+            if option_ref.is_some() {
+                if option_name.is_empty() {
+                    println!("Option::Some");
+                } else {
+                    println!("Option({})::Some", option_name);
+                }
+                if let Ok(value_ref) = option_ref.get_value() {
+                    print!("{:>indent$}  value: ", "");
+                    print_lp_value_ref(value_ref, indent + 2);
+                }
+            } else {
+                if option_name.is_empty() {
+                    println!("Option::None");
+                } else {
+                    println!("Option({})::None", option_name);
                 }
             }
         }
@@ -333,6 +360,30 @@ fn print_lp_value_ref_to_string(value_ref: LpValueRef, indent: usize) -> String 
                 if let Ok(element_ref) = array_ref.get_element(i) {
                     output.push_str(&format!("{:>indent$}  [{}]: ", "", i));
                     output.push_str(&print_lp_value_ref_to_string(element_ref, indent + 2));
+                }
+            }
+            output
+        }
+        LpValueRef::Option(option_ref) => {
+            use crate::kind::option::option_value::OptionValue;
+            let option_name = OptionValue::shape(option_ref).meta().name();
+            let mut output = if option_ref.is_some() {
+                if option_name.is_empty() {
+                    "Option::Some\n".to_string()
+                } else {
+                    format!("Option({})::Some\n", option_name)
+                }
+            } else {
+                if option_name.is_empty() {
+                    "Option::None\n".to_string()
+                } else {
+                    format!("Option({})::None\n", option_name)
+                }
+            };
+            if option_ref.is_some() {
+                if let Ok(value_ref) = option_ref.get_value() {
+                    output.push_str(&format!("{:>indent$}  value: ", ""));
+                    output.push_str(&print_lp_value_ref_to_string(value_ref, indent + 2));
                 }
             }
             output

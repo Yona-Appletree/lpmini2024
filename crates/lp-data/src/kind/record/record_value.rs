@@ -70,6 +70,7 @@ impl<'a> LpValueRef<'a> {
             LpValueRef::EnumUnit(_) => None,
             LpValueRef::EnumStruct(_) => None,
             LpValueRef::Array(_) => None,
+            LpValueRef::Option(_) => None,
         }
     }
 }
@@ -88,6 +89,7 @@ impl<'a> LpValueRefMut<'a> {
             LpValueRefMut::EnumUnit(_) => None,
             LpValueRefMut::EnumStruct(_) => None,
             LpValueRefMut::Array(_) => None,
+            LpValueRefMut::Option(_) => None,
         }
     }
 }

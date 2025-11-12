@@ -1,34 +1,35 @@
-//! Dynamic enum struct value implementation.
+//! Dynamic Option value implementation.
 
-use super::enum_struct_dyn::EnumStructShapeDyn;
-use super::enum_struct_value::EnumStructValue;
-use crate::kind::enum_struct::enum_struct_shape::EnumStructShape;
+use super::option_dyn::OptionShapeDyn;
+use super::option_value::OptionValue;
+use crate::kind::option::option_shape::OptionShape;
 use crate::kind::shape::LpShape;
 use crate::kind::value::{LpValue, LpValueBox, LpValueRef, LpValueRefMut};
 use crate::RuntimeError;
 
-/// Dynamic enum struct value.
+/// Dynamic Option value.
 ///
-/// Stores a single active variant and its value using `LpValueBox`.
-pub struct EnumStructValueDyn {
-    /// The shape of this enum struct.
-    shape: EnumStructShapeDyn,
+/// Stores either Some(value) or None.
+pub struct OptionValueDyn {
+    /// The shape of this Option.
+    shape: OptionShapeDyn,
 
-    /// Index of the active variant.
-    variant_index: usize,
-
-    /// Value of the active variant.
-    value: LpValueBox,
+    /// The value if Some, None if this Option is None.
+    value: Option<LpValueBox>,
 }
 
-impl EnumStructValueDyn {
-    /// Create a new dynamic enum struct value.
-    pub fn new(shape: EnumStructShapeDyn, variant_index: usize, value: LpValueBox) -> Self {
+impl OptionValueDyn {
+    /// Create a new Option value with Some(value).
+    pub fn some(shape: OptionShapeDyn, value: LpValueBox) -> Self {
         Self {
             shape,
-            variant_index,
-            value,
+            value: Some(value),
         }
+    }
+
+    /// Create a new Option value with None.
+    pub fn none(shape: OptionShapeDyn) -> Self {
+        Self { shape, value: None }
     }
 
     fn lp_value_ref(value: &LpValueBox) -> LpValueRef<'_> {
@@ -64,40 +65,32 @@ impl EnumStructValueDyn {
     }
 }
 
-impl LpValue for EnumStructValueDyn {
+impl LpValue for OptionValueDyn {
     fn shape(&self) -> &dyn LpShape {
         &self.shape
     }
 }
 
-impl EnumStructValue for EnumStructValueDyn {
-    fn shape(&self) -> &dyn EnumStructShape {
+impl OptionValue for OptionValueDyn {
+    fn shape(&self) -> &dyn OptionShape {
         &self.shape
     }
 
-    fn variant_index(&self) -> usize {
-        self.variant_index
+    fn is_some(&self) -> bool {
+        self.value.is_some()
     }
 
-    fn variant_value(&self) -> Result<LpValueRef<'_>, RuntimeError> {
-        let len = self.shape.variant_count();
-        if self.variant_index >= len {
-            return Err(RuntimeError::IndexOutOfBounds {
-                index: self.variant_index,
-                len,
-            });
-        }
-        Ok(Self::lp_value_ref(&self.value))
+    fn get_value(&self) -> Result<LpValueRef<'_>, RuntimeError> {
+        self.value
+            .as_ref()
+            .map(Self::lp_value_ref)
+            .ok_or_else(|| RuntimeError::OptionIsNone)
     }
 
-    fn variant_value_mut(&mut self) -> Result<LpValueRefMut<'_>, RuntimeError> {
-        let len = self.shape.variant_count();
-        if self.variant_index >= len {
-            return Err(RuntimeError::IndexOutOfBounds {
-                index: self.variant_index,
-                len,
-            });
-        }
-        Ok(Self::lp_value_ref_mut(&mut self.value))
+    fn get_value_mut(&mut self) -> Result<LpValueRefMut<'_>, RuntimeError> {
+        self.value
+            .as_mut()
+            .map(Self::lp_value_ref_mut)
+            .ok_or_else(|| RuntimeError::OptionIsNone)
     }
 }

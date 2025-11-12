@@ -32,4 +32,7 @@ pub enum LpKind {
 
     /// Array (homogeneous collection of elements)
     Array,
+
+    /// Option (optional value: Some(T) or None)
+    Option,
 }

@@ -50,6 +50,8 @@ fn build_demo_scene() -> Result<RecordValueDyn, AllocError> {
             output: Fixed::ZERO,
             param_count: 0,
         },
+        values: vec![1, 2, 3, 4, 5],
+        optional_count: Some(100),
     });
 
     // Convert TestNode to LpValueBox
@@ -81,6 +83,8 @@ fn test_record_metadata() {
             size: 256,
             brightness: Fixed::ONE,
         },
+        values: vec![],
+        optional_count: None,
     };
 
     use crate::kind::record::record_value::RecordValue;
@@ -154,8 +158,8 @@ fn test_scene_traversal() {
                     let config_shape = RecordValue::shape(config_record);
                     assert_eq!(
                         config_shape.field_count(),
-                        8,
-                        "TestNodeConfig should have 8 fields"
+                        10,
+                        "TestNodeConfig should have 10 fields"
                     );
                     if let Some(waveform_field) = config_shape.find_field("waveform") {
                         // Verify waveform field exists
@@ -197,6 +201,14 @@ fn test_scene_traversal() {
         "        value: Record(Expr)",
         "          output: Fixed(0)",
         "          param_count: Int32(0)",
+        "      values: Array[5]",
+        "        [0]: Int32(1)",
+        "        [1]: Int32(2)",
+        "        [2]: Int32(3)",
+        "        [3]: Int32(4)",
+        "        [4]: Int32(5)",
+        "      optional_count: Option::Some",
+        "        value: Int32(100)",
         "    output: Fixed(0)",
     ];
 
@@ -291,6 +303,8 @@ fn test_lfo_node_serialization() {
         step_config: StepConfig::Blur {
             radius: 1.to_fixed(), // 1.0
         },
+        values: vec![10, 20],
+        optional_count: Some(50),
     });
 
     // Serialize to JSON
@@ -336,6 +350,8 @@ fn test_lfo_node_deserialization() {
             output: Fixed::ZERO,
             param_count: 2,
         },
+        values: vec![1, 2, 3],
+        optional_count: Some(200),
     });
 
     // Serialize and deserialize
@@ -420,6 +436,8 @@ fn test_lfo_node_round_trip() {
             size: 128,
             brightness: 1.5f32.to_fixed(), // 1.5
         },
+        values: vec![5, 10, 15, 20],
+        optional_count: Some(300),
     });
 
     // Round-trip through JSON
@@ -517,6 +535,8 @@ fn test_print_all_primitive_types() {
             step_config: StepConfig::Blur {
                 radius: 2.0f32.to_fixed(), // 2.0
             },
+            values: vec![100],
+            optional_count: None,
         });
 
         let test_boxed: Box<dyn RecordValue> = Box::new(test_node);
