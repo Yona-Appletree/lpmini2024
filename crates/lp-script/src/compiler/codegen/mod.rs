@@ -37,7 +37,7 @@ impl<'a> CodeGenerator<'a> {
     }
 
     /// Generate opcodes for an expression (expression mode)
-    pub fn generate(expr: &Expr) -> Vec<LpsOpCode> {
+    pub fn generate(expr: &Expr) -> Result<Vec<LpsOpCode>, crate::compiler::error::CodegenError> {
         Self::generate_with_locals(expr, Vec::new())
     }
 
@@ -48,7 +48,7 @@ impl<'a> CodeGenerator<'a> {
     pub fn generate_with_locals(
         expr: &Expr,
         predeclared: Vec<(String, u32, crate::shared::Type)>,
-    ) -> Vec<LpsOpCode> {
+    ) -> Result<Vec<LpsOpCode>, crate::compiler::error::CodegenError> {
         let mut code = Vec::new();
         let mut locals = LocalAllocator::new();
         let func_offsets = BTreeMap::new(); // Empty for expression mode
@@ -64,23 +64,23 @@ impl<'a> CodeGenerator<'a> {
         }
 
         let mut gen = CodeGenerator::new(&mut code, &mut locals, &func_offsets);
-        gen.gen_expr(expr);
+        gen.gen_expr(expr)?;
         gen.code.push(LpsOpCode::Return);
 
-        code
+        Ok(code)
     }
 
     /// Generate functions for a program (new API with FunctionTable)
     pub fn generate_program_with_functions(
         program: &Program,
         func_table: &crate::compiler::func::FunctionTable,
-    ) -> Vec<crate::vm::FunctionDef> {
+    ) -> Result<Vec<crate::vm::FunctionDef>, crate::compiler::error::CodegenError> {
         program::gen_program_with_functions(
             program,
             func_table,
             |stmt, code, locals, func_offsets| {
                 let mut gen = CodeGenerator::new(code, locals, func_offsets);
-                gen.gen_stmt(stmt);
+                gen.gen_stmt(stmt)
             },
         )
     }

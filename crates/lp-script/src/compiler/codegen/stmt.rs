@@ -3,24 +3,25 @@ extern crate alloc;
 
 use super::CodeGenerator;
 use crate::compiler::ast::Stmt;
+use crate::compiler::error::CodegenError;
 
 impl<'a> CodeGenerator<'a> {
     // Statement code generation - main dispatcher
-    pub(crate) fn gen_stmt(&mut self, stmt: &Stmt) {
+    pub(crate) fn gen_stmt(&mut self, stmt: &Stmt) -> Result<(), CodegenError> {
         use crate::compiler::ast::StmtKind;
 
         match &stmt.kind {
             StmtKind::VarDecl { ty, name, init } => {
-                self.gen_var_decl(ty, name, init.as_ref());
+                self.gen_var_decl(ty, name, init.as_ref())?;
             }
             StmtKind::Return(expr) => {
-                self.gen_return(expr);
+                self.gen_return(expr)?;
             }
             StmtKind::Expr(expr) => {
-                self.gen_expr_stmt(expr);
+                self.gen_expr_stmt(expr)?;
             }
             StmtKind::Block(stmts) => {
-                self.gen_block(stmts);
+                self.gen_block(stmts)?;
             }
             StmtKind::If {
                 condition,
@@ -31,10 +32,10 @@ impl<'a> CodeGenerator<'a> {
                     condition,
                     then_stmt.as_ref(),
                     else_stmt.as_ref().map(|s| s.as_ref()),
-                );
+                )?;
             }
             StmtKind::While { condition, body } => {
-                self.gen_while_stmt(condition, body.as_ref());
+                self.gen_while_stmt(condition, body.as_ref())?;
             }
             StmtKind::For {
                 init,
@@ -47,8 +48,9 @@ impl<'a> CodeGenerator<'a> {
                     condition.as_ref(),
                     increment.as_ref(),
                     body.as_ref(),
-                );
+                )?;
             }
         }
+        Ok(())
     }
 }

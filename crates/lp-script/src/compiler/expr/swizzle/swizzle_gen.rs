@@ -4,13 +4,18 @@ use alloc::vec::Vec;
 
 use crate::compiler::ast::Expr;
 use crate::compiler::codegen::CodeGenerator;
+use crate::compiler::error::CodegenError;
 use crate::shared::Type;
 use crate::vm::opcodes::LpsOpCode;
 
 impl<'a> CodeGenerator<'a> {
-    pub(crate) fn gen_swizzle(&mut self, expr: &Expr, components: &str) {
+    pub(crate) fn gen_swizzle(
+        &mut self,
+        expr: &Expr,
+        components: &str,
+    ) -> Result<(), CodegenError> {
         // Generate the base expression (leaves vector components on stack)
-        self.gen_expr(expr);
+        self.gen_expr(expr)?;
 
         // Generate swizzle opcodes based on component string
         let source_type = expr.ty.as_ref().unwrap();
@@ -23,6 +28,7 @@ impl<'a> CodeGenerator<'a> {
 
         // Call the helper function
         gen_swizzle_opcodes(components, source_size, self.code);
+        Ok(())
     }
 }
 

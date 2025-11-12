@@ -204,7 +204,8 @@ fn evaluate_expr(
     time: Fixed,
 ) -> Result<EvalResult, String> {
     let return_type = expr.ty.clone().unwrap_or(Type::Fixed);
-    let opcodes = codegen::CodeGenerator::generate(expr);
+    let opcodes =
+        codegen::CodeGenerator::generate(expr).map_err(|e| format!("Codegen error: {}", e))?;
     let program = LpsProgram::new(source.into())
         .with_functions(vec![
             FunctionDef::new("main".into(), return_type.clone()).with_opcodes(opcodes)

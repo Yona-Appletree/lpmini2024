@@ -55,7 +55,8 @@ mod tests {
 
         TypeChecker::check_program(&mut program, &func_table).expect("type check should succeed");
 
-        let functions = CodeGenerator::generate_program_with_functions(&program, &func_table);
+        let functions = CodeGenerator::generate_program_with_functions(&program, &func_table)
+            .expect("codegen should succeed");
         assert_eq!(functions.len(), 2); // main + getPi
         assert_eq!(functions[0].name, "main");
         assert_eq!(functions[1].name, "getPi");
@@ -78,7 +79,8 @@ mod tests {
 
         TypeChecker::check_program(&mut program, &func_table).expect("type check should succeed");
 
-        let _functions = CodeGenerator::generate_program_with_functions(&program, &func_table);
+        let _functions = CodeGenerator::generate_program_with_functions(&program, &func_table)
+            .expect("codegen should succeed");
     }
 
     #[test]
@@ -108,7 +110,8 @@ mod tests {
 
         TypeChecker::check_program(&mut program, &func_table).expect("type check should succeed");
 
-        let functions = CodeGenerator::generate_program_with_functions(&program, &func_table);
+        let functions = CodeGenerator::generate_program_with_functions(&program, &func_table)
+            .expect("codegen should succeed");
         let calc_func = functions.iter().find(|f| f.name == "calculate").unwrap();
         assert_eq!(calc_func.locals.len(), 3);
     }
@@ -132,7 +135,8 @@ mod tests {
 
         TypeChecker::check_program(&mut program, &func_table).expect("type check should succeed");
 
-        let _functions = CodeGenerator::generate_program_with_functions(&program, &func_table);
+        let _functions = CodeGenerator::generate_program_with_functions(&program, &func_table)
+            .expect("codegen should succeed");
     }
 
     #[test]
@@ -218,7 +222,8 @@ mod tests {
 
         TypeChecker::check_program(&mut program, &func_table).expect("type check should succeed");
 
-        let functions = CodeGenerator::generate_program_with_functions(&program, &func_table);
+        let functions = CodeGenerator::generate_program_with_functions(&program, &func_table)
+            .expect("codegen should succeed");
         assert_eq!(functions.len(), 3); // main + double + triple
     }
 

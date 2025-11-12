@@ -264,7 +264,7 @@ impl ExprTest {
             optimize::optimize_ast_expr(&mut expr, options);
         }
 
-        let mut opcodes = if !declared_locals.is_empty() {
+        let opcodes_result = if !declared_locals.is_empty() {
             let predeclared: Vec<(String, u32, Type)> = declared_locals
                 .iter()
                 .enumerate()
@@ -273,6 +273,14 @@ impl ExprTest {
             codegen::CodeGenerator::generate_with_locals(&expr, predeclared)
         } else {
             codegen::CodeGenerator::generate(&expr)
+        };
+
+        let mut opcodes = match opcodes_result {
+            Ok(code) => code,
+            Err(e) => {
+                errors.push(format!("Codegen error: {}", e));
+                return Err(errors.join("\n\n"));
+            }
         };
 
         if let Some(ref options) = optimize_options {

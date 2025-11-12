@@ -9,6 +9,8 @@ pub(in crate::compiler) use binary_types::check_binary_arithmetic;
 #[cfg(test)]
 mod binary_fixed_tests;
 #[cfg(test)]
+mod binary_gen_tests;
+#[cfg(test)]
 mod binary_int32_tests;
 #[cfg(test)]
 mod binary_mat3_tests;

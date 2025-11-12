@@ -6,6 +6,7 @@ use alloc::vec::Vec;
 
 use crate::compiler::ast::FunctionDef as AstFunctionDef;
 use crate::compiler::codegen::{CodeGenerator, LocalAllocator};
+use crate::compiler::error::CodegenError;
 use crate::compiler::func::{FunctionMetadata, FunctionTable};
 use crate::shared::Type;
 use crate::vm::opcodes::LpsOpCode;
@@ -19,7 +20,7 @@ pub fn gen_user_function(
     ast_func: &AstFunctionDef,
     func_table: &FunctionTable,
     function_indices: &BTreeMap<String, u32>,
-) -> VmFunctionDef {
+) -> Result<VmFunctionDef, CodegenError> {
     let mut func_code = Vec::new();
 
     // Get pre-analyzed types for this function
@@ -50,7 +51,7 @@ pub fn gen_user_function(
     // Generate function body
     let mut gen = CodeGenerator::new(&mut func_code, &mut locals, function_indices);
     for stmt in &ast_func.body {
-        gen.gen_stmt(stmt);
+        gen.gen_stmt(stmt)?;
     }
 
     // Add return if missing
@@ -76,8 +77,10 @@ pub fn gen_user_function(
         .map(|local_info| LocalVarDef::new(local_info.name.clone(), local_info.ty.clone()))
         .collect();
 
-    VmFunctionDef::new(ast_func.name.clone(), ast_func.return_type.clone())
-        .with_params(params_defs)
-        .with_locals(local_defs)
-        .with_opcodes(func_code)
+    Ok(
+        VmFunctionDef::new(ast_func.name.clone(), ast_func.return_type.clone())
+            .with_params(params_defs)
+            .with_locals(local_defs)
+            .with_opcodes(func_code),
+    )
 }

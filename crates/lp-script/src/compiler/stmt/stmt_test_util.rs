@@ -292,7 +292,13 @@ impl ScriptTest {
         }
 
         let functions =
-            codegen::CodeGenerator::generate_program_with_functions(&program, &func_table);
+            match codegen::CodeGenerator::generate_program_with_functions(&program, &func_table) {
+                Ok(funcs) => funcs,
+                Err(e) => {
+                    errors.push(format!("Codegen error: {}", e));
+                    return Err(errors.join("\n\n"));
+                }
+            };
         let optimize_options = OptimizeOptions::none();
         let vm_functions: Vec<FunctionDef> = functions
             .into_iter()
