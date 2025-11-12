@@ -24,7 +24,7 @@ fn expand(input: &DeriveInput) -> Result<TokenStream2, Error> {
         Data::Enum(data) => expand_enum(input, data),
         Data::Union(_) => Err(Error::new(
             input.ident.span(),
-            "LpSchema derive does not support unions",
+            "LpSchema derive does not support enum_structs",
         )),
     }
 }

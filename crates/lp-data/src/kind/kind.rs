@@ -25,7 +25,8 @@ pub enum LpKind {
     Record,
 
     /// EnumUnit (simple unit enum with no fields)
-    ///
-    /// Note: Union (discriminated unions with fields) is planned for future work.
     EnumUnit,
+
+    /// EnumStruct (discriminated union with per-variant shapes and values)
+    EnumStruct,
 }

@@ -1,5 +1,6 @@
 use std::collections::BTreeMap;
 
+use lp_data::kind::enum_struct::EnumStructShape;
 use lp_data::kind::enum_unit::EnumUnitShape;
 use lp_data::kind::fixed::FixedShape;
 use lp_data::kind::kind::LpKind;
@@ -77,6 +78,12 @@ fn lp_shape_to_zod(
             let enum_shape: &dyn EnumUnitShape = unsafe { core::mem::transmute(shape) };
             enum_to_zod(enum_shape, all_types)
         }
+        LpKind::EnumStruct => {
+            // SAFETY: We know this is an EnumStruct because kind() returned EnumStruct
+            // Shapes are 'static, so transmuting the reference is safe
+            let enum_struct_shape: &dyn EnumStructShape = unsafe { core::mem::transmute(shape) };
+            enum_struct_to_zod(enum_struct_shape, all_types)
+        }
     }
 }
 
@@ -119,6 +126,32 @@ fn enum_to_zod(
         "z.never()".to_string()
     } else {
         format!("z.enum([{}])", variants.join(", "))
+    }
+}
+
+fn enum_struct_to_zod(
+    enum_struct_shape: &dyn EnumStructShape,
+    all_types: &BTreeMap<&'static str, &dyn LpShape>,
+) -> String {
+    let mut variants = Vec::new();
+
+    for i in 0..enum_struct_shape.variant_count() {
+        if let Some(variant_shape) = enum_struct_shape.get_variant(i) {
+            let variant_name = variant_shape.name();
+            // Each variant has a record shape
+            let variant_record_shape = variant_shape.shape();
+            let variant_zod = lp_shape_to_zod(variant_record_shape, all_types);
+            variants.push(format!(
+                "  z.object({{ {}: z.literal('{}'), ...{} }}).passthrough()",
+                variant_name, variant_name, variant_zod
+            ));
+        }
+    }
+
+    if variants.is_empty() {
+        "z.never()".to_string()
+    } else {
+        format!("z.union([\n{}\n])", variants.join(",\n"))
     }
 }
 

@@ -50,7 +50,7 @@ fn expand_enum_unit(input: &DeriveInput, data: &DataEnum) -> Result<TokenStream2
         if !matches!(variant.fields, syn::Fields::Unit) {
             return Err(Error::new(
                 variant.span(),
-                "EnumValue derive only supports unit variants (no fields). Use Union for variants with fields (future work).",
+                "EnumValue derive only supports unit variants (no fields). Use EnumStruct for variants with fields (future work).",
             ));
         }
     }

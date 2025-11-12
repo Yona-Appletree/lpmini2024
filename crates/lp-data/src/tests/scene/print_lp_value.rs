@@ -30,6 +30,9 @@ pub fn print_lp_value(value_box: LpValueBox, indent: usize) {
         LpValueBox::EnumUnit(boxed) => {
             print_lp_value_ref(LpValueRef::EnumUnit(boxed.as_ref()), indent);
         }
+        LpValueBox::EnumStruct(boxed) => {
+            print_lp_value_ref(LpValueRef::EnumStruct(boxed.as_ref()), indent);
+        }
     }
 }
 
@@ -59,6 +62,9 @@ pub fn print_lp_value_to_string(value_box: LpValueBox, indent: usize) -> String 
         }
         LpValueBox::EnumUnit(boxed) => {
             print_lp_value_ref_to_string(LpValueRef::EnumUnit(boxed.as_ref()), indent)
+        }
+        LpValueBox::EnumStruct(boxed) => {
+            print_lp_value_ref_to_string(LpValueRef::EnumStruct(boxed.as_ref()), indent)
         }
     }
 }
@@ -151,6 +157,24 @@ fn print_lp_value_ref(value_ref: LpValueRef, indent: usize) {
                 }
             } else {
                 println!("EnumUnit({})", enum_name);
+            }
+        }
+        LpValueRef::EnumStruct(union_ref) => {
+            use crate::kind::enum_struct::enum_struct_value::EnumStructValue;
+            let union_name = EnumStructValue::shape(union_ref).meta().name();
+            if let Ok(variant_name) = union_ref.variant_name() {
+                if union_name.is_empty() {
+                    println!("Union::{}", variant_name);
+                } else {
+                    println!("Union({})::{}", union_name, variant_name);
+                }
+                // Print the variant's value
+                if let Ok(variant_value) = union_ref.variant_value() {
+                    print!("{:>indent$}  value: ", "");
+                    print_lp_value_ref(variant_value, indent + 2);
+                }
+            } else {
+                println!("Union({})", union_name);
             }
         }
     }
@@ -252,6 +276,25 @@ fn print_lp_value_ref_to_string(value_ref: LpValueRef, indent: usize) -> String 
             } else {
                 format!("EnumUnit({})\n", enum_name)
             }
+        }
+        LpValueRef::EnumStruct(union_ref) => {
+            use crate::kind::enum_struct::enum_struct_value::EnumStructValue;
+            let union_name = EnumStructValue::shape(union_ref).meta().name();
+            let mut output = if let Ok(variant_name) = union_ref.variant_name() {
+                if union_name.is_empty() {
+                    format!("Union::{}\n", variant_name)
+                } else {
+                    format!("Union({})::{}\n", union_name, variant_name)
+                }
+            } else {
+                format!("Union({})\n", union_name)
+            };
+            // Print the variant's value
+            if let Ok(variant_value) = union_ref.variant_value() {
+                output.push_str(&format!("{:>indent$}  value: ", ""));
+                output.push_str(&print_lp_value_ref_to_string(variant_value, indent + 2));
+            }
+            output
         }
     }
 }

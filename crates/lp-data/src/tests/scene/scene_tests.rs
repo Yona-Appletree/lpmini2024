@@ -2,6 +2,7 @@
 use crate::kind::record::record_dyn::RecordShapeDyn;
 use crate::kind::value::LpValueBox;
 use crate::tests::scene::print_lp_value::print_lp_value_to_string;
+use crate::tests::scene::step_config::StepConfig;
 use crate::tests::scene::test_node::{LfoWaveform, TestNode, TestNodeConfig};
 
 extern crate alloc;
@@ -13,7 +14,6 @@ use lp_math::fixed::{Fixed, ToFixed, Vec2, Vec3, Vec4};
 
 use crate::kind::record::record_value::RecordValue;
 use crate::kind::record::RecordValueDyn;
-
 struct TestPool;
 
 impl TestPool {
@@ -46,6 +46,10 @@ fn build_demo_scene() -> Result<RecordValueDyn, AllocError> {
         position: Vec2::new(Fixed::ZERO, Fixed::ZERO),
         rotation: Vec3::new(Fixed::ZERO, Fixed::ZERO, Fixed::ZERO),
         color: Vec4::new(Fixed::ZERO, Fixed::ZERO, Fixed::ZERO, Fixed::ZERO),
+        step_config: StepConfig::Expr {
+            output: Fixed::ZERO,
+            param_count: 0,
+        },
     });
 
     // Convert TestNode to LpValueBox
@@ -73,6 +77,10 @@ fn test_record_metadata() {
         position: Vec2::new(Fixed::ZERO, Fixed::ZERO),
         rotation: Vec3::new(Fixed::ZERO, Fixed::ZERO, Fixed::ZERO),
         color: Vec4::new(Fixed::ZERO, Fixed::ZERO, Fixed::ZERO, Fixed::ZERO),
+        step_config: StepConfig::Palette {
+            size: 256,
+            brightness: Fixed::ONE,
+        },
     };
 
     use crate::kind::record::record_value::RecordValue;
@@ -146,8 +154,8 @@ fn test_scene_traversal() {
                     let config_shape = RecordValue::shape(config_record);
                     assert_eq!(
                         config_shape.field_count(),
-                        7,
-                        "TestNodeConfig should have 7 fields"
+                        8,
+                        "TestNodeConfig should have 8 fields"
                     );
                     if let Some(waveform_field) = config_shape.find_field("waveform") {
                         // Verify waveform field exists
@@ -185,6 +193,10 @@ fn test_scene_traversal() {
         "      position: Vec2(0, 0)",
         "      rotation: Vec3(0, 0, 0)",
         "      color: Vec4(0, 0, 0, 0)",
+        "      step_config: Union(StepConfig)::Expr",
+        "        value: Record(Expr)",
+        "          output: Fixed(0)",
+        "          param_count: Int32(0)",
         "    output: Fixed(0)",
     ];
 
@@ -276,6 +288,9 @@ fn test_lfo_node_serialization() {
             0.7f32.to_fixed(),
             1.0f32.to_fixed(),
         ),
+        step_config: StepConfig::Blur {
+            radius: 1.to_fixed(), // 1.0
+        },
     });
 
     // Serialize to JSON
@@ -317,6 +332,10 @@ fn test_lfo_node_deserialization() {
             0.3f32.to_fixed(),
             0.4f32.to_fixed(),
         ),
+        step_config: StepConfig::Expr {
+            output: Fixed::ZERO,
+            param_count: 2,
+        },
     });
 
     // Serialize and deserialize
@@ -397,6 +416,10 @@ fn test_lfo_node_round_trip() {
             1.0f32.to_fixed(),
             0.5f32.to_fixed(),
         ),
+        step_config: StepConfig::Palette {
+            size: 128,
+            brightness: 1.5f32.to_fixed(), // 1.5
+        },
     });
 
     // Round-trip through JSON
@@ -491,6 +514,9 @@ fn test_print_all_primitive_types() {
                 0.75f32.to_fixed(),
                 1.0f32.to_fixed(),
             ),
+            step_config: StepConfig::Blur {
+                radius: 2.0f32.to_fixed(), // 2.0
+            },
         });
 
         let test_boxed: Box<dyn RecordValue> = Box::new(test_node);

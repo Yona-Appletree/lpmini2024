@@ -2,6 +2,8 @@
 
 use lp_math::fixed::{Fixed, Vec2, Vec3, Vec4};
 
+use crate::tests::scene::step_config::StepConfig;
+
 /// LFO waveform shape enumeration
 #[derive(
     Debug,
@@ -46,6 +48,10 @@ pub struct TestNodeConfig {
 
     /// 4D color (RGBA)
     pub color: Vec4,
+
+    /// Step configuration (enum_struct type example)
+    #[lp(enum_struct)]
+    pub step_config: StepConfig,
 }
 
 /// Runtime structure for a test node.
