@@ -1,6 +1,6 @@
 use std::collections::BTreeMap;
 
-use lp_data::kind::enum_::EnumShape;
+use lp_data::kind::enum_unit::EnumUnitShape;
 use lp_data::kind::fixed::FixedShape;
 use lp_data::kind::kind::LpKind;
 use lp_data::kind::record::{RecordFieldShape, RecordShape};
@@ -71,10 +71,10 @@ fn lp_shape_to_zod(
             let record_shape: &dyn RecordShape = unsafe { core::mem::transmute(shape) };
             record_to_zod(record_shape, all_types)
         }
-        LpKind::Enum => {
+        LpKind::EnumUnit => {
             // SAFETY: We know this is an Enum because kind() returned Enum
             // Shapes are 'static, so transmuting the reference is safe
-            let enum_shape: &dyn EnumShape = unsafe { core::mem::transmute(shape) };
+            let enum_shape: &dyn EnumUnitShape = unsafe { core::mem::transmute(shape) };
             enum_to_zod(enum_shape, all_types)
         }
     }
@@ -104,7 +104,7 @@ fn record_to_zod(
 }
 
 fn enum_to_zod(
-    enum_shape: &dyn EnumShape,
+    enum_shape: &dyn EnumUnitShape,
     _all_types: &BTreeMap<&'static str, &dyn LpShape>,
 ) -> String {
     let mut variants = Vec::new();

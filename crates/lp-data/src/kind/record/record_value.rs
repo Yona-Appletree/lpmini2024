@@ -67,7 +67,7 @@ impl<'a> LpValueRef<'a> {
             LpValueRef::Vec3(_) => None,
             LpValueRef::Vec4(_) => None,
             LpValueRef::Record(v) => Some(*v),
-            LpValueRef::Enum(_) => None,
+            LpValueRef::EnumUnit(_) => None,
         }
     }
 }
@@ -83,7 +83,7 @@ impl<'a> LpValueRefMut<'a> {
             LpValueRefMut::Vec3(_) => None,
             LpValueRefMut::Vec4(_) => None,
             LpValueRefMut::Record(v) => Some(*v),
-            LpValueRefMut::Enum(_) => None,
+            LpValueRefMut::EnumUnit(_) => None,
         }
     }
 }

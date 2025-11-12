@@ -29,7 +29,7 @@ pub struct TestNodeConfig {
     pub period: Fixed,
 
     /// Waveform shape
-    #[lp(enum)]
+    #[lp(enum_unit)]
     pub waveform: LfoWaveform,
 
     /// Integer count value

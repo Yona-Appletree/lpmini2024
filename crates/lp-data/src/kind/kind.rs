@@ -24,8 +24,8 @@ pub enum LpKind {
     /// Record (struct-like composite type)
     Record,
 
-    /// Enum (simple unit enum with no fields)
+    /// EnumUnit (simple unit enum with no fields)
     ///
     /// Note: Union (discriminated unions with fields) is planned for future work.
-    Enum,
+    EnumUnit,
 }

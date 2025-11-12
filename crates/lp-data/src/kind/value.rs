@@ -9,7 +9,7 @@ extern crate alloc;
 use alloc::boxed::Box;
 
 use super::shape::LpShape;
-use crate::kind::enum_::enum_value::EnumValue;
+use crate::kind::enum_unit::enum_value::EnumUnitValue;
 use crate::kind::record::record_value::RecordValue;
 
 pub enum LpValueBox {
@@ -20,7 +20,7 @@ pub enum LpValueBox {
     Vec3(Box<dyn LpValue>),
     Vec4(Box<dyn LpValue>),
     Record(Box<dyn RecordValue>),
-    Enum(Box<dyn EnumValue>),
+    EnumUnit(Box<dyn EnumUnitValue>),
 }
 
 /// Type-aware reference to a value.
@@ -36,7 +36,7 @@ pub enum LpValueRef<'a> {
     Vec3(&'a dyn LpValue),
     Vec4(&'a dyn LpValue),
     Record(&'a dyn RecordValue),
-    Enum(&'a dyn EnumValue),
+    EnumUnit(&'a dyn EnumUnitValue),
 }
 
 impl<'a> LpValueRef<'a> {
@@ -50,7 +50,7 @@ impl<'a> LpValueRef<'a> {
             LpValueRef::Vec3(v) => *v,
             LpValueRef::Vec4(v) => *v,
             LpValueRef::Record(v) => *v as &dyn LpValue,
-            LpValueRef::Enum(v) => *v as &dyn LpValue,
+            LpValueRef::EnumUnit(v) => *v as &dyn LpValue,
         }
     }
 }
@@ -75,7 +75,7 @@ pub enum LpValueRefMut<'a> {
     Vec3(&'a mut dyn LpValue),
     Vec4(&'a mut dyn LpValue),
     Record(&'a mut dyn RecordValue),
-    Enum(&'a mut dyn EnumValue),
+    EnumUnit(&'a mut dyn EnumUnitValue),
 }
 
 impl<'a> LpValueRefMut<'a> {
@@ -89,7 +89,7 @@ impl<'a> LpValueRefMut<'a> {
             LpValueRefMut::Vec3(v) => *v,
             LpValueRefMut::Vec4(v) => *v,
             LpValueRefMut::Record(v) => *v as &mut dyn LpValue,
-            LpValueRefMut::Enum(v) => *v as &mut dyn LpValue,
+            LpValueRefMut::EnumUnit(v) => *v as &mut dyn LpValue,
         }
     }
 }
@@ -106,7 +106,7 @@ impl<'a> core::ops::Deref for LpValueRefMut<'a> {
             LpValueRefMut::Vec3(v) => *v,
             LpValueRefMut::Vec4(v) => *v,
             LpValueRefMut::Record(v) => *v as &dyn LpValue,
-            LpValueRefMut::Enum(v) => *v as &dyn LpValue,
+            LpValueRefMut::EnumUnit(v) => *v as &dyn LpValue,
         }
     }
 }
@@ -121,7 +121,7 @@ impl<'a> core::ops::DerefMut for LpValueRefMut<'a> {
             LpValueRefMut::Vec3(v) => *v,
             LpValueRefMut::Vec4(v) => *v,
             LpValueRefMut::Record(v) => *v as &mut dyn LpValue,
-            LpValueRefMut::Enum(v) => *v as &mut dyn LpValue,
+            LpValueRefMut::EnumUnit(v) => *v as &mut dyn LpValue,
         }
     }
 }
@@ -153,7 +153,7 @@ impl serde::Serialize for LpValueBox {
                 LpValueBox::Vec3(boxed) => LpValueRef::Vec3(boxed.as_ref()),
                 LpValueBox::Vec4(boxed) => LpValueRef::Vec4(boxed.as_ref()),
                 LpValueBox::Record(boxed) => LpValueRef::Record(boxed.as_ref()),
-                LpValueBox::Enum(boxed) => LpValueRef::Enum(boxed.as_ref()),
+                LpValueBox::EnumUnit(boxed) => LpValueRef::EnumUnit(boxed.as_ref()),
             },
             serializer,
         )
@@ -227,7 +227,7 @@ where
             }
             map.end()
         }
-        LpValueRef::Enum(enum_ref) => {
+        LpValueRef::EnumUnit(enum_ref) => {
             // Serialize enum as the variant name string
             let variant_name = enum_ref
                 .variant_name()

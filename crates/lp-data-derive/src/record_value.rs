@@ -128,19 +128,20 @@ fn expand_struct(input: &DeriveInput, data: &DataStruct) -> Result<TokenStream2,
             // We know at compile time if this is an enum or record via attribute/naming convention
             if field_shape.is_enum {
                 // Field is an enum - only require EnumValue trait
-                where_bounds.push(quote! { #field_ty: crate::kind::enum_::enum_value::EnumValue });
+                where_bounds
+                    .push(quote! { #field_ty: crate::kind::enum_unit::enum_value::EnumUnitValue });
                 field_getters.push(quote! {
                     #index => {
                         let value: &#field_ty = &self.#field_ident;
-                        let enum_value: &dyn crate::kind::enum_::enum_value::EnumValue = value;
-                        Ok(crate::kind::value::LpValueRef::Enum(enum_value))
+                        let enum_value: &dyn crate::kind::enum_unit::enum_value::EnumUnitValue = value;
+                        Ok(crate::kind::value::LpValueRef::EnumUnit(enum_value))
                     },
                 });
                 field_getters_mut.push(quote! {
                     #index => {
                         let value: &mut #field_ty = &mut self.#field_ident;
-                        let enum_value: &mut dyn crate::kind::enum_::enum_value::EnumValue = value;
-                        Ok(crate::kind::value::LpValueRefMut::Enum(enum_value))
+                        let enum_value: &mut dyn crate::kind::enum_unit::enum_value::EnumUnitValue = value;
+                        Ok(crate::kind::value::LpValueRefMut::EnumUnit(enum_value))
                     },
                 });
             } else {
@@ -306,7 +307,7 @@ fn generate_record_shape_static(
             #(#field_exprs),*
         ];
 
-        const #shape_const_ident: crate::kind::record::record_static::RecordShapeStatic = crate::kind::record::record_static::RecordShapeStatic {
+        pub const #shape_const_ident: crate::kind::record::record_static::RecordShapeStatic = crate::kind::record::record_static::RecordShapeStatic {
             meta: #record_meta,
             fields: #fields_const_ident,
         };
@@ -518,7 +519,11 @@ impl FieldAttrs {
                     })?;
                     Ok(())
                 } else if meta.path.is_ident("enum") {
-                    // #[lp_data(enum)] attribute marks this field as an enum type
+                    // #[lp(enum)] attribute marks this field as an enum type
+                    result.is_enum = true;
+                    Ok(())
+                } else if meta.path.is_ident("enum_unit") {
+                    // #[lp(enum_unit)] attribute marks this field as an enum_unit type
                     result.is_enum = true;
                     Ok(())
                 } else {

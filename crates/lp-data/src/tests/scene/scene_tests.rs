@@ -179,7 +179,7 @@ fn test_scene_traversal() {
         "  test: Record(TestNode)",
         "    config: Record(TestNodeConfig)",
         "      period: Fixed(2)",
-        "      waveform: Enum(LfoWaveform)::Sine",
+        "      waveform: EnumUnit(LfoWaveform)::Sine",
         "      count: Int32(42)",
         "      enabled: Bool(true)",
         "      position: Vec2(0, 0)",
