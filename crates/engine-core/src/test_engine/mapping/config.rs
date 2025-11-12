@@ -22,6 +22,10 @@ pub enum MappingConfig {
         width: usize,
         height: usize,
     },
+    CircularPanel9Ring {
+        width: usize,
+        height: usize,
+    },
 }
 
 impl MappingConfig {
@@ -36,6 +40,10 @@ impl MappingConfig {
             MappingConfig::CircularPanel7Ring { .. } => {
                 // 1 + 8 + 12 + 16 + 20 + 24 + 32
                 113
+            }
+            MappingConfig::CircularPanel9Ring { .. } => {
+                // 59 + 48 + 40 + 32 + 24 + 16 + 12 + 8 + 1
+                241
             }
         }
     }
@@ -58,6 +66,9 @@ impl MappingConfig {
             } => LedMapping::circular_panel(ring_counts, *center_x, *center_y, *max_radius),
             MappingConfig::CircularPanel7Ring { width, height } => {
                 LedMapping::circular_panel_7ring(*width, *height)
+            }
+            MappingConfig::CircularPanel9Ring { width, height } => {
+                LedMapping::circular_panel_9ring(*width, *height)
             }
         }
     }
