@@ -529,6 +529,7 @@ fn generate_record_shape_static(
                 )?;
                 let elem_shape_expr = elem_shape.shape_expr;
                 helper_constants.push(quote! {
+                    #[allow(non_upper_case_globals)] // Generated constant from derive macro
                     const #array_shape_ident: crate::kind::array::array_static::ArrayShapeStatic =
                         crate::kind::array::array_static::ArrayShapeStatic {
                             meta: crate::kind::array::array_meta::ArrayMetaStatic {
@@ -555,6 +556,7 @@ fn generate_record_shape_static(
                 )?;
                 let elem_shape_expr = elem_shape.shape_expr;
                 helper_constants.push(quote! {
+                    #[allow(non_upper_case_globals)] // Generated constant from derive macro
                     const #option_shape_ident: crate::kind::option::option_static::OptionShapeStatic =
                         crate::kind::option::option_static::OptionShapeStatic {
                             meta: crate::kind::option::option_meta::OptionMetaStatic {
@@ -728,6 +730,7 @@ fn get_field_shape_for_vec_element(
                 Ok(FieldShape {
                     shape_expr: quote! {
                         {
+                            #[allow(non_upper_case_globals)] // Generated constant from derive macro
                             static #array_shape_ident: crate::kind::array::array_static::ArrayShapeStatic =
                                 crate::kind::array::array_static::ArrayShapeStatic {
                                     meta: crate::kind::array::array_meta::ArrayMetaStatic {
@@ -755,6 +758,7 @@ fn get_field_shape_for_vec_element(
                 Ok(FieldShape {
                     shape_expr: quote! {
                         {
+                            #[allow(non_upper_case_globals)] // Generated constant from derive macro
                             static #option_shape_ident: crate::kind::option::option_static::OptionShapeStatic =
                                 crate::kind::option::option_static::OptionShapeStatic {
                                     meta: crate::kind::option::option_meta::OptionMetaStatic {

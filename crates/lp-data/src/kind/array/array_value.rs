@@ -21,6 +21,11 @@ pub trait ArrayValue: LpValue {
     /// Get the length of this array.
     fn len(&self) -> usize;
 
+    /// Check if this array is empty.
+    fn is_empty(&self) -> bool {
+        self.len() == 0
+    }
+
     /// Push a new element to the end of this array (for dynamic arrays).
     ///
     /// Validates that the element's shape matches the array's element shape.

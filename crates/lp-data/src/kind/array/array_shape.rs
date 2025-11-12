@@ -18,4 +18,9 @@ pub trait ArrayShape: LpShape {
     /// For static arrays, this is known at compile time.
     /// For dynamic arrays, this is the current length.
     fn len(&self) -> usize;
+
+    /// Check if this array is empty.
+    fn is_empty(&self) -> bool {
+        self.len() == 0
+    }
 }

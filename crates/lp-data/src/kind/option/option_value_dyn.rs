@@ -84,13 +84,13 @@ impl OptionValue for OptionValueDyn {
         self.value
             .as_ref()
             .map(Self::lp_value_ref)
-            .ok_or_else(|| RuntimeError::OptionIsNone)
+            .ok_or(RuntimeError::OptionIsNone)
     }
 
     fn get_value_mut(&mut self) -> Result<LpValueRefMut<'_>, RuntimeError> {
         self.value
             .as_mut()
             .map(Self::lp_value_ref_mut)
-            .ok_or_else(|| RuntimeError::OptionIsNone)
+            .ok_or(RuntimeError::OptionIsNone)
     }
 }

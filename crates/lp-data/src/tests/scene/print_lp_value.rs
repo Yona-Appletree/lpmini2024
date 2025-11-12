@@ -219,12 +219,10 @@ fn print_lp_value_ref(value_ref: LpValueRef, indent: usize) {
                     print!("{:>indent$}  value: ", "");
                     print_lp_value_ref(value_ref, indent + 2);
                 }
+            } else if option_name.is_empty() {
+                println!("Option::None");
             } else {
-                if option_name.is_empty() {
-                    println!("Option::None");
-                } else {
-                    println!("Option({})::None", option_name);
-                }
+                println!("Option({})::None", option_name);
             }
         }
     }
@@ -373,12 +371,10 @@ fn print_lp_value_ref_to_string(value_ref: LpValueRef, indent: usize) -> String 
                 } else {
                     format!("Option({})::Some\n", option_name)
                 }
+            } else if option_name.is_empty() {
+                "Option::None\n".to_string()
             } else {
-                if option_name.is_empty() {
-                    "Option::None\n".to_string()
-                } else {
-                    format!("Option({})::None\n", option_name)
-                }
+                format!("Option({})::None\n", option_name)
             };
             if option_ref.is_some() {
                 if let Ok(value_ref) = option_ref.get_value() {
