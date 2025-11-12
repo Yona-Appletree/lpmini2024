@@ -91,7 +91,7 @@ impl<'d> Transport for BleTransport<'d> {
 
     async fn write<T: HostToControllerPacket>(&self, packet: &T) -> Result<(), Self::Error> {
         let mut guard = self.connector.lock().await;
-        WithIndicator(packet)
+        WithIndicator::new(packet)
             .write_hci_async(&mut *guard)
             .await
             .map_err(HciTransportError::Write)
@@ -219,10 +219,12 @@ async fn peripheral_loop<'srv>(
                         );
                     }
                 },
-                Err(err) => error!(
-                    "Failed to accept connection: {:?}",
-                    defmt::Debug2Format(&err)
-                ),
+                Err(err) => {
+                    error!(
+                        "Failed to accept connection: {:?}",
+                        defmt::Debug2Format(&err)
+                    );
+                }
             },
             Err(err) => error!("Advertise error: {:?}", defmt::Debug2Format(&err)),
         }
@@ -256,8 +258,6 @@ async fn handle_connection<'srv>(
             },
             GattConnectionEvent::ConnectionParamsUpdated { .. } => {}
             GattConnectionEvent::PhyUpdated { .. } => {}
-            #[cfg(feature = "security")]
-            GattConnectionEvent::Bonded { .. } => {}
         }
     }
 }
