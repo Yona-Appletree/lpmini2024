@@ -3,42 +3,82 @@ extern crate alloc;
 
 use crate::compiler::ast::Expr;
 use crate::compiler::codegen::CodeGenerator;
+use crate::shared::Type;
 use crate::vm::opcodes::LpsOpCode;
 
 impl<'a> CodeGenerator<'a> {
+    fn get_comparison_opcode(&self, op: ComparisonOp, ty: &Type) -> LpsOpCode {
+        match (op, ty) {
+            (ComparisonOp::Less, Type::Int32) => LpsOpCode::LessInt32,
+            (ComparisonOp::Greater, Type::Int32) => LpsOpCode::GreaterInt32,
+            (ComparisonOp::LessEq, Type::Int32) => LpsOpCode::LessEqInt32,
+            (ComparisonOp::GreaterEq, Type::Int32) => LpsOpCode::GreaterEqInt32,
+            (ComparisonOp::Eq, Type::Int32) => LpsOpCode::EqInt32,
+            (ComparisonOp::NotEq, Type::Int32) => LpsOpCode::NotEqInt32,
+            (ComparisonOp::Less, _) => LpsOpCode::LessFixed,
+            (ComparisonOp::Greater, _) => LpsOpCode::GreaterFixed,
+            (ComparisonOp::LessEq, _) => LpsOpCode::LessEqFixed,
+            (ComparisonOp::GreaterEq, _) => LpsOpCode::GreaterEqFixed,
+            (ComparisonOp::Eq, _) => LpsOpCode::EqFixed,
+            (ComparisonOp::NotEq, _) => LpsOpCode::NotEqFixed,
+        }
+    }
+
     pub(crate) fn gen_less(&mut self, left: &Expr, right: &Expr) {
         self.gen_expr(left);
         self.gen_expr(right);
-        self.code.push(LpsOpCode::LessFixed);
+        // Determine type from left operand (both should be same type after type checking)
+        let ty = left.ty.as_ref().unwrap_or(&Type::Fixed);
+        self.code
+            .push(self.get_comparison_opcode(ComparisonOp::Less, ty));
     }
 
     pub(crate) fn gen_greater(&mut self, left: &Expr, right: &Expr) {
         self.gen_expr(left);
         self.gen_expr(right);
-        self.code.push(LpsOpCode::GreaterFixed);
+        let ty = left.ty.as_ref().unwrap_or(&Type::Fixed);
+        self.code
+            .push(self.get_comparison_opcode(ComparisonOp::Greater, ty));
     }
 
     pub(crate) fn gen_less_eq(&mut self, left: &Expr, right: &Expr) {
         self.gen_expr(left);
         self.gen_expr(right);
-        self.code.push(LpsOpCode::LessEqFixed);
+        let ty = left.ty.as_ref().unwrap_or(&Type::Fixed);
+        self.code
+            .push(self.get_comparison_opcode(ComparisonOp::LessEq, ty));
     }
 
     pub(crate) fn gen_greater_eq(&mut self, left: &Expr, right: &Expr) {
         self.gen_expr(left);
         self.gen_expr(right);
-        self.code.push(LpsOpCode::GreaterEqFixed);
+        let ty = left.ty.as_ref().unwrap_or(&Type::Fixed);
+        self.code
+            .push(self.get_comparison_opcode(ComparisonOp::GreaterEq, ty));
     }
 
     pub(crate) fn gen_eq(&mut self, left: &Expr, right: &Expr) {
         self.gen_expr(left);
         self.gen_expr(right);
-        self.code.push(LpsOpCode::EqFixed);
+        let ty = left.ty.as_ref().unwrap_or(&Type::Fixed);
+        self.code
+            .push(self.get_comparison_opcode(ComparisonOp::Eq, ty));
     }
 
     pub(crate) fn gen_not_eq(&mut self, left: &Expr, right: &Expr) {
         self.gen_expr(left);
         self.gen_expr(right);
-        self.code.push(LpsOpCode::NotEqFixed);
+        let ty = left.ty.as_ref().unwrap_or(&Type::Fixed);
+        self.code
+            .push(self.get_comparison_opcode(ComparisonOp::NotEq, ty));
     }
+}
+
+enum ComparisonOp {
+    Less,
+    Greater,
+    LessEq,
+    GreaterEq,
+    Eq,
+    NotEq,
 }

@@ -131,6 +131,32 @@ impl<'a> CodeGenerator<'a> {
                 self.code.push(LpsOpCode::Cross3);
             }
 
+            // Matrix functions
+            "transpose" => {
+                if !args.is_empty() {
+                    let arg_ty = args[0].ty.as_ref().unwrap();
+                    if arg_ty == &Type::Mat3 {
+                        self.code.push(LpsOpCode::TransposeMat3);
+                    }
+                }
+            }
+            "determinant" => {
+                if !args.is_empty() {
+                    let arg_ty = args[0].ty.as_ref().unwrap();
+                    if arg_ty == &Type::Mat3 {
+                        self.code.push(LpsOpCode::DeterminantMat3);
+                    }
+                }
+            }
+            "inverse" => {
+                if !args.is_empty() {
+                    let arg_ty = args[0].ty.as_ref().unwrap();
+                    if arg_ty == &Type::Mat3 {
+                        self.code.push(LpsOpCode::InverseMat3);
+                    }
+                }
+            }
+
             _ => {} // Unknown function - ignore
         }
     }

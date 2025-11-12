@@ -1,4 +1,4 @@
-use lp_math::fixed::{Fixed, Vec2, Vec3, Vec4};
+use lp_math::fixed::{Fixed, Mat3, Vec2, Vec3, Vec4};
 
 use crate::kind::value::{LpValue, LpValueBox, LpValueRef};
 
@@ -24,11 +24,23 @@ pub fn print_lp_value(value_box: LpValueBox, indent: usize) {
         LpValueBox::Vec4(boxed) => {
             print_lp_value_ref(LpValueRef::Vec4(boxed.as_ref()), indent);
         }
+        LpValueBox::Mat3(boxed) => {
+            print_lp_value_ref(LpValueRef::Mat3(boxed.as_ref()), indent);
+        }
         LpValueBox::Record(boxed) => {
             print_lp_value_ref(LpValueRef::Record(boxed.as_ref()), indent);
         }
-        LpValueBox::Enum(boxed) => {
-            print_lp_value_ref(LpValueRef::Enum(boxed.as_ref()), indent);
+        LpValueBox::EnumUnit(boxed) => {
+            print_lp_value_ref(LpValueRef::EnumUnit(boxed.as_ref()), indent);
+        }
+        LpValueBox::EnumStruct(boxed) => {
+            print_lp_value_ref(LpValueRef::EnumStruct(boxed.as_ref()), indent);
+        }
+        LpValueBox::Array(boxed) => {
+            print_lp_value_ref(LpValueRef::Array(boxed.as_ref()), indent);
+        }
+        LpValueBox::Option(boxed) => {
+            print_lp_value_ref(LpValueRef::Option(boxed.as_ref()), indent);
         }
     }
 }
@@ -54,11 +66,23 @@ pub fn print_lp_value_to_string(value_box: LpValueBox, indent: usize) -> String 
         LpValueBox::Vec4(boxed) => {
             print_lp_value_ref_to_string(LpValueRef::Vec4(boxed.as_ref()), indent)
         }
+        LpValueBox::Mat3(boxed) => {
+            print_lp_value_ref_to_string(LpValueRef::Mat3(boxed.as_ref()), indent)
+        }
         LpValueBox::Record(boxed) => {
             print_lp_value_ref_to_string(LpValueRef::Record(boxed.as_ref()), indent)
         }
-        LpValueBox::Enum(boxed) => {
-            print_lp_value_ref_to_string(LpValueRef::Enum(boxed.as_ref()), indent)
+        LpValueBox::EnumUnit(boxed) => {
+            print_lp_value_ref_to_string(LpValueRef::EnumUnit(boxed.as_ref()), indent)
+        }
+        LpValueBox::EnumStruct(boxed) => {
+            print_lp_value_ref_to_string(LpValueRef::EnumStruct(boxed.as_ref()), indent)
+        }
+        LpValueBox::Array(boxed) => {
+            print_lp_value_ref_to_string(LpValueRef::Array(boxed.as_ref()), indent)
+        }
+        LpValueBox::Option(boxed) => {
+            print_lp_value_ref_to_string(LpValueRef::Option(boxed.as_ref()), indent)
         }
     }
 }
@@ -121,6 +145,24 @@ fn print_lp_value_ref(value_ref: LpValueRef, indent: usize) {
                 vec4_value.w.to_f32()
             );
         }
+        LpValueRef::Mat3(mat3_ref) => {
+            let mat3_value = unsafe {
+                // SAFETY: We know this is a Mat3 because it's in the Mat3 variant
+                &*(mat3_ref as *const dyn LpValue as *const Mat3)
+            };
+            println!(
+                "Mat3({}, {}, {}, {}, {}, {}, {}, {}, {})",
+                mat3_value.m[0].to_f32(),
+                mat3_value.m[1].to_f32(),
+                mat3_value.m[2].to_f32(),
+                mat3_value.m[3].to_f32(),
+                mat3_value.m[4].to_f32(),
+                mat3_value.m[5].to_f32(),
+                mat3_value.m[6].to_f32(),
+                mat3_value.m[7].to_f32(),
+                mat3_value.m[8].to_f32()
+            );
+        }
         LpValueRef::Record(record_ref) => {
             use crate::kind::record::record_value::RecordValue;
             let record_name = RecordValue::shape(record_ref).meta().name();
@@ -140,17 +182,71 @@ fn print_lp_value_ref(value_ref: LpValueRef, indent: usize) {
                 }
             }
         }
-        LpValueRef::Enum(enum_ref) => {
-            use crate::kind::enum_::enum_value::EnumValue;
-            let enum_name = EnumValue::shape(enum_ref).meta().name();
+        LpValueRef::EnumUnit(enum_ref) => {
+            use crate::kind::enum_unit::enum_value::EnumUnitValue;
+            let enum_name = EnumUnitValue::shape(enum_ref).meta().name();
             if let Ok(variant_name) = enum_ref.variant_name() {
                 if enum_name.is_empty() {
-                    println!("Enum::{}", variant_name);
+                    println!("EnumUnit::{}", variant_name);
                 } else {
-                    println!("Enum({})::{}", enum_name, variant_name);
+                    println!("EnumUnit({})::{}", enum_name, variant_name);
                 }
             } else {
-                println!("Enum({})", enum_name);
+                println!("EnumUnit({})", enum_name);
+            }
+        }
+        LpValueRef::EnumStruct(union_ref) => {
+            use crate::kind::enum_struct::enum_struct_value::EnumStructValue;
+            let union_name = EnumStructValue::shape(union_ref).meta().name();
+            if let Ok(variant_name) = union_ref.variant_name() {
+                if union_name.is_empty() {
+                    println!("Union::{}", variant_name);
+                } else {
+                    println!("Union({})::{}", union_name, variant_name);
+                }
+                // Print the variant's value
+                if let Ok(variant_value) = union_ref.variant_value() {
+                    print!("{:>indent$}  value: ", "");
+                    print_lp_value_ref(variant_value, indent + 2);
+                }
+            } else {
+                println!("Union({})", union_name);
+            }
+        }
+        LpValueRef::Array(array_ref) => {
+            use crate::kind::array::array_value::ArrayValue;
+            let array_name = ArrayValue::shape(array_ref).meta().name();
+            let len = ArrayValue::shape(array_ref).len();
+            if array_name.is_empty() {
+                println!("Array[{}]", len);
+            } else {
+                println!("Array({})[{}]", array_name, len);
+            }
+            // Print elements
+            for i in 0..len {
+                if let Ok(element_ref) = array_ref.get_element(i) {
+                    print!("{:>indent$}  [{}]: ", "", i);
+                    print_lp_value_ref(element_ref, indent + 2);
+                }
+            }
+        }
+        LpValueRef::Option(option_ref) => {
+            use crate::kind::option::option_value::OptionValue;
+            let option_name = OptionValue::shape(option_ref).meta().name();
+            if option_ref.is_some() {
+                if option_name.is_empty() {
+                    println!("Option::Some");
+                } else {
+                    println!("Option({})::Some", option_name);
+                }
+                if let Ok(value_ref) = option_ref.get_value() {
+                    print!("{:>indent$}  value: ", "");
+                    print_lp_value_ref(value_ref, indent + 2);
+                }
+            } else if option_name.is_empty() {
+                println!("Option::None");
+            } else {
+                println!("Option({})::None", option_name);
             }
         }
     }
@@ -217,6 +313,24 @@ fn print_lp_value_ref_to_string(value_ref: LpValueRef, indent: usize) -> String 
                 vec4_value.w.to_f32()
             )
         }
+        LpValueRef::Mat3(mat3_ref) => {
+            let mat3_value = unsafe {
+                // SAFETY: We know this is a Mat3 because it's in the Mat3 variant
+                &*(mat3_ref as *const dyn LpValue as *const Mat3)
+            };
+            format!(
+                "Mat3({}, {}, {}, {}, {}, {}, {}, {}, {})\n",
+                mat3_value.m[0].to_f32(),
+                mat3_value.m[1].to_f32(),
+                mat3_value.m[2].to_f32(),
+                mat3_value.m[3].to_f32(),
+                mat3_value.m[4].to_f32(),
+                mat3_value.m[5].to_f32(),
+                mat3_value.m[6].to_f32(),
+                mat3_value.m[7].to_f32(),
+                mat3_value.m[8].to_f32()
+            )
+        }
         LpValueRef::Record(record_ref) => {
             use crate::kind::record::record_value::RecordValue;
             let record_name = RecordValue::shape(record_ref).meta().name();
@@ -240,18 +354,77 @@ fn print_lp_value_ref_to_string(value_ref: LpValueRef, indent: usize) -> String 
             }
             output
         }
-        LpValueRef::Enum(enum_ref) => {
-            use crate::kind::enum_::enum_value::EnumValue;
-            let enum_name = EnumValue::shape(enum_ref).meta().name();
+        LpValueRef::EnumUnit(enum_ref) => {
+            use crate::kind::enum_unit::enum_value::EnumUnitValue;
+            let enum_name = EnumUnitValue::shape(enum_ref).meta().name();
             if let Ok(variant_name) = enum_ref.variant_name() {
                 if enum_name.is_empty() {
-                    format!("Enum::{}\n", variant_name)
+                    format!("EnumUnit::{}\n", variant_name)
                 } else {
-                    format!("Enum({})::{}\n", enum_name, variant_name)
+                    format!("EnumUnit({})::{}\n", enum_name, variant_name)
                 }
             } else {
-                format!("Enum({})\n", enum_name)
+                format!("EnumUnit({})\n", enum_name)
             }
+        }
+        LpValueRef::EnumStruct(union_ref) => {
+            use crate::kind::enum_struct::enum_struct_value::EnumStructValue;
+            let union_name = EnumStructValue::shape(union_ref).meta().name();
+            let mut output = if let Ok(variant_name) = union_ref.variant_name() {
+                if union_name.is_empty() {
+                    format!("Union::{}\n", variant_name)
+                } else {
+                    format!("Union({})::{}\n", union_name, variant_name)
+                }
+            } else {
+                format!("Union({})\n", union_name)
+            };
+            // Print the variant's value
+            if let Ok(variant_value) = union_ref.variant_value() {
+                output.push_str(&format!("{:>indent$}  value: ", ""));
+                output.push_str(&print_lp_value_ref_to_string(variant_value, indent + 2));
+            }
+            output
+        }
+        LpValueRef::Array(array_ref) => {
+            use crate::kind::array::array_value::ArrayValue;
+            let array_name = ArrayValue::shape(array_ref).meta().name();
+            let len = ArrayValue::shape(array_ref).len();
+            let mut output = if array_name.is_empty() {
+                format!("Array[{}]\n", len)
+            } else {
+                format!("Array({})[{}]\n", array_name, len)
+            };
+            // Print elements
+            for i in 0..len {
+                if let Ok(element_ref) = array_ref.get_element(i) {
+                    output.push_str(&format!("{:>indent$}  [{}]: ", "", i));
+                    output.push_str(&print_lp_value_ref_to_string(element_ref, indent + 2));
+                }
+            }
+            output
+        }
+        LpValueRef::Option(option_ref) => {
+            use crate::kind::option::option_value::OptionValue;
+            let option_name = OptionValue::shape(option_ref).meta().name();
+            let mut output = if option_ref.is_some() {
+                if option_name.is_empty() {
+                    "Option::Some\n".to_string()
+                } else {
+                    format!("Option({})::Some\n", option_name)
+                }
+            } else if option_name.is_empty() {
+                "Option::None\n".to_string()
+            } else {
+                format!("Option({})::None\n", option_name)
+            };
+            if option_ref.is_some() {
+                if let Ok(value_ref) = option_ref.get_value() {
+                    output.push_str(&format!("{:>indent$}  value: ", ""));
+                    output.push_str(&print_lp_value_ref_to_string(value_ref, indent + 2));
+                }
+            }
+            output
         }
     }
 }

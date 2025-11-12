@@ -16,15 +16,15 @@ pub fn derive(item: TokenStream) -> TokenStream {
 
 fn expand(input: &DeriveInput) -> Result<TokenStream2, Error> {
     match &input.data {
-        Data::Enum(data) => expand_enum(input, data),
+        Data::Enum(data) => expand_enum_unit(input, data),
         Data::Struct(_) | Data::Union(_) => Err(Error::new(
             input.ident.span(),
-            "EnumValue derive only supports enums",
+            "EnumValue derive only supports enum_units",
         )),
     }
 }
 
-fn expand_enum(input: &DeriveInput, data: &DataEnum) -> Result<TokenStream2, Error> {
+fn expand_enum_unit(input: &DeriveInput, data: &DataEnum) -> Result<TokenStream2, Error> {
     if !input.generics.params.is_empty() {
         return Err(Error::new(
             input.generics.span(),
@@ -32,57 +32,63 @@ fn expand_enum(input: &DeriveInput, data: &DataEnum) -> Result<TokenStream2, Err
         ));
     }
 
-    let enum_ident = &input.ident;
-    let enum_name = enum_ident.to_string();
+    let enum_unit_ident = &input.ident;
+    let enum_unit_name = enum_unit_ident.to_string();
 
     let struct_attrs = StructAttrs::from_attrs(&input.attrs)?;
     let struct_docs = merge_docs(
         extract_doc_comments(&input.attrs),
         struct_attrs.docs.clone(),
     );
-    let enum_name_str = struct_attrs
+    let enum_unit_name_str = struct_attrs
         .name
         .clone()
-        .unwrap_or_else(|| enum_name.clone());
+        .unwrap_or_else(|| enum_unit_name.clone());
 
     // Check that all variants are unit variants (no fields)
     for variant in &data.variants {
         if !matches!(variant.fields, syn::Fields::Unit) {
             return Err(Error::new(
                 variant.span(),
-                "EnumValue derive only supports unit variants (no fields). Use Union for variants with fields (future work).",
+                "EnumValue derive only supports unit variants (no fields). Use EnumStruct for variants with fields (future work).",
             ));
         }
     }
 
     // Generate shape constant
     let variants: Vec<_> = data.variants.iter().collect();
-    let shape_constant =
-        generate_enum_shape_static(enum_ident, &enum_name_str, struct_docs, &variants)?;
+    let shape_constant = generate_enum_unit_shape_static(
+        enum_unit_ident,
+        &enum_unit_name_str,
+        struct_docs,
+        &variants,
+    )?;
 
-    let shape_const_ident =
-        format_ident!("__LP_VALUE_{}_SHAPE", enum_ident.to_string().to_uppercase());
+    let shape_const_ident = format_ident!(
+        "__LP_VALUE_{}_SHAPE",
+        enum_unit_ident.to_string().to_uppercase()
+    );
 
     // Generate variant_index implementation
     let mut variant_matchers = Vec::new();
     for (index, variant) in data.variants.iter().enumerate() {
         let variant_ident = &variant.ident;
         variant_matchers.push(quote! {
-            #enum_ident::#variant_ident => #index,
+            #enum_unit_ident::#variant_ident => #index,
         });
     }
 
     let tokens = quote! {
         #shape_constant
 
-        impl crate::kind::value::LpValue for #enum_ident {
+        impl crate::kind::value::LpValue for #enum_unit_ident {
             fn shape(&self) -> &dyn crate::kind::shape::LpShape {
                 &#shape_const_ident
             }
         }
 
-        impl crate::kind::enum_::enum_value::EnumValue for #enum_ident {
-            fn shape(&self) -> &dyn crate::kind::enum_::enum_shape::EnumShape {
+        impl crate::kind::enum_unit::enum_value::EnumUnitValue for #enum_unit_ident {
+            fn shape(&self) -> &dyn crate::kind::enum_unit::enum_shape::EnumUnitShape {
                 &#shape_const_ident
             }
 
@@ -97,10 +103,10 @@ fn expand_enum(input: &DeriveInput, data: &DataEnum) -> Result<TokenStream2, Err
     Ok(tokens)
 }
 
-fn generate_enum_shape_static(
-    enum_ident: &Ident,
-    enum_name: &str,
-    enum_docs: Option<String>,
+fn generate_enum_unit_shape_static(
+    enum_unit_ident: &Ident,
+    enum_unit_name: &str,
+    enum_unit_docs: Option<String>,
     variants: &[&Variant],
 ) -> Result<TokenStream2, Error> {
     let mut variant_exprs = Vec::new();
@@ -118,13 +124,13 @@ fn generate_enum_shape_static(
         let variant_meta = if let Some(docs) = variant_docs {
             let docs_lit = LitStr::new(&docs, Span::call_site());
             quote! {
-                crate::kind::enum_::enum_meta::EnumVariantMetaStatic {
+                crate::kind::enum_unit::enum_meta::EnumUnitVariantMetaStatic {
                     docs: Some(#docs_lit),
                 }
             }
         } else {
             quote! {
-                crate::kind::enum_::enum_meta::EnumVariantMetaStatic {
+                crate::kind::enum_unit::enum_meta::EnumUnitVariantMetaStatic {
                     docs: None,
                 }
             }
@@ -132,7 +138,7 @@ fn generate_enum_shape_static(
 
         let variant_name_lit = LitStr::new(&variant_name, Span::call_site());
         variant_exprs.push(quote! {
-            crate::kind::enum_::enum_static::EnumVariantStatic {
+            crate::kind::enum_unit::enum_static::EnumUnitVariantStatic {
                 name: #variant_name_lit,
                 meta: #variant_meta,
             }
@@ -141,36 +147,38 @@ fn generate_enum_shape_static(
 
     let variants_const_ident = format_ident!(
         "__LP_VALUE_{}_VARIANTS",
-        enum_ident.to_string().to_uppercase()
+        enum_unit_ident.to_string().to_uppercase()
     );
-    let shape_const_ident =
-        format_ident!("__LP_VALUE_{}_SHAPE", enum_ident.to_string().to_uppercase());
+    let shape_const_ident = format_ident!(
+        "__LP_VALUE_{}_SHAPE",
+        enum_unit_ident.to_string().to_uppercase()
+    );
 
-    let enum_name_lit = LitStr::new(enum_name, Span::call_site());
-    let enum_meta = if let Some(docs) = enum_docs {
+    let enum_unit_name_lit = LitStr::new(enum_unit_name, Span::call_site());
+    let enum_unit_meta = if let Some(docs) = enum_unit_docs {
         let docs_lit = LitStr::new(&docs, Span::call_site());
         quote! {
-            crate::kind::enum_::enum_meta::EnumMetaStatic {
-                name: #enum_name_lit,
+            crate::kind::enum_unit::enum_meta::EnumUnitMetaStatic {
+                name: #enum_unit_name_lit,
                 docs: Some(#docs_lit),
             }
         }
     } else {
         quote! {
-            crate::kind::enum_::enum_meta::EnumMetaStatic {
-                name: #enum_name_lit,
+            crate::kind::enum_unit::enum_meta::EnumUnitMetaStatic {
+                name: #enum_unit_name_lit,
                 docs: None,
             }
         }
     };
 
     let tokens = quote! {
-        const #variants_const_ident: &'static [crate::kind::enum_::enum_static::EnumVariantStatic] = &[
+        const #variants_const_ident: &'static [crate::kind::enum_unit::enum_static::EnumUnitVariantStatic] = &[
             #(#variant_exprs),*
         ];
 
-        const #shape_const_ident: crate::kind::enum_::enum_static::EnumShapeStatic = crate::kind::enum_::enum_static::EnumShapeStatic {
-            meta: #enum_meta,
+        const #shape_const_ident: crate::kind::enum_unit::enum_static::EnumUnitShapeStatic = crate::kind::enum_unit::enum_static::EnumUnitShapeStatic {
+            meta: #enum_unit_meta,
             variants: #variants_const_ident,
         };
     };

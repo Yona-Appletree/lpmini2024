@@ -42,6 +42,7 @@ pub fn gen_user_function(
             Type::Vec2 => func_code.push(LpsOpCode::StoreLocalVec2(i as u32)),
             Type::Vec3 => func_code.push(LpsOpCode::StoreLocalVec3(i as u32)),
             Type::Vec4 => func_code.push(LpsOpCode::StoreLocalVec4(i as u32)),
+            Type::Mat3 => func_code.push(LpsOpCode::StoreLocalMat3(i as u32)),
             Type::Void => {}
         }
     }

@@ -9,7 +9,7 @@ use super::kind::LpKind;
 ///
 /// Shapes describe the structure and metadata of data types. They can be
 /// either static (compile-time constants) or dynamic (runtime-allocated).
-pub trait LpShape {
+pub trait LpShape: Sync {
     /// Get the kind of this shape.
     fn kind(&self) -> LpKind;
 }

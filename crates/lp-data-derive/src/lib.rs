@@ -1,3 +1,4 @@
+mod enum_struct_value;
 mod enum_value;
 mod lp_value;
 mod record_value;
@@ -27,4 +28,10 @@ pub fn record_value_derive(input: TokenStream) -> TokenStream {
 #[proc_macro_derive(EnumValue, attributes(lp))]
 pub fn enum_value_derive(input: TokenStream) -> TokenStream {
     enum_value::derive(input)
+}
+
+/// Derive macro for EnumStructValue trait.
+#[proc_macro_derive(EnumStructValue, attributes(lp))]
+pub fn enum_struct_value_derive(input: TokenStream) -> TokenStream {
+    enum_struct_value::derive(input)
 }

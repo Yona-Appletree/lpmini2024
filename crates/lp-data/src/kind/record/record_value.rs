@@ -66,8 +66,12 @@ impl<'a> LpValueRef<'a> {
             LpValueRef::Vec2(_) => None,
             LpValueRef::Vec3(_) => None,
             LpValueRef::Vec4(_) => None,
+            LpValueRef::Mat3(_) => None,
             LpValueRef::Record(v) => Some(*v),
-            LpValueRef::Enum(_) => None,
+            LpValueRef::EnumUnit(_) => None,
+            LpValueRef::EnumStruct(_) => None,
+            LpValueRef::Array(_) => None,
+            LpValueRef::Option(_) => None,
         }
     }
 }
@@ -82,8 +86,12 @@ impl<'a> LpValueRefMut<'a> {
             LpValueRefMut::Vec2(_) => None,
             LpValueRefMut::Vec3(_) => None,
             LpValueRefMut::Vec4(_) => None,
+            LpValueRefMut::Mat3(_) => None,
             LpValueRefMut::Record(v) => Some(*v),
-            LpValueRefMut::Enum(_) => None,
+            LpValueRefMut::EnumUnit(_) => None,
+            LpValueRefMut::EnumStruct(_) => None,
+            LpValueRefMut::Array(_) => None,
+            LpValueRefMut::Option(_) => None,
         }
     }
 }

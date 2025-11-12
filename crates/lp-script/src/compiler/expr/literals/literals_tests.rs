@@ -57,8 +57,15 @@ mod tests {
     #[test]
     fn test_negative_literal() -> Result<(), String> {
         ExprTest::new("-5.0")
-            .expect_ast(|b| b.num(-5.0))
-            .expect_opcodes(vec![LpsOpCode::Push((-5.0).to_fixed()), LpsOpCode::Return])
+            .expect_ast(|b| {
+                let operand = b.num(5.0);
+                b.neg(operand, Type::Fixed)
+            })
+            .expect_opcodes(vec![
+                LpsOpCode::Push(5.0.to_fixed()),
+                LpsOpCode::NegFixed,
+                LpsOpCode::Return,
+            ])
             .expect_result_fixed(-5.0)
             .run()
     }

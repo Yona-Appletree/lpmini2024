@@ -2,7 +2,7 @@ use alloc::format;
 use alloc::string::String;
 use alloc::vec::Vec;
 
-use crate::fixed::{Fixed, Vec2, Vec3, Vec4};
+use crate::fixed::{Fixed, Mat3, Vec2, Vec3, Vec4};
 use crate::vm::vm_limits::VmLimits;
 use crate::vm::{CallStack, ValueStack};
 use crate::{LocalStack, LpsProgram, LpsVmError, RuntimeErrorWithContext};
@@ -293,6 +293,27 @@ impl<'a> LpsVm<'a> {
             });
         }
         Ok(Vec4::new(stack[0], stack[1], stack[2], stack[3]))
+    }
+
+    /// Execute the program and expect a mat3 result
+    pub fn run_mat3(
+        &mut self,
+        x: Fixed,
+        y: Fixed,
+        time: Fixed,
+    ) -> Result<Mat3, RuntimeErrorWithContext> {
+        let stack = self.run(x, y, time)?;
+        if stack.len() != 9 {
+            return Err(RuntimeErrorWithContext {
+                error: LpsVmError::TypeMismatch,
+                pc: self.pc,
+                opcode: "run_mat3",
+            });
+        }
+        Ok(Mat3::new(
+            stack[0], stack[1], stack[2], stack[3], stack[4], stack[5], stack[6], stack[7],
+            stack[8],
+        ))
     }
 
     /// Format a runtime error with full context

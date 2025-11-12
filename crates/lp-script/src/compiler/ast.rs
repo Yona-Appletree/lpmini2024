@@ -177,6 +177,7 @@ pub enum ExprKind {
     Vec2Constructor(Vec<Expr>),
     Vec3Constructor(Vec<Expr>),
     Vec4Constructor(Vec<Expr>),
+    Mat3Constructor(Vec<Expr>),
 
     // Swizzle (component access/reordering)
     Swizzle {

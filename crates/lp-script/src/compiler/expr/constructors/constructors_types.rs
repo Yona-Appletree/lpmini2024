@@ -1,9 +1,8 @@
 /// Vector constructor type checking
 extern crate alloc;
-use alloc::format;
 use alloc::string::String;
-use alloc::vec;
 use alloc::vec::Vec;
+use alloc::{format, vec};
 
 use crate::compiler::ast::Expr;
 use crate::compiler::error::{TypeError, TypeErrorKind};
@@ -18,6 +17,7 @@ impl TypeChecker {
             Type::Vec2 => 2,
             Type::Vec3 => 3,
             Type::Vec4 => 4,
+            Type::Mat3 => 9,
             Type::Void => 0,
         }
     }
@@ -85,6 +85,7 @@ impl TypeChecker {
                 Type::Vec2 => 2,
                 Type::Vec3 => 3,
                 Type::Vec4 => 4,
+                Type::Mat3 => 9,
                 _ => {
                     return Err(TypeError {
                         kind: TypeErrorKind::InvalidOperation {
@@ -112,6 +113,7 @@ impl TypeChecker {
             2 => Type::Vec2,
             3 => Type::Vec3,
             4 => Type::Vec4,
+            9 => Type::Mat3,
             _ => unreachable!(),
         })
     }

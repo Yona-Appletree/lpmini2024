@@ -210,6 +210,7 @@ fn type_to_string(ty: &Type) -> &'static str {
         Type::Vec2 => "vec2",
         Type::Vec3 => "vec3",
         Type::Vec4 => "vec4",
+        Type::Mat3 => "mat3",
         Type::Void => "void",
         Type::Bool => "bool",
     }

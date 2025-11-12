@@ -2,6 +2,7 @@
 #[cfg(test)]
 mod tests {
     use crate::compiler::expr::expr_test_util::ExprTest;
+    use crate::shared::Type;
     use crate::vm::opcodes::LpsOpCode;
 
     #[test]
@@ -114,12 +115,14 @@ mod tests {
     fn test_negative_right_shift() -> Result<(), String> {
         ExprTest::new("-8 >> 1")
             .expect_ast(|b| {
-                let neg_eight = b.int32(-8); // Parser optimizes -8 to a single literal
+                let eight = b.int32(8);
+                let neg_eight = b.neg(eight, Type::Int32);
                 let one = b.int32(1);
                 b.right_shift(neg_eight, one)
             })
             .expect_opcodes(vec![
-                LpsOpCode::PushInt32(-8),
+                LpsOpCode::PushInt32(8),
+                LpsOpCode::NegInt32,
                 LpsOpCode::PushInt32(1),
                 LpsOpCode::RightShiftInt32,
                 LpsOpCode::Return,

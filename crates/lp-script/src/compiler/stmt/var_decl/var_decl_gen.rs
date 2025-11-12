@@ -22,6 +22,7 @@ impl<'a> CodeGenerator<'a> {
                 Type::Vec2 => LpsOpCode::StoreLocalVec2(local_idx),
                 Type::Vec3 => LpsOpCode::StoreLocalVec3(local_idx),
                 Type::Vec4 => LpsOpCode::StoreLocalVec4(local_idx),
+                Type::Mat3 => LpsOpCode::StoreLocalMat3(local_idx),
                 _ => LpsOpCode::StoreLocalFixed(local_idx), // Fallback
             });
         }

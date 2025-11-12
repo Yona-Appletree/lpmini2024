@@ -23,3 +23,6 @@ lp-data-derive = { path = "../lp-data-derive", optional = true }
 
 serde_json = { version = "1", optional = true }
 
+[dev-dependencies]
+lp-alloc = { path = "../lp-alloc", default-features = false, features = ["std"] }
+

@@ -112,7 +112,8 @@ impl<'a> CodeGenerator<'a> {
 
             ExprKind::Vec2Constructor(args)
             | ExprKind::Vec3Constructor(args)
-            | ExprKind::Vec4Constructor(args) => self.gen_vec_constructor(args),
+            | ExprKind::Vec4Constructor(args)
+            | ExprKind::Mat3Constructor(args) => self.gen_vec_constructor(args),
 
             ExprKind::Swizzle { expr, components } => self.gen_swizzle(expr.as_ref(), components),
         }

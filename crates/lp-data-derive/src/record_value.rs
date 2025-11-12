@@ -92,6 +92,9 @@ fn expand_struct(input: &DeriveInput, data: &DataStruct) -> Result<TokenStream2,
             }
         };
 
+        // Check if field is marked as enum_struct via attribute
+        let is_enum_struct_field = field_attrs.is_enum_struct;
+
         let field_shape = get_field_shape(struct_ident, field_ident, &field.ty, is_enum_field)?;
         where_bounds.extend(field_shape.bounds);
 
@@ -110,6 +113,8 @@ fn expand_struct(input: &DeriveInput, data: &DataStruct) -> Result<TokenStream2,
                     Some(quote! { Vec3 })
                 } else if is_vec4(path) {
                     Some(quote! { Vec4 })
+                } else if is_mat3(path) {
+                    Some(quote! { Mat3 })
                 } else {
                     None
                 }
@@ -124,44 +129,228 @@ fn expand_struct(input: &DeriveInput, data: &DataStruct) -> Result<TokenStream2,
             field_getters_mut.push(quote! {
                 #index => Ok(crate::kind::value::LpValueRefMut::#variant(&mut self.#field_ident as &mut dyn crate::kind::value::LpValue)),
             });
-        } else {
-            // We know at compile time if this is an enum or record via attribute/naming convention
-            if field_shape.is_enum {
-                // Field is an enum - only require EnumValue trait
-                where_bounds.push(quote! { #field_ty: crate::kind::enum_::enum_value::EnumValue });
+        } else if let Type::Path(path) = &field.ty {
+            if let Some(elem_ty) = extract_vec_element(path) {
+                // Vec<T> field - convert to ArrayValue
+                let array_shape_ident = format_ident!(
+                    "__LP_VALUE_{}_{}_ARRAY_SHAPE",
+                    struct_ident,
+                    field_ident.to_string().to_uppercase()
+                );
+                where_bounds.push(quote! { #elem_ty: crate::kind::value::LpValue });
+
+                // Check if element type is likely an enum_struct (not a primitive type)
+                // Primitives: Fixed, i32, bool, Vec2, Vec3, Vec4, Mat3
+                let is_primitive = if let Type::Path(elem_path) = &elem_ty {
+                    is_fixed(elem_path)
+                        || is_i32(elem_path)
+                        || is_bool(elem_path)
+                        || is_vec2(elem_path)
+                        || is_vec3(elem_path)
+                        || is_vec4(elem_path)
+                        || is_mat3(elem_path)
+                } else {
+                    false
+                };
+
+                let is_enum_struct_elem = !is_primitive
+                    && matches!(&elem_ty, Type::Path(p) if p.path.segments.len() == 1);
+                if is_enum_struct_elem {
+                    where_bounds.push(quote! { #elem_ty: crate::kind::enum_struct::enum_struct_value::EnumStructValue });
+                    where_bounds.push(quote! { #elem_ty: Clone });
+                }
+
+                let conversion_code = if is_enum_struct_elem {
+                    // For enum_struct types, convert via Clone + cast to trait object
+                    quote! {
+                        for item in &self.#field_ident {
+                            let value_box = crate::kind::value::LpValueBox::EnumStruct(
+                                alloc::boxed::Box::new(item.clone()) as alloc::boxed::Box<dyn crate::kind::enum_struct::enum_struct_value::EnumStructValue>
+                            );
+                            array_value.push(value_box).unwrap();
+                        }
+                    }
+                } else {
+                    // For primitive types, use Into<LpValueBox>
+                    quote! {
+                        for item in &self.#field_ident {
+                            array_value.push((*item).into()).unwrap();
+                        }
+                    }
+                };
+
                 field_getters.push(quote! {
                     #index => {
-                        let value: &#field_ty = &self.#field_ident;
-                        let enum_value: &dyn crate::kind::enum_::enum_value::EnumValue = value;
-                        Ok(crate::kind::value::LpValueRef::Enum(enum_value))
+                        use alloc::boxed::Box;
+                        use alloc::string::String;
+                        use crate::kind::array::array_value_dyn::ArrayValueDyn;
+                        use crate::kind::array::array_value::ArrayValue;
+                        use crate::kind::array::array_dyn::ArrayShapeDyn;
+                        use crate::kind::array::array_meta::ArrayMetaDyn;
+                        let shape = &#array_shape_ident;
+                        let shape_ref: &dyn crate::kind::array::array_shape::ArrayShape = shape;
+                        let dyn_shape = ArrayShapeDyn {
+                            meta: ArrayMetaDyn {
+                                name: String::new(),
+                                docs: None,
+                            },
+                            element_shape: shape_ref.element_shape(),
+                            len: 0,
+                        };
+                        let mut array_value = ArrayValueDyn::new(dyn_shape);
+                        #conversion_code
+                        let boxed = Box::leak(Box::new(array_value));
+                        Ok(crate::kind::value::LpValueRef::Array(boxed))
                     },
                 });
                 field_getters_mut.push(quote! {
                     #index => {
-                        let value: &mut #field_ty = &mut self.#field_ident;
-                        let enum_value: &mut dyn crate::kind::enum_::enum_value::EnumValue = value;
-                        Ok(crate::kind::value::LpValueRefMut::Enum(enum_value))
+                        use alloc::boxed::Box;
+                        use alloc::string::String;
+                        use crate::kind::array::array_value_dyn::ArrayValueDyn;
+                        use crate::kind::array::array_value::ArrayValue;
+                        use crate::kind::array::array_dyn::ArrayShapeDyn;
+                        use crate::kind::array::array_meta::ArrayMetaDyn;
+                        let shape = &#array_shape_ident;
+                        let shape_ref: &dyn crate::kind::array::array_shape::ArrayShape = shape;
+                        let dyn_shape = ArrayShapeDyn {
+                            meta: ArrayMetaDyn {
+                                name: String::new(),
+                                docs: None,
+                            },
+                            element_shape: shape_ref.element_shape(),
+                            len: 0,
+                        };
+                        let mut array_value = ArrayValueDyn::new(dyn_shape);
+                        #conversion_code
+                        let mut boxed = Box::leak(Box::new(array_value));
+                        Ok(crate::kind::value::LpValueRefMut::Array(boxed))
+                    },
+                });
+            } else if let Some(elem_ty) = extract_option_element(path) {
+                // Option<T> field - convert to OptionValue
+                let option_shape_ident = format_ident!(
+                    "__LP_VALUE_{}_{}_OPTION_SHAPE",
+                    struct_ident,
+                    field_ident.to_string().to_uppercase()
+                );
+                where_bounds.push(quote! { #elem_ty: crate::kind::value::LpValue });
+                field_getters.push(quote! {
+                    #index => {
+                        use alloc::boxed::Box;
+                        use alloc::string::String;
+                        use crate::kind::option::option_value_dyn::OptionValueDyn;
+                        use crate::kind::option::option_dyn::OptionShapeDyn;
+                        use crate::kind::option::option_meta::OptionMetaDyn;
+                        let shape = &#option_shape_ident;
+                        let shape_ref: &dyn crate::kind::option::option_shape::OptionShape = shape;
+                        let dyn_shape = OptionShapeDyn {
+                            meta: OptionMetaDyn {
+                                name: String::new(),
+                                docs: None,
+                            },
+                            inner_shape: shape_ref.inner_shape(),
+                        };
+                        let option_value = if let Some(ref value) = self.#field_ident {
+                            OptionValueDyn::some(dyn_shape, (*value).into())
+                        } else {
+                            OptionValueDyn::none(dyn_shape)
+                        };
+                        let boxed = Box::leak(Box::new(option_value));
+                        Ok(crate::kind::value::LpValueRef::Option(boxed))
+                    },
+                });
+                field_getters_mut.push(quote! {
+                    #index => {
+                        use alloc::boxed::Box;
+                        use alloc::string::String;
+                        use crate::kind::option::option_value_dyn::OptionValueDyn;
+                        use crate::kind::option::option_dyn::OptionShapeDyn;
+                        use crate::kind::option::option_meta::OptionMetaDyn;
+                        let shape = &#option_shape_ident;
+                        let shape_ref: &dyn crate::kind::option::option_shape::OptionShape = shape;
+                        let dyn_shape = OptionShapeDyn {
+                            meta: OptionMetaDyn {
+                                name: String::new(),
+                                docs: None,
+                            },
+                            inner_shape: shape_ref.inner_shape(),
+                        };
+                        let mut option_value = if let Some(ref value) = self.#field_ident {
+                            OptionValueDyn::some(dyn_shape, (*value).into())
+                        } else {
+                            OptionValueDyn::none(dyn_shape)
+                        };
+                        let mut boxed = Box::leak(Box::new(option_value));
+                        Ok(crate::kind::value::LpValueRefMut::Option(boxed))
                     },
                 });
             } else {
-                // Field is a record - only require RecordValue trait
-                where_bounds
-                    .push(quote! { #field_ty: crate::kind::record::record_value::RecordValue });
-                field_getters.push(quote! {
-                    #index => {
-                        let value: &#field_ty = &self.#field_ident;
-                        let record_value: &dyn crate::kind::record::record_value::RecordValue = value;
-                        Ok(crate::kind::value::LpValueRef::Record(record_value))
-                    },
-                });
-                field_getters_mut.push(quote! {
-                    #index => {
-                        let value: &mut #field_ty = &mut self.#field_ident;
-                        let record_value: &mut dyn crate::kind::record::record_value::RecordValue = value;
-                        Ok(crate::kind::value::LpValueRefMut::Record(record_value))
-                    },
-                });
+                // Fall through to enum/record handling
+                // We know at compile time if this is an enum, enum_struct, or record via attribute/naming convention
+                if is_enum_struct_field {
+                    // Field is a enum_struct - require EnumStructValue trait
+                    where_bounds
+                        .push(quote! { #field_ty: crate::kind::enum_struct::enum_struct_value::EnumStructValue });
+                    field_getters.push(quote! {
+                        #index => {
+                            let value: &#field_ty = &self.#field_ident;
+                            let enum_struct_value: &dyn crate::kind::enum_struct::enum_struct_value::EnumStructValue = value;
+                            Ok(crate::kind::value::LpValueRef::EnumStruct(enum_struct_value))
+                        },
+                    });
+                    field_getters_mut.push(quote! {
+                        #index => {
+                            let value: &mut #field_ty = &mut self.#field_ident;
+                            let enum_struct_value: &mut dyn crate::kind::enum_struct::enum_struct_value::EnumStructValue = value;
+                            Ok(crate::kind::value::LpValueRefMut::EnumStruct(enum_struct_value))
+                        },
+                    });
+                } else if field_shape.is_enum {
+                    // Field is an enum - only require EnumValue trait
+                    where_bounds.push(
+                        quote! { #field_ty: crate::kind::enum_unit::enum_value::EnumUnitValue },
+                    );
+                    field_getters.push(quote! {
+                        #index => {
+                            let value: &#field_ty = &self.#field_ident;
+                            let enum_value: &dyn crate::kind::enum_unit::enum_value::EnumUnitValue = value;
+                            Ok(crate::kind::value::LpValueRef::EnumUnit(enum_value))
+                        },
+                    });
+                    field_getters_mut.push(quote! {
+                        #index => {
+                            let value: &mut #field_ty = &mut self.#field_ident;
+                            let enum_value: &mut dyn crate::kind::enum_unit::enum_value::EnumUnitValue = value;
+                            Ok(crate::kind::value::LpValueRefMut::EnumUnit(enum_value))
+                        },
+                    });
+                } else {
+                    // Field is a record - only require RecordValue trait
+                    where_bounds
+                        .push(quote! { #field_ty: crate::kind::record::record_value::RecordValue });
+                    field_getters.push(quote! {
+                        #index => {
+                            let value: &#field_ty = &self.#field_ident;
+                            let record_value: &dyn crate::kind::record::record_value::RecordValue = value;
+                            Ok(crate::kind::value::LpValueRef::Record(record_value))
+                        },
+                    });
+                    field_getters_mut.push(quote! {
+                        #index => {
+                            let value: &mut #field_ty = &mut self.#field_ident;
+                            let record_value: &mut dyn crate::kind::record::record_value::RecordValue = value;
+                            Ok(crate::kind::value::LpValueRefMut::Record(record_value))
+                        },
+                    });
+                }
             }
+        } else {
+            // Not a Type::Path - error
+            return Err(Error::new(
+                field.ty.span(),
+                "unsupported field type; expected primitives, Vec<T>, Option<T>, enum, or record types",
+            ));
         }
     }
 
@@ -220,6 +409,7 @@ fn generate_record_shape_static(
 ) -> Result<TokenStream2, Error> {
     let mut field_exprs = Vec::new();
     let mut where_bounds = Vec::new();
+    let mut helper_constants: Vec<TokenStream2> = Vec::new();
 
     for field in fields {
         let field_ident = field
@@ -245,8 +435,142 @@ fn generate_record_shape_static(
             }
         };
 
-        let field_shape = get_field_shape(struct_ident, field_ident, &field.ty, is_enum_field)?;
+        // Check if field is marked as enum_struct via attribute
+        let is_enum_struct_field = field_attrs.is_enum_struct;
+
+        // For enum_struct fields, we need to get the shape from the enum_struct type itself
+        let field_shape = if is_enum_struct_field {
+            // EnumStruct types have their own shape constant generated by EnumStructValue derive
+            // The constant is now public, so we can reference it directly
+            let field_ty = &field.ty;
+            let shape_expr = if let Type::Path(path) = field_ty {
+                // Build the path to the shape constant
+                let segments: Vec<_> = path.path.segments.iter().collect();
+                let type_ident = segments.last().unwrap();
+                let shape_const_name = format_ident!(
+                    "__LP_VALUE_{}_SHAPE",
+                    type_ident.ident.to_string().to_uppercase()
+                );
+
+                // Build fully qualified path to the shape constant
+                // For imported types (single segment), we need to infer the module path
+                // Since we can't know the import path from the type alone, we use a heuristic:
+                // For types in test modules, try common test paths
+                // This is a limitation - ideally we'd track the import path
+                if segments.len() == 1 {
+                    // Imported type - try common test module paths as a heuristic
+                    let type_name = type_ident.ident.to_string();
+                    // Try the most common pattern: crate::tests::scene::<module_name>
+                    // where module_name is derived from the type name (e.g., StepConfig -> step_config)
+                    let module_name = type_name
+                        .chars()
+                        .enumerate()
+                        .map(|(i, c)| {
+                            if i > 0 && c.is_uppercase() {
+                                format!("_{}", c.to_lowercase())
+                            } else {
+                                c.to_lowercase().to_string()
+                            }
+                        })
+                        .collect::<String>();
+                    let module_ident = format_ident!("{}", module_name);
+                    quote! {
+                        &crate::tests::scene::#module_ident::#shape_const_name
+                    }
+                } else {
+                    // Fully qualified path - build it from the segments
+                    let mut qpath = quote::quote! {};
+                    for seg in segments.iter().take(segments.len() - 1) {
+                        qpath = quote! { #qpath #seg:: };
+                    }
+                    quote! { &#qpath #shape_const_name }
+                }
+            } else {
+                return Err(Error::new(
+                    field.ty.span(),
+                    "enum_struct field type must be a path type",
+                ));
+            };
+            FieldShape {
+                shape_expr,
+                bounds: Vec::new(),
+                is_enum: false,
+            }
+        } else {
+            get_field_shape(struct_ident, field_ident, &field.ty, is_enum_field)?
+        };
         where_bounds.extend(field_shape.bounds);
+
+        // Generate shape constants for Vec and Option fields
+        if let Type::Path(path) = &field.ty {
+            if let Some(elem_ty) = extract_vec_element(path) {
+                // Generate array shape constant
+                let array_shape_ident = format_ident!(
+                    "__LP_VALUE_{}_{}_ARRAY_SHAPE",
+                    struct_ident,
+                    field_ident.to_string().to_uppercase()
+                );
+                // Check if element type is an enum_struct (not a primitive)
+                let is_primitive_elem = if let Type::Path(elem_path) = &elem_ty {
+                    is_fixed(elem_path)
+                        || is_i32(elem_path)
+                        || is_bool(elem_path)
+                        || is_vec2(elem_path)
+                        || is_vec3(elem_path)
+                        || is_vec4(elem_path)
+                } else {
+                    false
+                };
+                let is_enum_struct_elem = !is_primitive_elem
+                    && matches!(&elem_ty, Type::Path(p) if p.path.segments.len() == 1);
+                let elem_shape = get_field_shape_for_vec_element(
+                    struct_ident,
+                    field_ident,
+                    &elem_ty,
+                    false,
+                    is_enum_struct_elem,
+                )?;
+                let elem_shape_expr = elem_shape.shape_expr;
+                helper_constants.push(quote! {
+                    #[allow(non_upper_case_globals)] // Generated constant from derive macro
+                    const #array_shape_ident: crate::kind::array::array_static::ArrayShapeStatic =
+                        crate::kind::array::array_static::ArrayShapeStatic {
+                            meta: crate::kind::array::array_meta::ArrayMetaStatic {
+                                name: "",
+                                docs: None,
+                            },
+                            element_shape: #elem_shape_expr,
+                            len: 0,
+                        };
+                });
+            } else if let Some(elem_ty) = extract_option_element(path) {
+                // Generate option shape constant
+                let option_shape_ident = format_ident!(
+                    "__LP_VALUE_{}_{}_OPTION_SHAPE",
+                    struct_ident,
+                    field_ident.to_string().to_uppercase()
+                );
+                let elem_shape = get_field_shape_for_vec_element(
+                    struct_ident,
+                    field_ident,
+                    &elem_ty,
+                    false,
+                    false,
+                )?;
+                let elem_shape_expr = elem_shape.shape_expr;
+                helper_constants.push(quote! {
+                    #[allow(non_upper_case_globals)] // Generated constant from derive macro
+                    const #option_shape_ident: crate::kind::option::option_static::OptionShapeStatic =
+                        crate::kind::option::option_static::OptionShapeStatic {
+                            meta: crate::kind::option::option_meta::OptionMetaStatic {
+                                name: "",
+                                docs: None,
+                            },
+                            inner_shape: #elem_shape_expr,
+                        };
+                });
+            }
+        }
 
         let field_meta = if let Some(docs) = field_docs {
             let docs_lit = LitStr::new(&docs, Span::call_site());
@@ -302,11 +626,13 @@ fn generate_record_shape_static(
     };
 
     let tokens = quote! {
+        #(#helper_constants)*
+
         const #fields_const_ident: &'static [crate::kind::record::record_static::RecordFieldStatic] = &[
             #(#field_exprs),*
         ];
 
-        const #shape_const_ident: crate::kind::record::record_static::RecordShapeStatic = crate::kind::record::record_static::RecordShapeStatic {
+        pub const #shape_const_ident: crate::kind::record::record_static::RecordShapeStatic = crate::kind::record::record_static::RecordShapeStatic {
             meta: #record_meta,
             fields: #fields_const_ident,
         };
@@ -326,6 +652,16 @@ fn get_field_shape(
     _field_ident: &Ident,
     ty: &Type,
     is_enum_field: bool,
+) -> Result<FieldShape, Error> {
+    get_field_shape_for_vec_element(_struct_ident, _field_ident, ty, is_enum_field, false)
+}
+
+fn get_field_shape_for_vec_element(
+    _struct_ident: &Ident,
+    _field_ident: &Ident,
+    ty: &Type,
+    is_enum_field: bool,
+    is_vec_element: bool,
 ) -> Result<FieldShape, Error> {
     match ty {
         Type::Path(path) => {
@@ -377,8 +713,79 @@ fn get_field_shape(
                     bounds: Vec::new(),
                     is_enum: false,
                 })
+            } else if is_mat3(path) {
+                Ok(FieldShape {
+                    shape_expr: quote! {
+                        &crate::kind::mat3::mat3_static::MAT3_SHAPE
+                    },
+                    bounds: Vec::new(),
+                    is_enum: false,
+                })
+            } else if let Some(elem_ty) = extract_vec_element(path) {
+                // Vec<T> - create array shape
+                // Check if element type is an enum_struct (not a primitive)
+                let is_primitive_elem = if let Type::Path(elem_path) = &elem_ty {
+                    is_fixed(elem_path) || is_i32(elem_path) || is_bool(elem_path) ||
+                    is_vec2(elem_path) || is_vec3(elem_path) || is_vec4(elem_path) || is_mat3(elem_path)
+                } else {
+                    false
+                };
+                let is_enum_struct_elem = !is_primitive_elem && matches!(&elem_ty, Type::Path(p) if p.path.segments.len() == 1);
+                let elem_shape = get_field_shape_for_vec_element(_struct_ident, _field_ident, &elem_ty, false, is_enum_struct_elem)?;
+                let array_shape_ident = format_ident!(
+                    "__LP_VALUE_{}_{}_ARRAY_SHAPE",
+                    _struct_ident,
+                    _field_ident.to_string().to_uppercase()
+                );
+                let elem_shape_expr = elem_shape.shape_expr;
+                Ok(FieldShape {
+                    shape_expr: quote! {
+                        {
+                            #[allow(non_upper_case_globals)] // Generated constant from derive macro
+                            static #array_shape_ident: crate::kind::array::array_static::ArrayShapeStatic =
+                                crate::kind::array::array_static::ArrayShapeStatic {
+                                    meta: crate::kind::array::array_meta::ArrayMetaStatic {
+                                        name: "",
+                                        docs: None,
+                                    },
+                                    element_shape: #elem_shape_expr,
+                                    len: 0,
+                                };
+                            &#array_shape_ident
+                        }
+                    },
+                    bounds: elem_shape.bounds,
+                    is_enum: false,
+                })
+            } else if let Some(elem_ty) = extract_option_element(path) {
+                // Option<T> - create option shape
+                let elem_shape = get_field_shape(_struct_ident, _field_ident, &elem_ty, false)?;
+                let option_shape_ident = format_ident!(
+                    "__LP_VALUE_{}_{}_OPTION_SHAPE",
+                    _struct_ident,
+                    _field_ident.to_string().to_uppercase()
+                );
+                let elem_shape_expr = elem_shape.shape_expr;
+                Ok(FieldShape {
+                    shape_expr: quote! {
+                        {
+                            #[allow(non_upper_case_globals)] // Generated constant from derive macro
+                            static #option_shape_ident: crate::kind::option::option_static::OptionShapeStatic =
+                                crate::kind::option::option_static::OptionShapeStatic {
+                                    meta: crate::kind::option::option_meta::OptionMetaStatic {
+                                        name: "",
+                                        docs: None,
+                                    },
+                                    inner_shape: #elem_shape_expr,
+                                };
+                            &#option_shape_ident
+                        }
+                    },
+                    bounds: elem_shape.bounds,
+                    is_enum: false,
+                })
             } else {
-                // Could be either enum or record type - we know at compile time via attribute/naming
+                // Could be either enum, enum_struct, or record type
                 let bounds = Vec::new();
                 // Don't add LpValue bound here - it will be added conditionally based on is_enum_field
 
@@ -387,7 +794,32 @@ fn get_field_shape(
                     let type_ident = &path.path.segments[0].ident;
                     let shape_const_name =
                         format_ident!("__LP_VALUE_{}_SHAPE", type_ident.to_string().to_uppercase());
-                    quote! { &#shape_const_name }
+
+                    // For Vec element types that are enum_struct (like StepConfig), try to resolve module path
+                    // This is a heuristic - we try common test module patterns
+                    if is_vec_element {
+                        let type_name = type_ident.to_string();
+                        let module_name = type_name
+                            .chars()
+                            .enumerate()
+                            .map(|(i, c)| {
+                                if i > 0 && c.is_uppercase() {
+                                    format!("_{}", c.to_lowercase())
+                                } else {
+                                    c.to_lowercase().to_string()
+                                }
+                            })
+                            .collect::<String>();
+                        let module_ident = format_ident!("{}", module_name);
+
+                        // Try the test module path pattern (crate::tests::scene::<module>)
+                        quote! {
+                            &crate::tests::scene::#module_ident::#shape_const_name
+                        }
+                    } else {
+                        // For regular fields, use direct reference
+                        quote! { &#shape_const_name }
+                    }
                 } else {
                     // For external types, we need to call shape() at runtime
                     let type_ident = path.path.segments.last().unwrap();
@@ -407,7 +839,7 @@ fn get_field_shape(
         }
         _ => Err(Error::new(
             ty.span(),
-            "unsupported field type; expected Fixed, Int32, Bool, Vec2, Vec3, Vec4, enum, or record types",
+            "unsupported field type; expected Fixed, Int32, Bool, Vec2, Vec3, Vec4, Mat3, Vec<T>, Option<T>, enum, or record types",
         )),
     }
 }
@@ -450,6 +882,42 @@ fn is_vec4(path: &TypePath) -> bool {
         .last()
         .map(|seg| seg.ident == "Vec4")
         .unwrap_or(false)
+}
+
+fn is_mat3(path: &TypePath) -> bool {
+    path.path
+        .segments
+        .last()
+        .map(|seg| seg.ident == "Mat3")
+        .unwrap_or(false)
+}
+
+fn extract_vec_element(path: &TypePath) -> Option<Type> {
+    path.path.segments.last().and_then(|seg| {
+        if seg.ident != "Vec" {
+            return None;
+        }
+        if let syn::PathArguments::AngleBracketed(args) = &seg.arguments {
+            if let Some(syn::GenericArgument::Type(ty)) = args.args.first() {
+                return Some(ty.clone());
+            }
+        }
+        None
+    })
+}
+
+fn extract_option_element(path: &TypePath) -> Option<Type> {
+    path.path.segments.last().and_then(|seg| {
+        if seg.ident != "Option" {
+            return None;
+        }
+        if let syn::PathArguments::AngleBracketed(args) = &seg.arguments {
+            if let Some(syn::GenericArgument::Type(ty)) = args.args.first() {
+                return Some(ty.clone());
+            }
+        }
+        None
+    })
 }
 
 #[derive(Default, Clone)]
@@ -495,6 +963,7 @@ impl StructAttrs {
 struct FieldAttrs {
     docs: Option<String>,
     is_enum: bool,
+    is_enum_struct: bool,
 }
 
 impl FieldAttrs {
@@ -518,8 +987,16 @@ impl FieldAttrs {
                     })?;
                     Ok(())
                 } else if meta.path.is_ident("enum") {
-                    // #[lp_data(enum)] attribute marks this field as an enum type
+                    // #[lp(enum)] attribute marks this field as an enum type
                     result.is_enum = true;
+                    Ok(())
+                } else if meta.path.is_ident("enum_unit") {
+                    // #[lp(enum_unit)] attribute marks this field as an enum_unit type
+                    result.is_enum = true;
+                    Ok(())
+                } else if meta.path.is_ident("enum_struct") {
+                    // #[lp(enum_struct)] attribute marks this field as a enum_struct type
+                    result.is_enum_struct = true;
                     Ok(())
                 } else {
                     Err(meta.error("unknown lp directive"))

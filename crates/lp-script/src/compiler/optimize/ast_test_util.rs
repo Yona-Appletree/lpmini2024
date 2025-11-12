@@ -10,7 +10,7 @@ use lp_alloc::init_test_allocator;
 use crate::compiler::ast::Expr;
 use crate::compiler::expr::expr_test_util::expr_eq_ignore_spans;
 use crate::compiler::{codegen, lexer, parser, typechecker};
-use crate::fixed::{Fixed, ToFixed, Vec2, Vec3, Vec4};
+use crate::fixed::{Fixed, Mat3, ToFixed, Vec2, Vec3, Vec4};
 use crate::shared::Type;
 use crate::vm::{FunctionDef, LpsProgram, LpsVm, VmLimits};
 
@@ -163,6 +163,7 @@ enum EvalResult {
     Vec2(Vec2),
     Vec3(Vec3),
     Vec4(Vec4),
+    Mat3(Mat3),
 }
 
 impl EvalResult {
@@ -186,6 +187,9 @@ impl EvalResult {
                     && (a.y.to_f32() - b.y.to_f32()).abs() <= EPS
                     && (a.z.to_f32() - b.z.to_f32()).abs() <= EPS
                     && (a.w.to_f32() - b.w.to_f32()).abs() <= EPS
+            }
+            (EvalResult::Mat3(a), EvalResult::Mat3(b)) => {
+                (0..9).all(|i| (a.m[i].to_f32() - b.m[i].to_f32()).abs() <= EPS)
             }
             _ => false,
         }
@@ -225,6 +229,10 @@ fn evaluate_expr(
         Type::Vec4 => vm
             .run_vec4(x, y, time)
             .map(EvalResult::Vec4)
+            .map_err(|e| format!("Runtime error: {:?}", e)),
+        Type::Mat3 => vm
+            .run_mat3(x, y, time)
+            .map(EvalResult::Mat3)
             .map_err(|e| format!("Runtime error: {:?}", e)),
         Type::Void => Err(String::from("Cannot evaluate expression with void type")),
     }

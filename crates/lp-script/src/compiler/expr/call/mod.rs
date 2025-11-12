@@ -9,4 +9,12 @@ mod expand_componentwise;
 pub(in crate::compiler) use call_types::check_call;
 
 #[cfg(test)]
-mod call_tests;
+mod call_fixed_tests;
+#[cfg(test)]
+mod call_mat3_tests;
+#[cfg(test)]
+mod call_vec2_tests;
+#[cfg(test)]
+mod call_vec3_tests;
+#[cfg(test)]
+mod call_vec4_tests;

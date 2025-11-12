@@ -40,6 +40,9 @@ impl<'a> CodeGenerator<'a> {
                         Type::Vec4 => {
                             self.code.push(LpsOpCode::LoadLocalVec4(index));
                         }
+                        Type::Mat3 => {
+                            self.code.push(LpsOpCode::LoadLocalMat3(index));
+                        }
                         _ => {
                             // Fallback for unsupported types
                             self.code.push(LpsOpCode::LoadLocalFixed(index));

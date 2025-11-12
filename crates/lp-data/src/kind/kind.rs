@@ -21,11 +21,21 @@ pub enum LpKind {
     /// 4D vector (Vec4)
     Vec4,
 
+    /// 3x3 matrix (Mat3)
+    Mat3,
+
     /// Record (struct-like composite type)
     Record,
 
-    /// Enum (simple unit enum with no fields)
-    ///
-    /// Note: Union (discriminated unions with fields) is planned for future work.
-    Enum,
+    /// EnumUnit (simple unit enum with no fields)
+    EnumUnit,
+
+    /// EnumStruct (discriminated union with per-variant shapes and values)
+    EnumStruct,
+
+    /// Array (homogeneous collection of elements)
+    Array,
+
+    /// Option (optional value: Some(T) or None)
+    Option,
 }

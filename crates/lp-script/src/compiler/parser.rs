@@ -125,6 +125,7 @@ impl Parser {
             TokenKind::Vec2 => Type::Vec2,
             TokenKind::Vec3 => Type::Vec3,
             TokenKind::Vec4 => Type::Vec4,
+            TokenKind::Mat3 => Type::Mat3,
             TokenKind::Void => Type::Void,
             _ => Type::Fixed, // Fallback
         };
@@ -138,7 +139,8 @@ impl Parser {
             | TokenKind::Int
             | TokenKind::Vec2
             | TokenKind::Vec3
-            | TokenKind::Vec4 => self.parse_var_decl(),
+            | TokenKind::Vec4
+            | TokenKind::Mat3 => self.parse_var_decl(),
             TokenKind::Return => self.parse_return_stmt(),
             TokenKind::If => self.parse_if_stmt(),
             TokenKind::While => self.parse_while_stmt(),

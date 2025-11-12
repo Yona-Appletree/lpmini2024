@@ -1,6 +1,8 @@
 //! Test node with all primitive types.
 
-use lp_math::fixed::{Fixed, Vec2, Vec3, Vec4};
+use lp_math::fixed::{Fixed, Mat3, Vec2, Vec3, Vec4};
+
+use crate::tests::scene::step_config::StepConfig;
 
 /// LFO waveform shape enumeration
 #[derive(
@@ -29,7 +31,7 @@ pub struct TestNodeConfig {
     pub period: Fixed,
 
     /// Waveform shape
-    #[lp(enum)]
+    #[lp(enum_unit)]
     pub waveform: LfoWaveform,
 
     /// Integer count value
@@ -46,6 +48,18 @@ pub struct TestNodeConfig {
 
     /// 4D color (RGBA)
     pub color: Vec4,
+
+    /// 3x3 transformation matrix
+    pub transform: Mat3,
+
+    /// Array of step configurations (enum_struct type example)
+    pub steps: Vec<StepConfig>,
+
+    /// Array of integer values
+    pub values: Vec<i32>,
+
+    /// Optional count field
+    pub optional_count: Option<i32>,
 }
 
 /// Runtime structure for a test node.

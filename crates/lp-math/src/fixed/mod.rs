@@ -40,6 +40,7 @@ pub mod conversions;
 #[allow(clippy::module_inception)]
 pub mod fixed;
 pub mod interpolation;
+pub mod mat3;
 pub mod noise;
 pub mod rounding;
 #[cfg(feature = "serde")]
@@ -55,6 +56,7 @@ pub use clamping::{saturate, sign};
 pub use conversions::ToFixed;
 pub use fixed::Fixed;
 pub use interpolation::{lerp, smoothstep, step};
+pub use mat3::Mat3;
 pub use rounding::{ceil, floor, frac};
 pub use trig::{cos, sin, tan};
 pub use vec2::Vec2;

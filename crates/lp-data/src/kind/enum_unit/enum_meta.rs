@@ -6,7 +6,7 @@ use alloc::string::String;
 ///
 /// This trait allows polymorphic access to metadata regardless of whether
 /// it's stored as static strings (`&'static str`) or dynamic `String` values.
-pub trait EnumMeta {
+pub trait EnumUnitMeta {
     /// Get the name of this enum type.
     fn name(&self) -> &str;
 
@@ -19,7 +19,7 @@ pub trait EnumMeta {
 /// Uses `&'static str` for zero-cost string storage.
 /// Can be `Copy` since all fields are `Copy`.
 #[derive(Debug, Clone, Copy)]
-pub struct EnumMetaStatic {
+pub struct EnumUnitMetaStatic {
     /// Name of this enum type.
     pub name: &'static str,
 
@@ -31,7 +31,7 @@ pub struct EnumMetaStatic {
 ///
 /// Uses `String` for runtime-allocated strings.
 #[derive(Debug)]
-pub struct EnumMetaDyn {
+pub struct EnumUnitMetaDyn {
     /// Name of this enum type.
     pub name: String,
 
@@ -39,7 +39,7 @@ pub struct EnumMetaDyn {
     pub docs: Option<String>,
 }
 
-impl EnumMeta for EnumMetaStatic {
+impl EnumUnitMeta for EnumUnitMetaStatic {
     fn name(&self) -> &str {
         self.name
     }
@@ -49,7 +49,7 @@ impl EnumMeta for EnumMetaStatic {
     }
 }
 
-impl EnumMeta for EnumMetaDyn {
+impl EnumUnitMeta for EnumUnitMetaDyn {
     fn name(&self) -> &str {
         self.name.as_str()
     }
@@ -60,7 +60,7 @@ impl EnumMeta for EnumMetaDyn {
 }
 
 /// Trait for enum variant metadata.
-pub trait EnumVariantMeta {
+pub trait EnumUnitVariantMeta {
     /// Get documentation for this variant.
     fn docs(&self) -> Option<&str>;
 }
@@ -69,7 +69,7 @@ pub trait EnumVariantMeta {
 ///
 /// Uses `&'static str` for zero-cost string storage.
 #[derive(Debug, Clone, Copy)]
-pub struct EnumVariantMetaStatic {
+pub struct EnumUnitVariantMetaStatic {
     /// Documentation for this variant.
     pub docs: Option<&'static str>,
 }
@@ -78,18 +78,18 @@ pub struct EnumVariantMetaStatic {
 ///
 /// Uses `String` for runtime-allocated strings.
 #[derive(Debug)]
-pub struct EnumVariantMetaDyn {
+pub struct EnumUnitVariantMetaDyn {
     /// Documentation for this variant.
     pub docs: Option<String>,
 }
 
-impl EnumVariantMeta for EnumVariantMetaStatic {
+impl EnumUnitVariantMeta for EnumUnitVariantMetaStatic {
     fn docs(&self) -> Option<&str> {
         self.docs
     }
 }
 
-impl EnumVariantMeta for EnumVariantMetaDyn {
+impl EnumUnitVariantMeta for EnumUnitVariantMetaDyn {
     fn docs(&self) -> Option<&str> {
         self.docs.as_deref()
     }

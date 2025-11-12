@@ -54,8 +54,12 @@ impl RecordValueDyn {
             LpValueBox::Vec2(boxed) => Self::static_shape_of(boxed.as_ref()),
             LpValueBox::Vec3(boxed) => Self::static_shape_of(boxed.as_ref()),
             LpValueBox::Vec4(boxed) => Self::static_shape_of(boxed.as_ref()),
+            LpValueBox::Mat3(boxed) => Self::static_shape_of(boxed.as_ref()),
             LpValueBox::Record(boxed) => Self::static_shape_of(boxed.as_ref()),
-            LpValueBox::Enum(boxed) => Self::static_shape_of(boxed.as_ref()),
+            LpValueBox::EnumUnit(boxed) => Self::static_shape_of(boxed.as_ref()),
+            LpValueBox::EnumStruct(boxed) => Self::static_shape_of(boxed.as_ref()),
+            LpValueBox::Array(boxed) => Self::static_shape_of(boxed.as_ref()),
+            LpValueBox::Option(boxed) => Self::static_shape_of(boxed.as_ref()),
         };
 
         // Check if field already exists and replace it
@@ -160,8 +164,12 @@ impl RecordValue for RecordValueDyn {
             LpValueBox::Vec2(boxed) => LpValueRef::Vec2(boxed.as_ref()),
             LpValueBox::Vec3(boxed) => LpValueRef::Vec3(boxed.as_ref()),
             LpValueBox::Vec4(boxed) => LpValueRef::Vec4(boxed.as_ref()),
+            LpValueBox::Mat3(boxed) => LpValueRef::Mat3(boxed.as_ref()),
             LpValueBox::Record(boxed) => LpValueRef::Record(boxed.as_ref()),
-            LpValueBox::Enum(boxed) => LpValueRef::Enum(boxed.as_ref()),
+            LpValueBox::EnumUnit(boxed) => LpValueRef::EnumUnit(boxed.as_ref()),
+            LpValueBox::EnumStruct(boxed) => LpValueRef::EnumStruct(boxed.as_ref()),
+            LpValueBox::Array(boxed) => LpValueRef::Array(boxed.as_ref()),
+            LpValueBox::Option(boxed) => LpValueRef::Option(boxed.as_ref()),
         };
 
         Ok(value_ref)
@@ -181,8 +189,12 @@ impl RecordValue for RecordValueDyn {
             LpValueBox::Vec2(boxed) => LpValueRefMut::Vec2(boxed.as_mut()),
             LpValueBox::Vec3(boxed) => LpValueRefMut::Vec3(boxed.as_mut()),
             LpValueBox::Vec4(boxed) => LpValueRefMut::Vec4(boxed.as_mut()),
+            LpValueBox::Mat3(boxed) => LpValueRefMut::Mat3(boxed.as_mut()),
             LpValueBox::Record(boxed) => LpValueRefMut::Record(boxed.as_mut()),
-            LpValueBox::Enum(boxed) => LpValueRefMut::Enum(boxed.as_mut()),
+            LpValueBox::EnumUnit(boxed) => LpValueRefMut::EnumUnit(boxed.as_mut()),
+            LpValueBox::EnumStruct(boxed) => LpValueRefMut::EnumStruct(boxed.as_mut()),
+            LpValueBox::Array(boxed) => LpValueRefMut::Array(boxed.as_mut()),
+            LpValueBox::Option(boxed) => LpValueRefMut::Option(boxed.as_mut()),
         };
 
         Ok(value_ref_mut)

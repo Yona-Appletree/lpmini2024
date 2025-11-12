@@ -46,11 +46,16 @@ impl Parser {
                         Span::new(token.span.start, end),
                     ))
                 } else {
-                    // Error: prefix decrement requires an l-value
-                    // For now, create a dummy expression (will be caught by type checker)
+                    // If followed by a number, parse as double negation: --3.0 = -(-3.0)
+                    // Otherwise, it's an error (prefix decrement requires l-value)
+                    let operand = self.unary()?;
+                    let end = operand.span.end;
                     Ok(Expr::new(
-                        ExprKind::Number(0.0),
-                        Span::new(token.span.start, self.current().span.end),
+                        ExprKind::Neg(Box::new(Expr::new(
+                            ExprKind::Neg(Box::new(operand)),
+                            Span::new(token.span.start, end),
+                        ))),
+                        Span::new(token.span.start, end),
                     ))
                 }
             }
@@ -58,22 +63,10 @@ impl Parser {
                 self.advance();
                 let operand = self.unary()?; // Right-associative (can stack: --x)
                 let end = operand.span.end;
-
-                // Optimization: if operand is a literal, fold the negation
-                match &operand.kind {
-                    ExprKind::Number(n) => Ok(Expr::new(
-                        ExprKind::Number(-n),
-                        Span::new(token.span.start, end),
-                    )),
-                    ExprKind::IntNumber(n) => Ok(Expr::new(
-                        ExprKind::IntNumber(-n),
-                        Span::new(token.span.start, end),
-                    )),
-                    _ => Ok(Expr::new(
-                        ExprKind::Neg(Box::new(operand)),
-                        Span::new(token.span.start, end),
-                    )),
-                }
+                Ok(Expr::new(
+                    ExprKind::Neg(Box::new(operand)),
+                    Span::new(token.span.start, end),
+                ))
             }
             TokenKind::Bang => {
                 self.advance();
@@ -122,7 +115,9 @@ impl Parser {
                 }
                 Ok(expr)
             }
-            TokenKind::Vec2 | TokenKind::Vec3 | TokenKind::Vec4 => self.parse_vec_constructor(),
+            TokenKind::Vec2 | TokenKind::Vec3 | TokenKind::Vec4 | TokenKind::Mat3 => {
+                self.parse_vec_constructor()
+            }
             TokenKind::Ident(_) => self.parse_ident(),
             _ => {
                 // Error fallback

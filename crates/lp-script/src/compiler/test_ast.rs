@@ -197,6 +197,10 @@ impl AstBuilder {
         self.expr_with_type(ExprKind::Vec4Constructor(components), Some(Type::Vec4))
     }
 
+    pub fn mat3(&mut self, components: Vec<Expr>) -> Expr {
+        self.expr_with_type(ExprKind::Mat3Constructor(components), Some(Type::Mat3))
+    }
+
     // ---------------------------------------------------------------------
     // Swizzle helper
     // ---------------------------------------------------------------------

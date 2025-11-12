@@ -356,7 +356,8 @@ pub fn fold_constants(expr: &mut Expr) -> bool {
         Call { args, .. }
         | Vec2Constructor(args)
         | Vec3Constructor(args)
-        | Vec4Constructor(args) => {
+        | Vec4Constructor(args)
+        | Mat3Constructor(args) => {
             for arg in args.iter_mut() {
                 changed |= fold_constants(arg);
             }
@@ -468,7 +469,7 @@ pub fn fold_constants(expr: &mut Expr) -> bool {
         } => fold_ternary(condition.as_ref(), true_expr.as_ref(), false_expr.as_ref()),
         Assign { .. } => None,
         Call { name, args } => fold_call(name, args.as_mut_slice(), true),
-        Vec2Constructor(_) | Vec3Constructor(_) | Vec4Constructor(_) => None,
+        Vec2Constructor(_) | Vec3Constructor(_) | Vec4Constructor(_) | Mat3Constructor(_) => None,
         Swizzle { .. } => None,
         Number(_) | IntNumber(_) | Variable(_) | PreIncrement(_) | PreDecrement(_)
         | PostIncrement(_) | PostDecrement(_) => None,

@@ -124,6 +124,30 @@ pub fn exec_store_local_vec4(
     Ok(())
 }
 
+/// Execute LoadLocalMat3: pop nothing; push local[idx] as 9 Fixed
+#[inline(always)]
+pub fn exec_load_local_mat3(
+    stack: &mut ValueStack,
+    locals: &LocalStack,
+    idx: usize,
+) -> Result<(), LpsVmError> {
+    let mat = locals.get_mat3(idx)?;
+    stack.push_mat3(mat)?;
+    Ok(())
+}
+
+/// Execute StoreLocalMat3: pop 9 Fixed; store to local[idx]
+#[inline(always)]
+pub fn exec_store_local_mat3(
+    stack: &mut ValueStack,
+    locals: &mut LocalStack,
+    idx: usize,
+) -> Result<(), LpsVmError> {
+    let mat = stack.pop_mat3()?;
+    locals.set_mat3(idx, mat)?;
+    Ok(())
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

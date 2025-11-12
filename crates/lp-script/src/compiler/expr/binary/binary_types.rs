@@ -25,6 +25,9 @@ pub(in crate::compiler) fn check_binary_arithmetic(
 
     // Check for vector-scalar operations
     let result_ty = match (&left_ty, &right_ty) {
+        // Matrix * Matrix (matrix multiplication) - check before same-type pattern
+        (Type::Mat3, Type::Mat3) => Type::Mat3,
+
         // Both same type
         (l, r) if l == r => l.clone(),
 
@@ -43,10 +46,16 @@ pub(in crate::compiler) fn check_binary_arithmetic(
         (Type::Vec3, Type::Fixed | Type::Int32) => Type::Vec3,
         (Type::Vec4, Type::Fixed | Type::Int32) => Type::Vec4,
 
+        // Matrix * Scalar (returns matrix)
+        (Type::Mat3, Type::Fixed | Type::Int32) => Type::Mat3,
+
         // Scalar * Vector (returns vector)
         (Type::Fixed | Type::Int32, Type::Vec2) => Type::Vec2,
         (Type::Fixed | Type::Int32, Type::Vec3) => Type::Vec3,
         (Type::Fixed | Type::Int32, Type::Vec4) => Type::Vec4,
+
+        // Scalar * Matrix (returns matrix)
+        (Type::Fixed | Type::Int32, Type::Mat3) => Type::Mat3,
 
         // Mismatch
         _ => {

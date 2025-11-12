@@ -1,14 +1,9 @@
-/// Integration tests for comparison operators using builder pattern test utilities
+/// Comparison operator tests for Fixed (scalar) type
 #[cfg(test)]
 mod tests {
     use crate::compiler::expr::expr_test_util::ExprTest;
     use crate::fixed::ToFixed;
     use crate::vm::opcodes::LpsOpCode;
-
-    // ========================================================================
-    // Comprehensive tests - one per comparison operator
-    // Each tests AST, opcodes, and execution together
-    // ========================================================================
 
     #[test]
     fn test_less_than() -> Result<(), String> {
