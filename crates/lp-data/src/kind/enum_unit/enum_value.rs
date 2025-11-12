@@ -50,6 +50,7 @@ impl<'a> LpValueRef<'a> {
             LpValueRef::Record(_) => None,
             LpValueRef::EnumUnit(v) => Some(*v),
             LpValueRef::EnumStruct(_) => None,
+            LpValueRef::Array(_) => None,
         }
     }
 }
@@ -67,6 +68,7 @@ impl<'a> LpValueRefMut<'a> {
             LpValueRefMut::Record(_) => None,
             LpValueRefMut::EnumUnit(v) => Some(*v),
             LpValueRefMut::EnumStruct(_) => None,
+            LpValueRefMut::Array(_) => None,
         }
     }
 }

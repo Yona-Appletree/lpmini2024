@@ -1,5 +1,6 @@
 use std::collections::BTreeMap;
 
+use lp_data::kind::array::ArrayShape;
 use lp_data::kind::enum_struct::EnumStructShape;
 use lp_data::kind::enum_unit::EnumUnitShape;
 use lp_data::kind::fixed::FixedShape;
@@ -84,6 +85,12 @@ fn lp_shape_to_zod(
             let enum_struct_shape: &dyn EnumStructShape = unsafe { core::mem::transmute(shape) };
             enum_struct_to_zod(enum_struct_shape, all_types)
         }
+        LpKind::Array => {
+            // SAFETY: We know this is an Array because kind() returned Array
+            // Shapes are 'static, so transmuting the reference is safe
+            let array_shape: &dyn ArrayShape = unsafe { core::mem::transmute(shape) };
+            array_to_zod(array_shape, all_types)
+        }
     }
 }
 
@@ -153,6 +160,15 @@ fn enum_struct_to_zod(
     } else {
         format!("z.union([\n{}\n])", variants.join(",\n"))
     }
+}
+
+fn array_to_zod(
+    array_shape: &dyn ArrayShape,
+    all_types: &BTreeMap<&'static str, &dyn LpShape>,
+) -> String {
+    let element_shape = array_shape.element_shape();
+    let element_zod = lp_shape_to_zod(element_shape, all_types);
+    format!("z.array({})", element_zod)
 }
 
 fn field_shape_to_zod(

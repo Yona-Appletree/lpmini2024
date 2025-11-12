@@ -57,6 +57,7 @@ impl RecordValueDyn {
             LpValueBox::Record(boxed) => Self::static_shape_of(boxed.as_ref()),
             LpValueBox::EnumUnit(boxed) => Self::static_shape_of(boxed.as_ref()),
             LpValueBox::EnumStruct(boxed) => Self::static_shape_of(boxed.as_ref()),
+            LpValueBox::Array(boxed) => Self::static_shape_of(boxed.as_ref()),
         };
 
         // Check if field already exists and replace it
@@ -164,6 +165,7 @@ impl RecordValue for RecordValueDyn {
             LpValueBox::Record(boxed) => LpValueRef::Record(boxed.as_ref()),
             LpValueBox::EnumUnit(boxed) => LpValueRef::EnumUnit(boxed.as_ref()),
             LpValueBox::EnumStruct(boxed) => LpValueRef::EnumStruct(boxed.as_ref()),
+            LpValueBox::Array(boxed) => LpValueRef::Array(boxed.as_ref()),
         };
 
         Ok(value_ref)
@@ -186,6 +188,7 @@ impl RecordValue for RecordValueDyn {
             LpValueBox::Record(boxed) => LpValueRefMut::Record(boxed.as_mut()),
             LpValueBox::EnumUnit(boxed) => LpValueRefMut::EnumUnit(boxed.as_mut()),
             LpValueBox::EnumStruct(boxed) => LpValueRefMut::EnumStruct(boxed.as_mut()),
+            LpValueBox::Array(boxed) => LpValueRefMut::Array(boxed.as_mut()),
         };
 
         Ok(value_ref_mut)

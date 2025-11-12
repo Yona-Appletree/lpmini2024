@@ -54,6 +54,38 @@ let float_value = Value::fixed32(1.5);
 let vec_value = Value::vec2(0.5, 0.5);
 ```
 
+### Arrays
+
+Arrays are homogeneous collections that store elements of the same type:
+
+```rust
+use lp_data::kind::array::{ArrayShapeDyn, ArrayValueDyn, ArrayValue};
+use lp_data::kind::array::array_meta::ArrayMetaDyn;
+use lp_data::kind::int32::int32_static::INT32_SHAPE;
+use lp_data::kind::value::LpValueBox;
+
+// Create an array shape for Int32 elements
+let shape = ArrayShapeDyn {
+    meta: ArrayMetaDyn {
+        name: "Int32Array".to_string(),
+        docs: None,
+    },
+    element_shape: &INT32_SHAPE,
+    len: 0,
+};
+
+// Create a dynamic array value
+let mut array = ArrayValueDyn::new(shape);
+
+// Add elements
+array.push(LpValueBox::from(42i32))?;
+array.push(LpValueBox::from(100i32))?;
+
+// Access elements
+let first = array.get_element(0)?;
+assert_eq!(first.as_lp_value().shape().kind(), LpKind::Int32);
+```
+
 ## Feature Flags
 
 - `alloc` (default): Enable heap allocations

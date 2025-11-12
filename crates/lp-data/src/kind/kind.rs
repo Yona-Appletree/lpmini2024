@@ -29,4 +29,7 @@ pub enum LpKind {
 
     /// EnumStruct (discriminated union with per-variant shapes and values)
     EnumStruct,
+
+    /// Array (homogeneous collection of elements)
+    Array,
 }

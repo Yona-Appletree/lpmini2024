@@ -11,6 +11,7 @@ pub mod value;
 #[macro_use]
 mod primitives;
 
+pub mod array;
 pub mod bool;
 pub mod enum_struct;
 pub mod enum_unit;
@@ -22,6 +23,8 @@ pub mod vec3;
 pub mod vec4;
 
 // Re-export commonly used items
+// Re-export array traits and metadata from array module
+pub use array::{ArrayMeta, ArrayMetaDyn, ArrayMetaStatic, ArrayShape, ArrayValue};
 // Re-export enum traits and metadata from enum module
 pub use enum_struct::{
     EnumStructMeta, EnumStructMetaDyn, EnumStructMetaStatic, EnumStructShape, EnumStructShapeDyn,

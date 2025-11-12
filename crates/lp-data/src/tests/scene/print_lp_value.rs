@@ -33,6 +33,9 @@ pub fn print_lp_value(value_box: LpValueBox, indent: usize) {
         LpValueBox::EnumStruct(boxed) => {
             print_lp_value_ref(LpValueRef::EnumStruct(boxed.as_ref()), indent);
         }
+        LpValueBox::Array(boxed) => {
+            print_lp_value_ref(LpValueRef::Array(boxed.as_ref()), indent);
+        }
     }
 }
 
@@ -65,6 +68,9 @@ pub fn print_lp_value_to_string(value_box: LpValueBox, indent: usize) -> String 
         }
         LpValueBox::EnumStruct(boxed) => {
             print_lp_value_ref_to_string(LpValueRef::EnumStruct(boxed.as_ref()), indent)
+        }
+        LpValueBox::Array(boxed) => {
+            print_lp_value_ref_to_string(LpValueRef::Array(boxed.as_ref()), indent)
         }
     }
 }
@@ -175,6 +181,23 @@ fn print_lp_value_ref(value_ref: LpValueRef, indent: usize) {
                 }
             } else {
                 println!("Union({})", union_name);
+            }
+        }
+        LpValueRef::Array(array_ref) => {
+            use crate::kind::array::array_value::ArrayValue;
+            let array_name = ArrayValue::shape(array_ref).meta().name();
+            let len = ArrayValue::shape(array_ref).len();
+            if array_name.is_empty() {
+                println!("Array[{}]", len);
+            } else {
+                println!("Array({})[{}]", array_name, len);
+            }
+            // Print elements
+            for i in 0..len {
+                if let Ok(element_ref) = array_ref.get_element(i) {
+                    print!("{:>indent$}  [{}]: ", "", i);
+                    print_lp_value_ref(element_ref, indent + 2);
+                }
             }
         }
     }
@@ -293,6 +316,24 @@ fn print_lp_value_ref_to_string(value_ref: LpValueRef, indent: usize) -> String 
             if let Ok(variant_value) = union_ref.variant_value() {
                 output.push_str(&format!("{:>indent$}  value: ", ""));
                 output.push_str(&print_lp_value_ref_to_string(variant_value, indent + 2));
+            }
+            output
+        }
+        LpValueRef::Array(array_ref) => {
+            use crate::kind::array::array_value::ArrayValue;
+            let array_name = ArrayValue::shape(array_ref).meta().name();
+            let len = ArrayValue::shape(array_ref).len();
+            let mut output = if array_name.is_empty() {
+                format!("Array[{}]\n", len)
+            } else {
+                format!("Array({})[{}]\n", array_name, len)
+            };
+            // Print elements
+            for i in 0..len {
+                if let Ok(element_ref) = array_ref.get_element(i) {
+                    output.push_str(&format!("{:>indent$}  [{}]: ", "", i));
+                    output.push_str(&print_lp_value_ref_to_string(element_ref, indent + 2));
+                }
             }
             output
         }

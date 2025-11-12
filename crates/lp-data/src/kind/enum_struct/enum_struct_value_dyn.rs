@@ -42,6 +42,7 @@ impl EnumStructValueDyn {
             LpValueBox::Record(boxed) => LpValueRef::Record(boxed.as_ref()),
             LpValueBox::EnumUnit(boxed) => LpValueRef::EnumUnit(boxed.as_ref()),
             LpValueBox::EnumStruct(boxed) => LpValueRef::EnumStruct(boxed.as_ref()),
+            LpValueBox::Array(boxed) => LpValueRef::Array(boxed.as_ref()),
         }
     }
 
@@ -56,6 +57,7 @@ impl EnumStructValueDyn {
             LpValueBox::Record(boxed) => LpValueRefMut::Record(boxed.as_mut()),
             LpValueBox::EnumUnit(boxed) => LpValueRefMut::EnumUnit(boxed.as_mut()),
             LpValueBox::EnumStruct(boxed) => LpValueRefMut::EnumStruct(boxed.as_mut()),
+            LpValueBox::Array(boxed) => LpValueRefMut::Array(boxed.as_mut()),
         }
     }
 }

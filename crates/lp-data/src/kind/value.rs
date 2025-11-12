@@ -9,6 +9,7 @@ extern crate alloc;
 use alloc::boxed::Box;
 
 use super::shape::LpShape;
+use crate::kind::array::array_value::ArrayValue;
 use crate::kind::enum_struct::enum_struct_value::EnumStructValue;
 use crate::kind::enum_unit::enum_value::EnumUnitValue;
 use crate::kind::record::record_value::RecordValue;
@@ -23,6 +24,7 @@ pub enum LpValueBox {
     Record(Box<dyn RecordValue>),
     EnumUnit(Box<dyn EnumUnitValue>),
     EnumStruct(Box<dyn EnumStructValue>),
+    Array(Box<dyn ArrayValue>),
 }
 
 /// Type-aware reference to a value.
@@ -40,6 +42,7 @@ pub enum LpValueRef<'a> {
     Record(&'a dyn RecordValue),
     EnumUnit(&'a dyn EnumUnitValue),
     EnumStruct(&'a dyn EnumStructValue),
+    Array(&'a dyn ArrayValue),
 }
 
 impl<'a> LpValueRef<'a> {
@@ -55,6 +58,7 @@ impl<'a> LpValueRef<'a> {
             LpValueRef::Record(v) => *v as &dyn LpValue,
             LpValueRef::EnumUnit(v) => *v as &dyn LpValue,
             LpValueRef::EnumStruct(v) => *v as &dyn LpValue,
+            LpValueRef::Array(v) => *v as &dyn LpValue,
         }
     }
 }
@@ -81,6 +85,7 @@ pub enum LpValueRefMut<'a> {
     Record(&'a mut dyn RecordValue),
     EnumUnit(&'a mut dyn EnumUnitValue),
     EnumStruct(&'a mut dyn EnumStructValue),
+    Array(&'a mut dyn ArrayValue),
 }
 
 impl<'a> LpValueRefMut<'a> {
@@ -96,6 +101,7 @@ impl<'a> LpValueRefMut<'a> {
             LpValueRefMut::Record(v) => *v as &mut dyn LpValue,
             LpValueRefMut::EnumUnit(v) => *v as &mut dyn LpValue,
             LpValueRefMut::EnumStruct(v) => *v as &mut dyn LpValue,
+            LpValueRefMut::Array(v) => *v as &mut dyn LpValue,
         }
     }
 }
@@ -114,6 +120,7 @@ impl<'a> core::ops::Deref for LpValueRefMut<'a> {
             LpValueRefMut::Record(v) => *v as &dyn LpValue,
             LpValueRefMut::EnumUnit(v) => *v as &dyn LpValue,
             LpValueRefMut::EnumStruct(v) => *v as &dyn LpValue,
+            LpValueRefMut::Array(v) => *v as &dyn LpValue,
         }
     }
 }
@@ -130,6 +137,7 @@ impl<'a> core::ops::DerefMut for LpValueRefMut<'a> {
             LpValueRefMut::Record(v) => *v as &mut dyn LpValue,
             LpValueRefMut::EnumUnit(v) => *v as &mut dyn LpValue,
             LpValueRefMut::EnumStruct(v) => *v as &mut dyn LpValue,
+            LpValueRefMut::Array(v) => *v as &mut dyn LpValue,
         }
     }
 }
@@ -163,6 +171,7 @@ impl serde::Serialize for LpValueBox {
                 LpValueBox::Record(boxed) => LpValueRef::Record(boxed.as_ref()),
                 LpValueBox::EnumUnit(boxed) => LpValueRef::EnumUnit(boxed.as_ref()),
                 LpValueBox::EnumStruct(boxed) => LpValueRef::EnumStruct(boxed.as_ref()),
+                LpValueBox::Array(boxed) => LpValueRef::Array(boxed.as_ref()),
             },
             serializer,
         )
@@ -255,6 +264,20 @@ where
             let mut map = serializer.serialize_map(Some(1))?;
             map.serialize_entry(variant_name, &LpValueRefSerializer(variant_value))?;
             map.end()
+        }
+        LpValueRef::Array(array_ref) => {
+            use serde::ser::SerializeSeq;
+
+            use crate::kind::array::array_value::ArrayValue;
+            let shape = ArrayValue::shape(array_ref);
+            let len = shape.len();
+            let mut seq = serializer.serialize_seq(Some(len))?;
+            for i in 0..len {
+                if let Ok(element_ref) = array_ref.get_element(i) {
+                    seq.serialize_element(&LpValueRefSerializer(element_ref))?;
+                }
+            }
+            seq.end()
         }
     }
 }
