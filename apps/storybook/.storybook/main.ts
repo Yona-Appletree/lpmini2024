@@ -15,7 +15,7 @@ function getAbsolutePath(value: string): string {
 const config: StorybookConfig = {
   stories: [
     '../src/**/*.mdx',
-    '../../control/src/**/*.stories.@(js|ts|svelte)',
+    '../../lp-studio/src/**/*.stories.@(js|ts|svelte)',
     '../../../packages/**/src/**/*.stories.@(js|ts|svelte)',
   ],
   addons: [
