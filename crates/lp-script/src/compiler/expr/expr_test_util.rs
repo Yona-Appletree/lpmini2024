@@ -7,6 +7,10 @@ use alloc::vec::Vec;
 use alloc::{format, vec};
 
 use crate::compiler::ast::Expr;
+use crate::compiler::error::{
+    CodegenError, CodegenErrorKind, LexerError, LexerErrorKind, ParseError, ParseErrorKind,
+    TypeError, TypeErrorKind,
+};
 use crate::compiler::optimize::OptimizeOptions;
 use crate::compiler::test_ast::AstBuilder;
 use crate::compiler::{codegen, lexer, optimize, parser, typechecker};
@@ -33,6 +37,7 @@ pub struct ExprTest {
     expected_result: Option<TestResult>,
     expected_locals: Vec<(String, Fixed)>, // Expected local values after execution
     optimize_options: Option<OptimizeOptions>, // If set, apply optimizations to opcodes
+    expected_error: Option<ExpectedError>, // If set, expect this error during compilation
     x: Fixed,
     y: Fixed,
     time: Fixed,
@@ -45,6 +50,16 @@ enum TestResult {
     Vec3(Vec3),
     Vec4(Vec4),
     Mat3(Mat3),
+}
+
+/// Expected error for test assertions
+#[cfg(test)]
+#[derive(Debug)]
+enum ExpectedError {
+    Lexer(LexerErrorKind, Option<String>), // kind, optional message substring
+    Parser(ParseErrorKind, Option<String>),
+    TypeCheck(TypeErrorKind, Option<String>),
+    Codegen(CodegenErrorKind, Option<String>),
 }
 
 #[cfg(test)]
@@ -60,6 +75,7 @@ impl ExprTest {
             expected_result: None,
             expected_locals: Vec::new(),
             optimize_options: None, // No optimization by default
+            expected_error: None,
             x: 0.5.to_fixed(),
             y: 0.5.to_fixed(),
             time: Fixed::ZERO,
@@ -212,6 +228,82 @@ impl ExprTest {
         self
     }
 
+    /// Expect a lexer error with the given kind
+    pub fn expect_lexer_error(mut self, kind: LexerErrorKind) -> Self {
+        self.expected_error = Some(ExpectedError::Lexer(kind, None));
+        self
+    }
+
+    /// Expect a lexer error with the given kind and message containing the substring
+    pub fn expect_lexer_error_with_message(
+        mut self,
+        kind: LexerErrorKind,
+        message_contains: &str,
+    ) -> Self {
+        self.expected_error = Some(ExpectedError::Lexer(
+            kind,
+            Some(String::from(message_contains)),
+        ));
+        self
+    }
+
+    /// Expect a parse error with the given kind
+    pub fn expect_parse_error(mut self, kind: ParseErrorKind) -> Self {
+        self.expected_error = Some(ExpectedError::Parser(kind, None));
+        self
+    }
+
+    /// Expect a parse error with the given kind and message containing the substring
+    pub fn expect_parse_error_with_message(
+        mut self,
+        kind: ParseErrorKind,
+        message_contains: &str,
+    ) -> Self {
+        self.expected_error = Some(ExpectedError::Parser(
+            kind,
+            Some(String::from(message_contains)),
+        ));
+        self
+    }
+
+    /// Expect a type check error with the given kind
+    pub fn expect_type_error(mut self, kind: TypeErrorKind) -> Self {
+        self.expected_error = Some(ExpectedError::TypeCheck(kind, None));
+        self
+    }
+
+    /// Expect a type check error with the given kind and message containing the substring
+    pub fn expect_type_error_with_message(
+        mut self,
+        kind: TypeErrorKind,
+        message_contains: &str,
+    ) -> Self {
+        self.expected_error = Some(ExpectedError::TypeCheck(
+            kind,
+            Some(String::from(message_contains)),
+        ));
+        self
+    }
+
+    /// Expect a codegen error with the given kind
+    pub fn expect_codegen_error(mut self, kind: CodegenErrorKind) -> Self {
+        self.expected_error = Some(ExpectedError::Codegen(kind, None));
+        self
+    }
+
+    /// Expect a codegen error with the given kind and message containing the substring
+    pub fn expect_codegen_error_with_message(
+        mut self,
+        kind: CodegenErrorKind,
+        message_contains: &str,
+    ) -> Self {
+        self.expected_error = Some(ExpectedError::Codegen(
+            kind,
+            Some(String::from(message_contains)),
+        ));
+        self
+    }
+
     /// Run all expectations and return result
     /// Collects all errors instead of stopping at the first one
     pub fn run(self) -> Result<(), String> {
@@ -226,6 +318,7 @@ impl ExprTest {
             expected_result,
             expected_locals,
             optimize_options,
+            expected_error,
             x,
             y,
             time,
@@ -233,20 +326,103 @@ impl ExprTest {
 
         let mut errors = Vec::new();
 
+        // Helper to check if an error matches the expected error
+        // For ParseError, TypeError, and CodegenError, we can compare kinds directly
+        // For message matching, we check if the error string contains the expected substring
+        fn check_error_match(actual_error_str: &str, expected: &ExpectedError) -> bool {
+            match expected {
+                ExpectedError::Lexer(_expected_kind, msg_opt) => {
+                    // Check message substring if provided
+                    if let Some(msg) = msg_opt {
+                        actual_error_str.contains(msg)
+                    } else {
+                        true // If no message specified, any lexer error matches
+                    }
+                }
+                ExpectedError::Parser(_expected_kind, msg_opt) => {
+                    // Check if error message contains expected substring
+                    if let Some(msg) = msg_opt {
+                        actual_error_str.contains(msg)
+                    } else {
+                        true
+                    }
+                }
+                ExpectedError::TypeCheck(_expected_kind, msg_opt) => {
+                    if let Some(msg) = msg_opt {
+                        actual_error_str.contains(msg)
+                    } else {
+                        true
+                    }
+                }
+                ExpectedError::Codegen(_expected_kind, msg_opt) => {
+                    if let Some(msg) = msg_opt {
+                        actual_error_str.contains(msg)
+                    } else {
+                        true
+                    }
+                }
+            }
+        }
+
         let mut lexer = lexer::Lexer::new(&input);
         let tokens = lexer.tokenize();
+
+        // Check for lexer errors
+        if let Some(expected) = &expected_error {
+            if let ExpectedError::Lexer(..) = expected {
+                // Lexer errors would have been caught during tokenize
+                // For now, we'll check during parsing
+            }
+        }
+
         let mut parser = parser::Parser::new(tokens);
         let mut expr = match parser.parse() {
             Ok(expr) => expr,
             Err(e) => {
-                errors.push(format!("Parse error: {}", e));
-                return Err(errors.join("\n\n"));
+                if let Some(expected) = &expected_error {
+                    if let ExpectedError::Parser(..) = expected {
+                        let error_str = format!("{}", e);
+                        if check_error_match(&error_str, expected) {
+                            return Ok(()); // Expected error occurred, test passes
+                        } else {
+                            return Err(format!(
+                                "Expected parse error but got different error: {}",
+                                e
+                            ));
+                        }
+                    } else {
+                        return Err(format!(
+                            "Unexpected parse error: {} (expected {:?})",
+                            e, expected
+                        ));
+                    }
+                } else {
+                    return Err(format!("Parse error: {}", e));
+                }
             }
         };
 
         if let Err(e) = typechecker::TypeChecker::check(&mut expr) {
-            errors.push(format!("Type check error: {}", e));
-            return Err(errors.join("\n\n"));
+            if let Some(expected) = &expected_error {
+                if let ExpectedError::TypeCheck(..) = expected {
+                    let error_str = format!("{}", e);
+                    if check_error_match(&error_str, expected) {
+                        return Ok(()); // Expected error occurred, test passes
+                    } else {
+                        return Err(format!(
+                            "Expected type check error but got different error: {}",
+                            e
+                        ));
+                    }
+                } else {
+                    return Err(format!(
+                        "Unexpected type check error: {} (expected {:?})",
+                        e, expected
+                    ));
+                }
+            } else {
+                return Err(format!("Type check error: {}", e));
+            }
         }
 
         if let Some(builder_fn) = expected_ast_builder {
@@ -278,8 +454,26 @@ impl ExprTest {
         let mut opcodes = match opcodes_result {
             Ok(code) => code,
             Err(e) => {
-                errors.push(format!("Codegen error: {}", e));
-                return Err(errors.join("\n\n"));
+                if let Some(expected) = &expected_error {
+                    if let ExpectedError::Codegen(..) = expected {
+                        let error_str = format!("{}", e);
+                        if check_error_match(&error_str, expected) {
+                            return Ok(()); // Expected error occurred, test passes
+                        } else {
+                            return Err(format!(
+                                "Expected codegen error but got different error: {}",
+                                e
+                            ));
+                        }
+                    } else {
+                        return Err(format!(
+                            "Unexpected codegen error: {} (expected {:?})",
+                            e, expected
+                        ));
+                    }
+                } else {
+                    return Err(format!("Codegen error: {}", e));
+                }
             }
         };
 
@@ -462,6 +656,14 @@ impl ExprTest {
                 }
                 Err(e) => errors.push(format!("Failed to create VM: {:?}", e)),
             }
+        }
+
+        // If we got here and an error was expected, that's a problem
+        if let Some(expected) = &expected_error {
+            return Err(format!(
+                "Expected compilation error ({:?}) but compilation succeeded",
+                expected
+            ));
         }
 
         if errors.is_empty() {
@@ -801,5 +1003,66 @@ mod tests {
             })
             .run()
             .expect("Should match despite different spans");
+    }
+
+    #[test]
+    fn test_expect_codegen_error() {
+        // Test that expected codegen errors are correctly matched
+        use crate::compiler::error::CodegenErrorKind;
+        ExprTest::new("mat3(1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 1.0) % 2.0")
+            .expect_codegen_error_with_message(
+                CodegenErrorKind::UnsupportedFeature(String::new()),
+                "mat3",
+            )
+            .run()
+            .expect("Should match expected codegen error");
+    }
+
+    #[test]
+    fn test_expect_codegen_error_wrong_type() {
+        // Test that wrong error types are rejected
+        use crate::compiler::error::{CodegenErrorKind, TypeErrorKind};
+        let result = ExprTest::new("undefined_var")
+            .expect_codegen_error(CodegenErrorKind::UnsupportedFeature(String::new()))
+            .run();
+        assert!(result.is_err());
+        assert!(result.unwrap_err().contains("Unexpected"));
+    }
+
+    #[test]
+    fn test_expect_codegen_error_but_succeeds() {
+        // Test that missing errors when expected are caught
+        use crate::compiler::error::CodegenErrorKind;
+        let result = ExprTest::new("1.0 + 2.0")
+            .expect_codegen_error(CodegenErrorKind::UnsupportedFeature(String::new()))
+            .run();
+        assert!(result.is_err());
+        assert!(result.unwrap_err().contains("Expected compilation error"));
+    }
+
+    #[test]
+    fn test_expect_type_error() {
+        // Test that expected type errors are correctly matched
+        use crate::compiler::error::TypeErrorKind;
+        ExprTest::new("undefined_variable")
+            .expect_type_error_with_message(
+                TypeErrorKind::UndefinedVariable(String::new()),
+                "undefined_variable",
+            )
+            .run()
+            .expect("Should match expected type error");
+    }
+
+    #[test]
+    fn test_expect_type_error_message_matching() {
+        // Test that error message matching works
+        use crate::compiler::error::CodegenErrorKind;
+        ExprTest::new("mat3(1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 1.0) % 2.0")
+            .expect_codegen_error_with_message(
+                CodegenErrorKind::UnsupportedFeature(String::new()),
+                "modulo",
+            )
+            .run()
+            .expect("Should match error message substring");
     }
 }

@@ -6,6 +6,7 @@ use alloc::string::String;
 use lp_alloc::init_test_allocator;
 
 use crate::compiler::ast::{Program, Stmt};
+use crate::compiler::error::{CodegenErrorKind, LexerErrorKind, ParseErrorKind, TypeErrorKind};
 use crate::compiler::expr::expr_test_util::expr_eq_ignore_spans;
 use crate::compiler::func::FunctionMetadata;
 use crate::compiler::optimize::{self, OptimizeOptions};
@@ -18,6 +19,15 @@ use crate::vm::vm_limits::VmLimits;
 use crate::vm::{FunctionDef, LpsOpCode, LpsProgram};
 
 type ProgramBuilder = Box<dyn FnOnce(&mut StmtBuilder) -> Program>;
+
+/// Expected error for test assertions
+#[derive(Debug)]
+enum ExpectedError {
+    Lexer(LexerErrorKind, Option<String>), // kind, optional message substring
+    Parser(ParseErrorKind, Option<String>),
+    TypeCheck(TypeErrorKind, Option<String>),
+    Codegen(CodegenErrorKind, Option<String>),
+}
 
 /// Function types assertion helper
 pub struct FunctionMetadataAssertion {
@@ -43,6 +53,7 @@ pub struct ScriptTest {
     expected_opcodes: Option<Vec<LpsOpCode>>,
     expected_result: Option<TestResult>,
     expected_function_metadata: Vec<FunctionMetadataAssertion>,
+    expected_error: Option<ExpectedError>, // If set, expect this error during compilation
     x: Fixed,
     y: Fixed,
     time: Fixed,
@@ -60,6 +71,7 @@ impl ScriptTest {
             expected_opcodes: None,
             expected_result: None,
             expected_function_metadata: Vec::new(),
+            expected_error: None,
             x: 0.5.to_fixed(),
             y: 0.5.to_fixed(),
             time: Fixed::ZERO,
@@ -158,6 +170,63 @@ impl ScriptTest {
         self
     }
 
+    /// Expect a parse error with the given kind
+    pub fn expect_parse_error(mut self, kind: ParseErrorKind) -> Self {
+        self.expected_error = Some(ExpectedError::Parser(kind, None));
+        self
+    }
+
+    /// Expect a parse error with the given kind and message containing the substring
+    pub fn expect_parse_error_with_message(
+        mut self,
+        kind: ParseErrorKind,
+        message_contains: &str,
+    ) -> Self {
+        self.expected_error = Some(ExpectedError::Parser(
+            kind,
+            Some(String::from(message_contains)),
+        ));
+        self
+    }
+
+    /// Expect a type check error with the given kind
+    pub fn expect_type_error(mut self, kind: TypeErrorKind) -> Self {
+        self.expected_error = Some(ExpectedError::TypeCheck(kind, None));
+        self
+    }
+
+    /// Expect a type check error with the given kind and message containing the substring
+    pub fn expect_type_error_with_message(
+        mut self,
+        kind: TypeErrorKind,
+        message_contains: &str,
+    ) -> Self {
+        self.expected_error = Some(ExpectedError::TypeCheck(
+            kind,
+            Some(String::from(message_contains)),
+        ));
+        self
+    }
+
+    /// Expect a codegen error with the given kind
+    pub fn expect_codegen_error(mut self, kind: CodegenErrorKind) -> Self {
+        self.expected_error = Some(ExpectedError::Codegen(kind, None));
+        self
+    }
+
+    /// Expect a codegen error with the given kind and message containing the substring
+    pub fn expect_codegen_error_with_message(
+        mut self,
+        kind: CodegenErrorKind,
+        message_contains: &str,
+    ) -> Self {
+        self.expected_error = Some(ExpectedError::Codegen(
+            kind,
+            Some(String::from(message_contains)),
+        ));
+        self
+    }
+
     fn check_metadata_assertion(
         metadata: &FunctionMetadata,
         assertion: &FunctionMetadataAssertion,
@@ -237,6 +306,7 @@ impl ScriptTest {
             expected_opcodes,
             expected_result,
             expected_function_metadata,
+            expected_error,
             x,
             y,
             time,
@@ -244,14 +314,66 @@ impl ScriptTest {
 
         let mut errors = Vec::new();
 
+        // Helper to check if an error matches the expected error
+        fn check_error_match(actual_error_str: &str, expected: &ExpectedError) -> bool {
+            match expected {
+                ExpectedError::Lexer(_expected_kind, msg_opt) => {
+                    if let Some(msg) = msg_opt {
+                        actual_error_str.contains(msg)
+                    } else {
+                        true
+                    }
+                }
+                ExpectedError::Parser(_expected_kind, msg_opt) => {
+                    if let Some(msg) = msg_opt {
+                        actual_error_str.contains(msg)
+                    } else {
+                        true
+                    }
+                }
+                ExpectedError::TypeCheck(_expected_kind, msg_opt) => {
+                    if let Some(msg) = msg_opt {
+                        actual_error_str.contains(msg)
+                    } else {
+                        true
+                    }
+                }
+                ExpectedError::Codegen(_expected_kind, msg_opt) => {
+                    if let Some(msg) = msg_opt {
+                        actual_error_str.contains(msg)
+                    } else {
+                        true
+                    }
+                }
+            }
+        }
+
         let mut lexer = lexer::Lexer::new(&input);
         let tokens = lexer.tokenize();
         let parser = parser::Parser::new(tokens);
         let mut program = match parser.parse_program() {
             Ok(program) => program,
             Err(e) => {
-                errors.push(format!("Parse error: {}", e));
-                return Err(errors.join("\n\n"));
+                if let Some(expected) = &expected_error {
+                    if let ExpectedError::Parser(..) = expected {
+                        let error_str = format!("{}", e);
+                        if check_error_match(&error_str, expected) {
+                            return Ok(()); // Expected error occurred, test passes
+                        } else {
+                            return Err(format!(
+                                "Expected parse error but got different error: {}",
+                                e
+                            ));
+                        }
+                    } else {
+                        return Err(format!(
+                            "Unexpected parse error: {} (expected {:?})",
+                            e, expected
+                        ));
+                    }
+                } else {
+                    return Err(format!("Parse error: {}", e));
+                }
             }
         };
 
@@ -276,8 +398,26 @@ impl ScriptTest {
         }
 
         if let Err(e) = typechecker::TypeChecker::check_program(&mut program, &func_table) {
-            errors.push(format!("Type check error: {}", e));
-            return Err(errors.join("\n\n"));
+            if let Some(expected) = &expected_error {
+                if let ExpectedError::TypeCheck(..) = expected {
+                    let error_str = format!("{}", e);
+                    if check_error_match(&error_str, expected) {
+                        return Ok(()); // Expected error occurred, test passes
+                    } else {
+                        return Err(format!(
+                            "Expected type check error but got different error: {}",
+                            e
+                        ));
+                    }
+                } else {
+                    return Err(format!(
+                        "Unexpected type check error: {} (expected {:?})",
+                        e, expected
+                    ));
+                }
+            } else {
+                return Err(format!("Type check error: {}", e));
+            }
         }
 
         if let Some(builder_fn) = expected_ast_builder {
@@ -295,8 +435,26 @@ impl ScriptTest {
             match codegen::CodeGenerator::generate_program_with_functions(&program, &func_table) {
                 Ok(funcs) => funcs,
                 Err(e) => {
-                    errors.push(format!("Codegen error: {}", e));
-                    return Err(errors.join("\n\n"));
+                    if let Some(expected) = &expected_error {
+                        if let ExpectedError::Codegen(..) = expected {
+                            let error_str = format!("{}", e);
+                            if check_error_match(&error_str, expected) {
+                                return Ok(()); // Expected error occurred, test passes
+                            } else {
+                                return Err(format!(
+                                    "Expected codegen error but got different error: {}",
+                                    e
+                                ));
+                            }
+                        } else {
+                            return Err(format!(
+                                "Unexpected codegen error: {} (expected {:?})",
+                                e, expected
+                            ));
+                        }
+                    } else {
+                        return Err(format!("Codegen error: {}", e));
+                    }
                 }
             };
         let optimize_options = OptimizeOptions::none();
@@ -349,6 +507,14 @@ impl ScriptTest {
                 },
                 Err(e) => errors.push(format!("Failed to create VM: {:?}", e)),
             }
+        }
+
+        // If we got here and an error was expected, that's a problem
+        if let Some(expected) = &expected_error {
+            return Err(format!(
+                "Expected compilation error ({:?}) but compilation succeeded",
+                expected
+            ));
         }
 
         if errors.is_empty() {

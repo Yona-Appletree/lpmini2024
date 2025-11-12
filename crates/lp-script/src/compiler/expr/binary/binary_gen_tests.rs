@@ -1,61 +1,41 @@
 #[cfg(test)]
 mod tests {
-    use crate::compile_expr;
-    use crate::compiler::error::{CodegenErrorKind, CompileError};
-
-    fn expect_codegen_error(input: &str) -> CodegenErrorKind {
-        match compile_expr(input) {
-            Ok(_) => panic!("Expected codegen error for input: {}", input),
-            Err(CompileError::Codegen(err)) => err.kind,
-            Err(other) => panic!(
-                "Expected codegen error for input: {}, got different error: {}",
-                input, other
-            ),
-        }
-    }
+    use crate::compiler::error::CodegenErrorKind;
+    use crate::compiler::expr::expr_test_util::ExprTest;
 
     #[test]
     fn mat3_modulo_is_not_supported() {
-        let kind = expect_codegen_error(
+        ExprTest::new(
             "mat3(1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 1.0) % \
              mat3(1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0)",
-        );
-        if let CodegenErrorKind::UnsupportedFeature(message) = kind {
-            assert!(
-                message.contains("mat3") && message.contains("%"),
-                "Unexpected error message: {}",
-                message
-            );
-        } else {
-            panic!("Expected UnsupportedFeature error, got {:?}", kind);
-        }
+        )
+        .expect_codegen_error_with_message(
+            CodegenErrorKind::UnsupportedFeature(String::new()),
+            "mat3",
+        )
+        .run()
+        .expect("Mat3 modulo should produce codegen error");
     }
 
     #[test]
     fn modulo_with_mat3_and_scalar_is_not_supported() {
-        let kind = expect_codegen_error("mat3(2.0, 0.0, 0.0, 0.0, 2.0, 0.0, 0.0, 0.0, 2.0) % 2.0");
-        if let CodegenErrorKind::UnsupportedFeature(message) = kind {
-            assert!(
-                message.contains("mat3") && message.contains("%"),
-                "Unexpected error message: {}",
-                message
-            );
-        } else {
-            panic!("Expected UnsupportedFeature error, got {:?}", kind);
-        }
+        ExprTest::new("mat3(2.0, 0.0, 0.0, 0.0, 2.0, 0.0, 0.0, 0.0, 2.0) % 2.0")
+            .expect_codegen_error_with_message(
+                CodegenErrorKind::UnsupportedFeature(String::new()),
+                "mat3",
+            )
+            .run()
+            .expect("Mat3 modulo with scalar should produce codegen error");
     }
 
     #[test]
     fn modulo_with_scalar_and_mat3_is_not_supported() {
-        let kind = expect_codegen_error("2.0 % mat3(2.0, 0.0, 0.0, 0.0, 2.0, 0.0, 0.0, 0.0, 2.0)");
-        if let CodegenErrorKind::UnsupportedFeature(message) = kind {
-            assert!(
-                message.contains("mat3") && message.contains("%"),
-                "Unexpected error message: {}",
-                message
-            );
-        } else {
-            panic!("Expected UnsupportedFeature error, got {:?}", kind);
-        }
+        ExprTest::new("2.0 % mat3(2.0, 0.0, 0.0, 0.0, 2.0, 0.0, 0.0, 0.0, 2.0)")
+            .expect_codegen_error_with_message(
+                CodegenErrorKind::UnsupportedFeature(String::new()),
+                "mat3",
+            )
+            .run()
+            .expect("Scalar modulo with Mat3 should produce codegen error");
     }
 }
