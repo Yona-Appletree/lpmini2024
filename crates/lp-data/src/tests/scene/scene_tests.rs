@@ -46,10 +46,10 @@ fn build_demo_scene() -> Result<RecordValueDyn, AllocError> {
         position: Vec2::new(Fixed::ZERO, Fixed::ZERO),
         rotation: Vec3::new(Fixed::ZERO, Fixed::ZERO, Fixed::ZERO),
         color: Vec4::new(Fixed::ZERO, Fixed::ZERO, Fixed::ZERO, Fixed::ZERO),
-        step_config: StepConfig::Expr {
+        steps: vec![StepConfig::Expr {
             output: Fixed::ZERO,
             param_count: 0,
-        },
+        }],
         values: vec![1, 2, 3, 4, 5],
         optional_count: Some(100),
     });
@@ -79,10 +79,10 @@ fn test_record_metadata() {
         position: Vec2::new(Fixed::ZERO, Fixed::ZERO),
         rotation: Vec3::new(Fixed::ZERO, Fixed::ZERO, Fixed::ZERO),
         color: Vec4::new(Fixed::ZERO, Fixed::ZERO, Fixed::ZERO, Fixed::ZERO),
-        step_config: StepConfig::Palette {
+        steps: vec![StepConfig::Palette {
             size: 256,
             brightness: Fixed::ONE,
-        },
+        }],
         values: vec![],
         optional_count: None,
     };
@@ -197,10 +197,11 @@ fn test_scene_traversal() {
         "      position: Vec2(0, 0)",
         "      rotation: Vec3(0, 0, 0)",
         "      color: Vec4(0, 0, 0, 0)",
-        "      step_config: Union(StepConfig)::Expr",
-        "        value: Record(Expr)",
-        "          output: Fixed(0)",
-        "          param_count: Int32(0)",
+        "      steps: Array[1]",
+        "        [0]: Union(StepConfig)::Expr",
+        "          value: Record(Expr)",
+        "            output: Fixed(0)",
+        "            param_count: Int32(0)",
         "      values: Array[5]",
         "        [0]: Int32(1)",
         "        [1]: Int32(2)",
@@ -300,9 +301,9 @@ fn test_lfo_node_serialization() {
             0.7f32.to_fixed(),
             1.0f32.to_fixed(),
         ),
-        step_config: StepConfig::Blur {
+        steps: vec![StepConfig::Blur {
             radius: 1.to_fixed(), // 1.0
-        },
+        }],
         values: vec![10, 20],
         optional_count: Some(50),
     });
@@ -346,10 +347,10 @@ fn test_lfo_node_deserialization() {
             0.3f32.to_fixed(),
             0.4f32.to_fixed(),
         ),
-        step_config: StepConfig::Expr {
+        steps: vec![StepConfig::Expr {
             output: Fixed::ZERO,
             param_count: 2,
-        },
+        }],
         values: vec![1, 2, 3],
         optional_count: Some(200),
     });
@@ -432,10 +433,10 @@ fn test_lfo_node_round_trip() {
             1.0f32.to_fixed(),
             0.5f32.to_fixed(),
         ),
-        step_config: StepConfig::Palette {
+        steps: vec![StepConfig::Palette {
             size: 128,
             brightness: 1.5f32.to_fixed(), // 1.5
-        },
+        }],
         values: vec![5, 10, 15, 20],
         optional_count: Some(300),
     });
@@ -532,9 +533,9 @@ fn test_print_all_primitive_types() {
                 0.75f32.to_fixed(),
                 1.0f32.to_fixed(),
             ),
-            step_config: StepConfig::Blur {
+            steps: vec![StepConfig::Blur {
                 radius: 2.0f32.to_fixed(), // 2.0
-            },
+            }],
             values: vec![100],
             optional_count: None,
         });

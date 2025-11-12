@@ -49,9 +49,8 @@ pub struct TestNodeConfig {
     /// 4D color (RGBA)
     pub color: Vec4,
 
-    /// Step configuration (enum_struct type example)
-    #[lp(enum_struct)]
-    pub step_config: StepConfig,
+    /// Array of step configurations (enum_struct type example)
+    pub steps: Vec<StepConfig>,
 
     /// Array of integer values
     pub values: Vec<i32>,
