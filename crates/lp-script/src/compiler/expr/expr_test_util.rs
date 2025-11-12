@@ -10,7 +10,7 @@ use crate::compiler::ast::Expr;
 use crate::compiler::optimize::OptimizeOptions;
 use crate::compiler::test_ast::AstBuilder;
 use crate::compiler::{codegen, lexer, optimize, parser, typechecker};
-use crate::fixed::{Fixed, ToFixed, Vec2, Vec3, Vec4};
+use crate::fixed::{Fixed, Mat3, ToFixed, Vec2, Vec3, Vec4};
 use crate::shared::Type;
 use crate::vm::lps_vm::LpsVm;
 use crate::vm::vm_limits::VmLimits;
@@ -44,6 +44,7 @@ enum TestResult {
     Vec2(Vec2),
     Vec3(Vec3),
     Vec4(Vec4),
+    Mat3(Mat3),
 }
 
 #[cfg(test)]
@@ -195,6 +196,12 @@ impl ExprTest {
     /// Expect a vec4 result
     pub fn expect_result_vec4(mut self, expected: Vec4) -> Self {
         self.expected_result = Some(TestResult::Vec4(expected));
+        self
+    }
+
+    /// Expect a mat3 result
+    pub fn expect_result_mat3(mut self, expected: Mat3) -> Self {
+        self.expected_result = Some(TestResult::Mat3(expected));
         self
     }
 
@@ -379,6 +386,43 @@ impl ExprTest {
                                             actual.y.to_f32(),
                                             actual.z.to_f32(),
                                             actual.w.to_f32()
+                                        ));
+                                    }
+                                }
+                                Err(e) => errors.push(format!("Runtime error: {:?}", e)),
+                            },
+                            TestResult::Mat3(expected) => match vm.run_mat3(x, y, time) {
+                                Ok(actual) => {
+                                    let mut max_diff = 0.0f32;
+                                    for i in 0..9 {
+                                        let diff =
+                                            (expected.m[i].to_f32() - actual.m[i].to_f32()).abs();
+                                        if diff > max_diff {
+                                            max_diff = diff;
+                                        }
+                                    }
+                                    if max_diff > 0.0001 {
+                                        errors.push(format!(
+                                            "Mat3 result mismatch:\nExpected: [{}, {}, {}, {}, {}, {}, {}, {}, {}]\nActual:   [{}, {}, {}, {}, {}, {}, {}, {}, {}]\nMax diff: {}",
+                                            expected.m[0].to_f32(),
+                                            expected.m[1].to_f32(),
+                                            expected.m[2].to_f32(),
+                                            expected.m[3].to_f32(),
+                                            expected.m[4].to_f32(),
+                                            expected.m[5].to_f32(),
+                                            expected.m[6].to_f32(),
+                                            expected.m[7].to_f32(),
+                                            expected.m[8].to_f32(),
+                                            actual.m[0].to_f32(),
+                                            actual.m[1].to_f32(),
+                                            actual.m[2].to_f32(),
+                                            actual.m[3].to_f32(),
+                                            actual.m[4].to_f32(),
+                                            actual.m[5].to_f32(),
+                                            actual.m[6].to_f32(),
+                                            actual.m[7].to_f32(),
+                                            actual.m[8].to_f32(),
+                                            max_diff
                                         ));
                                     }
                                 }

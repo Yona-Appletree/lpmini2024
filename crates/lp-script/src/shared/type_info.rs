@@ -10,6 +10,7 @@ pub enum Type {
     Vec2,
     Vec3,
     Vec4,
+    Mat3,
     Void,
 }
 
@@ -26,6 +27,7 @@ impl Type {
             Type::Vec2 => 2,  // 2x Fixed (2x i32)
             Type::Vec3 => 3,  // 3x Fixed (3x i32)
             Type::Vec4 => 4,  // 4x Fixed (4x i32)
+            Type::Mat3 => 9,  // 9x Fixed (9x i32) - 3x3 matrix
             Type::Void => 0,  // No storage needed
         }
     }
@@ -40,6 +42,7 @@ impl fmt::Display for Type {
             Type::Vec2 => write!(f, "vec2"),
             Type::Vec3 => write!(f, "vec3"),
             Type::Vec4 => write!(f, "vec4"),
+            Type::Mat3 => write!(f, "mat3"),
             Type::Void => write!(f, "void"),
         }
     }

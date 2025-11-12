@@ -28,6 +28,7 @@ impl Parser {
             TokenKind::Vec2 => ExprKind::Vec2Constructor(args),
             TokenKind::Vec3 => ExprKind::Vec3Constructor(args),
             TokenKind::Vec4 => ExprKind::Vec4Constructor(args),
+            TokenKind::Mat3 => ExprKind::Mat3Constructor(args),
             _ => unreachable!(),
         };
 

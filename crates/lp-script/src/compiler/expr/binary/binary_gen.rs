@@ -16,6 +16,7 @@ impl<'a> CodeGenerator<'a> {
             Type::Vec2 => LpsOpCode::AddVec2,
             Type::Vec3 => LpsOpCode::AddVec3,
             Type::Vec4 => LpsOpCode::AddVec4,
+            Type::Mat3 => LpsOpCode::AddMat3,
             _ => LpsOpCode::AddFixed,
         });
     }
@@ -29,6 +30,7 @@ impl<'a> CodeGenerator<'a> {
             Type::Vec2 => LpsOpCode::SubVec2,
             Type::Vec3 => LpsOpCode::SubVec3,
             Type::Vec4 => LpsOpCode::SubVec4,
+            Type::Mat3 => LpsOpCode::SubMat3,
             _ => LpsOpCode::SubFixed,
         });
     }
@@ -37,12 +39,12 @@ impl<'a> CodeGenerator<'a> {
         let left_ty = left.ty.as_ref().unwrap();
         let right_ty = right.ty.as_ref().unwrap();
 
-        // For scalar-vector operations, generate in reverse order to get correct stack layout
+        // For scalar-vector/matrix operations, generate in reverse order to get correct stack layout
         let is_scalar_vector = matches!(
             (left_ty, right_ty),
             (
                 Type::Fixed | Type::Int32,
-                Type::Vec2 | Type::Vec3 | Type::Vec4
+                Type::Vec2 | Type::Vec3 | Type::Vec4 | Type::Mat3
             )
         );
 
@@ -67,15 +69,24 @@ impl<'a> CodeGenerator<'a> {
             (Type::Vec3, Type::Vec3, Type::Vec3) => LpsOpCode::MulVec3,
             (Type::Vec4, Type::Vec4, Type::Vec4) => LpsOpCode::MulVec4,
 
+            // Matrix-Matrix operations (matrix multiplication)
+            (Type::Mat3, Type::Mat3, Type::Mat3) => LpsOpCode::MulMat3,
+
             // Vector-Scalar operations
             (Type::Vec2, Type::Fixed | Type::Int32, Type::Vec2) => LpsOpCode::MulVec2Scalar,
             (Type::Vec3, Type::Fixed | Type::Int32, Type::Vec3) => LpsOpCode::MulVec3Scalar,
             (Type::Vec4, Type::Fixed | Type::Int32, Type::Vec4) => LpsOpCode::MulVec4Scalar,
 
+            // Matrix-Scalar operations
+            (Type::Mat3, Type::Fixed | Type::Int32, Type::Mat3) => LpsOpCode::MulMat3Scalar,
+
             // Scalar-Vector operations (already generated in correct order)
             (Type::Fixed | Type::Int32, Type::Vec2, Type::Vec2) => LpsOpCode::MulVec2Scalar,
             (Type::Fixed | Type::Int32, Type::Vec3, Type::Vec3) => LpsOpCode::MulVec3Scalar,
             (Type::Fixed | Type::Int32, Type::Vec4, Type::Vec4) => LpsOpCode::MulVec4Scalar,
+
+            // Scalar-Matrix operations (already generated in correct order)
+            (Type::Fixed | Type::Int32, Type::Mat3, Type::Mat3) => LpsOpCode::MulMat3Scalar,
 
             _ => LpsOpCode::MulFixed, // Fallback
         };
@@ -106,6 +117,9 @@ impl<'a> CodeGenerator<'a> {
             (Type::Vec3, Type::Fixed | Type::Int32, Type::Vec3) => LpsOpCode::DivVec3Scalar,
             (Type::Vec4, Type::Fixed | Type::Int32, Type::Vec4) => LpsOpCode::DivVec4Scalar,
 
+            // Matrix-Scalar operations (mat / scalar)
+            (Type::Mat3, Type::Fixed | Type::Int32, Type::Mat3) => LpsOpCode::DivMat3Scalar,
+
             _ => LpsOpCode::DivFixed, // Fallback
         };
 
@@ -121,6 +135,7 @@ impl<'a> CodeGenerator<'a> {
             Type::Vec2 => LpsOpCode::ModVec2,
             Type::Vec3 => LpsOpCode::ModVec3,
             Type::Vec4 => LpsOpCode::ModVec4,
+            // Note: Mat3 modulo not supported (no ModMat3 opcode exists)
             _ => LpsOpCode::ModFixed,
         });
     }

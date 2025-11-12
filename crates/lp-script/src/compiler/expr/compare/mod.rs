@@ -7,4 +7,6 @@ mod compare_parse;
 // mod compare_types;
 
 #[cfg(test)]
-mod compare_tests;
+mod compare_fixed_tests;
+#[cfg(test)]
+mod compare_int32_tests;

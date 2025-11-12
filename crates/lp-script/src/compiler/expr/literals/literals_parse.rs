@@ -122,7 +122,9 @@ impl Parser {
                 }
                 Ok(expr)
             }
-            TokenKind::Vec2 | TokenKind::Vec3 | TokenKind::Vec4 => self.parse_vec_constructor(),
+            TokenKind::Vec2 | TokenKind::Vec3 | TokenKind::Vec4 | TokenKind::Mat3 => {
+                self.parse_vec_constructor()
+            }
             TokenKind::Ident(_) => self.parse_ident(),
             _ => {
                 // Error fallback

@@ -119,6 +119,73 @@ mod tests {
             .run()
     }
 
+    #[test]
+    fn test_mat3_constructor() -> Result<(), String> {
+        ExprTest::new("mat3(1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 9.0)")
+            .expect_opcodes(vec![
+                LpsOpCode::Push(1.0.to_fixed()),
+                LpsOpCode::Push(2.0.to_fixed()),
+                LpsOpCode::Push(3.0.to_fixed()),
+                LpsOpCode::Push(4.0.to_fixed()),
+                LpsOpCode::Push(5.0.to_fixed()),
+                LpsOpCode::Push(6.0.to_fixed()),
+                LpsOpCode::Push(7.0.to_fixed()),
+                LpsOpCode::Push(8.0.to_fixed()),
+                LpsOpCode::Push(9.0.to_fixed()),
+                LpsOpCode::Return,
+            ])
+            .expect_result_mat3(crate::fixed::Mat3::from_f32(
+                1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 9.0,
+            ))
+            .run()
+    }
+
+    #[test]
+    fn test_mat3_from_three_vec3() -> Result<(), String> {
+        ExprTest::new("mat3(vec3(1.0, 2.0, 3.0), vec3(4.0, 5.0, 6.0), vec3(7.0, 8.0, 9.0))")
+            .expect_result_mat3(crate::fixed::Mat3::from_f32(
+                1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 9.0,
+            ))
+            .run()
+    }
+
+    #[test]
+    fn test_mat3_identity() -> Result<(), String> {
+        ExprTest::new("mat3(1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 1.0)")
+            .expect_result_mat3(crate::fixed::Mat3::identity())
+            .run()
+    }
+
+    #[test]
+    fn test_mat3_zero() -> Result<(), String> {
+        ExprTest::new("mat3(0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0)")
+            .expect_result_mat3(crate::fixed::Mat3::zero())
+            .run()
+    }
+
+    #[test]
+    fn test_mat3_from_mixed_components() -> Result<(), String> {
+        // Mat3 from vec2 + scalars
+        ExprTest::new("mat3(vec2(1.0, 2.0), 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 9.0)")
+            .expect_result_mat3(crate::fixed::Mat3::from_f32(
+                1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 9.0,
+            ))
+            .run()?;
+
+        // Mat3 from vec3 + vec3 + vec3 (already tested above)
+        // Mat3 from 9 scalars (already tested above)
+        Ok(())
+    }
+
+    #[test]
+    fn test_mat3_negative_values() -> Result<(), String> {
+        ExprTest::new("mat3(-1.0, -2.0, -3.0, -4.0, -5.0, -6.0, -7.0, -8.0, -9.0)")
+            .expect_result_mat3(crate::fixed::Mat3::from_f32(
+                -1.0, -2.0, -3.0, -4.0, -5.0, -6.0, -7.0, -8.0, -9.0,
+            ))
+            .run()
+    }
+
     // Type checking tests (using ExprTest validates types automatically)
     // These tests already exist above and validate type checking through execution
 }

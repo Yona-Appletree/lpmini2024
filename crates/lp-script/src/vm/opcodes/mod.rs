@@ -20,6 +20,7 @@ pub mod int32;
 pub mod int32_compare;
 
 // Vector opcodes
+pub mod mat3;
 pub mod vec2;
 pub mod vec3;
 pub mod vec4;
@@ -51,10 +52,12 @@ pub enum LpsOpCode {
     Dup2,  // Duplicate top 2 stack values (for Vec2)
     Dup3,  // Duplicate top 3 stack values (for Vec3)
     Dup4,  // Duplicate top 4 stack values (for Vec4)
+    Dup9,  // Duplicate top 9 stack values (for Mat3)
     Drop1, // Drop top 1 stack value
     Drop2, // Drop top 2 stack values
     Drop3, // Drop top 3 stack values
     Drop4, // Drop top 4 stack values
+    Drop9, // Drop top 9 stack values (for Mat3)
     Swap,
 
     // Fixed-point arithmetic
@@ -174,6 +177,18 @@ pub enum LpsOpCode {
     Normalize4,    // pop 4, push 4
     Distance4,     // pop 8, push 1
 
+    // Mat3 operations
+    AddMat3,         // pop 18, push 9
+    SubMat3,         // pop 18, push 9
+    NegMat3,         // pop 9, push 9 (negate components)
+    MulMat3,         // pop 18, push 9 (matrix multiplication)
+    MulMat3Scalar,   // pop 10 (mat3 + scalar), push 9
+    DivMat3Scalar,   // pop 10 (mat3 + scalar), push 9
+    MulMat3Vec3,     // pop 12 (mat3 + vec3), push 3
+    TransposeMat3,   // pop 9, push 9
+    DeterminantMat3, // pop 9, push 1
+    InverseMat3,     // pop 9, push 9 (returns identity if singular)
+
     // Swizzle operations (reorder stack values)
     Swizzle3to2(u8, u8),     // pop 3, push 2 (indices specify which 2 to keep)
     Swizzle3to3(u8, u8, u8), // pop 3, push 3 (indices specify reordering)
@@ -196,6 +211,8 @@ pub enum LpsOpCode {
     StoreLocalVec3(u32),
     LoadLocalVec4(u32),
     StoreLocalVec4(u32),
+    LoadLocalMat3(u32),
+    StoreLocalMat3(u32),
 
     // Array operations
     GetElemInt32ArrayFixed, // pop array_ref, index; push Fixed
@@ -223,10 +240,12 @@ impl LpsOpCode {
             LpsOpCode::Dup2 => "Dup2",
             LpsOpCode::Dup3 => "Dup3",
             LpsOpCode::Dup4 => "Dup4",
+            LpsOpCode::Dup9 => "Dup9",
             LpsOpCode::Drop1 => "Drop1",
             LpsOpCode::Drop2 => "Drop2",
             LpsOpCode::Drop3 => "Drop3",
             LpsOpCode::Drop4 => "Drop4",
+            LpsOpCode::Drop9 => "Drop9",
             LpsOpCode::Swap => "Swap",
             LpsOpCode::AddFixed => "AddFixed",
             LpsOpCode::SubFixed => "SubFixed",
@@ -323,6 +342,16 @@ impl LpsOpCode {
             LpsOpCode::Length4 => "Length4",
             LpsOpCode::Normalize4 => "Normalize4",
             LpsOpCode::Distance4 => "Distance4",
+            LpsOpCode::AddMat3 => "AddMat3",
+            LpsOpCode::SubMat3 => "SubMat3",
+            LpsOpCode::NegMat3 => "NegMat3",
+            LpsOpCode::MulMat3 => "MulMat3",
+            LpsOpCode::MulMat3Scalar => "MulMat3Scalar",
+            LpsOpCode::DivMat3Scalar => "DivMat3Scalar",
+            LpsOpCode::MulMat3Vec3 => "MulMat3Vec3",
+            LpsOpCode::TransposeMat3 => "TransposeMat3",
+            LpsOpCode::DeterminantMat3 => "DeterminantMat3",
+            LpsOpCode::InverseMat3 => "InverseMat3",
             LpsOpCode::Swizzle3to2(_, _) => "Swizzle3to2",
             LpsOpCode::Swizzle3to3(_, _, _) => "Swizzle3to3",
             LpsOpCode::Swizzle4to2(_, _) => "Swizzle4to2",
@@ -340,6 +369,8 @@ impl LpsOpCode {
             LpsOpCode::StoreLocalVec3(_) => "StoreLocalVec3",
             LpsOpCode::LoadLocalVec4(_) => "LoadLocalVec4",
             LpsOpCode::StoreLocalVec4(_) => "StoreLocalVec4",
+            LpsOpCode::LoadLocalMat3(_) => "LoadLocalMat3",
+            LpsOpCode::StoreLocalMat3(_) => "StoreLocalMat3",
             LpsOpCode::GetElemInt32ArrayFixed => "GetElemInt32ArrayFixed",
             LpsOpCode::GetElemInt32ArrayU8 => "GetElemInt32ArrayU8",
             LpsOpCode::Jump(_) => "Jump",

@@ -159,6 +159,10 @@ impl TypeChecker {
                 let ty = Self::check_vec_constructor(args, 4, symbols, func_table, expr_span)?;
                 expr.ty = Some(ty);
             }
+            ExprKind::Mat3Constructor(args) => {
+                let ty = Self::check_vec_constructor(args, 9, symbols, func_table, expr_span)?;
+                expr.ty = Some(ty);
+            }
 
             // Swizzle
             ExprKind::Swizzle {
@@ -373,6 +377,7 @@ fn type_to_string(ty: &Type) -> &str {
         Type::Vec2 => "vec2",
         Type::Vec3 => "vec3",
         Type::Vec4 => "vec4",
+        Type::Mat3 => "mat3",
         Type::Void => "void",
     }
 }

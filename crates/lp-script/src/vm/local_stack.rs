@@ -6,7 +6,7 @@ use alloc::vec::Vec;
 
 use super::error::LpsVmError;
 use super::lps_program::LocalVarDef;
-use crate::fixed::Fixed;
+use crate::fixed::{Fixed, Mat3};
 use crate::shared::Type;
 
 impl LocalStack {
@@ -308,6 +308,52 @@ impl LocalStack {
         self.data[offset + 1] = y.0;
         self.data[offset + 2] = z.0;
         self.data[offset + 3] = w.0;
+        Ok(())
+    }
+
+    /// Get a Mat3 value from a local (absolute index)
+    #[inline(always)]
+    pub fn get_mat3(&self, idx: usize) -> Result<Mat3, LpsVmError> {
+        let meta = self.get_metadata(idx)?;
+
+        if meta.ty != Type::Mat3 {
+            return Err(LpsVmError::TypeMismatch);
+        }
+
+        Ok(Mat3::new(
+            Fixed(self.data[meta.offset]),
+            Fixed(self.data[meta.offset + 1]),
+            Fixed(self.data[meta.offset + 2]),
+            Fixed(self.data[meta.offset + 3]),
+            Fixed(self.data[meta.offset + 4]),
+            Fixed(self.data[meta.offset + 5]),
+            Fixed(self.data[meta.offset + 6]),
+            Fixed(self.data[meta.offset + 7]),
+            Fixed(self.data[meta.offset + 8]),
+        ))
+    }
+
+    /// Set a Mat3 value to a local (absolute index)
+    #[inline(always)]
+    pub fn set_mat3(&mut self, idx: usize, mat: Mat3) -> Result<(), LpsVmError> {
+        let (offset, ty) = {
+            let meta = self.get_metadata(idx)?;
+            (meta.offset, meta.ty.clone())
+        };
+
+        if ty != Type::Mat3 {
+            return Err(LpsVmError::TypeMismatch);
+        }
+
+        self.data[offset] = mat.m[0].0;
+        self.data[offset + 1] = mat.m[1].0;
+        self.data[offset + 2] = mat.m[2].0;
+        self.data[offset + 3] = mat.m[3].0;
+        self.data[offset + 4] = mat.m[4].0;
+        self.data[offset + 5] = mat.m[5].0;
+        self.data[offset + 6] = mat.m[6].0;
+        self.data[offset + 7] = mat.m[7].0;
+        self.data[offset + 8] = mat.m[8].0;
         Ok(())
     }
 

@@ -84,6 +84,7 @@ pub enum TokenKind {
     Vec2,
     Vec3,
     Vec4,
+    Mat3,
     Void,
 
     Eof,
@@ -257,6 +258,7 @@ impl Lexer {
             "vec2" => TokenKind::Vec2,
             "vec3" => TokenKind::Vec3,
             "vec4" => TokenKind::Vec4,
+            "mat3" => TokenKind::Mat3,
             "void" => TokenKind::Void,
             _ => TokenKind::Ident(ident),
         }
@@ -603,13 +605,14 @@ mod tests {
     #[test]
     fn test_type_keywords() {
         assert_eq!(
-            tokenize("float int vec2 vec3 vec4 void"),
+            tokenize("float int vec2 vec3 vec4 mat3 void"),
             vec![
                 TokenKind::Float,
                 TokenKind::Int,
                 TokenKind::Vec2,
                 TokenKind::Vec3,
                 TokenKind::Vec4,
+                TokenKind::Mat3,
                 TokenKind::Void,
                 TokenKind::Eof,
             ]

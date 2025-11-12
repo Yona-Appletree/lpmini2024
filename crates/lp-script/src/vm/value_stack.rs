@@ -4,7 +4,7 @@ use alloc::vec;
 use alloc::vec::Vec;
 
 use super::error::LpsVmError;
-use crate::fixed::{Fixed, Vec2, Vec3, Vec4};
+use crate::fixed::{Fixed, Mat3, Vec2, Vec3, Vec4};
 
 /// VM Stack for LPS execution
 ///
@@ -262,6 +262,92 @@ impl ValueStack {
         Ok(Vec4::new(Fixed(x), Fixed(y), Fixed(z), Fixed(w)))
     }
 
+    /// Push 9 raw i32 values onto the stack
+    #[inline(always)]
+    pub fn push9(
+        &mut self,
+        v0: i32,
+        v1: i32,
+        v2: i32,
+        v3: i32,
+        v4: i32,
+        v5: i32,
+        v6: i32,
+        v7: i32,
+        v8: i32,
+    ) -> Result<(), LpsVmError> {
+        if self.sp + 9 > self.max_size {
+            return Err(LpsVmError::StackOverflow { sp: self.sp });
+        }
+        self.data[self.sp] = v0;
+        self.data[self.sp + 1] = v1;
+        self.data[self.sp + 2] = v2;
+        self.data[self.sp + 3] = v3;
+        self.data[self.sp + 4] = v4;
+        self.data[self.sp + 5] = v5;
+        self.data[self.sp + 6] = v6;
+        self.data[self.sp + 7] = v7;
+        self.data[self.sp + 8] = v8;
+        self.sp += 9;
+        Ok(())
+    }
+
+    /// Pop 9 raw i32 values from the stack
+    #[inline(always)]
+    pub fn pop9(&mut self) -> Result<(i32, i32, i32, i32, i32, i32, i32, i32, i32), LpsVmError> {
+        if self.sp < 9 {
+            return Err(LpsVmError::StackUnderflow {
+                required: 9,
+                actual: self.sp,
+            });
+        }
+        self.sp -= 1;
+        let i = self.data[self.sp];
+        self.sp -= 1;
+        let h = self.data[self.sp];
+        self.sp -= 1;
+        let g = self.data[self.sp];
+        self.sp -= 1;
+        let f = self.data[self.sp];
+        self.sp -= 1;
+        let e = self.data[self.sp];
+        self.sp -= 1;
+        let d = self.data[self.sp];
+        self.sp -= 1;
+        let c = self.data[self.sp];
+        self.sp -= 1;
+        let b = self.data[self.sp];
+        self.sp -= 1;
+        let a = self.data[self.sp];
+        Ok((a, b, c, d, e, f, g, h, i))
+    }
+
+    /// Push a Mat3 onto the stack (as 9 Fixed values)
+    #[inline(always)]
+    pub fn push_mat3(&mut self, m: Mat3) -> Result<(), LpsVmError> {
+        self.push9(
+            m.m[0].0, m.m[1].0, m.m[2].0, m.m[3].0, m.m[4].0, m.m[5].0, m.m[6].0, m.m[7].0,
+            m.m[8].0,
+        )
+    }
+
+    /// Pop a Mat3 from the stack
+    #[inline(always)]
+    pub fn pop_mat3(&mut self) -> Result<Mat3, LpsVmError> {
+        let (m00, m10, m20, m01, m11, m21, m02, m12, m22) = self.pop9()?;
+        Ok(Mat3::new(
+            Fixed(m00),
+            Fixed(m10),
+            Fixed(m20),
+            Fixed(m01),
+            Fixed(m11),
+            Fixed(m21),
+            Fixed(m02),
+            Fixed(m12),
+            Fixed(m22),
+        ))
+    }
+
     // === Stack manipulation (dup/drop/swap) ===
 
     /// Duplicate top 1 stack value
@@ -405,6 +491,40 @@ impl ValueStack {
             });
         }
         self.sp -= 4;
+        Ok(())
+    }
+
+    /// Duplicate top 9 stack values
+    #[inline(always)]
+    pub fn dup9(&mut self) -> Result<(), LpsVmError> {
+        if self.sp < 9 {
+            return Err(LpsVmError::StackUnderflow {
+                required: 9,
+                actual: self.sp,
+            });
+        }
+        if self.sp + 9 > self.max_size {
+            return Err(LpsVmError::StackOverflow { sp: self.sp });
+        }
+
+        for i in 0..9 {
+            self.data[self.sp + i] = self.data[self.sp - 9 + i];
+        }
+        self.sp += 9;
+
+        Ok(())
+    }
+
+    /// Remove top 9 values from stack
+    #[inline(always)]
+    pub fn drop9(&mut self) -> Result<(), LpsVmError> {
+        if self.sp < 9 {
+            return Err(LpsVmError::StackUnderflow {
+                required: 9,
+                actual: self.sp,
+            });
+        }
+        self.sp -= 9;
         Ok(())
     }
 

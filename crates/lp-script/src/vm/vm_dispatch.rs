@@ -10,7 +10,7 @@ use crate::vm::error::{LpsVmError, RuntimeErrorWithContext};
 use crate::vm::lps_vm::LpsVm;
 use crate::vm::opcodes::{
     arrays, comparisons, control_flow, fixed_advanced, fixed_basic, fixed_logic, int32,
-    int32_compare, load, locals, textures, vec2, vec3, vec4, LpsOpCode, ReturnAction,
+    int32_compare, load, locals, mat3, textures, vec2, vec3, vec4, LpsOpCode, ReturnAction,
 };
 
 impl<'a> LpsVm<'a> {
@@ -72,6 +72,12 @@ impl<'a> LpsVm<'a> {
                 Ok(None)
             }
 
+            LpsOpCode::Dup9 => {
+                self.stack.dup9().map_err(|e| self.runtime_error(e))?;
+                self.pc += 1;
+                Ok(None)
+            }
+
             LpsOpCode::Drop1 => {
                 self.stack.drop1().map_err(|e| self.runtime_error(e))?;
                 self.pc += 1;
@@ -92,6 +98,12 @@ impl<'a> LpsVm<'a> {
 
             LpsOpCode::Drop4 => {
                 self.stack.drop4().map_err(|e| self.runtime_error(e))?;
+                self.pc += 1;
+                Ok(None)
+            }
+
+            LpsOpCode::Drop9 => {
+                self.stack.drop9().map_err(|e| self.runtime_error(e))?;
                 self.pc += 1;
                 Ok(None)
             }
@@ -280,6 +292,22 @@ impl<'a> LpsVm<'a> {
             LpsOpCode::StoreLocalVec4(idx) => {
                 let local_idx = self.call_stack.frame_base() + *idx as usize;
                 locals::exec_store_local_vec4(&mut self.stack, &mut self.locals, local_idx)
+                    .map_err(|e| self.runtime_error(e))?;
+                self.pc += 1;
+                Ok(None)
+            }
+
+            LpsOpCode::LoadLocalMat3(idx) => {
+                let local_idx = self.call_stack.frame_base() + *idx as usize;
+                locals::exec_load_local_mat3(&mut self.stack, &self.locals, local_idx)
+                    .map_err(|e| self.runtime_error(e))?;
+                self.pc += 1;
+                Ok(None)
+            }
+
+            LpsOpCode::StoreLocalMat3(idx) => {
+                let local_idx = self.call_stack.frame_base() + *idx as usize;
+                locals::exec_store_local_mat3(&mut self.stack, &mut self.locals, local_idx)
                     .map_err(|e| self.runtime_error(e))?;
                 self.pc += 1;
                 Ok(None)
@@ -886,6 +914,67 @@ impl<'a> LpsVm<'a> {
 
             LpsOpCode::Distance4 => {
                 vec4::exec_distance4(&mut self.stack).map_err(|e| self.runtime_error(e))?;
+                self.pc += 1;
+                Ok(None)
+            }
+
+            // === Mat3 Operations ===
+            LpsOpCode::AddMat3 => {
+                mat3::exec_add_mat3(&mut self.stack).map_err(|e| self.runtime_error(e))?;
+                self.pc += 1;
+                Ok(None)
+            }
+
+            LpsOpCode::SubMat3 => {
+                mat3::exec_sub_mat3(&mut self.stack).map_err(|e| self.runtime_error(e))?;
+                self.pc += 1;
+                Ok(None)
+            }
+
+            LpsOpCode::NegMat3 => {
+                mat3::exec_neg_mat3(&mut self.stack).map_err(|e| self.runtime_error(e))?;
+                self.pc += 1;
+                Ok(None)
+            }
+
+            LpsOpCode::MulMat3 => {
+                mat3::exec_mul_mat3(&mut self.stack).map_err(|e| self.runtime_error(e))?;
+                self.pc += 1;
+                Ok(None)
+            }
+
+            LpsOpCode::MulMat3Scalar => {
+                mat3::exec_mul_mat3_scalar(&mut self.stack).map_err(|e| self.runtime_error(e))?;
+                self.pc += 1;
+                Ok(None)
+            }
+
+            LpsOpCode::DivMat3Scalar => {
+                mat3::exec_div_mat3_scalar(&mut self.stack).map_err(|e| self.runtime_error(e))?;
+                self.pc += 1;
+                Ok(None)
+            }
+
+            LpsOpCode::MulMat3Vec3 => {
+                mat3::exec_mul_mat3_vec3(&mut self.stack).map_err(|e| self.runtime_error(e))?;
+                self.pc += 1;
+                Ok(None)
+            }
+
+            LpsOpCode::TransposeMat3 => {
+                mat3::exec_transpose_mat3(&mut self.stack).map_err(|e| self.runtime_error(e))?;
+                self.pc += 1;
+                Ok(None)
+            }
+
+            LpsOpCode::DeterminantMat3 => {
+                mat3::exec_determinant_mat3(&mut self.stack).map_err(|e| self.runtime_error(e))?;
+                self.pc += 1;
+                Ok(None)
+            }
+
+            LpsOpCode::InverseMat3 => {
+                mat3::exec_inverse_mat3(&mut self.stack).map_err(|e| self.runtime_error(e))?;
                 self.pc += 1;
                 Ok(None)
             }

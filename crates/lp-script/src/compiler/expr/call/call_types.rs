@@ -318,6 +318,74 @@ fn builtin_function_return_type(
             Ok(Type::Fixed)
         }
 
+        // Matrix functions: Mat3 -> Mat3 or Mat3 -> Fixed
+        "transpose" => {
+            if args.len() != 1 {
+                return Err(TypeError {
+                    kind: TypeErrorKind::InvalidArgumentCount {
+                        expected: 1,
+                        found: args.len(),
+                    },
+                    span,
+                });
+            }
+            let arg_ty = args[0].ty.as_ref().unwrap();
+            if arg_ty != &Type::Mat3 {
+                return Err(TypeError {
+                    kind: TypeErrorKind::InvalidOperation {
+                        op: "transpose".to_string(),
+                        types: alloc::vec![arg_ty.clone()],
+                    },
+                    span: args[0].span,
+                });
+            }
+            Ok(Type::Mat3)
+        }
+        "determinant" => {
+            if args.len() != 1 {
+                return Err(TypeError {
+                    kind: TypeErrorKind::InvalidArgumentCount {
+                        expected: 1,
+                        found: args.len(),
+                    },
+                    span,
+                });
+            }
+            let arg_ty = args[0].ty.as_ref().unwrap();
+            if arg_ty != &Type::Mat3 {
+                return Err(TypeError {
+                    kind: TypeErrorKind::InvalidOperation {
+                        op: "determinant".to_string(),
+                        types: alloc::vec![arg_ty.clone()],
+                    },
+                    span: args[0].span,
+                });
+            }
+            Ok(Type::Fixed)
+        }
+        "inverse" => {
+            if args.len() != 1 {
+                return Err(TypeError {
+                    kind: TypeErrorKind::InvalidArgumentCount {
+                        expected: 1,
+                        found: args.len(),
+                    },
+                    span,
+                });
+            }
+            let arg_ty = args[0].ty.as_ref().unwrap();
+            if arg_ty != &Type::Mat3 {
+                return Err(TypeError {
+                    kind: TypeErrorKind::InvalidOperation {
+                        op: "inverse".to_string(),
+                        types: alloc::vec![arg_ty.clone()],
+                    },
+                    span: args[0].span,
+                });
+            }
+            Ok(Type::Mat3)
+        }
+
         _ => Err(TypeError {
             kind: TypeErrorKind::UndefinedVariable(alloc::format!("Unknown function '{}'", name)),
             span,
