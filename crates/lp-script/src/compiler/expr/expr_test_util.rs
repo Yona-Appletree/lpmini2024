@@ -542,7 +542,8 @@ pub(crate) fn expr_eq_ignore_spans(actual: &Expr, expected: &Expr) -> bool {
 
         (ExprKind::Vec2Constructor(a1), ExprKind::Vec2Constructor(a2))
         | (ExprKind::Vec3Constructor(a1), ExprKind::Vec3Constructor(a2))
-        | (ExprKind::Vec4Constructor(a1), ExprKind::Vec4Constructor(a2)) => {
+        | (ExprKind::Vec4Constructor(a1), ExprKind::Vec4Constructor(a2))
+        | (ExprKind::Mat3Constructor(a1), ExprKind::Mat3Constructor(a2)) => {
             a1.len() == a2.len()
                 && a1
                     .iter()

@@ -86,11 +86,13 @@ mod tests {
     fn test_function_call_abs() -> Result<(), String> {
         ExprTest::new("abs(-5.0)")
             .expect_ast(|b| {
-                let arg = b.num(-5.0);
+                let operand = b.num(5.0);
+                let arg = b.neg(operand, Type::Fixed);
                 b.call("abs", vec![arg], Type::Fixed)
             })
             .expect_opcodes(vec![
-                LpsOpCode::Push((-5.0).to_fixed()),
+                LpsOpCode::Push(5.0.to_fixed()),
+                LpsOpCode::NegFixed,
                 LpsOpCode::AbsFixed,
                 LpsOpCode::Return,
             ])

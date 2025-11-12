@@ -52,6 +52,10 @@ impl<'a> CodeGenerator<'a> {
             // Generate: scalar * vector -> [vec_components..., scalar]
             self.gen_expr(right); // Vector first
             self.gen_expr(left); // Scalar on top
+                                 // Convert Int32 scalar to Fixed if needed
+            if matches!(left_ty, Type::Int32) {
+                self.code.push(LpsOpCode::Int32ToFixed);
+            }
         } else {
             // Normal order
             self.gen_expr(left);
@@ -73,19 +77,40 @@ impl<'a> CodeGenerator<'a> {
             (Type::Mat3, Type::Mat3, Type::Mat3) => LpsOpCode::MulMat3,
 
             // Vector-Scalar operations
-            (Type::Vec2, Type::Fixed | Type::Int32, Type::Vec2) => LpsOpCode::MulVec2Scalar,
-            (Type::Vec3, Type::Fixed | Type::Int32, Type::Vec3) => LpsOpCode::MulVec3Scalar,
-            (Type::Vec4, Type::Fixed | Type::Int32, Type::Vec4) => LpsOpCode::MulVec4Scalar,
+            (Type::Vec2, Type::Fixed | Type::Int32, Type::Vec2) => {
+                // Convert Int32 to Fixed if needed
+                if matches!(right_ty, Type::Int32) {
+                    self.code.push(LpsOpCode::Int32ToFixed);
+                }
+                LpsOpCode::MulVec2Scalar
+            }
+            (Type::Vec3, Type::Fixed | Type::Int32, Type::Vec3) => {
+                if matches!(right_ty, Type::Int32) {
+                    self.code.push(LpsOpCode::Int32ToFixed);
+                }
+                LpsOpCode::MulVec3Scalar
+            }
+            (Type::Vec4, Type::Fixed | Type::Int32, Type::Vec4) => {
+                if matches!(right_ty, Type::Int32) {
+                    self.code.push(LpsOpCode::Int32ToFixed);
+                }
+                LpsOpCode::MulVec4Scalar
+            }
 
             // Matrix-Scalar operations
-            (Type::Mat3, Type::Fixed | Type::Int32, Type::Mat3) => LpsOpCode::MulMat3Scalar,
+            (Type::Mat3, Type::Fixed | Type::Int32, Type::Mat3) => {
+                if matches!(right_ty, Type::Int32) {
+                    self.code.push(LpsOpCode::Int32ToFixed);
+                }
+                LpsOpCode::MulMat3Scalar
+            }
 
-            // Scalar-Vector operations (already generated in correct order)
+            // Scalar-Vector operations (already generated in correct order, conversion already done above)
             (Type::Fixed | Type::Int32, Type::Vec2, Type::Vec2) => LpsOpCode::MulVec2Scalar,
             (Type::Fixed | Type::Int32, Type::Vec3, Type::Vec3) => LpsOpCode::MulVec3Scalar,
             (Type::Fixed | Type::Int32, Type::Vec4, Type::Vec4) => LpsOpCode::MulVec4Scalar,
 
-            // Scalar-Matrix operations (already generated in correct order)
+            // Scalar-Matrix operations (already generated in correct order, conversion already done above)
             (Type::Fixed | Type::Int32, Type::Mat3, Type::Mat3) => LpsOpCode::MulMat3Scalar,
 
             _ => LpsOpCode::MulFixed, // Fallback
@@ -113,12 +138,32 @@ impl<'a> CodeGenerator<'a> {
             (Type::Vec4, Type::Vec4, Type::Vec4) => LpsOpCode::DivVec4,
 
             // Vector-Scalar operations (vec / scalar)
-            (Type::Vec2, Type::Fixed | Type::Int32, Type::Vec2) => LpsOpCode::DivVec2Scalar,
-            (Type::Vec3, Type::Fixed | Type::Int32, Type::Vec3) => LpsOpCode::DivVec3Scalar,
-            (Type::Vec4, Type::Fixed | Type::Int32, Type::Vec4) => LpsOpCode::DivVec4Scalar,
+            (Type::Vec2, Type::Fixed | Type::Int32, Type::Vec2) => {
+                if matches!(right_ty, Type::Int32) {
+                    self.code.push(LpsOpCode::Int32ToFixed);
+                }
+                LpsOpCode::DivVec2Scalar
+            }
+            (Type::Vec3, Type::Fixed | Type::Int32, Type::Vec3) => {
+                if matches!(right_ty, Type::Int32) {
+                    self.code.push(LpsOpCode::Int32ToFixed);
+                }
+                LpsOpCode::DivVec3Scalar
+            }
+            (Type::Vec4, Type::Fixed | Type::Int32, Type::Vec4) => {
+                if matches!(right_ty, Type::Int32) {
+                    self.code.push(LpsOpCode::Int32ToFixed);
+                }
+                LpsOpCode::DivVec4Scalar
+            }
 
             // Matrix-Scalar operations (mat / scalar)
-            (Type::Mat3, Type::Fixed | Type::Int32, Type::Mat3) => LpsOpCode::DivMat3Scalar,
+            (Type::Mat3, Type::Fixed | Type::Int32, Type::Mat3) => {
+                if matches!(right_ty, Type::Int32) {
+                    self.code.push(LpsOpCode::Int32ToFixed);
+                }
+                LpsOpCode::DivMat3Scalar
+            }
 
             _ => LpsOpCode::DivFixed, // Fallback
         };

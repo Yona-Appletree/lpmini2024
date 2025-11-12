@@ -21,6 +21,7 @@ impl Mat3 {
     ///
     /// Parameters are in column-major order:
     /// m00, m10, m20, m01, m11, m21, m02, m12, m22
+    #[allow(clippy::too_many_arguments)]
     #[inline(always)]
     pub const fn new(
         m00: Fixed,
@@ -39,6 +40,7 @@ impl Mat3 {
     }
 
     /// Create a matrix from 9 f32 values (column-major order)
+    #[allow(clippy::too_many_arguments)]
     #[inline(always)]
     pub fn from_f32(
         m00: f32,
@@ -135,6 +137,7 @@ impl Mat3 {
     }
 
     /// Matrix-matrix multiplication
+    #[allow(clippy::should_implement_trait)]
     #[inline(always)]
     pub fn mul(self, rhs: Self) -> Self {
         let a = self;

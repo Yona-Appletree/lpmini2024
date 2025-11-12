@@ -284,6 +284,7 @@ impl TypeChecker {
             2 => Type::Vec2,
             3 => Type::Vec3,
             4 => Type::Vec4,
+            9 => Type::Mat3,
             _ => Type::Fixed,
         })
     }

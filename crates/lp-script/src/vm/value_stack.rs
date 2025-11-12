@@ -263,6 +263,7 @@ impl ValueStack {
     }
 
     /// Push 9 raw i32 values onto the stack
+    #[allow(clippy::too_many_arguments)]
     #[inline(always)]
     pub fn push9(
         &mut self,
@@ -294,6 +295,7 @@ impl ValueStack {
 
     /// Pop 9 raw i32 values from the stack
     #[inline(always)]
+    #[allow(clippy::type_complexity)]
     pub fn pop9(&mut self) -> Result<(i32, i32, i32, i32, i32, i32, i32, i32, i32), LpsVmError> {
         if self.sp < 9 {
             return Err(LpsVmError::StackUnderflow {
