@@ -32,12 +32,12 @@ impl LedMap {
 
 /// LED mapping for the entire strip
 pub struct LedMapping {
-    maps: [LedMap; 128],
+    maps: [LedMap; 256],
 }
 
 impl LedMapping {
     /// Create a new LED mapping from an array
-    pub fn new(maps: [LedMap; 128]) -> Self {
+    pub fn new(maps: [LedMap; 256]) -> Self {
         LedMapping { maps }
     }
 
@@ -65,7 +65,7 @@ pub fn apply_2d_mapping(
 ) {
     let led_count = led_output.len() / 3;
     #[cfg(not(feature = "use-libm"))]
-    assert!(led_count <= 128, "LED count exceeds maximum of 128");
+    assert!(led_count <= 256, "LED count exceeds maximum of 256");
 
     for led_idx in 0..led_count {
         if let core::option::Option::Some(map) = mapping.get(led_idx) {
@@ -145,7 +145,7 @@ mod tests {
 
         // Apply grid mapping (LED at (5,3) maps to pixel center (5.5, 3.5))
         let mapping = LedMapping::grid_16x8();
-        let mut led_output = vec![0u8; 128 * 3];
+        let mut led_output = vec![0u8; 256 * 3];
         apply_2d_mapping(&rgb_2d, &mut led_output, &mapping, 16, 8);
 
         // LED at index (3 * 16 + 5) = 53 should be red (with bilinear it samples 4 red pixels)

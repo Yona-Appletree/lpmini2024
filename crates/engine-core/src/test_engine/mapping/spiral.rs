@@ -14,7 +14,7 @@ impl LedMapping {
     /// * `width` - Width of the mapping area (default 16)
     /// * `height` - Height of the mapping area (default 16)
     pub fn spiral(arms: usize, width: usize, height: usize) -> Self {
-        let mut maps = [LedMap::new(0, 0); 128];
+        let mut maps = [LedMap::new(0, 0); 256];
         let center_x_px = width / 2;
         let center_y_px = height / 2;
         let max_radius_px = if width > height {
@@ -27,7 +27,7 @@ impl LedMapping {
             // Distribute LEDs across arms
             let arm = i % arms;
             let led_in_arm = i / arms;
-            let total_leds_per_arm = 128_usize.div_ceil(arms);
+            let total_leds_per_arm = 256_usize.div_ceil(arms);
 
             // Calculate spiral parameters in fixed-point
             // t = led_in_arm / total_leds_per_arm (progress along arm, 0..1)

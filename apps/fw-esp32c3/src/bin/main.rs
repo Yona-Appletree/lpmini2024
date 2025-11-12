@@ -56,7 +56,7 @@ async fn main(_spawner: Spawner) {
 
     // Power limiting configuration
     let power_config = engine_core::test_engine::power_limit::PowerLimitConfig {
-        brightness_256: 255,   // ~12.5% brightness (32/256)
+        brightness_256: 256,   // ~12.5% brightness (32/256)
         power_budget_ma: 1000, // 1A budget
         led_white_power_ma: 50,
         led_idle_power_ma: 1,
