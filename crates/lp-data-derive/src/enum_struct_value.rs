@@ -109,7 +109,6 @@ fn expand_enum_struct(input: &DeriveInput, data: &DataEnum) -> Result<TokenStrea
         let mut field_value_extractions_mut = Vec::new();
         let mut field_names = Vec::new();
         let mut match_pattern_fields = Vec::new();
-        let mut match_bindings = Vec::new();
 
         for field in fields {
             let field_ident = field.ident.as_ref().unwrap();
@@ -118,7 +117,6 @@ fn expand_enum_struct(input: &DeriveInput, data: &DataEnum) -> Result<TokenStrea
 
             field_names.push(field_name.clone());
             match_pattern_fields.push(quote! { #field_ident });
-            match_bindings.push(quote! { #field_ident });
 
             // Determine how to extract the field value
             let field_attrs = FieldAttrs::from_attrs(&field.attrs)?;
@@ -199,7 +197,7 @@ fn expand_enum_struct(input: &DeriveInput, data: &DataEnum) -> Result<TokenStrea
 
         // Generate value extraction code that creates RecordValueDyn
         variant_value_matchers.push(quote! {
-                    #enum_ident::#variant_ident { #(#match_pattern_fields: #match_bindings),* } => {
+                    #enum_ident::#variant_ident { #(#match_pattern_fields),* } => {
         use alloc::vec::Vec;
         use alloc::string::String;
         use crate::kind::record::record_dyn::{RecordFieldDyn, RecordShapeDyn};
@@ -233,7 +231,7 @@ fn expand_enum_struct(input: &DeriveInput, data: &DataEnum) -> Result<TokenStrea
                 });
 
         variant_value_mut_matchers.push(quote! {
-                    #enum_ident::#variant_ident { #(#match_pattern_fields: #match_bindings),* } => {
+                    #enum_ident::#variant_ident { #(#match_pattern_fields),* } => {
         use alloc::vec::Vec;
         use alloc::string::String;
         use alloc::boxed::Box;
