@@ -148,6 +148,9 @@ unsafe fn start_transmission() {
 
     rmt.ch_tx_conf0(0).modify(|_, w| w.conf_update().set_bit());
 
+    // Write the guard. With any luck we are past the first byte at this point.
+    write_buffer_guard(false);
+
     // info!("transmission started");
 }
 
@@ -224,6 +227,7 @@ extern "C" fn rmt_interrupt_handler() {
                     .modify(|_, w| w.tx_lim().bits(HALF_BUFFER_SIZE as u16));
             }
 
+            write_buffer_guard(is_halfway);
             if write_half_buffer(is_halfway) {
                 // info!("end reached");
             }
@@ -234,6 +238,28 @@ extern "C" fn rmt_interrupt_handler() {
             RMT_STATS_SUM += bytes_elapsed;
             RMT_STATS_COUNT += 1;
         }
+    }
+}
+
+/// Writes a STOP instruction into the RMT buffer at the start or halfway point.
+///
+///
+/// This protects against the case where the RMT interrupt is lost when it's time to write the
+/// next half of the buffer.
+///
+/// Without this protection, if the interrupt is lost, the RMT will continue transmitting the
+/// current buffer over and over, causing the LED strip to flicker, and too much data will be
+/// written to the strip.
+///
+/// While this is not ideal, it is necessary, especially in debug mode, where the RTT driver
+/// seems to interfere with the RMT interrupts.
+unsafe fn write_buffer_guard(into_second_half: bool) {
+    // Write a zero after our half buffer to guard against interrupt loss
+    let base_ptr = (esp_hal::peripherals::RMT::ptr() as usize + 0x400) as *mut u32;
+    if into_second_half {
+        base_ptr.add(HALF_BUFFER_SIZE).write_volatile(0);
+    } else {
+        base_ptr.write_volatile(0);
     }
 }
 
