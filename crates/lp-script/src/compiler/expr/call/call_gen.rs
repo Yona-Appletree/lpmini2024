@@ -3,27 +3,32 @@ extern crate alloc;
 
 use crate::compiler::ast::{Expr, ExprKind};
 use crate::compiler::codegen::CodeGenerator;
+use crate::compiler::error::CodegenError;
 use crate::shared::Type;
 use crate::vm::opcodes::LpsOpCode;
 
 impl<'a> CodeGenerator<'a> {
-    pub(crate) fn gen_function_call(&mut self, name: &str, args: &[Expr]) {
+    pub(crate) fn gen_function_call(
+        &mut self,
+        name: &str,
+        args: &[Expr],
+    ) -> Result<(), CodegenError> {
         // Check if it's a user-defined function
         if let Some(&offset) = self.func_offsets.get(name) {
             // Generate code for arguments (push onto stack)
             for arg in args {
-                self.gen_expr(arg);
+                self.gen_expr(arg)?;
             }
             // Emit Call opcode with function offset
             self.code.push(LpsOpCode::Call(offset));
-            return;
+            return Ok(());
         }
 
         // Special case: perlin3(vec3) or perlin3(vec3, octaves)
         // Octaves is embedded in opcode, not pushed to stack
         if name == "perlin3" {
             // First arg is vec3, generate code to push its 3 components
-            self.gen_expr(&args[0]);
+            self.gen_expr(&args[0])?;
 
             // Extract octaves from 2nd arg or use default
             let octaves = if args.len() >= 2 {
@@ -37,19 +42,19 @@ impl<'a> CodeGenerator<'a> {
             };
 
             self.code.push(LpsOpCode::Perlin3(octaves));
-            return;
+            return Ok(());
         }
 
         // For all other functions, generate code for all arguments first
         for arg in args {
-            self.gen_expr(arg);
+            self.gen_expr(arg)?;
         }
 
         // Emit the appropriate instruction
-        self.gen_builtin_function(name, args);
+        self.gen_builtin_function(name, args)
     }
 
-    fn gen_builtin_function(&mut self, name: &str, args: &[Expr]) {
+    fn gen_builtin_function(&mut self, name: &str, args: &[Expr]) -> Result<(), CodegenError> {
         match name {
             "sin" => self.code.push(LpsOpCode::SinFixed),
             "cos" => self.code.push(LpsOpCode::CosFixed),
@@ -159,5 +164,6 @@ impl<'a> CodeGenerator<'a> {
 
             _ => {} // Unknown function - ignore
         }
+        Ok(())
     }
 }

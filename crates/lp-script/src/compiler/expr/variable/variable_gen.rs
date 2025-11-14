@@ -2,12 +2,13 @@
 extern crate alloc;
 
 use crate::compiler::codegen::CodeGenerator;
+use crate::compiler::error::CodegenError;
 use crate::shared::Type;
 use crate::vm::opcodes::load::LoadSource;
 use crate::vm::opcodes::LpsOpCode;
 
 impl<'a> CodeGenerator<'a> {
-    pub(crate) fn gen_variable(&mut self, name: &str, var_type: &Type) {
+    pub(crate) fn gen_variable(&mut self, name: &str, var_type: &Type) -> Result<(), CodegenError> {
         // Check if it's a vec2 built-in (uv, coord)
         match name {
             "uv" => {
@@ -55,6 +56,8 @@ impl<'a> CodeGenerator<'a> {
                 }
             }
         }
+
+        Ok(())
     }
 }
 

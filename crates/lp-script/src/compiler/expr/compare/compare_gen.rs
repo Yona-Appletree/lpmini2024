@@ -3,6 +3,7 @@ extern crate alloc;
 
 use crate::compiler::ast::Expr;
 use crate::compiler::codegen::CodeGenerator;
+use crate::compiler::error::CodegenError;
 use crate::shared::Type;
 use crate::vm::opcodes::LpsOpCode;
 
@@ -24,53 +25,59 @@ impl<'a> CodeGenerator<'a> {
         }
     }
 
-    pub(crate) fn gen_less(&mut self, left: &Expr, right: &Expr) {
-        self.gen_expr(left);
-        self.gen_expr(right);
+    pub(crate) fn gen_less(&mut self, left: &Expr, right: &Expr) -> Result<(), CodegenError> {
+        self.gen_expr(left)?;
+        self.gen_expr(right)?;
         // Determine type from left operand (both should be same type after type checking)
         let ty = left.ty.as_ref().unwrap_or(&Type::Fixed);
         self.code
             .push(self.get_comparison_opcode(ComparisonOp::Less, ty));
+        Ok(())
     }
 
-    pub(crate) fn gen_greater(&mut self, left: &Expr, right: &Expr) {
-        self.gen_expr(left);
-        self.gen_expr(right);
+    pub(crate) fn gen_greater(&mut self, left: &Expr, right: &Expr) -> Result<(), CodegenError> {
+        self.gen_expr(left)?;
+        self.gen_expr(right)?;
         let ty = left.ty.as_ref().unwrap_or(&Type::Fixed);
         self.code
             .push(self.get_comparison_opcode(ComparisonOp::Greater, ty));
+        Ok(())
     }
 
-    pub(crate) fn gen_less_eq(&mut self, left: &Expr, right: &Expr) {
-        self.gen_expr(left);
-        self.gen_expr(right);
+    pub(crate) fn gen_less_eq(&mut self, left: &Expr, right: &Expr) -> Result<(), CodegenError> {
+        self.gen_expr(left)?;
+        self.gen_expr(right)?;
         let ty = left.ty.as_ref().unwrap_or(&Type::Fixed);
         self.code
             .push(self.get_comparison_opcode(ComparisonOp::LessEq, ty));
+        Ok(())
     }
 
-    pub(crate) fn gen_greater_eq(&mut self, left: &Expr, right: &Expr) {
-        self.gen_expr(left);
-        self.gen_expr(right);
+    pub(crate) fn gen_greater_eq(&mut self, left: &Expr, right: &Expr) -> Result<(), CodegenError> {
+        self.gen_expr(left)?;
+        self.gen_expr(right)?;
         let ty = left.ty.as_ref().unwrap_or(&Type::Fixed);
         self.code
             .push(self.get_comparison_opcode(ComparisonOp::GreaterEq, ty));
+        Ok(())
     }
 
-    pub(crate) fn gen_eq(&mut self, left: &Expr, right: &Expr) {
-        self.gen_expr(left);
-        self.gen_expr(right);
+    pub(crate) fn gen_eq(&mut self, left: &Expr, right: &Expr) -> Result<(), CodegenError> {
+        self.gen_expr(left)?;
+        self.gen_expr(right)?;
         let ty = left.ty.as_ref().unwrap_or(&Type::Fixed);
         self.code
             .push(self.get_comparison_opcode(ComparisonOp::Eq, ty));
+        Ok(())
     }
 
-    pub(crate) fn gen_not_eq(&mut self, left: &Expr, right: &Expr) {
-        self.gen_expr(left);
-        self.gen_expr(right);
+    pub(crate) fn gen_not_eq(&mut self, left: &Expr, right: &Expr) -> Result<(), CodegenError> {
+        self.gen_expr(left)?;
+        self.gen_expr(right)?;
         let ty = left.ty.as_ref().unwrap_or(&Type::Fixed);
         self.code
             .push(self.get_comparison_opcode(ComparisonOp::NotEq, ty));
+        Ok(())
     }
 }
 

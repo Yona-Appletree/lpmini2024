@@ -7,6 +7,7 @@ use alloc::vec::Vec;
 
 use super::local_allocator::LocalAllocator;
 use crate::compiler::ast::{Program, Stmt, StmtKind};
+use crate::compiler::error::CodegenError;
 use crate::compiler::func::FunctionTable;
 use crate::shared::Type;
 use crate::vm::opcodes::LpsOpCode;
@@ -33,8 +34,14 @@ fn infer_main_return_type(stmts: &[Stmt]) -> Type {
 pub fn gen_program_with_functions(
     program: &Program,
     func_table: &FunctionTable,
-    _gen_stmt: impl Fn(&Stmt, &mut Vec<LpsOpCode>, &mut LocalAllocator, &BTreeMap<String, u32>) + Copy,
-) -> Vec<VmFunctionDef> {
+    _gen_stmt: impl Fn(
+            &Stmt,
+            &mut Vec<LpsOpCode>,
+            &mut LocalAllocator,
+            &BTreeMap<String, u32>,
+        ) -> Result<(), CodegenError>
+        + Copy,
+) -> Result<Vec<VmFunctionDef>, CodegenError> {
     // Build function index map: function name -> final index in output
     // Main will always be at index 0, other functions follow in order (excluding main)
     let mut function_indices = BTreeMap::new();
@@ -57,25 +64,21 @@ pub fn gen_program_with_functions(
             ast_func,
             func_table,
             &function_indices,
-        );
+        )?;
         result_functions.push(vm_func);
     }
 
     // Generate main function from top-level statements
     let mut main_code = Vec::new();
     let mut main_locals = LocalAllocator::new();
-    {
-        let mut gen =
-            super::CodeGenerator::new(&mut main_code, &mut main_locals, &function_indices);
-        for stmt in &program.stmts {
-            gen.gen_stmt(stmt);
-        }
+    for stmt in &program.stmts {
+        _gen_stmt(stmt, &mut main_code, &mut main_locals, &function_indices)?;
+    }
 
-        // Add return if missing
-        if !matches!(main_code.last(), Some(LpsOpCode::Return)) {
-            main_code.push(LpsOpCode::Push(crate::fixed::Fixed::ZERO));
-            main_code.push(LpsOpCode::Return);
-        }
+    // Add return if missing
+    if !matches!(main_code.last(), Some(LpsOpCode::Return)) {
+        main_code.push(LpsOpCode::Push(crate::fixed::Fixed::ZERO));
+        main_code.push(LpsOpCode::Return);
     }
 
     let main_local_defs: Vec<LocalVarDef> = (0..main_locals.next_index)
@@ -109,7 +112,7 @@ pub fn gen_program_with_functions(
         }
     }
 
-    final_functions
+    Ok(final_functions)
 }
 
 #[cfg(test)]

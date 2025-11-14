@@ -1,0 +1,119 @@
+[00:00.000 --> 00:02.440]  Please go ahead. Summarize.
+[00:03.500 --> 00:08.720]  Summary of the LightPlayer scene graph node types.
+[00:09.140 --> 00:24.880]  So there are input nodes, which represent user interface elements or input devices like buttons and sliders, color pickers, audio input, potentially cameras, anything like that.
+[00:24.880 --> 00:45.620]  Then there are the image nodes or the effect nodes that do processing of images, kind of the internal ones, which could be the effect pipeline, which has a series of steps that does things, you know, contrast changes.
+[00:45.620 --> 00:51.340]  It's very similar to the CSS filter. It's actually a really good example of a pipeline of a filter effects.
+[00:51.960 --> 00:53.880]  It's essentially a CSS filter property.
+[00:54.880 --> 01:06.000]  But it could also be a fluid simulation or a cellular automata or some other form of stateful fire simulation or something like that that has state.
+[01:07.100 --> 01:10.800]  Specifically, the pipeline nodes don't have state.
+[01:11.000 --> 01:13.280]  They are just a series of filters.
+[01:15.020 --> 01:21.840]  And then the other type of node we haven't talked too much about are the kind of math nodes.
+[01:23.600 --> 01:24.780]  Maybe even in the same.
+[01:24.880 --> 01:27.460]  I don't know the category, but like a low frequency oscillator.
+[01:30.060 --> 01:30.840]  There might be others.
+[01:30.840 --> 01:32.160]  That's the one that comes to mind.
+[01:32.160 --> 01:32.860]  Mind.
+[01:34.560 --> 01:38.360]  Stateful drivers of data.
+[01:39.360 --> 01:45.700]  And then we talked about the concept of a module, which is a collection of nodes.
+[01:46.400 --> 01:49.000]  And there's probably going to be different types of modules.
+[01:49.760 --> 01:54.100]  The most notable one will be the effect module, which is a collection of what we were just talking about.
+[01:54.100 --> 02:00.280]  They go together that have some set of inputs and produce an image.
+[02:00.280 --> 02:03.160]  That's what's really fundamental about an effect module.
+[02:03.160 --> 02:13.620]  It produces an image and potentially some other metadata as outputs, like its priority and whether or not it has anything to do currently has user input.
+[02:14.620 --> 02:16.140]  That's essentially the effect system.
+[02:16.140 --> 02:20.140]  If we're thinking from left to right in the scene graph, that's the left part.
+[02:21.080 --> 02:23.620]  Then you critically have the muxing system.
+[02:24.100 --> 02:32.100]  Which is what takes many image inputs and many effects inputs really.
+[02:33.020 --> 02:38.220]  And picks which one to use at the current time.
+[02:39.320 --> 02:51.760]  And these mux nodes could come in various varieties, but the obvious two are some sort of timeline where you sort of iterate through different effects on a schedule.
+[02:52.620 --> 02:53.940]  And then one that is selected.
+[02:54.100 --> 02:59.260]  The most interesting for user input, select the effect that has the most interesting user input right now.
+[03:00.160 --> 03:06.580]  And so if you touch the button or something, the pattern would change and do something so long as you're interacting with it.
+[03:07.300 --> 03:12.880]  And then one further step to the right is the fixture node.
+[03:13.880 --> 03:17.720]  Which conceptually at least takes the image output.
+[03:17.720 --> 03:23.900]  They take as input an image and they sample that image for.
+[03:24.100 --> 03:26.100]  The pixels that they care about.
+[03:26.100 --> 03:29.260]  And then they produce as output.
+[03:29.260 --> 03:33.040]  One dimensional color data.
+[03:33.040 --> 03:40.880]  Which is critically includes the color mapping to the type of LED they are.
+[03:40.880 --> 03:49.420]  So if they're RGB LED or if they're like, you know, RGBA or RGBW or GRB.
+[03:49.420 --> 03:51.420]  The fixtures handle all of that.
+[03:51.420 --> 03:52.820]  They handle taking an image.
+[03:52.820 --> 03:53.900]  And converting it into a color.
+[03:53.900 --> 03:54.000]  And then they take the image and they sample it.
+[03:54.000 --> 03:54.080]  And then they take the image and they sample it.
+[03:54.080 --> 03:59.820]  So a list of numbers that can be sent out to the final type of node.
+[03:59.820 --> 04:00.920]  Which is an output node.
+[04:03.700 --> 04:06.800]  Which there's some question as to whether or not we even need output nodes.
+[04:07.900 --> 04:10.240]  They might just be part of the scene config itself.
+[04:10.240 --> 04:10.920]  But for now.
+[04:11.880 --> 04:12.500]  An output.
+[04:13.320 --> 04:14.220]  The output stage.
+[04:15.220 --> 04:16.700]  Would be something like.
+[04:18.780 --> 04:23.980]  A WS2811 on output on pin GPIO.
+[04:23.980 --> 04:33.280]  pin 5, or it could be something like an ARTnet output
+[04:33.280 --> 04:35.980]  to a particular host and port with a particular number
+[04:35.980 --> 04:38.380]  of universes and channels.
+[04:38.380 --> 04:40.160]  But fundamentally, it represents some way
+[04:40.160 --> 04:42.880]  of getting data out of the system.
+[04:42.880 --> 04:46.840]  And its input is a series of what are basically
+[04:46.840 --> 04:53.960]  slices of binary data, which we don't need to go too deep
+[04:53.980 --> 05:00.980]  into, but essentially a piece of binary data
+[05:00.980 --> 05:04.380]  that also has an offset of where it goes, right?
+[05:04.380 --> 05:08.100]  Because the output, the fixtures aren't necessarily
+[05:08.100 --> 05:09.360]  going to take an entire output.
+[05:09.360 --> 05:12.680]  So the fixture might say, starting at LED 100,
+[05:12.680 --> 05:15.220]  50 LEDs worth of data.
+[05:15.220 --> 05:17.660]  And that goes into the output, which sends it ultimately
+[05:17.660 --> 05:18.160]  onward.
+[05:20.940 --> 05:21.540]  Right.
+[05:21.540 --> 05:23.340]  And one thing I wanted to say on the module,
+[05:23.340 --> 05:23.940]  because they're big.
+[05:23.940 --> 05:23.960]  Right.
+[05:23.960 --> 05:23.980]  Right.
+[05:23.980 --> 05:25.700]  There are other types that we discussed.
+[05:25.700 --> 05:27.800]  Like if your module only has fixtures,
+[05:27.800 --> 05:29.460]  it might be a hardware config module.
+[05:29.460 --> 05:37.160]  If it only has rendering, like you said, it's a pattern type.
+[05:37.160 --> 05:38.580]  There are effects.
+[05:38.580 --> 05:39.500]  Effect type, thank you.
+[05:39.500 --> 05:40.080]  Yeah.
+[05:40.080 --> 05:43.120]  So the two other types there.
+[05:43.120 --> 05:46.360]  And there might be the types of modules
+[05:46.360 --> 05:48.660]  are not fully thought through yet.
+[05:48.660 --> 05:52.420]  We definitely know effect modules.
+[05:52.420 --> 05:53.960]  Very likely, fixtures can be.
+[05:53.960 --> 05:57.460]  They might be arranged into modules because you might have,
+[05:57.460 --> 06:02.800]  say, the dome is made up of 10 control boxes.
+[06:02.800 --> 06:05.740]  It would probably make sense to have a module
+[06:05.740 --> 06:07.880]  with those fixtures in it.
+[06:07.880 --> 06:12.340]  It might also frequently be sensible to put outputs
+[06:12.340 --> 06:17.140]  and fixtures together in a module.
+[06:17.140 --> 06:19.680]  That would actually probably make a lot of sense in many cases.
+[06:19.680 --> 06:23.940]  So like if you had a.
+[06:23.960 --> 06:28.460]  Like in the DMX world and the stage lighting systems,
+[06:28.460 --> 06:33.920]  you might put the output device, which is like send data
+[06:33.920 --> 06:37.200]  to a particular ARTnet receiver.
+[06:37.200 --> 06:38.920]  And then it's a collection of fixtures
+[06:38.920 --> 06:40.580]  that all send to that same one.
+[06:40.580 --> 06:44.820]  And that whole thing, that whole concept is a module.
+[06:44.820 --> 06:48.120]  In fact, in that sense, the dome might just be one module.
+[06:48.120 --> 06:49.240]  Right.
+[06:49.240 --> 06:52.640]  The hardware can, because they're related to each other.
+[06:52.640 --> 06:53.140]  Yeah.
+[06:53.140 --> 06:53.940]  The shape.
+[06:53.960 --> 06:54.560]  The shape.
+[06:54.560 --> 06:55.340]  And the outputs are related.
+[06:55.340 --> 06:57.340]  So those are some concepts of modules.
+[06:57.340 --> 07:01.960]  Okay. I'm going to, if that's all for the recap,
+[07:01.960 --> 07:06.080]  I'm going to call the recording just so we don't get too messy.
+[07:06.080 --> 07:08.280]  Yep. Correct.
+
+Writing transcript to /Users/yona/Downloads/2025-11-11 21.52.16.txt...
+
+Transcript (5378 characters):
+--------------------------------------------------------------------------------
+Please go ahead. Summarize. Summary of the LightPlayer scene graph node types. So there are input nodes, which represent user interface elements or input devices like buttons and sliders, color pickers, audio input, potentially cameras, anything like that. Then there are the image nodes or the effect nodes that do processing of images, kind of the internal ones, which could be the effect pipeline, which has a series of steps that does things, you know, contrast changes. It's very similar to the CSS filter. It's actually a really good example of a pipeline of a filter effects. It's essentially a CSS filter property. But it could also be a fluid simulation or a cellular automata or some other form of stateful fire simulation or something like that that has state. Specifically, the pipeline nodes don't have state. They are just a series of filters. And then the other type of node we haven't talked too much about are the kind of math nodes. Maybe even in the same. I don't know the category, but like a low frequency oscillator. There might be others. That's the one that comes to mind. Mind. Stateful drivers of data. And then we talked about the concept of a module, which is a collection of nodes. And there's probably going to be different types of modules. The most notable one will be the effect module, which is a collection of what we were just talking about. They go together that have some set of inputs and produce an image. That's what's really fundamental about an effect module. It produces an image and potentially some other metadata as outputs, like its priority and whether or not it has anything to do currently has user input. That's essentially the effect system. If we're thinking from left to right in the scene graph, that's the left part. Then you critically have the muxing system. Which is what takes many image inputs and many effects inputs really. And picks which one to use at the current time. And these mux nodes could come in various varieties, but the obvious two are some sort of timeline where you sort of iterate through different effects on a schedule. And then one that is selected. The most interesting for user input, select the effect that has the most interesting user input right now. And so if you touch the button or something, the pattern would change and do something so long as you're interacting with it. And then one further step to the right is the fixture node. Which conceptually at least takes the image output. They take as input an image and they sample that image for. The pixels that they care about. And then they produce as output. One dimensional color data. Which is critically includes the color mapping to the type of LED they are. So if they're RGB LED or if they're like, you know, RGBA or RGBW or GRB. The fixtures handle all of that. They handle taking an image. And converting it into a color. And then they take the image and they sample it. And then they take the image and they sample it. So a list of numbers that can be sent out to the final type of node. Which is an output node. Which there's some question as to whether or not we even need output nodes. They might just be part of the scene config itself. But for now. An output. The output stage. Would be something like. A WS2811 on output on pin GPIO. pin 5, or it could be something like an ARTnet output to a particular host and port with a particular number of universes and channels. But fundamentally, it represents some way of getting data out of the system. And its input is a series of what are basically slices of binary data, which we don't need to go too deep into, but essentially a piece of binary data that also has an offset of where it goes, right? Because the output, the fixtures aren't necessarily going to take an entire output. So the fixture might say, starting at LED 100, 50 LEDs worth of data. And that goes into the output, which sends it ultimately onward. Right. And one thing I wanted to say on the module, because they're big. Right. Right. There are other types that we discussed. Like if your module only has fixtures, it might be a hardware config module. If it only has rendering, like you said, it's a pattern type. There are effects. Effect type, thank you. Yeah. So the two other types there. And there might be the types of modules are not fully thought through yet. We definitely know effect modules. Very likely, fixtures can be. They might be arranged into modules because you might have, say, the dome is made up of 10 control boxes. It would probably make sense to have a module with those fixtures in it. It might also frequently be sensible to put outputs and fixtures together in a module. That would actually probably make a lot of sense in many cases. So like if you had a. Like in the DMX world and the stage lighting systems, you might put the output device, which is like send data to a particular ARTnet receiver. And then it's a collection of fixtures that all send to that same one. And that whole thing, that whole concept is a module. In fact, in that sense, the dome might just be one module. Right. The hardware can, because they're related to each other. Yeah. The shape. The shape. And the outputs are related. So those are some concepts of modules. Okay. I'm going to, if that's all for the recap, I'm going to call the recording just so we don't get too messy. Yep. Correct.
+--------------------------------------------------------------------------------
+
+Saved to: /Users/yona/Downloads/2025-11-11 21.52.16.txt

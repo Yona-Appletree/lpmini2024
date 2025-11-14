@@ -3,21 +3,26 @@ extern crate alloc;
 
 use crate::compiler::ast::{Expr, Stmt};
 use crate::compiler::codegen::CodeGenerator;
+use crate::compiler::error::CodegenError;
 use crate::vm::opcodes::LpsOpCode;
 
 impl<'a> CodeGenerator<'a> {
-    pub(crate) fn gen_while_stmt(&mut self, condition: &Expr, body: &Stmt) {
+    pub(crate) fn gen_while_stmt(
+        &mut self,
+        condition: &Expr,
+        body: &Stmt,
+    ) -> Result<(), CodegenError> {
         let loop_start = self.code.len();
 
         // Generate condition
-        self.gen_expr(condition);
+        self.gen_expr(condition)?;
 
         // JumpIfZero to end
         let jump_to_end = self.code.len();
         self.code.push(LpsOpCode::JumpIfZero(0)); // Placeholder
 
         // Body
-        self.gen_stmt(body);
+        self.gen_stmt(body)?;
 
         // Jump back to loop start
         let jump_back_idx = self.code.len();
@@ -30,5 +35,6 @@ impl<'a> CodeGenerator<'a> {
         if let LpsOpCode::JumpIfZero(ref mut offset) = self.code[jump_to_end] {
             *offset = (end as i32) - (jump_to_end as i32) - 1;
         }
+        Ok(())
     }
 }

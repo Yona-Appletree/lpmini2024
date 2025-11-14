@@ -1,15 +1,23 @@
 /// Binary operation code generation
 extern crate alloc;
 
+use alloc::format;
+
 use crate::compiler::ast::Expr;
 use crate::compiler::codegen::CodeGenerator;
-use crate::shared::Type;
+use crate::compiler::error::{CodegenError, CodegenErrorKind};
+use crate::shared::{Span, Type};
 use crate::vm::opcodes::LpsOpCode;
 
 impl<'a> CodeGenerator<'a> {
-    pub(crate) fn gen_add(&mut self, left: &Expr, right: &Expr, ty: &Type) {
-        self.gen_expr(left);
-        self.gen_expr(right);
+    pub(crate) fn gen_add(
+        &mut self,
+        left: &Expr,
+        right: &Expr,
+        ty: &Type,
+    ) -> Result<(), CodegenError> {
+        self.gen_expr(left)?;
+        self.gen_expr(right)?;
         self.code.push(match ty {
             Type::Fixed => LpsOpCode::AddFixed,
             Type::Int32 => LpsOpCode::AddInt32,
@@ -17,13 +25,23 @@ impl<'a> CodeGenerator<'a> {
             Type::Vec3 => LpsOpCode::AddVec3,
             Type::Vec4 => LpsOpCode::AddVec4,
             Type::Mat3 => LpsOpCode::AddMat3,
-            _ => LpsOpCode::AddFixed,
+            other => {
+                return Err(unsupported_binary_result(
+                    "addition", "+", other, left, right,
+                ));
+            }
         });
+        Ok(())
     }
 
-    pub(crate) fn gen_sub(&mut self, left: &Expr, right: &Expr, ty: &Type) {
-        self.gen_expr(left);
-        self.gen_expr(right);
+    pub(crate) fn gen_sub(
+        &mut self,
+        left: &Expr,
+        right: &Expr,
+        ty: &Type,
+    ) -> Result<(), CodegenError> {
+        self.gen_expr(left)?;
+        self.gen_expr(right)?;
         self.code.push(match ty {
             Type::Fixed => LpsOpCode::SubFixed,
             Type::Int32 => LpsOpCode::SubInt32,
@@ -31,11 +49,25 @@ impl<'a> CodeGenerator<'a> {
             Type::Vec3 => LpsOpCode::SubVec3,
             Type::Vec4 => LpsOpCode::SubVec4,
             Type::Mat3 => LpsOpCode::SubMat3,
-            _ => LpsOpCode::SubFixed,
+            other => {
+                return Err(unsupported_binary_result(
+                    "subtraction",
+                    "-",
+                    other,
+                    left,
+                    right,
+                ));
+            }
         });
+        Ok(())
     }
 
-    pub(crate) fn gen_mul(&mut self, left: &Expr, right: &Expr, ty: &Type) {
+    pub(crate) fn gen_mul(
+        &mut self,
+        left: &Expr,
+        right: &Expr,
+        ty: &Type,
+    ) -> Result<(), CodegenError> {
         let left_ty = left.ty.as_ref().unwrap();
         let right_ty = right.ty.as_ref().unwrap();
 
@@ -50,16 +82,16 @@ impl<'a> CodeGenerator<'a> {
 
         if is_scalar_vector {
             // Generate: scalar * vector -> [vec_components..., scalar]
-            self.gen_expr(right); // Vector first
-            self.gen_expr(left); // Scalar on top
-                                 // Convert Int32 scalar to Fixed if needed
+            self.gen_expr(right)?; // Vector first
+            self.gen_expr(left)?; // Scalar on top
+                                  // Convert Int32 scalar to Fixed if needed
             if matches!(left_ty, Type::Int32) {
                 self.code.push(LpsOpCode::Int32ToFixed);
             }
         } else {
             // Normal order
-            self.gen_expr(left);
-            self.gen_expr(right);
+            self.gen_expr(left)?;
+            self.gen_expr(right)?;
         }
 
         // Emit appropriate opcode
@@ -113,18 +145,34 @@ impl<'a> CodeGenerator<'a> {
             // Scalar-Matrix operations (already generated in correct order, conversion already done above)
             (Type::Fixed | Type::Int32, Type::Mat3, Type::Mat3) => LpsOpCode::MulMat3Scalar,
 
-            _ => LpsOpCode::MulFixed, // Fallback
+            _ => {
+                return Err(unsupported_binary_operands(
+                    "multiplication",
+                    "*",
+                    left_ty,
+                    right_ty,
+                    ty,
+                    left,
+                    right,
+                ))
+            }
         };
 
         self.code.push(opcode);
+        Ok(())
     }
 
-    pub(crate) fn gen_div(&mut self, left: &Expr, right: &Expr, ty: &Type) {
+    pub(crate) fn gen_div(
+        &mut self,
+        left: &Expr,
+        right: &Expr,
+        ty: &Type,
+    ) -> Result<(), CodegenError> {
         let left_ty = left.ty.as_ref().unwrap();
         let right_ty = right.ty.as_ref().unwrap();
 
-        self.gen_expr(left);
-        self.gen_expr(right);
+        self.gen_expr(left)?;
+        self.gen_expr(right)?;
 
         // Emit appropriate opcode
         let opcode = match (left_ty, right_ty, ty) {
@@ -165,15 +213,25 @@ impl<'a> CodeGenerator<'a> {
                 LpsOpCode::DivMat3Scalar
             }
 
-            _ => LpsOpCode::DivFixed, // Fallback
+            _ => {
+                return Err(unsupported_binary_operands(
+                    "division", "/", left_ty, right_ty, ty, left, right,
+                ))
+            }
         };
 
         self.code.push(opcode);
+        Ok(())
     }
 
-    pub(crate) fn gen_mod(&mut self, left: &Expr, right: &Expr, ty: &Type) {
-        self.gen_expr(left);
-        self.gen_expr(right);
+    pub(crate) fn gen_mod(
+        &mut self,
+        left: &Expr,
+        right: &Expr,
+        ty: &Type,
+    ) -> Result<(), CodegenError> {
+        self.gen_expr(left)?;
+        self.gen_expr(right)?;
         self.code.push(match ty {
             Type::Fixed => LpsOpCode::ModFixed,
             Type::Int32 => LpsOpCode::ModInt32,
@@ -181,7 +239,50 @@ impl<'a> CodeGenerator<'a> {
             Type::Vec3 => LpsOpCode::ModVec3,
             Type::Vec4 => LpsOpCode::ModVec4,
             // Note: Mat3 modulo not supported (no ModMat3 opcode exists)
-            _ => LpsOpCode::ModFixed,
+            other => {
+                return Err(unsupported_binary_result("modulo", "%", other, left, right));
+            }
         });
+        Ok(())
+    }
+}
+
+fn binary_span(left: &Expr, right: &Expr) -> Span {
+    let start = left.span.start.min(right.span.start);
+    let end = left.span.end.max(right.span.end);
+    Span::new(start, end)
+}
+
+fn unsupported_binary_result(
+    op_name: &str,
+    symbol: &str,
+    result_ty: &Type,
+    left: &Expr,
+    right: &Expr,
+) -> CodegenError {
+    CodegenError {
+        kind: CodegenErrorKind::UnsupportedFeature(format!(
+            "{} '{}' not supported for type {}",
+            op_name, symbol, result_ty
+        )),
+        span: binary_span(left, right),
+    }
+}
+
+fn unsupported_binary_operands(
+    op_name: &str,
+    symbol: &str,
+    left_ty: &Type,
+    right_ty: &Type,
+    result_ty: &Type,
+    left: &Expr,
+    right: &Expr,
+) -> CodegenError {
+    CodegenError {
+        kind: CodegenErrorKind::UnsupportedFeature(format!(
+            "{} '{}' not supported for operand types {} and {} (result type {})",
+            op_name, symbol, left_ty, right_ty, result_ty
+        )),
+        span: binary_span(left, right),
     }
 }

@@ -143,7 +143,7 @@ pub fn compile_expr_with_options(
     })?;
 
     // Generate and optimize opcodes
-    let opcodes = codegen::CodeGenerator::generate(&expr);
+    let opcodes = codegen::CodeGenerator::generate(&expr)?;
     let optimized_opcodes = optimize::optimize_opcodes(opcodes, options);
 
     // Create main function with the expression's actual return type
@@ -204,7 +204,7 @@ pub fn compile_script_with_options(
     optimize::optimize_ast_program(&mut program, options);
 
     // Generate functions using new API with function table
-    let functions = codegen::CodeGenerator::generate_program_with_functions(&program, &func_table);
+    let functions = codegen::CodeGenerator::generate_program_with_functions(&program, &func_table)?;
 
     // Optimize opcodes for each function
     let optimized_functions: Vec<vm::FunctionDef> = functions

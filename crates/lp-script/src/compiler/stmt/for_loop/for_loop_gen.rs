@@ -3,6 +3,7 @@ extern crate alloc;
 
 use crate::compiler::ast::{Expr, Stmt};
 use crate::compiler::codegen::CodeGenerator;
+use crate::compiler::error::CodegenError;
 use crate::vm::opcodes::LpsOpCode;
 
 impl<'a> CodeGenerator<'a> {
@@ -12,19 +13,19 @@ impl<'a> CodeGenerator<'a> {
         condition: Option<&Expr>,
         increment: Option<&Expr>,
         body: &Stmt,
-    ) {
+    ) -> Result<(), CodegenError> {
         self.locals.push_scope();
 
         // Init
         if let Some(init_stmt) = init {
-            self.gen_stmt(init_stmt);
+            self.gen_stmt(init_stmt)?;
         }
 
         let loop_start = self.code.len();
 
         // Condition (defaults to true if omitted)
         let jump_to_end = if let Some(cond) = condition {
-            self.gen_expr(cond);
+            self.gen_expr(cond)?;
             let jump_idx = self.code.len();
             self.code.push(LpsOpCode::JumpIfZero(0)); // Placeholder
             Some(jump_idx)
@@ -33,11 +34,11 @@ impl<'a> CodeGenerator<'a> {
         };
 
         // Body
-        self.gen_stmt(body);
+        self.gen_stmt(body)?;
 
         // Increment
         if let Some(inc) = increment {
-            self.gen_expr(inc);
+            self.gen_expr(inc)?;
             self.code.push(LpsOpCode::Drop1); // Discard result
         }
 
@@ -56,5 +57,6 @@ impl<'a> CodeGenerator<'a> {
         }
 
         self.locals.pop_scope();
+        Ok(())
     }
 }
