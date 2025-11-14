@@ -33,7 +33,7 @@ pub fn create_test_line_scene(width: usize, height: usize) -> SceneConfig {
         ],
     );
 
-    let mapping_config = MappingConfig::CircularPanel7Ring { width, height };
+    let mapping_config = MappingConfig::CircularPanel9Ring { width, height };
 
     SceneConfig::new(pipeline_config, mapping_config)
 }
@@ -80,7 +80,7 @@ pub fn create_demo_scene(width: usize, height: usize) -> SceneConfig {
         ],
     );
 
-    let mapping_config = MappingConfig::CircularPanel7Ring { width, height };
+    let mapping_config = MappingConfig::CircularPanel9Ring { width, height };
 
     SceneConfig::new(pipeline_config, mapping_config)
 }
