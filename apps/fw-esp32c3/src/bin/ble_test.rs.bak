@@ -1,3 +1,4 @@
+/* Commented out - not currently in use and has API compatibility issues
 #![no_std]
 #![no_main]
 
@@ -317,3 +318,4 @@ fn build_response(message: Message, start: Instant) -> Message {
         Message::Error { message } => Message::Error { message },
     }
 }
+*/
