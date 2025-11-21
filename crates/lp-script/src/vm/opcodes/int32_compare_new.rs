@@ -1,13 +1,13 @@
+use crate::math::Fixed;
 /// Int32 comparison opcodes
 use crate::vm::error::RuntimeError;
 use crate::vm::vm_stack::Stack;
-use crate::math::{Fixed, FIXED_ONE};
 
 /// Execute GreaterEqInt32: pop b, a; push (a >= b ? 1.0 : 0.0)
 #[inline(always)]
 pub fn exec_greater_eq_int32(stack: &mut Stack) -> Result<(), RuntimeError> {
     let (a, b) = stack.pop2()?;
-    let result = if a >= b { FIXED_ONE } else { 0 };
+    let result = if a >= b { Fixed::ONE.0 } else { 0 };
     stack.push_int32(result)?;
     Ok(())
 }
@@ -16,7 +16,7 @@ pub fn exec_greater_eq_int32(stack: &mut Stack) -> Result<(), RuntimeError> {
 #[inline(always)]
 pub fn exec_less_eq_int32(stack: &mut Stack) -> Result<(), RuntimeError> {
     let (a, b) = stack.pop2()?;
-    let result = if a <= b { FIXED_ONE } else { 0 };
+    let result = if a <= b { Fixed::ONE.0 } else { 0 };
     stack.push_int32(result)?;
     Ok(())
 }
@@ -25,7 +25,7 @@ pub fn exec_less_eq_int32(stack: &mut Stack) -> Result<(), RuntimeError> {
 #[inline(always)]
 pub fn exec_eq_int32(stack: &mut Stack) -> Result<(), RuntimeError> {
     let (a, b) = stack.pop2()?;
-    let result = if a == b { FIXED_ONE } else { 0 };
+    let result = if a == b { Fixed::ONE.0 } else { 0 };
     stack.push_int32(result)?;
     Ok(())
 }
@@ -34,7 +34,7 @@ pub fn exec_eq_int32(stack: &mut Stack) -> Result<(), RuntimeError> {
 #[inline(always)]
 pub fn exec_not_eq_int32(stack: &mut Stack) -> Result<(), RuntimeError> {
     let (a, b) = stack.pop2()?;
-    let result = if a != b { FIXED_ONE } else { 0 };
+    let result = if a != b { Fixed::ONE.0 } else { 0 };
     stack.push_int32(result)?;
     Ok(())
 }
@@ -49,7 +49,7 @@ mod tests {
         stack.push_int32(5).unwrap();
         stack.push_int32(5).unwrap();
         exec_greater_eq_int32(&mut stack).unwrap();
-        assert_eq!(stack.pop_int32().unwrap(), FIXED_ONE);
+        assert_eq!(stack.pop_int32().unwrap(), Fixed::ONE.0);
     }
 
     #[test]
@@ -58,7 +58,7 @@ mod tests {
         stack.push_int32(3).unwrap();
         stack.push_int32(5).unwrap();
         exec_less_eq_int32(&mut stack).unwrap();
-        assert_eq!(stack.pop_int32().unwrap(), FIXED_ONE);
+        assert_eq!(stack.pop_int32().unwrap(), Fixed::ONE.0);
     }
 
     #[test]
@@ -67,7 +67,7 @@ mod tests {
         stack.push_int32(5).unwrap();
         stack.push_int32(5).unwrap();
         exec_eq_int32(&mut stack).unwrap();
-        assert_eq!(stack.pop_int32().unwrap(), FIXED_ONE);
+        assert_eq!(stack.pop_int32().unwrap(), Fixed::ONE.0);
     }
 
     #[test]
@@ -76,8 +76,6 @@ mod tests {
         stack.push_int32(5).unwrap();
         stack.push_int32(3).unwrap();
         exec_not_eq_int32(&mut stack).unwrap();
-        assert_eq!(stack.pop_int32().unwrap(), FIXED_ONE);
+        assert_eq!(stack.pop_int32().unwrap(), Fixed::ONE.0);
     }
 }
-
-

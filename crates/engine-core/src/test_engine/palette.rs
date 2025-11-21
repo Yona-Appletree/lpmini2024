@@ -1,5 +1,5 @@
 /// Palette-based RGB conversion
-use lp_script::fixed::{Fixed, FIXED_ONE, FIXED_SHIFT};
+use lp_script::fixed::{Fixed, ToFixed};
 
 /// RGB color representation
 #[derive(Debug, Clone, Copy)]
@@ -65,30 +65,43 @@ impl Palette {
     #[inline(always)]
     pub fn get_color(&self, value: Fixed) -> Rgb {
         // Clamp value to 0..1 range
-        let clamped = value.0.clamp(0, FIXED_ONE);
+        let clamped: Fixed = value.clamp(Fixed::ZERO, Fixed::ONE);
 
         // Map to palette range [0, 15]
         // value * 15.0 in fixed-point
-        let scaled = ((clamped as i64 * 15) >> FIXED_SHIFT) as i32;
-        let index = if scaled > 14 { 14 } else { scaled as usize }; // Max index is 14 for interpolation
+        let scaled: Fixed = clamped * 15.to_fixed();
+        let scaled_i32 = scaled.to_i32();
+        let index = if scaled_i32 > 14 {
+            14
+        } else {
+            scaled_i32 as usize
+        }; // Max index is 14 for interpolation
 
-        // Get fractional part for interpolation (0..FIXED_ONE)
-        // frac = (value * 15) - floor(value * 15)
-        let frac_fixed = (clamped * 15) - (index as i32 * FIXED_ONE);
+        // Get fractional part for interpolation (0..Fixed::ONE)
+        // frac = scaled - floor(scaled)
+        let scaled_floor: Fixed = index.to_fixed();
+        let frac: Fixed = scaled - scaled_floor;
 
         // Interpolate between current and next color using fixed-point
         // result = c1 + (c2 - c1) * frac
         let c1 = &self.colors[index];
         let c2 = &self.colors[index + 1];
 
-        let r = c1.r as i32 + (((c2.r as i32 - c1.r as i32) * frac_fixed) >> FIXED_SHIFT);
-        let g = c1.g as i32 + (((c2.g as i32 - c1.g as i32) * frac_fixed) >> FIXED_SHIFT);
-        let b = c1.b as i32 + (((c2.b as i32 - c1.b as i32) * frac_fixed) >> FIXED_SHIFT);
+        let c1_r: Fixed = (c1.r as i32).to_fixed();
+        let c1_g: Fixed = (c1.g as i32).to_fixed();
+        let c1_b: Fixed = (c1.b as i32).to_fixed();
+        let c2_r: Fixed = (c2.r as i32).to_fixed();
+        let c2_g: Fixed = (c2.g as i32).to_fixed();
+        let c2_b: Fixed = (c2.b as i32).to_fixed();
+
+        let r: Fixed = c1_r + (c2_r - c1_r) * frac;
+        let g: Fixed = c1_g + (c2_g - c1_g) * frac;
+        let b: Fixed = c1_b + (c2_b - c1_b) * frac;
 
         Rgb {
-            r: r as u8,
-            g: g as u8,
-            b: b as u8,
+            r: r.to_i32().clamp(0, 255) as u8,
+            g: g.to_i32().clamp(0, 255) as u8,
+            b: b.to_i32().clamp(0, 255) as u8,
         }
     }
 }

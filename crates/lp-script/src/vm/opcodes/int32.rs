@@ -1,4 +1,4 @@
-use crate::fixed::FIXED_ONE;
+use crate::fixed::Fixed;
 /// Int32 arithmetic and bitwise operations
 use crate::vm::error::LpsVmError;
 use crate::vm::value_stack::ValueStack;
@@ -93,7 +93,7 @@ pub fn exec_max_int32(stack: &mut ValueStack) -> Result<(), LpsVmError> {
 #[inline(always)]
 pub fn exec_greater_int32(stack: &mut ValueStack) -> Result<(), LpsVmError> {
     let (a, b) = stack.pop2()?;
-    let result = if a > b { FIXED_ONE } else { 0 };
+    let result = if a > b { Fixed::ONE.0 } else { 0 };
     stack.push_int32(result)?;
     Ok(())
 }
@@ -102,7 +102,7 @@ pub fn exec_greater_int32(stack: &mut ValueStack) -> Result<(), LpsVmError> {
 #[inline(always)]
 pub fn exec_less_int32(stack: &mut ValueStack) -> Result<(), LpsVmError> {
     let (a, b) = stack.pop2()?;
-    let result = if a < b { FIXED_ONE } else { 0 };
+    let result = if a < b { Fixed::ONE.0 } else { 0 };
     stack.push_int32(result)?;
     Ok(())
 }
@@ -279,7 +279,7 @@ mod tests {
         stack.push_int32(5).unwrap();
         stack.push_int32(3).unwrap();
         exec_greater_int32(&mut stack).unwrap();
-        assert_eq!(stack.pop_int32().unwrap(), FIXED_ONE);
+        assert_eq!(stack.pop_int32().unwrap(), Fixed::ONE.0);
     }
 
     #[test]
@@ -288,7 +288,7 @@ mod tests {
         stack.push_int32(3).unwrap();
         stack.push_int32(5).unwrap();
         exec_less_int32(&mut stack).unwrap();
-        assert_eq!(stack.pop_int32().unwrap(), FIXED_ONE);
+        assert_eq!(stack.pop_int32().unwrap(), Fixed::ONE.0);
     }
 
     #[test]

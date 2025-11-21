@@ -1,4 +1,4 @@
-use crate::fixed::{Fixed, FIXED_ONE, FIXED_SHIFT};
+use crate::fixed::{Fixed, ToFixed};
 /// Load coordinate/builtin variable operations
 use crate::vm::error::LpsVmError;
 use crate::vm::value_stack::ValueStack;
@@ -38,71 +38,70 @@ pub fn exec_load(
         LoadSource::Time => time,
         LoadSource::TimeNorm => {
             // Wrap time to 0..1 range
-            Fixed((time.0 as i64).rem_euclid(FIXED_ONE as i64) as i32)
+            time % Fixed::ONE
         }
         LoadSource::CenterDist => {
             // Distance from center (0 at center, 1 at farthest corner)
-            let center_x = Fixed::from_i32(width as i32 / 2).0;
-            let center_y = Fixed::from_i32(height as i32 / 2).0;
-            let dx = x_int.0 - center_x;
-            let dy = y_int.0 - center_y;
+            let center_x: Fixed = Fixed::from_i32(width as i32 / 2);
+            let center_y: Fixed = Fixed::from_i32(height as i32 / 2);
+            let dx: Fixed = x_int - center_x;
+            let dy: Fixed = y_int - center_y;
 
             // Use Manhattan distance normalized by half-diagonal
-            let manhattan = (if dx < 0 { -dx } else { dx }) + (if dy < 0 { -dy } else { dy });
-            let max_manhattan = center_x + center_y;
-            if max_manhattan == 0 {
+            let manhattan: Fixed = dx.abs() + dy.abs();
+            let max_manhattan: Fixed = center_x + center_y;
+            if max_manhattan.is_zero() {
                 Fixed::ZERO
             } else {
-                Fixed(((manhattan as i64 * FIXED_ONE as i64) / max_manhattan as i64) as i32)
+                manhattan / max_manhattan
             }
         }
         LoadSource::CenterAngle => {
             // Angle from center in radians (-π to π, 0 = east/right)
             // Compatible with sin/cos which expect radians
-            let center_x = Fixed::from_i32(width as i32 / 2).0;
-            let center_y = Fixed::from_i32(height as i32 / 2).0;
-            let dx = x_int.0 - center_x;
-            let dy = y_int.0 - center_y;
+            let center_x: Fixed = Fixed::from_i32(width as i32 / 2);
+            let center_y: Fixed = Fixed::from_i32(height as i32 / 2);
+            let dx: Fixed = x_int - center_x;
+            let dy: Fixed = y_int - center_y;
 
             // atan2(dy, dx) in radians
-            if dx == 0 && dy == 0 {
+            if dx.is_zero() && dy.is_zero() {
                 Fixed::ZERO // Center has no angle
             } else {
                 // Approximate atan2 using octants (result in 0..1 range)
-                let abs_dx = if dx < 0 { -dx } else { dx };
-                let abs_dy = if dy < 0 { -dy } else { dy };
+                let abs_dx: Fixed = dx.abs();
+                let abs_dy: Fixed = dy.abs();
 
-                let angle = if abs_dx > abs_dy {
+                let angle: Fixed = if abs_dx > abs_dy {
                     // Closer to horizontal
-                    let ratio = ((abs_dy as i64) << FIXED_SHIFT) / (abs_dx as i64);
-                    (ratio as i32) >> 3 // Scale to ~0..0.125
-                } else if abs_dy > 0 {
+                    let ratio: Fixed = abs_dy / abs_dx;
+                    ratio / 8i32.to_fixed() // Scale to ~0..0.125
+                } else if !abs_dy.is_zero() {
                     // Closer to vertical
-                    let ratio = ((abs_dx as i64) << FIXED_SHIFT) / (abs_dy as i64);
-                    (FIXED_ONE >> 2) - ((ratio as i32) >> 3) // 0.25 - scaled ratio
+                    let ratio: Fixed = abs_dx / abs_dy;
+                    Fixed::HALF / 2i32.to_fixed() - ratio / 8i32.to_fixed() // 0.25 - scaled ratio
                 } else {
-                    0
+                    Fixed::ZERO
                 };
 
                 // Adjust based on quadrant to get normalized angle (0..1)
-                let normalized = if dx >= 0 && dy >= 0 {
+                let normalized: Fixed = if dx >= Fixed::ZERO && dy >= Fixed::ZERO {
                     // Q1: 0 to 0.25
                     angle
-                } else if dx < 0 && dy >= 0 {
+                } else if dx < Fixed::ZERO && dy >= Fixed::ZERO {
                     // Q2: 0.25 to 0.5
-                    (FIXED_ONE >> 1) - angle
-                } else if dx < 0 && dy < 0 {
+                    Fixed::HALF - angle
+                } else if dx < Fixed::ZERO && dy < Fixed::ZERO {
                     // Q3: 0.5 to 0.75
-                    (FIXED_ONE >> 1) + angle
+                    Fixed::HALF + angle
                 } else {
                     // Q4: 0.75 to 1.0
-                    FIXED_ONE - angle
+                    Fixed::ONE - angle
                 };
 
                 // Convert normalized (0..1) to radians (0..2π)
                 // Then shift to -π..π range to match atan2 convention
-                let radians =
-                    Fixed(((normalized as i64 * Fixed::TAU.0 as i64) >> FIXED_SHIFT) as i32);
+                let radians: Fixed = normalized * Fixed::TAU;
                 radians - Fixed::PI // Convert 0..2π to -π..π
             }
         }

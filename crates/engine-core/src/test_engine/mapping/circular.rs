@@ -1,5 +1,5 @@
 use lp_script::fixed::trig::{cos, sin};
-use lp_script::fixed::{Fixed, FIXED_ONE, FIXED_SHIFT};
+use lp_script::fixed::{Fixed, ToFixed};
 
 /// Circular panel LED mappings (concentric rings)
 use super::{LedMap, LedMapping};
@@ -28,18 +28,18 @@ impl LedMapping {
         let num_rings = ring_counts.len() + 1; // +1 for center LED
 
         // Convert to fixed-point
-        let center_x_fixed = (center_x_px as i32) << FIXED_SHIFT;
-        let center_y_fixed = (center_y_px as i32) << FIXED_SHIFT;
-        let max_radius_fixed = (max_radius_px as i32) << FIXED_SHIFT;
+        let center_x: Fixed = center_x_px.to_fixed();
+        let center_y: Fixed = center_y_px.to_fixed();
+        let max_radius: Fixed = max_radius_px.to_fixed();
 
         // Ring 0: Center LED (1 LED at center)
-        maps[led_idx] = LedMap::new_fixed(center_x_fixed, center_y_fixed);
+        maps[led_idx] = LedMap::new_fixed(center_x, center_y);
         led_idx += 1;
 
         // Outer rings
         for (ring_idx, &led_count) in ring_counts.iter().enumerate() {
             // Calculate radius for this ring in fixed-point
-            let radius_fixed = (max_radius_fixed * (ring_idx + 1) as i32) / (num_rings - 1) as i32;
+            let radius: Fixed = max_radius * (ring_idx + 1).to_fixed() / (num_rings - 1).to_fixed();
 
             for i in 0..led_count {
                 if led_idx >= 128 {
@@ -49,23 +49,22 @@ impl LedMapping {
                 // Angle in radians (0..2π for full circle)
                 // i / led_count gives position around circle (0..1)
                 // Multiply by TAU (2π) to convert to radians
-                let normalized_angle = (i as i32 * FIXED_ONE) / led_count as i32;
-                let angle_radians =
-                    Fixed(((normalized_angle as i64 * Fixed::TAU.0 as i64) >> FIXED_SHIFT) as i32);
+                let normalized_angle: Fixed = i.to_fixed() / led_count.to_fixed();
+                let angle_radians: Fixed = normalized_angle * Fixed::TAU;
 
                 // Use fixed-point sin/cos (they expect radians, return -1..1 in Fixed)
-                let cos_val = cos(angle_radians).0;
-                let sin_val = sin(angle_radians).0;
+                let cos_val: Fixed = cos(angle_radians);
+                let sin_val: Fixed = sin(angle_radians);
 
                 // sin/cos already return -1..1, use directly
                 // x = center_x + radius * cos, y = center_y + radius * sin
-                let x_offset = ((radius_fixed as i64 * cos_val as i64) >> FIXED_SHIFT) as i32;
-                let y_offset = ((radius_fixed as i64 * sin_val as i64) >> FIXED_SHIFT) as i32;
+                let x_offset: Fixed = radius * cos_val;
+                let y_offset: Fixed = radius * sin_val;
 
-                let x_fixed = center_x_fixed + x_offset;
-                let y_fixed = center_y_fixed + y_offset;
+                let x: Fixed = center_x + x_offset;
+                let y: Fixed = center_y + y_offset;
 
-                maps[led_idx] = LedMap::new_fixed(x_fixed, y_fixed);
+                maps[led_idx] = LedMap::new_fixed(x, y);
 
                 led_idx += 1;
             }

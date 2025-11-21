@@ -1,5 +1,5 @@
 /// RGB packing/unpacking utilities for 32-bit buffers
-use lp_script::fixed::{Fixed, FIXED_ONE};
+use lp_script::fixed::{Fixed, ToFixed};
 
 /// Pack RGB into 0x00RRGGBB format
 #[inline(always)]
@@ -31,11 +31,11 @@ pub fn i32_to_grey(val: i32) -> Fixed {
 /// Convert greyscale fixed-point to RGB (grey, grey, grey) packed as i32
 #[inline(always)]
 pub fn grey_to_rgb_i32(grey: Fixed) -> i32 {
-    let clamped = grey.0.clamp(0, FIXED_ONE);
-    // Convert to 0-255 range: (clamped * 255) / FIXED_ONE
-    // Use i64 to avoid overflow
-    let byte_val = ((clamped as i64 * 255) / FIXED_ONE as i64) as u8;
-    pack_rgb(byte_val, byte_val, byte_val)
+    let clamped: Fixed = grey.clamp(Fixed::ZERO, Fixed::ONE);
+    // Convert to 0-255 range: clamped * 255
+    let byte_val: Fixed = clamped * 255i32.to_fixed();
+    let byte_val_u8 = byte_val.to_i32().clamp(0, 255) as u8;
+    pack_rgb(byte_val_u8, byte_val_u8, byte_val_u8)
 }
 
 #[cfg(all(test, not(feature = "use-libm")))]

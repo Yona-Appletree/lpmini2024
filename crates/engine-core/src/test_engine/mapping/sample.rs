@@ -1,5 +1,5 @@
 /// Image sampling with bilinear interpolation
-use lp_script::fixed::{Fixed, FIXED_SHIFT};
+use lp_script::fixed::{Fixed, ToFixed};
 
 /// Bilinear interpolation of a single channel
 ///
@@ -8,8 +8,8 @@ use lp_script::fixed::{Fixed, FIXED_SHIFT};
 /// * `c10` - Top-right pixel value
 /// * `c01` - Bottom-left pixel value
 /// * `c11` - Bottom-right pixel value
-/// * `x_frac` - Horizontal fraction (0..FIXED_ONE)
-/// * `y_frac` - Vertical fraction (0..FIXED_ONE)
+/// * `x_frac` - Horizontal fraction (0..Fixed::ONE)
+/// * `y_frac` - Vertical fraction (0..Fixed::ONE)
 ///
 /// # Returns
 /// Interpolated value (0..255)
@@ -21,21 +21,22 @@ pub fn bilinear_interp_channel(
     x_frac: Fixed,
     y_frac: Fixed,
 ) -> u8 {
-    let c00 = c00 as i64;
-    let c10 = c10 as i64;
-    let c01 = c01 as i64;
-    let c11 = c11 as i64;
-    let x_frac = x_frac.0 as i64;
-    let y_frac = y_frac.0 as i64;
+    // Convert u8 values to Fixed for interpolation
+    let c00_fixed: Fixed = (c00 as i32).to_fixed();
+    let c10_fixed: Fixed = (c10 as i32).to_fixed();
+    let c01_fixed: Fixed = (c01 as i32).to_fixed();
+    let c11_fixed: Fixed = (c11 as i32).to_fixed();
 
     // Lerp in x direction
-    let top = c00 + (((c10 - c00) * x_frac) >> FIXED_SHIFT);
-    let bottom = c01 + (((c11 - c01) * x_frac) >> FIXED_SHIFT);
+    let top: Fixed = c00_fixed + (c10_fixed - c00_fixed) * x_frac;
+    let bottom: Fixed = c01_fixed + (c11_fixed - c01_fixed) * x_frac;
 
     // Lerp in y direction
-    let result = top + (((bottom - top) * y_frac) >> FIXED_SHIFT);
+    let result: Fixed = top + (bottom - top) * y_frac;
 
-    result.clamp(0, 255) as u8
+    // Clamp and convert to u8
+    let clamped = result.max(Fixed::ZERO).min(255i32.to_fixed());
+    clamped.to_i32().clamp(0, 255) as u8
 }
 
 /// Bilinear interpolation of an RGB pixel
@@ -45,8 +46,8 @@ pub fn bilinear_interp_channel(
 /// * `rgb10` - Top-right pixel [r, g, b]
 /// * `rgb01` - Bottom-left pixel [r, g, b]
 /// * `rgb11` - Bottom-right pixel [r, g, b]
-/// * `x_frac` - Horizontal fraction (0..FIXED_ONE)
-/// * `y_frac` - Vertical fraction (0..FIXED_ONE)
+/// * `x_frac` - Horizontal fraction (0..Fixed::ONE)
+/// * `y_frac` - Vertical fraction (0..Fixed::ONE)
 ///
 /// # Returns
 /// Interpolated RGB pixel [r, g, b]

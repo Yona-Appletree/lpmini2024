@@ -23,9 +23,9 @@ impl LedMap {
         }
     }
 
-    pub fn new_fixed(x: i32, y: i32) -> Self {
+    pub fn new_fixed(x: Fixed, y: Fixed) -> Self {
         LedMap {
-            pos: Vec2::new(Fixed(x), Fixed(y)),
+            pos: Vec2::new(x, y),
         }
     }
 }

@@ -66,11 +66,6 @@ pub use vec4::Vec4;
 // Re-export fixed utilities
 pub use crate::fixed::advanced::{atan, atan2, fract, modulo, pow, sqrt};
 
-// Legacy compatibility - maintain old function names
-// Re-export for backwards compatibility
-pub const FIXED_ONE: i32 = Fixed::ONE.0;
-pub const FIXED_SHIFT: i32 = Fixed::SHIFT;
-
 #[deprecated(note = "Use Fixed operators instead")]
 #[inline(always)]
 pub fn fixed_mul(a: i32, b: i32) -> i32 {

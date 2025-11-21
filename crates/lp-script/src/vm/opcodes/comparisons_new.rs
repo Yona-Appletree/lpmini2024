@@ -1,15 +1,15 @@
+use crate::math::Fixed;
 /// Comparison opcodes for Fixed-point values
 ///
-/// These return FIXED_ONE (1.0) for true, 0 for false to match GLSL semantics
+/// These return Fixed::ONE.0 (1.0) for true, 0 for false to match GLSL semantics
 use crate::vm::error::RuntimeError;
 use crate::vm::vm_stack::Stack;
-use crate::math::{Fixed, FIXED_ONE};
 
 /// Execute GreaterFixed: pop b, a; push (a > b ? 1.0 : 0.0)
 #[inline(always)]
 pub fn exec_greater_fixed(stack: &mut Stack) -> Result<(), RuntimeError> {
     let (a, b) = stack.pop2()?;
-    let result = if Fixed(a) > Fixed(b) { FIXED_ONE } else { 0 };
+    let result = if Fixed(a) > Fixed(b) { Fixed::ONE.0 } else { 0 };
     stack.push_int32(result)?;
     Ok(())
 }
@@ -18,7 +18,7 @@ pub fn exec_greater_fixed(stack: &mut Stack) -> Result<(), RuntimeError> {
 #[inline(always)]
 pub fn exec_less_fixed(stack: &mut Stack) -> Result<(), RuntimeError> {
     let (a, b) = stack.pop2()?;
-    let result = if Fixed(a) < Fixed(b) { FIXED_ONE } else { 0 };
+    let result = if Fixed(a) < Fixed(b) { Fixed::ONE.0 } else { 0 };
     stack.push_int32(result)?;
     Ok(())
 }
@@ -27,7 +27,11 @@ pub fn exec_less_fixed(stack: &mut Stack) -> Result<(), RuntimeError> {
 #[inline(always)]
 pub fn exec_greater_eq_fixed(stack: &mut Stack) -> Result<(), RuntimeError> {
     let (a, b) = stack.pop2()?;
-    let result = if Fixed(a) >= Fixed(b) { FIXED_ONE } else { 0 };
+    let result = if Fixed(a) >= Fixed(b) {
+        Fixed::ONE.0
+    } else {
+        0
+    };
     stack.push_int32(result)?;
     Ok(())
 }
@@ -36,7 +40,11 @@ pub fn exec_greater_eq_fixed(stack: &mut Stack) -> Result<(), RuntimeError> {
 #[inline(always)]
 pub fn exec_less_eq_fixed(stack: &mut Stack) -> Result<(), RuntimeError> {
     let (a, b) = stack.pop2()?;
-    let result = if Fixed(a) <= Fixed(b) { FIXED_ONE } else { 0 };
+    let result = if Fixed(a) <= Fixed(b) {
+        Fixed::ONE.0
+    } else {
+        0
+    };
     stack.push_int32(result)?;
     Ok(())
 }
@@ -45,7 +53,7 @@ pub fn exec_less_eq_fixed(stack: &mut Stack) -> Result<(), RuntimeError> {
 #[inline(always)]
 pub fn exec_eq_fixed(stack: &mut Stack) -> Result<(), RuntimeError> {
     let (a, b) = stack.pop2()?;
-    let result = if a == b { FIXED_ONE } else { 0 };
+    let result = if a == b { Fixed::ONE.0 } else { 0 };
     stack.push_int32(result)?;
     Ok(())
 }
@@ -54,7 +62,7 @@ pub fn exec_eq_fixed(stack: &mut Stack) -> Result<(), RuntimeError> {
 #[inline(always)]
 pub fn exec_not_eq_fixed(stack: &mut Stack) -> Result<(), RuntimeError> {
     let (a, b) = stack.pop2()?;
-    let result = if a != b { FIXED_ONE } else { 0 };
+    let result = if a != b { Fixed::ONE.0 } else { 0 };
     stack.push_int32(result)?;
     Ok(())
 }
@@ -70,7 +78,7 @@ mod tests {
         stack.push_fixed(5.0.to_fixed()).unwrap();
         stack.push_fixed(3.0.to_fixed()).unwrap();
         exec_greater_fixed(&mut stack).unwrap();
-        assert_eq!(stack.pop_int32().unwrap(), FIXED_ONE);
+        assert_eq!(stack.pop_int32().unwrap(), Fixed::ONE.0);
     }
 
     #[test]
@@ -79,7 +87,7 @@ mod tests {
         stack.push_fixed(3.0.to_fixed()).unwrap();
         stack.push_fixed(5.0.to_fixed()).unwrap();
         exec_less_fixed(&mut stack).unwrap();
-        assert_eq!(stack.pop_int32().unwrap(), FIXED_ONE);
+        assert_eq!(stack.pop_int32().unwrap(), Fixed::ONE.0);
     }
 
     #[test]
@@ -88,7 +96,7 @@ mod tests {
         stack.push_fixed(5.0.to_fixed()).unwrap();
         stack.push_fixed(5.0.to_fixed()).unwrap();
         exec_eq_fixed(&mut stack).unwrap();
-        assert_eq!(stack.pop_int32().unwrap(), FIXED_ONE);
+        assert_eq!(stack.pop_int32().unwrap(), Fixed::ONE.0);
     }
 
     #[test]
@@ -97,8 +105,6 @@ mod tests {
         stack.push_fixed(5.0.to_fixed()).unwrap();
         stack.push_fixed(3.0.to_fixed()).unwrap();
         exec_not_eq_fixed(&mut stack).unwrap();
-        assert_eq!(stack.pop_int32().unwrap(), FIXED_ONE);
+        assert_eq!(stack.pop_int32().unwrap(), Fixed::ONE.0);
     }
 }
-
-

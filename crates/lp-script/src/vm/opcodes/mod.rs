@@ -90,7 +90,7 @@ pub enum LpsOpCode {
     // Noise functions
     Perlin3(u8), // 3D Perlin noise, octaves embedded
 
-    // Fixed-point comparisons (return FIXED_ONE or 0)
+    // Fixed-point comparisons (return Fixed::ONE.0 or 0)
     GreaterFixed,
     LessFixed,
     GreaterEqFixed,
