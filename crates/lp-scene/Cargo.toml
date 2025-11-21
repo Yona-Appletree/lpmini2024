@@ -1,0 +1,25 @@
+[package]
+name = "lp-scene"
+version.workspace = true
+edition.workspace = true
+
+[lib]
+path = "src/lib.rs"
+
+[features]
+default = ["std"]
+std = ["lp-data/std", "lp-math/serde"]
+no_std = []
+
+[dependencies]
+lp-data = { path = "../lp-data", default-features = false, features = ["alloc", "derive"] }
+lp-data-derive = { path = "../lp-data-derive" }
+lp-script = { path = "../lp-script", default-features = false }
+lp-math = { path = "../lp-math", default-features = false }
+lp-alloc = { path = "../lp-alloc", default-features = false }
+serde = { version = "1", features = ["derive"], default-features = false }
+
+[dev-dependencies]
+lp-alloc = { path = "../lp-alloc", default-features = false, features = ["std"] }
+lp-data = { path = "../lp-data", default-features = false, features = ["alloc", "derive", "std"] }
+

@@ -821,13 +821,22 @@ fn get_field_shape_for_vec_element(
                         quote! { &#shape_const_name }
                     }
                 } else {
-                    // For external types, we need to call shape() at runtime
+                    // Multi-segment path - construct full path to shape constant
                     let type_ident = path.path.segments.last().unwrap();
                     let shape_const_name = format_ident!(
                         "__LP_VALUE_{}_SHAPE",
                         type_ident.ident.to_string().to_uppercase()
                     );
-                    quote! { &#shape_const_name }
+
+                    // Build the path to the shape constant by taking all segments except the last
+                    // and appending the shape constant name
+                    let mut shape_path = quote::quote! {};
+                    for (i, seg) in path.path.segments.iter().enumerate() {
+                        if i < path.path.segments.len() - 1 {
+                            shape_path = quote! { #shape_path #seg:: };
+                        }
+                    }
+                    quote! { &#shape_path #shape_const_name }
                 };
 
                 Ok(FieldShape {

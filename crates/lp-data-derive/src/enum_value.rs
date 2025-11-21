@@ -177,7 +177,8 @@ fn generate_enum_unit_shape_static(
             #(#variant_exprs),*
         ];
 
-        const #shape_const_ident: crate::kind::enum_unit::enum_static::EnumUnitShapeStatic = crate::kind::enum_unit::enum_static::EnumUnitShapeStatic {
+        // Make shape constant pub(crate) so it can be accessed from other modules in the same crate
+        pub(crate) const #shape_const_ident: crate::kind::enum_unit::enum_static::EnumUnitShapeStatic = crate::kind::enum_unit::enum_static::EnumUnitShapeStatic {
             meta: #enum_unit_meta,
             variants: #variants_const_ident,
         };

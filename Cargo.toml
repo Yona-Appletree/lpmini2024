@@ -10,6 +10,7 @@ members = [
     "crates/lp-script",
     "crates/lp-math",
     "crates/lp-alloc",
+    "crates/lp-scene",
     "tools/migrations/lp-pool-to-alloc",
 ]
 # Exclude fw-esp32c3 from default builds since it requires ESP32 target
