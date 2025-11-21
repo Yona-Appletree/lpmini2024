@@ -40,7 +40,7 @@
     "fix:prettier": "prettier --write .",
     "fix:syncpack-format": "syncpack format",
     "fix:syncpack-mismatches": "syncpack fix-mismatches",
-    "install-playwright": "pnpm --filter @lpmini/control exec playwright install --with-deps",
+    "install-playwright": "pnpm --filter @lpmini/lp-studio exec playwright install --with-deps",
     "prepare": "husky",
     "test:rust": "cargo test"
   }
