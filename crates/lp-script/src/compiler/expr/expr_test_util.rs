@@ -7,10 +7,7 @@ use alloc::vec::Vec;
 use alloc::{format, vec};
 
 use crate::compiler::ast::Expr;
-use crate::compiler::error::{
-    CodegenError, CodegenErrorKind, LexerError, LexerErrorKind, ParseError, ParseErrorKind,
-    TypeError, TypeErrorKind,
-};
+use crate::compiler::error::{CodegenErrorKind, TypeErrorKind};
 use crate::compiler::optimize::OptimizeOptions;
 use crate::compiler::test_ast::AstBuilder;
 use crate::compiler::{codegen, lexer, optimize, parser, typechecker};
@@ -56,8 +53,6 @@ enum TestResult {
 #[cfg(test)]
 #[derive(Debug)]
 enum ExpectedError {
-    Lexer(LexerErrorKind, Option<String>), // kind, optional message substring
-    Parser(ParseErrorKind, Option<String>),
     TypeCheck(TypeErrorKind, Option<String>),
     Codegen(CodegenErrorKind, Option<String>),
 }
@@ -228,50 +223,6 @@ impl ExprTest {
         self
     }
 
-    /// Expect a lexer error with the given kind
-    pub fn expect_lexer_error(mut self, kind: LexerErrorKind) -> Self {
-        self.expected_error = Some(ExpectedError::Lexer(kind, None));
-        self
-    }
-
-    /// Expect a lexer error with the given kind and message containing the substring
-    pub fn expect_lexer_error_with_message(
-        mut self,
-        kind: LexerErrorKind,
-        message_contains: &str,
-    ) -> Self {
-        self.expected_error = Some(ExpectedError::Lexer(
-            kind,
-            Some(String::from(message_contains)),
-        ));
-        self
-    }
-
-    /// Expect a parse error with the given kind
-    pub fn expect_parse_error(mut self, kind: ParseErrorKind) -> Self {
-        self.expected_error = Some(ExpectedError::Parser(kind, None));
-        self
-    }
-
-    /// Expect a parse error with the given kind and message containing the substring
-    pub fn expect_parse_error_with_message(
-        mut self,
-        kind: ParseErrorKind,
-        message_contains: &str,
-    ) -> Self {
-        self.expected_error = Some(ExpectedError::Parser(
-            kind,
-            Some(String::from(message_contains)),
-        ));
-        self
-    }
-
-    /// Expect a type check error with the given kind
-    pub fn expect_type_error(mut self, kind: TypeErrorKind) -> Self {
-        self.expected_error = Some(ExpectedError::TypeCheck(kind, None));
-        self
-    }
-
     /// Expect a type check error with the given kind and message containing the substring
     pub fn expect_type_error_with_message(
         mut self,
@@ -327,26 +278,10 @@ impl ExprTest {
         let mut errors = Vec::new();
 
         // Helper to check if an error matches the expected error
-        // For ParseError, TypeError, and CodegenError, we can compare kinds directly
+        // For TypeError and CodegenError, we can compare kinds directly
         // For message matching, we check if the error string contains the expected substring
         fn check_error_match(actual_error_str: &str, expected: &ExpectedError) -> bool {
             match expected {
-                ExpectedError::Lexer(_expected_kind, msg_opt) => {
-                    // Check message substring if provided
-                    if let Some(msg) = msg_opt {
-                        actual_error_str.contains(msg)
-                    } else {
-                        true // If no message specified, any lexer error matches
-                    }
-                }
-                ExpectedError::Parser(_expected_kind, msg_opt) => {
-                    // Check if error message contains expected substring
-                    if let Some(msg) = msg_opt {
-                        actual_error_str.contains(msg)
-                    } else {
-                        true
-                    }
-                }
                 ExpectedError::TypeCheck(_expected_kind, msg_opt) => {
                     if let Some(msg) = msg_opt {
                         actual_error_str.contains(msg)
@@ -367,38 +302,12 @@ impl ExprTest {
         let mut lexer = lexer::Lexer::new(&input);
         let tokens = lexer.tokenize();
 
-        // Check for lexer errors
-        if let Some(expected) = &expected_error {
-            if let ExpectedError::Lexer(..) = expected {
-                // Lexer errors would have been caught during tokenize
-                // For now, we'll check during parsing
-            }
-        }
-
         let mut parser = parser::Parser::new(tokens);
         let mut expr = match parser.parse() {
             Ok(expr) => expr,
             Err(e) => {
-                if let Some(expected) = &expected_error {
-                    if let ExpectedError::Parser(..) = expected {
-                        let error_str = format!("{}", e);
-                        if check_error_match(&error_str, expected) {
-                            return Ok(()); // Expected error occurred, test passes
-                        } else {
-                            return Err(format!(
-                                "Expected parse error but got different error: {}",
-                                e
-                            ));
-                        }
-                    } else {
-                        return Err(format!(
-                            "Unexpected parse error: {} (expected {:?})",
-                            e, expected
-                        ));
-                    }
-                } else {
-                    return Err(format!("Parse error: {}", e));
-                }
+                // Parse errors are unexpected - return them as test failures
+                return Err(format!("Parse error: {}", e));
             }
         };
 
@@ -1021,7 +930,7 @@ mod tests {
     #[test]
     fn test_expect_codegen_error_wrong_type() {
         // Test that wrong error types are rejected
-        use crate::compiler::error::{CodegenErrorKind, TypeErrorKind};
+        use crate::compiler::error::CodegenErrorKind;
         let result = ExprTest::new("undefined_var")
             .expect_codegen_error(CodegenErrorKind::UnsupportedFeature(String::new()))
             .run();

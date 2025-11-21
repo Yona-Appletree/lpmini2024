@@ -6,7 +6,7 @@ use alloc::string::String;
 use lp_alloc::init_test_allocator;
 
 use crate::compiler::ast::{Program, Stmt};
-use crate::compiler::error::{CodegenErrorKind, LexerErrorKind, ParseErrorKind, TypeErrorKind};
+use crate::compiler::error::{CodegenErrorKind, ParseErrorKind, TypeErrorKind};
 use crate::compiler::expr::expr_test_util::expr_eq_ignore_spans;
 use crate::compiler::func::FunctionMetadata;
 use crate::compiler::optimize::{self, OptimizeOptions};
@@ -22,8 +22,8 @@ type ProgramBuilder = Box<dyn FnOnce(&mut StmtBuilder) -> Program>;
 
 /// Expected error for test assertions
 #[derive(Debug)]
+#[allow(dead_code)] // Variants are used in match statements but may not be constructed if methods are unused
 enum ExpectedError {
-    Lexer(LexerErrorKind, Option<String>), // kind, optional message substring
     Parser(ParseErrorKind, Option<String>),
     TypeCheck(TypeErrorKind, Option<String>),
     Codegen(CodegenErrorKind, Option<String>),
@@ -170,63 +170,6 @@ impl ScriptTest {
         self
     }
 
-    /// Expect a parse error with the given kind
-    pub fn expect_parse_error(mut self, kind: ParseErrorKind) -> Self {
-        self.expected_error = Some(ExpectedError::Parser(kind, None));
-        self
-    }
-
-    /// Expect a parse error with the given kind and message containing the substring
-    pub fn expect_parse_error_with_message(
-        mut self,
-        kind: ParseErrorKind,
-        message_contains: &str,
-    ) -> Self {
-        self.expected_error = Some(ExpectedError::Parser(
-            kind,
-            Some(String::from(message_contains)),
-        ));
-        self
-    }
-
-    /// Expect a type check error with the given kind
-    pub fn expect_type_error(mut self, kind: TypeErrorKind) -> Self {
-        self.expected_error = Some(ExpectedError::TypeCheck(kind, None));
-        self
-    }
-
-    /// Expect a type check error with the given kind and message containing the substring
-    pub fn expect_type_error_with_message(
-        mut self,
-        kind: TypeErrorKind,
-        message_contains: &str,
-    ) -> Self {
-        self.expected_error = Some(ExpectedError::TypeCheck(
-            kind,
-            Some(String::from(message_contains)),
-        ));
-        self
-    }
-
-    /// Expect a codegen error with the given kind
-    pub fn expect_codegen_error(mut self, kind: CodegenErrorKind) -> Self {
-        self.expected_error = Some(ExpectedError::Codegen(kind, None));
-        self
-    }
-
-    /// Expect a codegen error with the given kind and message containing the substring
-    pub fn expect_codegen_error_with_message(
-        mut self,
-        kind: CodegenErrorKind,
-        message_contains: &str,
-    ) -> Self {
-        self.expected_error = Some(ExpectedError::Codegen(
-            kind,
-            Some(String::from(message_contains)),
-        ));
-        self
-    }
-
     fn check_metadata_assertion(
         metadata: &FunctionMetadata,
         assertion: &FunctionMetadataAssertion,
@@ -317,13 +260,6 @@ impl ScriptTest {
         // Helper to check if an error matches the expected error
         fn check_error_match(actual_error_str: &str, expected: &ExpectedError) -> bool {
             match expected {
-                ExpectedError::Lexer(_expected_kind, msg_opt) => {
-                    if let Some(msg) = msg_opt {
-                        actual_error_str.contains(msg)
-                    } else {
-                        true
-                    }
-                }
                 ExpectedError::Parser(_expected_kind, msg_opt) => {
                     if let Some(msg) = msg_opt {
                         actual_error_str.contains(msg)
