@@ -21,7 +21,7 @@ use esp_hal::rmt::Rmt;
 use esp_hal::time::Rate;
 use esp_hal::timer::systimer::SystemTimer;
 use fw_esp32c3::rmt_ws2811_driver;
-use lp_script::dec32::Dec32;
+use lp_gfx::lp_script::dec32::Dec32;
 use panic_rtt_target as _;
 
 // This creates a default app-descriptor required by the esp-idf bootloader.

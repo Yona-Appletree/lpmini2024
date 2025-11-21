@@ -1,5 +1,5 @@
 /// 2D to 1D LED mapping system
-use lp_script::dec32::{Dec32, Vec2};
+use lp_gfx::lp_script::dec32::{Dec32, Vec2};
 
 mod circular;
 pub mod config;

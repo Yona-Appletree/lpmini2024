@@ -1,5 +1,5 @@
 /// Palette-based RGB conversion
-use lp_script::dec32::{Dec32, ToDec32};
+use lp_gfx::lp_script::dec32::{Dec32, ToDec32};
 
 /// RGB color representation
 #[derive(Debug, Clone, Copy)]
@@ -127,7 +127,7 @@ pub fn rgb_buffer_from_greyscale(greyscale: &[Dec32], rgb_buffer: &mut [u8], pal
 
 #[cfg(test)]
 mod tests {
-    use lp_script::dec32::ToDec32;
+    use lp_gfx::lp_script::dec32::ToDec32;
 
     use super::*;
 

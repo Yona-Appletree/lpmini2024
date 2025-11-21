@@ -4,7 +4,7 @@ use std::time::Instant;
 use engine_core::test_engine::demo_program::create_demo_scene;
 use engine_core::test_engine::scene::SceneRuntime;
 use engine_core::test_engine::RuntimeOptions;
-use lp_script::dec32::ToDec32;
+use lp_gfx::lp_script::dec32::ToDec32;
 
 const FRAME_COUNT: u32 = 1000;
 

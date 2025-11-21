@@ -1,0 +1,18 @@
+[package]
+name = "lp-gfx"
+version = "0.1.0"
+edition = "2021"
+
+[features]
+default = ["std"]
+std = ["lp-alloc/std", "lp-math/serde"]
+use-libm = []
+
+[dependencies]
+# Math for no_std
+libm = { version = "0.2" }
+lp-math = { path = "../lp-math", default-features = false }
+lp-alloc = { path = "../lp-alloc", default-features = false }
+
+[dev-dependencies]
+lp-alloc = { path = "../lp-alloc", default-features = false, features = ["std"] }

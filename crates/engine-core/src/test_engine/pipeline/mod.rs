@@ -2,8 +2,8 @@
 extern crate alloc;
 use alloc::vec::Vec;
 
-use lp_script::dec32::Dec32;
-use lp_script::LpsProgram;
+use lp_gfx::lp_script::dec32::Dec32;
+use lp_gfx::lp_script::LpsProgram;
 
 use super::palette::Palette;
 use super::power_limit::PowerLimitConfig;
@@ -97,8 +97,8 @@ pub enum PipelineError {
         step_idx: usize,
     },
     TypeMismatch {
-        expected: crate::lp_script::shared::Type,
-        actual: crate::lp_script::shared::Type,
+        expected: lp_gfx::lp_script::Type,
+        actual: lp_gfx::lp_script::Type,
         context: alloc::string::String,
     },
     InvalidProgram(alloc::string::String),

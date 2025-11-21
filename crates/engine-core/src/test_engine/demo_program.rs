@@ -1,7 +1,7 @@
 extern crate alloc;
 use alloc::vec;
 
-use lp_script::{parse_expr, parse_script};
+use lp_gfx::lp_script::{parse_expr, parse_script};
 
 use crate::test_engine::scene::SceneConfig;
 use crate::test_engine::{
@@ -97,7 +97,7 @@ pub fn run_demo_with_profiling(
     extern crate std;
     use std::time::Instant;
 
-    use lp_script::dec32::ToDec32;
+    use lp_gfx::lp_script::dec32::ToDec32;
     use pprof::ProfilerGuard;
 
     use crate::test_engine::scene::SceneRuntime;
@@ -192,14 +192,14 @@ pub fn run_demo_with_profiling(
 
 #[cfg(test)]
 mod tests {
-    use lp_script::dec32::Dec32;
+    use lp_gfx::lp_script::dec32::Dec32;
 
     use super::*;
 
     #[test]
     fn test_simple_white() {
         // First test: just output white for everything
-        use lp_script::vm::execute_program_lps;
+        use lp_gfx::lp_script::execute_program_lps;
         let mut output = vec![Dec32::ZERO; 16 * 16];
 
         let program = parse_expr("1.0");
@@ -218,7 +218,7 @@ mod tests {
     #[test]
     fn test_yint_load() {
         // Test that YInt loads correctly
-        use lp_script::vm::execute_program_lps;
+        use lp_gfx::lp_script::execute_program_lps;
         let mut output = vec![Dec32::ZERO; 16 * 16];
 
         let program = parse_expr("coord.y");
@@ -245,7 +245,7 @@ mod tests {
     #[test]
     fn test_normalized_center_line() {
         // Test the normalized Y coordinate approach
-        use lp_script::vm::execute_program_lps;
+        use lp_gfx::lp_script::execute_program_lps;
 
         // Test with 16x16 - center should be between row 7 and 8
         let mut output = vec![Dec32::ZERO; 16 * 16];

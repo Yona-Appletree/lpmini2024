@@ -3,7 +3,7 @@ use std::fs;
 use std::io::{self, Read};
 
 use lp_debug::lpa_format::program_to_lpa;
-use lp_script::compile_script;
+use lp_gfx::lp_script::compile_script;
 
 fn main() {
     let args: Vec<String> = std::env::args().collect();

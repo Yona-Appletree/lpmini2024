@@ -91,7 +91,7 @@ smart-leds-trait = "0.3.1"
 
 # Engine core with test scene
 engine-core = { path = "../../crates/engine-core", default-features = false, features = ["use-libm"] }
-lp-script = { path = "../../crates/lp-script", default-features = false, features = ["use-libm"] }
+lp-gfx = { path = "../../crates/lp-gfx", default-features = false, features = ["use-libm"] }
 
 [dev-dependencies]
 embedded-test = { version = "0.6.0", features = [

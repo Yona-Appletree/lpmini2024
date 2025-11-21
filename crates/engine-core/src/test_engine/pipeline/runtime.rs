@@ -2,7 +2,7 @@
 extern crate alloc;
 use alloc::vec::Vec;
 
-use lp_script::dec32::Dec32;
+use lp_gfx::lp_script::dec32::Dec32;
 
 use super::super::palette::Palette;
 use super::config::FxPipelineConfig;
@@ -77,7 +77,7 @@ impl FxPipeline {
     /// Execute an expression step with type validation
     fn execute_expr_step(
         &mut self,
-        program: &crate::lp_script::LpsProgram,
+        program: &lp_gfx::lp_script::LpsProgram,
         output: &BufferRef,
         _params: &[BufferRef], // TODO: implement param buffer support
         time: Dec32,

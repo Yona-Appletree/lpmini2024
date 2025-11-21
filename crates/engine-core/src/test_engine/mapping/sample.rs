@@ -1,5 +1,5 @@
 /// Image sampling with bilinear interpolation
-use lp_script::dec32::{Dec32, ToDec32};
+use lp_gfx::lp_script::dec32::{Dec32, ToDec32};
 
 /// Bilinear interpolation of a single channel
 ///
@@ -122,7 +122,7 @@ pub fn sample_rgb_bilinear(
 
 #[cfg(all(test, not(feature = "use-libm")))]
 mod tests {
-    use lp_script::dec32::ToDec32;
+    use lp_gfx::lp_script::dec32::ToDec32;
 
     use super::*;
 

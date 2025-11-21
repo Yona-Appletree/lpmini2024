@@ -2,8 +2,8 @@
 #[cfg(test)]
 #[allow(clippy::module_inception)]
 mod pipeline_tests {
-    use lp_script::dec32::Dec32;
-    use lp_script::parse_expr;
+    use lp_gfx::lp_script::dec32::Dec32;
+    use lp_gfx::lp_script::parse_expr;
 
     use crate::test_engine::{
         BufferFormat, BufferRef, FxPipeline, FxPipelineConfig, Palette, PipelineStep,

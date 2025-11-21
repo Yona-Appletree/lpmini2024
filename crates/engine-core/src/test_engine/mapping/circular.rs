@@ -1,5 +1,5 @@
-use lp_script::dec32::trig::{cos, sin};
-use lp_script::dec32::{Dec32, ToDec32};
+use lp_gfx::lp_script::dec32::trig::{cos, sin};
+use lp_gfx::lp_script::dec32::{Dec32, ToDec32};
 
 /// Circular panel LED mappings (concentric rings)
 use super::{LedMap, LedMapping};

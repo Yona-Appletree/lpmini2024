@@ -1,5 +1,5 @@
 /// RGB packing/unpacking utilities for 32-bit buffers
-use lp_script::dec32::{Dec32, ToDec32};
+use lp_gfx::lp_script::dec32::{Dec32, ToDec32};
 
 /// Pack RGB into 0x00RRGGBB format
 #[inline(always)]
@@ -40,7 +40,7 @@ pub fn grey_to_rgb_i32(grey: Dec32) -> i32 {
 
 #[cfg(all(test, not(feature = "use-libm")))]
 mod tests {
-    use lp_script::dec32::ToDec32;
+    use lp_gfx::lp_script::dec32::ToDec32;
 
     use super::*;
 

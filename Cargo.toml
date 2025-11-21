@@ -7,7 +7,7 @@ members = [
     "apps/lp-debug",
     "crates/lp-data",
     "crates/lp-data-derive",
-    "crates/lp-script",
+    "crates/lp-gfx",
     "crates/lp-math",
     "crates/lp-alloc",
     "crates/lp-scene",
@@ -20,7 +20,7 @@ default-members = [
     "apps/lp-schema-gen",
     "crates/engine-core",
     "apps/lp-debug",
-    "crates/lp-script",
+    "crates/lp-gfx",
     "crates/lp-data",
 ]
 resolver = "2"

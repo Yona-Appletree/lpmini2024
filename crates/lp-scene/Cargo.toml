@@ -14,7 +14,7 @@ no_std = []
 [dependencies]
 lp-data = { path = "../lp-data", default-features = false, features = ["alloc", "derive"] }
 lp-data-derive = { path = "../lp-data-derive" }
-lp-script = { path = "../lp-script", default-features = false }
+lp-gfx = { path = "../lp-gfx", default-features = false }
 lp-math = { path = "../lp-math", default-features = false }
 lp-alloc = { path = "../lp-alloc", default-features = false }
 serde = { version = "1", features = ["derive"], default-features = false }

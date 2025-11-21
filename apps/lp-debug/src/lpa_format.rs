@@ -3,9 +3,8 @@ extern crate alloc;
 use alloc::format;
 use alloc::string::String;
 
-use lp_script::shared::Type;
-use lp_script::vm::opcodes::LpsOpCode;
-use lp_script::vm::{FunctionDef, LpsProgram};
+use lp_gfx::lp_script::vm::{FunctionDef, LpsProgram};
+use lp_gfx::lp_script::{LpsOpCode, Type};
 
 /// Convert a compiled program to LPA assembly format
 pub fn program_to_lpa(program: &LpsProgram) -> String {
@@ -72,7 +71,7 @@ fn function_to_lpa(func: &FunctionDef, _func_idx: usize, program: &LpsProgram) -
 
 /// Convert opcode to pretty assembly string
 fn opcode_to_pretty_string(opcode: &LpsOpCode, func: &FunctionDef, program: &LpsProgram) -> String {
-    use lp_script::vm::opcodes::LoadSource;
+    use lp_gfx::lp_script::vm::opcodes::load::LoadSource;
 
     match opcode {
         LpsOpCode::Push(value) => format!("push {}", value.to_f32()),
@@ -218,7 +217,7 @@ fn type_to_string(ty: &Type) -> &'static str {
 
 #[cfg(test)]
 mod tests {
-    use lp_script::{parse_expr, parse_script};
+    use lp_gfx::lp_script::{parse_expr, parse_script};
 
     use super::*;
 
