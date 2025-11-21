@@ -10,6 +10,7 @@ use std::string::String;
 use lp_data::kind::record::record_value::RecordValue;
 use lp_data::kind::value::LpValueRef;
 use lp_data::RuntimeError;
+use lp_math::fixed::Fixed;
 
 use crate::node::{LpNode, NodeContext};
 use crate::nodes::LfoNode;
@@ -66,6 +67,9 @@ pub struct LpScene {
 
     /// Current frame counter.
     frame_counter: u64,
+
+    /// Last frame time in milliseconds, used to calculate delta time.
+    last_frame_time_ms: Option<i64>,
 }
 
 impl LpScene {
@@ -81,6 +85,7 @@ impl LpScene {
         Ok(Self {
             nodes,
             frame_counter: 0,
+            last_frame_time_ms: None,
         })
     }
 
@@ -91,18 +96,37 @@ impl LpScene {
     pub fn update_frame(&mut self, frame_time_ms: i64) -> Result<(), RuntimeError> {
         self.frame_counter += 1;
 
+        // Calculate delta time
+        let delta_ms = if let Some(last_time) = self.last_frame_time_ms {
+            Fixed::from_f32((frame_time_ms - last_time) as f32)
+        } else {
+            // First frame: use zero delta
+            Fixed::ZERO
+        };
+
+        // Update last frame time
+        self.last_frame_time_ms = Some(frame_time_ms);
+
         // Create context that doesn't hold a reference to self
         struct SimpleContext {
             frame_time_ms: i64,
+            delta_ms: Fixed,
         }
 
         impl NodeContext for SimpleContext {
             fn frame_time_ms(&self) -> i64 {
                 self.frame_time_ms
             }
+
+            fn delta_ms(&self) -> Fixed {
+                self.delta_ms
+            }
         }
 
-        let context = SimpleContext { frame_time_ms };
+        let context = SimpleContext {
+            frame_time_ms,
+            delta_ms,
+        };
 
         // Update all nodes
         for node in self.nodes.values_mut() {

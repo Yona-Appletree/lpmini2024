@@ -14,6 +14,11 @@ pub trait NodeContext {
     /// Get the current frame time in milliseconds.
     fn frame_time_ms(&self) -> i64;
 
+    /// Get the time elapsed since the last frame in milliseconds (delta time).
+    ///
+    /// Returns a Fixed-point value to allow sub-millisecond precision.
+    fn delta_ms(&self) -> lp_math::fixed::Fixed;
+
     /// Get the output of another node by ID (for future input resolution).
     ///
     /// Returns None if the node doesn't exist or hasn't been computed yet.

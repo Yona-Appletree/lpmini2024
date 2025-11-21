@@ -93,6 +93,10 @@ mod tests {
             fn frame_time_ms(&self) -> i64 {
                 self.time_ms
             }
+
+            fn delta_ms(&self) -> Fixed {
+                Fixed::ZERO
+            }
         }
 
         // Spot check: at time 0, sine is 0 (in [-1,1] range), which maps to 0.5 in [0,1] range
@@ -140,6 +144,10 @@ mod tests {
         impl NodeContext for TestContext {
             fn frame_time_ms(&self) -> i64 {
                 self.time_ms
+            }
+
+            fn delta_ms(&self) -> Fixed {
+                Fixed::ZERO
             }
         }
 
