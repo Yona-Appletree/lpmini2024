@@ -4,7 +4,9 @@ version = "0.1.0"
 edition = "2021"
 
 [features]
-default = ["std"]
+default = ["std", "cpu"]
+cpu = []
+gpu = ["dep:miniquad"]
 std = ["lp-alloc/std", "lp-math/serde"]
 use-libm = []
 
@@ -13,6 +15,8 @@ use-libm = []
 libm = { version = "0.2" }
 lp-math = { path = "../lp-math", default-features = false }
 lp-alloc = { path = "../lp-alloc", default-features = false }
+# GPU support (optional, feature-gated)
+miniquad = { version = "0.4", optional = true }
 
 [dev-dependencies]
 lp-alloc = { path = "../lp-alloc", default-features = false, features = ["std"] }

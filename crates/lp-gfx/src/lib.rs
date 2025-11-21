@@ -72,3 +72,18 @@ extern crate alloc;
 /// let program = compile_expr_with_options("x * 1.0", &options).unwrap();
 /// ```
 pub mod lp_script;
+
+// Graphics module
+pub mod gfx;
+
+// Re-exports
+pub use gfx::gfx_context::GfxContext;
+pub use gfx::gfx_error::GfxError;
+pub use gfx::shader_ref::ShaderRef;
+pub use gfx::texture_format::TextureFormat;
+pub use gfx::texture_ref::TexRef;
+// Re-export contexts
+#[cfg(feature = "cpu")]
+pub use gfx::CpuContext;
+#[cfg(feature = "gpu")]
+pub use gfx::GpuContext;
