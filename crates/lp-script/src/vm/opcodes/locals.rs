@@ -1,30 +1,30 @@
-use crate::fixed::Fixed;
+use crate::dec32::Dec32;
 /// Local variable operations (updated for optimized storage)
 use crate::vm::error::LpsVmError;
 use crate::vm::local_stack::LocalStack;
 use crate::vm::value_stack::ValueStack;
 
-/// Execute LoadLocalFixed: pop nothing; push local[idx]
+/// Execute LoadLocalDec32: pop nothing; push local[idx]
 #[inline(always)]
-pub fn exec_load_local_fixed(
+pub fn exec_load_local_dec32(
     stack: &mut ValueStack,
     locals: &LocalStack,
     idx: usize,
 ) -> Result<(), LpsVmError> {
-    let val = locals.get_fixed(idx)?;
-    stack.push_fixed(val)?;
+    let val = locals.get_dec32(idx)?;
+    stack.push_dec32(val)?;
     Ok(())
 }
 
-/// Execute StoreLocalFixed: pop value; store to local[idx]
+/// Execute StoreLocalDec32: pop value; store to local[idx]
 #[inline(always)]
-pub fn exec_store_local_fixed(
+pub fn exec_store_local_dec32(
     stack: &mut ValueStack,
     locals: &mut LocalStack,
     idx: usize,
 ) -> Result<(), LpsVmError> {
-    let val = stack.pop_fixed()?;
-    locals.set_fixed(idx, val)?;
+    let val = stack.pop_dec32()?;
+    locals.set_dec32(idx, val)?;
     Ok(())
 }
 
@@ -52,7 +52,7 @@ pub fn exec_store_local_int32(
     Ok(())
 }
 
-/// Execute LoadLocalVec2: pop nothing; push local[idx] as 2 Fixed
+/// Execute LoadLocalVec2: pop nothing; push local[idx] as 2 Dec32
 #[inline(always)]
 pub fn exec_load_local_vec2(
     stack: &mut ValueStack,
@@ -64,7 +64,7 @@ pub fn exec_load_local_vec2(
     Ok(())
 }
 
-/// Execute StoreLocalVec2: pop 2 Fixed; store to local[idx]
+/// Execute StoreLocalVec2: pop 2 Dec32; store to local[idx]
 #[inline(always)]
 pub fn exec_store_local_vec2(
     stack: &mut ValueStack,
@@ -72,11 +72,11 @@ pub fn exec_store_local_vec2(
     idx: usize,
 ) -> Result<(), LpsVmError> {
     let (x, y) = stack.pop2()?;
-    locals.set_vec2(idx, Fixed(x), Fixed(y))?;
+    locals.set_vec2(idx, Dec32(x), Dec32(y))?;
     Ok(())
 }
 
-/// Execute LoadLocalVec3: pop nothing; push local[idx] as 3 Fixed
+/// Execute LoadLocalVec3: pop nothing; push local[idx] as 3 Dec32
 #[inline(always)]
 pub fn exec_load_local_vec3(
     stack: &mut ValueStack,
@@ -88,7 +88,7 @@ pub fn exec_load_local_vec3(
     Ok(())
 }
 
-/// Execute StoreLocalVec3: pop 3 Fixed; store to local[idx]
+/// Execute StoreLocalVec3: pop 3 Dec32; store to local[idx]
 #[inline(always)]
 pub fn exec_store_local_vec3(
     stack: &mut ValueStack,
@@ -96,11 +96,11 @@ pub fn exec_store_local_vec3(
     idx: usize,
 ) -> Result<(), LpsVmError> {
     let (x, y, z) = stack.pop3()?;
-    locals.set_vec3(idx, Fixed(x), Fixed(y), Fixed(z))?;
+    locals.set_vec3(idx, Dec32(x), Dec32(y), Dec32(z))?;
     Ok(())
 }
 
-/// Execute LoadLocalVec4: pop nothing; push local[idx] as 4 Fixed
+/// Execute LoadLocalVec4: pop nothing; push local[idx] as 4 Dec32
 #[inline(always)]
 pub fn exec_load_local_vec4(
     stack: &mut ValueStack,
@@ -112,7 +112,7 @@ pub fn exec_load_local_vec4(
     Ok(())
 }
 
-/// Execute StoreLocalVec4: pop 4 Fixed; store to local[idx]
+/// Execute StoreLocalVec4: pop 4 Dec32; store to local[idx]
 #[inline(always)]
 pub fn exec_store_local_vec4(
     stack: &mut ValueStack,
@@ -120,11 +120,11 @@ pub fn exec_store_local_vec4(
     idx: usize,
 ) -> Result<(), LpsVmError> {
     let (x, y, z, w) = stack.pop4()?;
-    locals.set_vec4(idx, Fixed(x), Fixed(y), Fixed(z), Fixed(w))?;
+    locals.set_vec4(idx, Dec32(x), Dec32(y), Dec32(z), Dec32(w))?;
     Ok(())
 }
 
-/// Execute LoadLocalMat3: pop nothing; push local[idx] as 9 Fixed
+/// Execute LoadLocalMat3: pop nothing; push local[idx] as 9 Dec32
 #[inline(always)]
 pub fn exec_load_local_mat3(
     stack: &mut ValueStack,
@@ -136,7 +136,7 @@ pub fn exec_load_local_mat3(
     Ok(())
 }
 
-/// Execute StoreLocalMat3: pop 9 Fixed; store to local[idx]
+/// Execute StoreLocalMat3: pop 9 Dec32; store to local[idx]
 #[inline(always)]
 pub fn exec_store_local_mat3(
     stack: &mut ValueStack,
@@ -151,26 +151,26 @@ pub fn exec_store_local_mat3(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::fixed::ToFixed;
+    use crate::dec32::ToDec32;
     use crate::shared::Type;
     use crate::vm::lps_program::LocalVarDef;
 
     #[test]
-    fn test_load_store_fixed() {
+    fn test_load_store_dec32() {
         let mut stack = ValueStack::new(64);
         let mut locals = LocalStack::new(64);
 
-        // Allocate a Fixed local
-        let defs = vec![LocalVarDef::new("x".into(), Type::Fixed)];
+        // Allocate a Dec32 local
+        let defs = vec![LocalVarDef::new("x".into(), Type::Dec32)];
         locals.allocate_locals(&defs).unwrap();
 
         // Store
-        stack.push_fixed(5.5.to_fixed()).unwrap();
-        exec_store_local_fixed(&mut stack, &mut locals, 0).unwrap();
+        stack.push_dec32(5.5.to_dec32()).unwrap();
+        exec_store_local_dec32(&mut stack, &mut locals, 0).unwrap();
 
         // Load
-        exec_load_local_fixed(&mut stack, &locals, 0).unwrap();
-        assert_eq!(stack.pop_fixed().unwrap().to_f32(), 5.5);
+        exec_load_local_dec32(&mut stack, &locals, 0).unwrap();
+        assert_eq!(stack.pop_dec32().unwrap().to_f32(), 5.5);
     }
 
     #[test]
@@ -201,14 +201,14 @@ mod tests {
         locals.allocate_locals(&defs).unwrap();
 
         // Store
-        stack.push2(1.0.to_fixed().0, 2.0.to_fixed().0).unwrap();
+        stack.push2(1.0.to_dec32().0, 2.0.to_dec32().0).unwrap();
         exec_store_local_vec2(&mut stack, &mut locals, 0).unwrap();
 
         // Load
         exec_load_local_vec2(&mut stack, &locals, 0).unwrap();
         let (x, y) = stack.pop2().unwrap();
-        assert_eq!(Fixed(x).to_f32(), 1.0);
-        assert_eq!(Fixed(y).to_f32(), 2.0);
+        assert_eq!(Dec32(x).to_f32(), 1.0);
+        assert_eq!(Dec32(y).to_f32(), 2.0);
     }
 
     #[test]
@@ -222,16 +222,16 @@ mod tests {
 
         // Store
         stack
-            .push3(1.0.to_fixed().0, 2.0.to_fixed().0, 3.0.to_fixed().0)
+            .push3(1.0.to_dec32().0, 2.0.to_dec32().0, 3.0.to_dec32().0)
             .unwrap();
         exec_store_local_vec3(&mut stack, &mut locals, 0).unwrap();
 
         // Load
         exec_load_local_vec3(&mut stack, &locals, 0).unwrap();
         let (x, y, z) = stack.pop3().unwrap();
-        assert_eq!(Fixed(x).to_f32(), 1.0);
-        assert_eq!(Fixed(y).to_f32(), 2.0);
-        assert_eq!(Fixed(z).to_f32(), 3.0);
+        assert_eq!(Dec32(x).to_f32(), 1.0);
+        assert_eq!(Dec32(y).to_f32(), 2.0);
+        assert_eq!(Dec32(z).to_f32(), 3.0);
     }
 
     #[test]
@@ -246,10 +246,10 @@ mod tests {
         // Store
         stack
             .push4(
-                1.0.to_fixed().0,
-                2.0.to_fixed().0,
-                3.0.to_fixed().0,
-                4.0.to_fixed().0,
+                1.0.to_dec32().0,
+                2.0.to_dec32().0,
+                3.0.to_dec32().0,
+                4.0.to_dec32().0,
             )
             .unwrap();
         exec_store_local_vec4(&mut stack, &mut locals, 0).unwrap();
@@ -257,10 +257,10 @@ mod tests {
         // Load
         exec_load_local_vec4(&mut stack, &locals, 0).unwrap();
         let (x, y, z, w) = stack.pop4().unwrap();
-        assert_eq!(Fixed(x).to_f32(), 1.0);
-        assert_eq!(Fixed(y).to_f32(), 2.0);
-        assert_eq!(Fixed(z).to_f32(), 3.0);
-        assert_eq!(Fixed(w).to_f32(), 4.0);
+        assert_eq!(Dec32(x).to_f32(), 1.0);
+        assert_eq!(Dec32(y).to_f32(), 2.0);
+        assert_eq!(Dec32(z).to_f32(), 3.0);
+        assert_eq!(Dec32(w).to_f32(), 4.0);
     }
 
     #[test]
@@ -269,7 +269,7 @@ mod tests {
         let locals = LocalStack::new(64);
 
         // No locals allocated
-        let result = exec_load_local_fixed(&mut stack, &locals, 0);
+        let result = exec_load_local_dec32(&mut stack, &locals, 0);
         assert!(matches!(
             result,
             Err(LpsVmError::LocalOutOfBounds {
@@ -284,11 +284,11 @@ mod tests {
         let mut stack = ValueStack::new(64);
         let mut locals = LocalStack::new(64);
 
-        // Allocate a Fixed local
-        let defs = vec![LocalVarDef::new("x".into(), Type::Fixed)];
+        // Allocate a Dec32 local
+        let defs = vec![LocalVarDef::new("x".into(), Type::Dec32)];
         locals.allocate_locals(&defs).unwrap();
 
-        // Try to load as Int32 when it's Fixed
+        // Try to load as Int32 when it's Dec32
         let result = exec_load_local_int32(&mut stack, &locals, 0);
         assert!(matches!(result, Err(LpsVmError::TypeMismatch)));
     }
@@ -300,30 +300,30 @@ mod tests {
 
         // Allocate multiple locals of different types
         let defs = vec![
-            LocalVarDef::new("x".into(), Type::Fixed),
+            LocalVarDef::new("x".into(), Type::Dec32),
             LocalVarDef::new("pos".into(), Type::Vec2),
             LocalVarDef::new("count".into(), Type::Int32),
         ];
         locals.allocate_locals(&defs).unwrap();
 
         // Store values
-        stack.push_fixed(10.5.to_fixed()).unwrap();
-        exec_store_local_fixed(&mut stack, &mut locals, 0).unwrap();
+        stack.push_dec32(10.5.to_dec32()).unwrap();
+        exec_store_local_dec32(&mut stack, &mut locals, 0).unwrap();
 
-        stack.push2(1.0.to_fixed().0, 2.0.to_fixed().0).unwrap();
+        stack.push2(1.0.to_dec32().0, 2.0.to_dec32().0).unwrap();
         exec_store_local_vec2(&mut stack, &mut locals, 1).unwrap();
 
         stack.push_int32(99).unwrap();
         exec_store_local_int32(&mut stack, &mut locals, 2).unwrap();
 
         // Load and verify
-        exec_load_local_fixed(&mut stack, &locals, 0).unwrap();
-        assert_eq!(stack.pop_fixed().unwrap().to_f32(), 10.5);
+        exec_load_local_dec32(&mut stack, &locals, 0).unwrap();
+        assert_eq!(stack.pop_dec32().unwrap().to_f32(), 10.5);
 
         exec_load_local_vec2(&mut stack, &locals, 1).unwrap();
         let (x, y) = stack.pop2().unwrap();
-        assert_eq!(Fixed(x).to_f32(), 1.0);
-        assert_eq!(Fixed(y).to_f32(), 2.0);
+        assert_eq!(Dec32(x).to_f32(), 1.0);
+        assert_eq!(Dec32(y).to_f32(), 2.0);
 
         exec_load_local_int32(&mut stack, &locals, 2).unwrap();
         assert_eq!(stack.pop_int32().unwrap(), 99);

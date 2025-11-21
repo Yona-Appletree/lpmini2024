@@ -56,35 +56,35 @@ impl<'a> CodeGenerator<'a> {
 
     fn gen_builtin_function(&mut self, name: &str, args: &[Expr]) -> Result<(), CodegenError> {
         match name {
-            "sin" => self.code.push(LpsOpCode::SinFixed),
-            "cos" => self.code.push(LpsOpCode::CosFixed),
-            "frac" | "fract" => self.code.push(LpsOpCode::FractFixed),
+            "sin" => self.code.push(LpsOpCode::SinDec32),
+            "cos" => self.code.push(LpsOpCode::CosDec32),
+            "frac" | "fract" => self.code.push(LpsOpCode::FractDec32),
 
             // Math functions - use explicit opcodes
-            "min" => self.code.push(LpsOpCode::MinFixed),
-            "max" => self.code.push(LpsOpCode::MaxFixed),
-            "abs" => self.code.push(LpsOpCode::AbsFixed),
-            "floor" => self.code.push(LpsOpCode::FloorFixed),
-            "ceil" => self.code.push(LpsOpCode::CeilFixed),
-            "sqrt" => self.code.push(LpsOpCode::SqrtFixed),
-            "tan" => self.code.push(LpsOpCode::TanFixed),
-            "pow" => self.code.push(LpsOpCode::PowFixed),
-            "sign" => self.code.push(LpsOpCode::SignFixed),
-            "mod" => self.code.push(LpsOpCode::ModFixed),
+            "min" => self.code.push(LpsOpCode::MinDec32),
+            "max" => self.code.push(LpsOpCode::MaxDec32),
+            "abs" => self.code.push(LpsOpCode::AbsDec32),
+            "floor" => self.code.push(LpsOpCode::FloorDec32),
+            "ceil" => self.code.push(LpsOpCode::CeilDec32),
+            "sqrt" => self.code.push(LpsOpCode::SqrtDec32),
+            "tan" => self.code.push(LpsOpCode::TanDec32),
+            "pow" => self.code.push(LpsOpCode::PowDec32),
+            "sign" => self.code.push(LpsOpCode::SignDec32),
+            "mod" => self.code.push(LpsOpCode::ModDec32),
             "atan" => {
                 if args.len() == 2 {
-                    self.code.push(LpsOpCode::Atan2Fixed);
+                    self.code.push(LpsOpCode::Atan2Dec32);
                 } else {
-                    self.code.push(LpsOpCode::AtanFixed);
+                    self.code.push(LpsOpCode::AtanDec32);
                 }
             }
 
             // Clamping/interpolation
-            "clamp" => self.code.push(LpsOpCode::ClampFixed),
-            "saturate" => self.code.push(LpsOpCode::SaturateFixed),
-            "step" => self.code.push(LpsOpCode::StepFixed),
-            "lerp" | "mix" => self.code.push(LpsOpCode::LerpFixed),
-            "smoothstep" => self.code.push(LpsOpCode::SmoothstepFixed),
+            "clamp" => self.code.push(LpsOpCode::ClampDec32),
+            "saturate" => self.code.push(LpsOpCode::SaturateDec32),
+            "step" => self.code.push(LpsOpCode::StepDec32),
+            "lerp" | "mix" => self.code.push(LpsOpCode::LerpDec32),
+            "smoothstep" => self.code.push(LpsOpCode::SmoothstepDec32),
 
             // Vector functions - use typed opcodes based on argument type
             "length" => {

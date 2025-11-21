@@ -5,7 +5,7 @@
 extern crate alloc;
 use alloc::vec::Vec;
 
-use crate::fixed::Fixed;
+use crate::dec32::Dec32;
 use crate::vm::error::{LpsVmError, RuntimeErrorWithContext};
 use crate::vm::lps_vm::LpsVm;
 use crate::vm::opcodes::{
@@ -22,19 +22,19 @@ impl<'a> LpsVm<'a> {
     pub(super) fn dispatch_opcode(
         &mut self,
         opcode: &LpsOpCode,
-        x_norm: Fixed,
-        y_norm: Fixed,
-        x_int: Fixed,
-        y_int: Fixed,
-        time: Fixed,
+        x_norm: Dec32,
+        y_norm: Dec32,
+        x_int: Dec32,
+        y_int: Dec32,
+        time: Dec32,
         width: usize,
         height: usize,
-    ) -> Result<Option<Vec<Fixed>>, RuntimeErrorWithContext> {
+    ) -> Result<Option<Vec<Dec32>>, RuntimeErrorWithContext> {
         match opcode {
             // === Stack Operations ===
             LpsOpCode::Push(val) => {
                 self.stack
-                    .push_fixed(*val)
+                    .push_dec32(*val)
                     .map_err(|e| self.runtime_error(e))?;
                 self.pc += 1;
                 Ok(None)
@@ -217,17 +217,17 @@ impl<'a> LpsVm<'a> {
             }
 
             // === Local Variables ===
-            LpsOpCode::LoadLocalFixed(idx) => {
+            LpsOpCode::LoadLocalDec32(idx) => {
                 let local_idx = self.call_stack.frame_base() + *idx as usize;
-                locals::exec_load_local_fixed(&mut self.stack, &self.locals, local_idx)
+                locals::exec_load_local_dec32(&mut self.stack, &self.locals, local_idx)
                     .map_err(|e| self.runtime_error(e))?;
                 self.pc += 1;
                 Ok(None)
             }
 
-            LpsOpCode::StoreLocalFixed(idx) => {
+            LpsOpCode::StoreLocalDec32(idx) => {
                 let local_idx = self.call_stack.frame_base() + *idx as usize;
-                locals::exec_store_local_fixed(&mut self.stack, &mut self.locals, local_idx)
+                locals::exec_store_local_dec32(&mut self.stack, &mut self.locals, local_idx)
                     .map_err(|e| self.runtime_error(e))?;
                 self.pc += 1;
                 Ok(None)
@@ -313,166 +313,166 @@ impl<'a> LpsVm<'a> {
                 Ok(None)
             }
 
-            // === Basic Fixed-point Arithmetic ===
-            LpsOpCode::AddFixed => {
-                fixed_basic::exec_add_fixed(&mut self.stack).map_err(|e| self.runtime_error(e))?;
+            // === Basic Dec32-point Arithmetic ===
+            LpsOpCode::AddDec32 => {
+                fixed_basic::exec_add_dec32(&mut self.stack).map_err(|e| self.runtime_error(e))?;
                 self.pc += 1;
                 Ok(None)
             }
 
-            LpsOpCode::SubFixed => {
-                fixed_basic::exec_sub_fixed(&mut self.stack).map_err(|e| self.runtime_error(e))?;
+            LpsOpCode::SubDec32 => {
+                fixed_basic::exec_sub_dec32(&mut self.stack).map_err(|e| self.runtime_error(e))?;
                 self.pc += 1;
                 Ok(None)
             }
 
-            LpsOpCode::MulFixed => {
-                fixed_basic::exec_mul_fixed(&mut self.stack).map_err(|e| self.runtime_error(e))?;
+            LpsOpCode::MulDec32 => {
+                fixed_basic::exec_mul_dec32(&mut self.stack).map_err(|e| self.runtime_error(e))?;
                 self.pc += 1;
                 Ok(None)
             }
 
-            LpsOpCode::DivFixed => {
-                fixed_basic::exec_div_fixed(&mut self.stack).map_err(|e| self.runtime_error(e))?;
+            LpsOpCode::DivDec32 => {
+                fixed_basic::exec_div_dec32(&mut self.stack).map_err(|e| self.runtime_error(e))?;
                 self.pc += 1;
                 Ok(None)
             }
 
-            LpsOpCode::NegFixed => {
-                fixed_basic::exec_neg_fixed(&mut self.stack).map_err(|e| self.runtime_error(e))?;
+            LpsOpCode::NegDec32 => {
+                fixed_basic::exec_neg_dec32(&mut self.stack).map_err(|e| self.runtime_error(e))?;
                 self.pc += 1;
                 Ok(None)
             }
 
-            LpsOpCode::AbsFixed => {
-                fixed_basic::exec_abs_fixed(&mut self.stack).map_err(|e| self.runtime_error(e))?;
+            LpsOpCode::AbsDec32 => {
+                fixed_basic::exec_abs_dec32(&mut self.stack).map_err(|e| self.runtime_error(e))?;
                 self.pc += 1;
                 Ok(None)
             }
 
-            LpsOpCode::MinFixed => {
-                fixed_basic::exec_min_fixed(&mut self.stack).map_err(|e| self.runtime_error(e))?;
+            LpsOpCode::MinDec32 => {
+                fixed_basic::exec_min_dec32(&mut self.stack).map_err(|e| self.runtime_error(e))?;
                 self.pc += 1;
                 Ok(None)
             }
 
-            LpsOpCode::MaxFixed => {
-                fixed_basic::exec_max_fixed(&mut self.stack).map_err(|e| self.runtime_error(e))?;
+            LpsOpCode::MaxDec32 => {
+                fixed_basic::exec_max_dec32(&mut self.stack).map_err(|e| self.runtime_error(e))?;
                 self.pc += 1;
                 Ok(None)
             }
 
-            LpsOpCode::SinFixed => {
-                fixed_basic::exec_sin_fixed(&mut self.stack).map_err(|e| self.runtime_error(e))?;
+            LpsOpCode::SinDec32 => {
+                fixed_basic::exec_sin_dec32(&mut self.stack).map_err(|e| self.runtime_error(e))?;
                 self.pc += 1;
                 Ok(None)
             }
 
-            LpsOpCode::CosFixed => {
-                fixed_basic::exec_cos_fixed(&mut self.stack).map_err(|e| self.runtime_error(e))?;
+            LpsOpCode::CosDec32 => {
+                fixed_basic::exec_cos_dec32(&mut self.stack).map_err(|e| self.runtime_error(e))?;
                 self.pc += 1;
                 Ok(None)
             }
 
-            LpsOpCode::SqrtFixed => {
-                fixed_basic::exec_sqrt_fixed(&mut self.stack).map_err(|e| self.runtime_error(e))?;
+            LpsOpCode::SqrtDec32 => {
+                fixed_basic::exec_sqrt_dec32(&mut self.stack).map_err(|e| self.runtime_error(e))?;
                 self.pc += 1;
                 Ok(None)
             }
 
-            LpsOpCode::FloorFixed => {
-                fixed_basic::exec_floor_fixed(&mut self.stack)
+            LpsOpCode::FloorDec32 => {
+                fixed_basic::exec_floor_dec32(&mut self.stack)
                     .map_err(|e| self.runtime_error(e))?;
                 self.pc += 1;
                 Ok(None)
             }
 
-            LpsOpCode::CeilFixed => {
-                fixed_basic::exec_ceil_fixed(&mut self.stack).map_err(|e| self.runtime_error(e))?;
+            LpsOpCode::CeilDec32 => {
+                fixed_basic::exec_ceil_dec32(&mut self.stack).map_err(|e| self.runtime_error(e))?;
                 self.pc += 1;
                 Ok(None)
             }
 
-            // === Advanced Fixed-point Math ===
-            LpsOpCode::TanFixed => {
-                fixed_advanced::exec_tan_fixed(&mut self.stack)
+            // === Advanced Dec32-point Math ===
+            LpsOpCode::TanDec32 => {
+                fixed_advanced::exec_tan_dec32(&mut self.stack)
                     .map_err(|e| self.runtime_error(e))?;
                 self.pc += 1;
                 Ok(None)
             }
 
-            LpsOpCode::AtanFixed => {
-                fixed_advanced::exec_atan_fixed(&mut self.stack)
+            LpsOpCode::AtanDec32 => {
+                fixed_advanced::exec_atan_dec32(&mut self.stack)
                     .map_err(|e| self.runtime_error(e))?;
                 self.pc += 1;
                 Ok(None)
             }
 
-            LpsOpCode::Atan2Fixed => {
-                fixed_advanced::exec_atan2_fixed(&mut self.stack)
+            LpsOpCode::Atan2Dec32 => {
+                fixed_advanced::exec_atan2_dec32(&mut self.stack)
                     .map_err(|e| self.runtime_error(e))?;
                 self.pc += 1;
                 Ok(None)
             }
 
-            LpsOpCode::FractFixed => {
-                fixed_advanced::exec_fract_fixed(&mut self.stack)
+            LpsOpCode::FractDec32 => {
+                fixed_advanced::exec_fract_dec32(&mut self.stack)
                     .map_err(|e| self.runtime_error(e))?;
                 self.pc += 1;
                 Ok(None)
             }
 
-            LpsOpCode::ModFixed => {
-                fixed_advanced::exec_mod_fixed(&mut self.stack)
+            LpsOpCode::ModDec32 => {
+                fixed_advanced::exec_mod_dec32(&mut self.stack)
                     .map_err(|e| self.runtime_error(e))?;
                 self.pc += 1;
                 Ok(None)
             }
 
-            LpsOpCode::PowFixed => {
-                fixed_advanced::exec_pow_fixed(&mut self.stack)
+            LpsOpCode::PowDec32 => {
+                fixed_advanced::exec_pow_dec32(&mut self.stack)
                     .map_err(|e| self.runtime_error(e))?;
                 self.pc += 1;
                 Ok(None)
             }
 
-            LpsOpCode::SignFixed => {
-                fixed_advanced::exec_sign_fixed(&mut self.stack)
+            LpsOpCode::SignDec32 => {
+                fixed_advanced::exec_sign_dec32(&mut self.stack)
                     .map_err(|e| self.runtime_error(e))?;
                 self.pc += 1;
                 Ok(None)
             }
 
-            LpsOpCode::SaturateFixed => {
-                fixed_advanced::exec_saturate_fixed(&mut self.stack)
+            LpsOpCode::SaturateDec32 => {
+                fixed_advanced::exec_saturate_dec32(&mut self.stack)
                     .map_err(|e| self.runtime_error(e))?;
                 self.pc += 1;
                 Ok(None)
             }
 
-            LpsOpCode::ClampFixed => {
-                fixed_advanced::exec_clamp_fixed(&mut self.stack)
+            LpsOpCode::ClampDec32 => {
+                fixed_advanced::exec_clamp_dec32(&mut self.stack)
                     .map_err(|e| self.runtime_error(e))?;
                 self.pc += 1;
                 Ok(None)
             }
 
-            LpsOpCode::StepFixed => {
-                fixed_advanced::exec_step_fixed(&mut self.stack)
+            LpsOpCode::StepDec32 => {
+                fixed_advanced::exec_step_dec32(&mut self.stack)
                     .map_err(|e| self.runtime_error(e))?;
                 self.pc += 1;
                 Ok(None)
             }
 
-            LpsOpCode::LerpFixed => {
-                fixed_advanced::exec_lerp_fixed(&mut self.stack)
+            LpsOpCode::LerpDec32 => {
+                fixed_advanced::exec_lerp_dec32(&mut self.stack)
                     .map_err(|e| self.runtime_error(e))?;
                 self.pc += 1;
                 Ok(None)
             }
 
-            LpsOpCode::SmoothstepFixed => {
-                fixed_advanced::exec_smoothstep_fixed(&mut self.stack)
+            LpsOpCode::SmoothstepDec32 => {
+                fixed_advanced::exec_smoothstep_dec32(&mut self.stack)
                     .map_err(|e| self.runtime_error(e))?;
                 self.pc += 1;
                 Ok(None)
@@ -485,61 +485,61 @@ impl<'a> LpsVm<'a> {
                 Ok(None)
             }
 
-            // === Fixed-point Logic ===
-            LpsOpCode::AndFixed => {
-                fixed_logic::exec_and_fixed(&mut self.stack).map_err(|e| self.runtime_error(e))?;
+            // === Dec32-point Logic ===
+            LpsOpCode::AndDec32 => {
+                fixed_logic::exec_and_dec32(&mut self.stack).map_err(|e| self.runtime_error(e))?;
                 self.pc += 1;
                 Ok(None)
             }
 
-            LpsOpCode::OrFixed => {
-                fixed_logic::exec_or_fixed(&mut self.stack).map_err(|e| self.runtime_error(e))?;
+            LpsOpCode::OrDec32 => {
+                fixed_logic::exec_or_dec32(&mut self.stack).map_err(|e| self.runtime_error(e))?;
                 self.pc += 1;
                 Ok(None)
             }
 
-            LpsOpCode::NotFixed => {
-                fixed_logic::exec_not_fixed(&mut self.stack).map_err(|e| self.runtime_error(e))?;
+            LpsOpCode::NotDec32 => {
+                fixed_logic::exec_not_dec32(&mut self.stack).map_err(|e| self.runtime_error(e))?;
                 self.pc += 1;
                 Ok(None)
             }
 
-            // === Fixed-point Comparisons ===
-            LpsOpCode::GreaterFixed => {
-                comparisons::exec_greater_fixed(&mut self.stack)
+            // === Dec32-point Comparisons ===
+            LpsOpCode::GreaterDec32 => {
+                comparisons::exec_greater_dec32(&mut self.stack)
                     .map_err(|e| self.runtime_error(e))?;
                 self.pc += 1;
                 Ok(None)
             }
 
-            LpsOpCode::LessFixed => {
-                comparisons::exec_less_fixed(&mut self.stack).map_err(|e| self.runtime_error(e))?;
+            LpsOpCode::LessDec32 => {
+                comparisons::exec_less_dec32(&mut self.stack).map_err(|e| self.runtime_error(e))?;
                 self.pc += 1;
                 Ok(None)
             }
 
-            LpsOpCode::GreaterEqFixed => {
-                comparisons::exec_greater_eq_fixed(&mut self.stack)
+            LpsOpCode::GreaterEqDec32 => {
+                comparisons::exec_greater_eq_dec32(&mut self.stack)
                     .map_err(|e| self.runtime_error(e))?;
                 self.pc += 1;
                 Ok(None)
             }
 
-            LpsOpCode::LessEqFixed => {
-                comparisons::exec_less_eq_fixed(&mut self.stack)
+            LpsOpCode::LessEqDec32 => {
+                comparisons::exec_less_eq_dec32(&mut self.stack)
                     .map_err(|e| self.runtime_error(e))?;
                 self.pc += 1;
                 Ok(None)
             }
 
-            LpsOpCode::EqFixed => {
-                comparisons::exec_eq_fixed(&mut self.stack).map_err(|e| self.runtime_error(e))?;
+            LpsOpCode::EqDec32 => {
+                comparisons::exec_eq_dec32(&mut self.stack).map_err(|e| self.runtime_error(e))?;
                 self.pc += 1;
                 Ok(None)
             }
 
-            LpsOpCode::NotEqFixed => {
-                comparisons::exec_not_eq_fixed(&mut self.stack)
+            LpsOpCode::NotEqDec32 => {
+                comparisons::exec_not_eq_dec32(&mut self.stack)
                     .map_err(|e| self.runtime_error(e))?;
                 self.pc += 1;
                 Ok(None)
@@ -681,14 +681,14 @@ impl<'a> LpsVm<'a> {
             }
 
             // === Type Conversions ===
-            LpsOpCode::Int32ToFixed => {
-                int32::exec_int32_to_fixed(&mut self.stack).map_err(|e| self.runtime_error(e))?;
+            LpsOpCode::Int32ToDec32 => {
+                int32::exec_int32_to_dec32(&mut self.stack).map_err(|e| self.runtime_error(e))?;
                 self.pc += 1;
                 Ok(None)
             }
 
             LpsOpCode::FixedToInt32 => {
-                int32::exec_fixed_to_int32(&mut self.stack).map_err(|e| self.runtime_error(e))?;
+                int32::exec_dec32_to_int32(&mut self.stack).map_err(|e| self.runtime_error(e))?;
                 self.pc += 1;
                 Ok(None)
             }
@@ -1036,8 +1036,8 @@ impl<'a> LpsVm<'a> {
             }
 
             // === Array Operations ===
-            LpsOpCode::GetElemInt32ArrayFixed => {
-                arrays::exec_get_elem_int32_array_fixed(&mut self.stack)
+            LpsOpCode::GetElemInt32ArrayDec32 => {
+                arrays::exec_get_elem_int32_array_dec32(&mut self.stack)
                     .map_err(|e| self.runtime_error(e))?;
                 self.pc += 1;
                 Ok(None)

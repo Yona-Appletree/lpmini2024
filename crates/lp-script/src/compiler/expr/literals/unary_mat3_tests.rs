@@ -2,7 +2,7 @@
 #[cfg(test)]
 mod tests {
     use crate::compiler::expr::expr_test_util::ExprTest;
-    use crate::fixed::{Mat3, ToFixed};
+    use crate::dec32::{Mat3, ToDec32};
     use crate::shared::Type;
     use crate::vm::opcodes::LpsOpCode;
 
@@ -15,15 +15,15 @@ mod tests {
                 b.neg(operand, Type::Mat3)
             })
             .expect_opcodes(vec![
-                LpsOpCode::Push(1.0.to_fixed()),
-                LpsOpCode::Push(2.0.to_fixed()),
-                LpsOpCode::Push(3.0.to_fixed()),
-                LpsOpCode::Push(4.0.to_fixed()),
-                LpsOpCode::Push(5.0.to_fixed()),
-                LpsOpCode::Push(6.0.to_fixed()),
-                LpsOpCode::Push(7.0.to_fixed()),
-                LpsOpCode::Push(8.0.to_fixed()),
-                LpsOpCode::Push(9.0.to_fixed()),
+                LpsOpCode::Push(1.0.to_dec32()),
+                LpsOpCode::Push(2.0.to_dec32()),
+                LpsOpCode::Push(3.0.to_dec32()),
+                LpsOpCode::Push(4.0.to_dec32()),
+                LpsOpCode::Push(5.0.to_dec32()),
+                LpsOpCode::Push(6.0.to_dec32()),
+                LpsOpCode::Push(7.0.to_dec32()),
+                LpsOpCode::Push(8.0.to_dec32()),
+                LpsOpCode::Push(9.0.to_dec32()),
                 LpsOpCode::NegMat3,
                 LpsOpCode::Return,
             ])

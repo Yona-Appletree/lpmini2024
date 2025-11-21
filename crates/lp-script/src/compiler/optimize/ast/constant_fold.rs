@@ -1,6 +1,6 @@
-use lp_math::fixed::{
+use lp_math::dec32::{
     ceil as fixed_ceil, cos as fixed_cos, floor as fixed_floor, lerp as fixed_lerp,
-    pow as fixed_pow, saturate as fixed_saturate, sin as fixed_sin, sqrt as fixed_sqrt, Fixed,
+    pow as fixed_pow, saturate as fixed_saturate, sin as fixed_sin, sqrt as fixed_sqrt, Dec32,
 };
 
 /// Constant folding optimization (LpBox AST)
@@ -40,15 +40,15 @@ impl ConstValue {
         }
     }
 
-    fn as_fixed(self) -> Fixed {
+    fn as_dec32(self) -> Dec32 {
         match self {
-            ConstValue::Float(v) => Fixed::from_f32(v),
-            ConstValue::Int(v) => Fixed::from_i32(v),
+            ConstValue::Float(v) => Dec32::from_f32(v),
+            ConstValue::Int(v) => Dec32::from_i32(v),
             ConstValue::Bool(v) => {
                 if v {
-                    Fixed::ONE
+                    Dec32::ONE
                 } else {
-                    Fixed::ZERO
+                    Dec32::ZERO
                 }
             }
         }
@@ -107,7 +107,7 @@ impl FoldReplacement {
 }
 
 fn replacement_number(value: f32, keep_existing_ty: bool) -> FoldReplacement {
-    FoldReplacement::new(ExprKind::Number(value), Some(Type::Fixed), keep_existing_ty)
+    FoldReplacement::new(ExprKind::Number(value), Some(Type::Dec32), keep_existing_ty)
 }
 
 fn replacement_int(value: i32, keep_existing_ty: bool) -> FoldReplacement {
@@ -130,17 +130,17 @@ fn fold_call(name: &str, args: &mut [Expr], keep_existing_ty: bool) -> Option<Fo
     match name {
         "sin" if args.len() == 1 => {
             let value = const_value(&args[0])?;
-            let result = fixed_sin(value.as_fixed());
+            let result = fixed_sin(value.as_dec32());
             Some(replacement_number(result.to_f32(), keep_existing_ty))
         }
         "cos" if args.len() == 1 => {
             let value = const_value(&args[0])?;
-            let result = fixed_cos(value.as_fixed());
+            let result = fixed_cos(value.as_dec32());
             Some(replacement_number(result.to_f32(), keep_existing_ty))
         }
         "sqrt" if args.len() == 1 => {
             let value = const_value(&args[0])?;
-            let result = fixed_sqrt(value.as_fixed());
+            let result = fixed_sqrt(value.as_dec32());
             Some(replacement_number(result.to_f32(), keep_existing_ty))
         }
         "abs" if args.len() == 1 => {
@@ -148,18 +148,18 @@ fn fold_call(name: &str, args: &mut [Expr], keep_existing_ty: bool) -> Option<Fo
             if let Some(v) = value.as_int() {
                 Some(replacement_int(v.abs(), keep_existing_ty))
             } else {
-                let result = value.as_fixed().abs();
+                let result = value.as_dec32().abs();
                 Some(replacement_number(result.to_f32(), keep_existing_ty))
             }
         }
         "floor" if args.len() == 1 => {
             let value = const_value(&args[0])?;
-            let result = fixed_floor(value.as_fixed());
+            let result = fixed_floor(value.as_dec32());
             Some(replacement_number(result.to_f32(), keep_existing_ty))
         }
         "ceil" if args.len() == 1 => {
             let value = const_value(&args[0])?;
-            let result = fixed_ceil(value.as_fixed());
+            let result = fixed_ceil(value.as_dec32());
             Some(replacement_number(result.to_f32(), keep_existing_ty))
         }
         "min" if args.len() == 2 => {
@@ -168,7 +168,7 @@ fn fold_call(name: &str, args: &mut [Expr], keep_existing_ty: bool) -> Option<Fo
             if let (Some(l), Some(r)) = (left.as_int(), right.as_int()) {
                 Some(replacement_int(l.min(r), keep_existing_ty))
             } else {
-                let result = left.as_fixed().min(right.as_fixed());
+                let result = left.as_dec32().min(right.as_dec32());
                 Some(replacement_number(result.to_f32(), keep_existing_ty))
             }
         }
@@ -178,33 +178,33 @@ fn fold_call(name: &str, args: &mut [Expr], keep_existing_ty: bool) -> Option<Fo
             if let (Some(l), Some(r)) = (left.as_int(), right.as_int()) {
                 Some(replacement_int(l.max(r), keep_existing_ty))
             } else {
-                let result = left.as_fixed().max(right.as_fixed());
+                let result = left.as_dec32().max(right.as_dec32());
                 Some(replacement_number(result.to_f32(), keep_existing_ty))
             }
         }
         "clamp" if args.len() == 3 => {
-            let x = const_value(&args[0])?.as_fixed();
-            let min_val = const_value(&args[1])?.as_fixed();
-            let max_val = const_value(&args[2])?.as_fixed();
+            let x = const_value(&args[0])?.as_dec32();
+            let min_val = const_value(&args[1])?.as_dec32();
+            let max_val = const_value(&args[2])?.as_dec32();
             let result = x.clamp(min_val, max_val);
             Some(replacement_number(result.to_f32(), keep_existing_ty))
         }
         "pow" if args.len() == 2 => {
-            let base = const_value(&args[0])?.as_fixed();
-            let exponent = const_value(&args[1])?.as_fixed();
+            let base = const_value(&args[0])?.as_dec32();
+            let exponent = const_value(&args[1])?.as_dec32();
             let exp_int = exponent.to_i32();
             let result = fixed_pow(base, exp_int);
             Some(replacement_number(result.to_f32(), keep_existing_ty))
         }
         "lerp" | "mix" if args.len() == 3 => {
-            let a = const_value(&args[0])?.as_fixed();
-            let b = const_value(&args[1])?.as_fixed();
-            let t = const_value(&args[2])?.as_fixed();
+            let a = const_value(&args[0])?.as_dec32();
+            let b = const_value(&args[1])?.as_dec32();
+            let t = const_value(&args[2])?.as_dec32();
             let result = fixed_lerp(a, b, t);
             Some(replacement_number(result.to_f32(), keep_existing_ty))
         }
         "saturate" if args.len() == 1 => {
-            let value = const_value(&args[0])?.as_fixed();
+            let value = const_value(&args[0])?.as_dec32();
             let result = fixed_saturate(value);
             Some(replacement_number(result.to_f32(), keep_existing_ty))
         }

@@ -50,7 +50,7 @@ mod tests {
 
         let get_pi_meta = func_table.lookup("getPi").expect("getPi should exist");
         assert_eq!(get_pi_meta.params.len(), 0);
-        assert_eq!(get_pi_meta.return_type, Type::Fixed);
+        assert_eq!(get_pi_meta.return_type, Type::Dec32);
         assert_eq!(get_pi_meta.local_count, 0);
 
         TypeChecker::check_program(&mut program, &func_table).expect("type check should succeed");

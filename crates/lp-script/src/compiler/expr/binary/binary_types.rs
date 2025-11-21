@@ -31,31 +31,31 @@ pub(in crate::compiler) fn check_binary_arithmetic(
         // Both same type
         (l, r) if l == r => l.clone(),
 
-        // Int -> Fixed promotion
-        (Type::Int32, Type::Fixed) => {
-            left.ty = Some(Type::Fixed);
-            Type::Fixed
+        // Int -> Dec32 promotion
+        (Type::Int32, Type::Dec32) => {
+            left.ty = Some(Type::Dec32);
+            Type::Dec32
         }
-        (Type::Fixed, Type::Int32) => {
-            right.ty = Some(Type::Fixed);
-            Type::Fixed
+        (Type::Dec32, Type::Int32) => {
+            right.ty = Some(Type::Dec32);
+            Type::Dec32
         }
 
         // Vector * Scalar (returns vector)
-        (Type::Vec2, Type::Fixed | Type::Int32) => Type::Vec2,
-        (Type::Vec3, Type::Fixed | Type::Int32) => Type::Vec3,
-        (Type::Vec4, Type::Fixed | Type::Int32) => Type::Vec4,
+        (Type::Vec2, Type::Dec32 | Type::Int32) => Type::Vec2,
+        (Type::Vec3, Type::Dec32 | Type::Int32) => Type::Vec3,
+        (Type::Vec4, Type::Dec32 | Type::Int32) => Type::Vec4,
 
         // Matrix * Scalar (returns matrix)
-        (Type::Mat3, Type::Fixed | Type::Int32) => Type::Mat3,
+        (Type::Mat3, Type::Dec32 | Type::Int32) => Type::Mat3,
 
         // Scalar * Vector (returns vector)
-        (Type::Fixed | Type::Int32, Type::Vec2) => Type::Vec2,
-        (Type::Fixed | Type::Int32, Type::Vec3) => Type::Vec3,
-        (Type::Fixed | Type::Int32, Type::Vec4) => Type::Vec4,
+        (Type::Dec32 | Type::Int32, Type::Vec2) => Type::Vec2,
+        (Type::Dec32 | Type::Int32, Type::Vec3) => Type::Vec3,
+        (Type::Dec32 | Type::Int32, Type::Vec4) => Type::Vec4,
 
         // Scalar * Matrix (returns matrix)
-        (Type::Fixed | Type::Int32, Type::Mat3) => Type::Mat3,
+        (Type::Dec32 | Type::Int32, Type::Mat3) => Type::Mat3,
 
         // Mismatch
         _ => {

@@ -1,4 +1,4 @@
-use crate::fixed::Mat3;
+use crate::dec32::Mat3;
 /// Mat3 operations
 use crate::vm::error::LpsVmError;
 use crate::vm::value_stack::ValueStack;
@@ -36,7 +36,7 @@ pub fn exec_mul_mat3(stack: &mut ValueStack) -> Result<(), LpsVmError> {
 
 #[inline(always)]
 pub fn exec_mul_mat3_scalar(stack: &mut ValueStack) -> Result<(), LpsVmError> {
-    let scalar = stack.pop_fixed()?;
+    let scalar = stack.pop_dec32()?;
     let mat = stack.pop_mat3()?;
     stack.push_mat3(mat * scalar)?;
     Ok(())
@@ -44,7 +44,7 @@ pub fn exec_mul_mat3_scalar(stack: &mut ValueStack) -> Result<(), LpsVmError> {
 
 #[inline(always)]
 pub fn exec_div_mat3_scalar(stack: &mut ValueStack) -> Result<(), LpsVmError> {
-    let scalar = stack.pop_fixed()?;
+    let scalar = stack.pop_dec32()?;
     let mat = stack.pop_mat3()?;
     stack.push_mat3(mat / scalar)?;
     Ok(())
@@ -68,7 +68,7 @@ pub fn exec_transpose_mat3(stack: &mut ValueStack) -> Result<(), LpsVmError> {
 #[inline(always)]
 pub fn exec_determinant_mat3(stack: &mut ValueStack) -> Result<(), LpsVmError> {
     let a = stack.pop_mat3()?;
-    stack.push_fixed(a.determinant())?;
+    stack.push_dec32(a.determinant())?;
     Ok(())
 }
 

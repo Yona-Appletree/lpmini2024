@@ -2,7 +2,7 @@
 #[cfg(test)]
 mod tests {
     use crate::compiler::expr::expr_test_util::ExprTest;
-    use crate::fixed::{ToFixed, Vec2, Vec3, Vec4};
+    use crate::dec32::{ToDec32, Vec2, Vec3, Vec4};
     use crate::vm::opcodes::LpsOpCode;
 
     #[test]
@@ -14,13 +14,13 @@ mod tests {
                 b.vec2(vec![arg1, arg2])
             })
             .expect_opcodes(vec![
-                LpsOpCode::Push(1.0.to_fixed()),
-                LpsOpCode::Push(2.0.to_fixed()),
+                LpsOpCode::Push(1.0.to_dec32()),
+                LpsOpCode::Push(2.0.to_dec32()),
                 LpsOpCode::Return,
             ])
             .expect_result_vec2(Vec2 {
-                x: 1.0.to_fixed(),
-                y: 2.0.to_fixed(),
+                x: 1.0.to_dec32(),
+                y: 2.0.to_dec32(),
             })
             .run()
     }
@@ -35,15 +35,15 @@ mod tests {
                 b.vec3(vec![arg1, arg2, arg3])
             })
             .expect_opcodes(vec![
-                LpsOpCode::Push(1.0.to_fixed()),
-                LpsOpCode::Push(2.0.to_fixed()),
-                LpsOpCode::Push(3.0.to_fixed()),
+                LpsOpCode::Push(1.0.to_dec32()),
+                LpsOpCode::Push(2.0.to_dec32()),
+                LpsOpCode::Push(3.0.to_dec32()),
                 LpsOpCode::Return,
             ])
             .expect_result_vec3(Vec3 {
-                x: 1.0.to_fixed(),
-                y: 2.0.to_fixed(),
-                z: 3.0.to_fixed(),
+                x: 1.0.to_dec32(),
+                y: 2.0.to_dec32(),
+                z: 3.0.to_dec32(),
             })
             .run()
     }
@@ -59,17 +59,17 @@ mod tests {
                 b.vec4(vec![arg1, arg2, arg3, arg4])
             })
             .expect_opcodes(vec![
-                LpsOpCode::Push(1.0.to_fixed()),
-                LpsOpCode::Push(2.0.to_fixed()),
-                LpsOpCode::Push(3.0.to_fixed()),
-                LpsOpCode::Push(4.0.to_fixed()),
+                LpsOpCode::Push(1.0.to_dec32()),
+                LpsOpCode::Push(2.0.to_dec32()),
+                LpsOpCode::Push(3.0.to_dec32()),
+                LpsOpCode::Push(4.0.to_dec32()),
                 LpsOpCode::Return,
             ])
             .expect_result_vec4(Vec4 {
-                x: 1.0.to_fixed(),
-                y: 2.0.to_fixed(),
-                z: 3.0.to_fixed(),
-                w: 4.0.to_fixed(),
+                x: 1.0.to_dec32(),
+                y: 2.0.to_dec32(),
+                z: 3.0.to_dec32(),
+                w: 4.0.to_dec32(),
             })
             .run()
     }
@@ -78,9 +78,9 @@ mod tests {
     fn test_vec3_from_vec2_and_scalar() -> Result<(), String> {
         ExprTest::new("vec3(vec2(1.0, 2.0), 3.0)")
             .expect_result_vec3(Vec3 {
-                x: 1.0.to_fixed(),
-                y: 2.0.to_fixed(),
-                z: 3.0.to_fixed(),
+                x: 1.0.to_dec32(),
+                y: 2.0.to_dec32(),
+                z: 3.0.to_dec32(),
             })
             .run()
     }
@@ -89,10 +89,10 @@ mod tests {
     fn test_vec4_from_vec3_and_scalar() -> Result<(), String> {
         ExprTest::new("vec4(vec3(1.0, 2.0, 3.0), 4.0)")
             .expect_result_vec4(Vec4 {
-                x: 1.0.to_fixed(),
-                y: 2.0.to_fixed(),
-                z: 3.0.to_fixed(),
-                w: 4.0.to_fixed(),
+                x: 1.0.to_dec32(),
+                y: 2.0.to_dec32(),
+                z: 3.0.to_dec32(),
+                w: 4.0.to_dec32(),
             })
             .run()
     }
@@ -101,10 +101,10 @@ mod tests {
     fn test_vec4_from_two_vec2() -> Result<(), String> {
         ExprTest::new("vec4(vec2(1.0, 2.0), vec2(3.0, 4.0))")
             .expect_result_vec4(Vec4 {
-                x: 1.0.to_fixed(),
-                y: 2.0.to_fixed(),
-                z: 3.0.to_fixed(),
-                w: 4.0.to_fixed(),
+                x: 1.0.to_dec32(),
+                y: 2.0.to_dec32(),
+                z: 3.0.to_dec32(),
+                w: 4.0.to_dec32(),
             })
             .run()
     }
@@ -113,8 +113,8 @@ mod tests {
     fn test_vec2_from_single_scalar_each() -> Result<(), String> {
         ExprTest::new("vec2(1.0, 2.0)")
             .expect_result_vec2(Vec2 {
-                x: 1.0.to_fixed(),
-                y: 2.0.to_fixed(),
+                x: 1.0.to_dec32(),
+                y: 2.0.to_dec32(),
             })
             .run()
     }
@@ -123,18 +123,18 @@ mod tests {
     fn test_mat3_constructor() -> Result<(), String> {
         ExprTest::new("mat3(1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 9.0)")
             .expect_opcodes(vec![
-                LpsOpCode::Push(1.0.to_fixed()),
-                LpsOpCode::Push(2.0.to_fixed()),
-                LpsOpCode::Push(3.0.to_fixed()),
-                LpsOpCode::Push(4.0.to_fixed()),
-                LpsOpCode::Push(5.0.to_fixed()),
-                LpsOpCode::Push(6.0.to_fixed()),
-                LpsOpCode::Push(7.0.to_fixed()),
-                LpsOpCode::Push(8.0.to_fixed()),
-                LpsOpCode::Push(9.0.to_fixed()),
+                LpsOpCode::Push(1.0.to_dec32()),
+                LpsOpCode::Push(2.0.to_dec32()),
+                LpsOpCode::Push(3.0.to_dec32()),
+                LpsOpCode::Push(4.0.to_dec32()),
+                LpsOpCode::Push(5.0.to_dec32()),
+                LpsOpCode::Push(6.0.to_dec32()),
+                LpsOpCode::Push(7.0.to_dec32()),
+                LpsOpCode::Push(8.0.to_dec32()),
+                LpsOpCode::Push(9.0.to_dec32()),
                 LpsOpCode::Return,
             ])
-            .expect_result_mat3(crate::fixed::Mat3::from_f32(
+            .expect_result_mat3(crate::dec32::Mat3::from_f32(
                 1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 9.0,
             ))
             .run()
@@ -143,7 +143,7 @@ mod tests {
     #[test]
     fn test_mat3_from_three_vec3() -> Result<(), String> {
         ExprTest::new("mat3(vec3(1.0, 2.0, 3.0), vec3(4.0, 5.0, 6.0), vec3(7.0, 8.0, 9.0))")
-            .expect_result_mat3(crate::fixed::Mat3::from_f32(
+            .expect_result_mat3(crate::dec32::Mat3::from_f32(
                 1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 9.0,
             ))
             .run()
@@ -152,14 +152,14 @@ mod tests {
     #[test]
     fn test_mat3_identity() -> Result<(), String> {
         ExprTest::new("mat3(1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 1.0)")
-            .expect_result_mat3(crate::fixed::Mat3::identity())
+            .expect_result_mat3(crate::dec32::Mat3::identity())
             .run()
     }
 
     #[test]
     fn test_mat3_zero() -> Result<(), String> {
         ExprTest::new("mat3(0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0)")
-            .expect_result_mat3(crate::fixed::Mat3::zero())
+            .expect_result_mat3(crate::dec32::Mat3::zero())
             .run()
     }
 
@@ -167,7 +167,7 @@ mod tests {
     fn test_mat3_from_mixed_components() -> Result<(), String> {
         // Mat3 from vec2 + scalars
         ExprTest::new("mat3(vec2(1.0, 2.0), 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 9.0)")
-            .expect_result_mat3(crate::fixed::Mat3::from_f32(
+            .expect_result_mat3(crate::dec32::Mat3::from_f32(
                 1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 9.0,
             ))
             .run()?;
@@ -180,7 +180,7 @@ mod tests {
     #[test]
     fn test_mat3_negative_values() -> Result<(), String> {
         ExprTest::new("mat3(-1.0, -2.0, -3.0, -4.0, -5.0, -6.0, -7.0, -8.0, -9.0)")
-            .expect_result_mat3(crate::fixed::Mat3::from_f32(
+            .expect_result_mat3(crate::dec32::Mat3::from_f32(
                 -1.0, -2.0, -3.0, -4.0, -5.0, -6.0, -7.0, -8.0, -9.0,
             ))
             .run()

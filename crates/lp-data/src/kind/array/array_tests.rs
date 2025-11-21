@@ -5,7 +5,7 @@ mod tests {
     use lp_alloc::{
         enter_global_alloc_allowance, init_test_allocator, AllocLimitError as AllocError,
     };
-    use lp_math::fixed::Fixed;
+    use lp_math::dec32::Dec32;
 
     use crate::kind::array::array_dyn::ArrayShapeDyn;
     use crate::kind::array::array_meta::ArrayMetaDyn;
@@ -13,7 +13,7 @@ mod tests {
     use crate::kind::array::array_static::ArrayShapeStatic;
     use crate::kind::array::array_value::ArrayValue;
     use crate::kind::array::ArrayValueDyn;
-    use crate::kind::fixed::fixed_static::FIXED_SHAPE;
+    use crate::kind::dec32::dec32_static::DEC32_SHAPE;
     use crate::kind::int32::int32_static::INT32_SHAPE;
     use crate::kind::kind::LpKind;
     use crate::kind::shape::LpShape;
@@ -181,11 +181,11 @@ mod tests {
                 .push(valid_value)
                 .map_err(|_| AllocError::SoftLimitExceeded)?;
 
-            // Try to push invalid Fixed value - should fail
-            let invalid_value = LpValueBox::from(Fixed::ZERO);
+            // Try to push invalid Dec32 value - should fail
+            let invalid_value = LpValueBox::from(Dec32::ZERO);
             assert!(
                 array.push(invalid_value).is_err(),
-                "Should reject Fixed value in Int32 array"
+                "Should reject Dec32 value in Int32 array"
             );
 
             Ok::<(), AllocError>(())
@@ -277,7 +277,7 @@ mod tests {
     }
 
     #[test]
-    fn test_array_value_dyn_with_fixed_elements() {
+    fn test_array_value_dyn_with_dec32_elements() {
         let pool = setup_pool();
         pool.run(|| {
             let shape_name = Ok::<_, AllocError>("FixedArray".to_string())?;
@@ -286,13 +286,13 @@ mod tests {
                     name: shape_name,
                     docs: None,
                 },
-                element_shape: &FIXED_SHAPE,
+                element_shape: &DEC32_SHAPE,
                 len: 0,
             };
             let mut array = ArrayValueDyn::new(shape);
 
-            let value1 = LpValueBox::from(Fixed::ZERO);
-            let value2 = LpValueBox::from(Fixed::from_i32(42));
+            let value1 = LpValueBox::from(Dec32::ZERO);
+            let value2 = LpValueBox::from(Dec32::from_i32(42));
 
             array
                 .push(value1)
@@ -304,7 +304,7 @@ mod tests {
             assert_eq!(array.len(), 2);
             assert_eq!(
                 ArrayValue::shape(&array).element_shape().kind(),
-                LpKind::Fixed
+                LpKind::Dec32
             );
 
             Ok::<(), AllocError>(())

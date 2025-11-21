@@ -16,7 +16,7 @@ use crate::kind::option::option_value::OptionValue;
 use crate::kind::record::record_value::RecordValue;
 
 pub enum LpValueBox {
-    Fixed(Box<dyn LpValue>),
+    Dec32(Box<dyn LpValue>),
     Int32(Box<dyn LpValue>),
     Bool(Box<dyn LpValue>),
     Vec2(Box<dyn LpValue>),
@@ -36,7 +36,7 @@ pub enum LpValueBox {
 /// without downcasting. This is the reference equivalent of LpValueBox.
 #[derive(Copy, Clone)]
 pub enum LpValueRef<'a> {
-    Fixed(&'a dyn LpValue),
+    Dec32(&'a dyn LpValue),
     Int32(&'a dyn LpValue),
     Bool(&'a dyn LpValue),
     Vec2(&'a dyn LpValue),
@@ -54,7 +54,7 @@ impl<'a> LpValueRef<'a> {
     /// Get a reference to the value as LpValue.
     pub fn as_lp_value(&self) -> &'a dyn LpValue {
         match self {
-            LpValueRef::Fixed(v) => *v,
+            LpValueRef::Dec32(v) => *v,
             LpValueRef::Int32(v) => *v,
             LpValueRef::Bool(v) => *v,
             LpValueRef::Vec2(v) => *v,
@@ -83,7 +83,7 @@ impl<'a> core::ops::Deref for LpValueRef<'a> {
 /// Preserves type information so that RecordValue methods can be called
 /// without downcasting. This is the mutable reference equivalent of LpValueBox.
 pub enum LpValueRefMut<'a> {
-    Fixed(&'a mut dyn LpValue),
+    Dec32(&'a mut dyn LpValue),
     Int32(&'a mut dyn LpValue),
     Bool(&'a mut dyn LpValue),
     Vec2(&'a mut dyn LpValue),
@@ -101,7 +101,7 @@ impl<'a> LpValueRefMut<'a> {
     /// Get a mutable reference to the value as LpValue.
     pub fn as_lp_value_mut(&mut self) -> &mut dyn LpValue {
         match self {
-            LpValueRefMut::Fixed(v) => *v,
+            LpValueRefMut::Dec32(v) => *v,
             LpValueRefMut::Int32(v) => *v,
             LpValueRefMut::Bool(v) => *v,
             LpValueRefMut::Vec2(v) => *v,
@@ -122,7 +122,7 @@ impl<'a> core::ops::Deref for LpValueRefMut<'a> {
 
     fn deref(&self) -> &Self::Target {
         match self {
-            LpValueRefMut::Fixed(v) => *v,
+            LpValueRefMut::Dec32(v) => *v,
             LpValueRefMut::Int32(v) => *v,
             LpValueRefMut::Bool(v) => *v,
             LpValueRefMut::Vec2(v) => *v,
@@ -141,7 +141,7 @@ impl<'a> core::ops::Deref for LpValueRefMut<'a> {
 impl<'a> core::ops::DerefMut for LpValueRefMut<'a> {
     fn deref_mut(&mut self) -> &mut Self::Target {
         match self {
-            LpValueRefMut::Fixed(v) => *v,
+            LpValueRefMut::Dec32(v) => *v,
             LpValueRefMut::Int32(v) => *v,
             LpValueRefMut::Bool(v) => *v,
             LpValueRefMut::Vec2(v) => *v,
@@ -159,7 +159,7 @@ impl<'a> core::ops::DerefMut for LpValueRefMut<'a> {
 
 /// Base trait for all runtime values.
 ///
-/// Values are concrete instances of data. Rust types like `Fixed` or `LfoConfig`
+/// Values are concrete instances of data. Rust types like `Dec32` or `LfoConfig`
 /// implement this trait directly - they ARE the values, not wrappers.
 pub trait LpValue {
     /// Get the shape reference for this value.
@@ -177,7 +177,7 @@ impl serde::Serialize for LpValueBox {
     {
         serialize_lp_value_ref(
             match self {
-                LpValueBox::Fixed(boxed) => LpValueRef::Fixed(boxed.as_ref()),
+                LpValueBox::Dec32(boxed) => LpValueRef::Dec32(boxed.as_ref()),
                 LpValueBox::Int32(boxed) => LpValueRef::Int32(boxed.as_ref()),
                 LpValueBox::Bool(boxed) => LpValueRef::Bool(boxed.as_ref()),
                 LpValueBox::Vec2(boxed) => LpValueRef::Vec2(boxed.as_ref()),
@@ -202,13 +202,13 @@ where
 {
     use serde::Serialize;
     match value_ref {
-        LpValueRef::Fixed(fixed_ref) => {
-            use lp_math::fixed::Fixed;
+        LpValueRef::Dec32(dec32_ref) => {
+            use lp_math::dec32::Dec32;
             use serde::Serialize;
-            // SAFETY: We know this is a Fixed because it's in the Fixed variant
-            // The vtable pointer points to Fixed's implementation
-            let fixed_value = unsafe { &*(fixed_ref as *const dyn LpValue as *const Fixed) };
-            fixed_value.serialize(serializer)
+            // SAFETY: We know this is a Dec32 because it's in the Dec32 variant
+            // The vtable pointer points to Dec32's implementation
+            let dec32_value = unsafe { &*(dec32_ref as *const dyn LpValue as *const Dec32) };
+            dec32_value.serialize(serializer)
         }
         LpValueRef::Int32(int32_ref) => {
             use serde::Serialize;
@@ -223,28 +223,28 @@ where
             bool_value.serialize(serializer)
         }
         LpValueRef::Vec2(vec2_ref) => {
-            use lp_math::fixed::Vec2;
+            use lp_math::dec32::Vec2;
             use serde::Serialize;
             // SAFETY: We know this is a Vec2 because it's in the Vec2 variant
             let vec2_value = unsafe { &*(vec2_ref as *const dyn LpValue as *const Vec2) };
             vec2_value.serialize(serializer)
         }
         LpValueRef::Vec3(vec3_ref) => {
-            use lp_math::fixed::Vec3;
+            use lp_math::dec32::Vec3;
             use serde::Serialize;
             // SAFETY: We know this is a Vec3 because it's in the Vec3 variant
             let vec3_value = unsafe { &*(vec3_ref as *const dyn LpValue as *const Vec3) };
             vec3_value.serialize(serializer)
         }
         LpValueRef::Vec4(vec4_ref) => {
-            use lp_math::fixed::Vec4;
+            use lp_math::dec32::Vec4;
             use serde::Serialize;
             // SAFETY: We know this is a Vec4 because it's in the Vec4 variant
             let vec4_value = unsafe { &*(vec4_ref as *const dyn LpValue as *const Vec4) };
             vec4_value.serialize(serializer)
         }
         LpValueRef::Mat3(mat3_ref) => {
-            use lp_math::fixed::Mat3;
+            use lp_math::dec32::Mat3;
             use serde::Serialize;
             // SAFETY: We know this is a Mat3 because it's in the Mat3 variant
             let mat3_value = unsafe { &*(mat3_ref as *const dyn LpValue as *const Mat3) };

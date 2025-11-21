@@ -3,8 +3,8 @@
 /// Basic kinds of data in the lp-data system.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum LpKind {
-    /// Fixed-point number (16.16 format)
-    Fixed,
+    /// Dec32-point number (16.16 format)
+    Dec32,
 
     /// 32-bit signed integer
     Int32,

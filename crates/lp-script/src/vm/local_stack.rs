@@ -6,7 +6,7 @@ use alloc::vec::Vec;
 
 use super::error::LpsVmError;
 use super::lps_program::LocalVarDef;
-use crate::fixed::{Fixed, Mat3};
+use crate::dec32::{Dec32, Mat3};
 use crate::shared::Type;
 
 impl LocalStack {
@@ -149,27 +149,27 @@ impl LocalStack {
         Ok(())
     }
 
-    /// Get a Fixed value from a local (absolute index)
+    /// Get a Dec32 value from a local (absolute index)
     #[inline(always)]
-    pub fn get_fixed(&self, idx: usize) -> Result<Fixed, LpsVmError> {
+    pub fn get_dec32(&self, idx: usize) -> Result<Dec32, LpsVmError> {
         let meta = self.get_metadata(idx)?;
 
-        if meta.ty != Type::Fixed && meta.ty != Type::Bool {
+        if meta.ty != Type::Dec32 && meta.ty != Type::Bool {
             return Err(LpsVmError::TypeMismatch);
         }
 
-        Ok(Fixed(self.data[meta.offset]))
+        Ok(Dec32(self.data[meta.offset]))
     }
 
-    /// Set a Fixed value to a local (absolute index)
+    /// Set a Dec32 value to a local (absolute index)
     #[inline(always)]
-    pub fn set_fixed(&mut self, idx: usize, value: Fixed) -> Result<(), LpsVmError> {
+    pub fn set_dec32(&mut self, idx: usize, value: Dec32) -> Result<(), LpsVmError> {
         let (offset, ty) = {
             let meta = self.get_metadata(idx)?;
             (meta.offset, meta.ty.clone())
         };
 
-        if ty != Type::Fixed && ty != Type::Bool {
+        if ty != Type::Dec32 && ty != Type::Bool {
             return Err(LpsVmError::TypeMismatch);
         }
 
@@ -207,21 +207,21 @@ impl LocalStack {
 
     /// Get a Vec2 value from a local (absolute index)
     #[inline(always)]
-    pub fn get_vec2(&self, idx: usize) -> Result<(Fixed, Fixed), LpsVmError> {
+    pub fn get_vec2(&self, idx: usize) -> Result<(Dec32, Dec32), LpsVmError> {
         let meta = self.get_metadata(idx)?;
 
         if meta.ty != Type::Vec2 {
             return Err(LpsVmError::TypeMismatch);
         }
 
-        let x = Fixed(self.data[meta.offset]);
-        let y = Fixed(self.data[meta.offset + 1]);
+        let x = Dec32(self.data[meta.offset]);
+        let y = Dec32(self.data[meta.offset + 1]);
         Ok((x, y))
     }
 
     /// Set a Vec2 value to a local (absolute index)
     #[inline(always)]
-    pub fn set_vec2(&mut self, idx: usize, x: Fixed, y: Fixed) -> Result<(), LpsVmError> {
+    pub fn set_vec2(&mut self, idx: usize, x: Dec32, y: Dec32) -> Result<(), LpsVmError> {
         let (offset, ty) = {
             let meta = self.get_metadata(idx)?;
             (meta.offset, meta.ty.clone())
@@ -238,22 +238,22 @@ impl LocalStack {
 
     /// Get a Vec3 value from a local (absolute index)
     #[inline(always)]
-    pub fn get_vec3(&self, idx: usize) -> Result<(Fixed, Fixed, Fixed), LpsVmError> {
+    pub fn get_vec3(&self, idx: usize) -> Result<(Dec32, Dec32, Dec32), LpsVmError> {
         let meta = self.get_metadata(idx)?;
 
         if meta.ty != Type::Vec3 {
             return Err(LpsVmError::TypeMismatch);
         }
 
-        let x = Fixed(self.data[meta.offset]);
-        let y = Fixed(self.data[meta.offset + 1]);
-        let z = Fixed(self.data[meta.offset + 2]);
+        let x = Dec32(self.data[meta.offset]);
+        let y = Dec32(self.data[meta.offset + 1]);
+        let z = Dec32(self.data[meta.offset + 2]);
         Ok((x, y, z))
     }
 
     /// Set a Vec3 value to a local (absolute index)
     #[inline(always)]
-    pub fn set_vec3(&mut self, idx: usize, x: Fixed, y: Fixed, z: Fixed) -> Result<(), LpsVmError> {
+    pub fn set_vec3(&mut self, idx: usize, x: Dec32, y: Dec32, z: Dec32) -> Result<(), LpsVmError> {
         let (offset, ty) = {
             let meta = self.get_metadata(idx)?;
             (meta.offset, meta.ty.clone())
@@ -271,17 +271,17 @@ impl LocalStack {
 
     /// Get a Vec4 value from a local (absolute index)
     #[inline(always)]
-    pub fn get_vec4(&self, idx: usize) -> Result<(Fixed, Fixed, Fixed, Fixed), LpsVmError> {
+    pub fn get_vec4(&self, idx: usize) -> Result<(Dec32, Dec32, Dec32, Dec32), LpsVmError> {
         let meta = self.get_metadata(idx)?;
 
         if meta.ty != Type::Vec4 {
             return Err(LpsVmError::TypeMismatch);
         }
 
-        let x = Fixed(self.data[meta.offset]);
-        let y = Fixed(self.data[meta.offset + 1]);
-        let z = Fixed(self.data[meta.offset + 2]);
-        let w = Fixed(self.data[meta.offset + 3]);
+        let x = Dec32(self.data[meta.offset]);
+        let y = Dec32(self.data[meta.offset + 1]);
+        let z = Dec32(self.data[meta.offset + 2]);
+        let w = Dec32(self.data[meta.offset + 3]);
         Ok((x, y, z, w))
     }
 
@@ -290,10 +290,10 @@ impl LocalStack {
     pub fn set_vec4(
         &mut self,
         idx: usize,
-        x: Fixed,
-        y: Fixed,
-        z: Fixed,
-        w: Fixed,
+        x: Dec32,
+        y: Dec32,
+        z: Dec32,
+        w: Dec32,
     ) -> Result<(), LpsVmError> {
         let (offset, ty) = {
             let meta = self.get_metadata(idx)?;
@@ -321,15 +321,15 @@ impl LocalStack {
         }
 
         Ok(Mat3::new(
-            Fixed(self.data[meta.offset]),
-            Fixed(self.data[meta.offset + 1]),
-            Fixed(self.data[meta.offset + 2]),
-            Fixed(self.data[meta.offset + 3]),
-            Fixed(self.data[meta.offset + 4]),
-            Fixed(self.data[meta.offset + 5]),
-            Fixed(self.data[meta.offset + 6]),
-            Fixed(self.data[meta.offset + 7]),
-            Fixed(self.data[meta.offset + 8]),
+            Dec32(self.data[meta.offset]),
+            Dec32(self.data[meta.offset + 1]),
+            Dec32(self.data[meta.offset + 2]),
+            Dec32(self.data[meta.offset + 3]),
+            Dec32(self.data[meta.offset + 4]),
+            Dec32(self.data[meta.offset + 5]),
+            Dec32(self.data[meta.offset + 6]),
+            Dec32(self.data[meta.offset + 7]),
+            Dec32(self.data[meta.offset + 8]),
         ))
     }
 
@@ -407,11 +407,11 @@ impl LocalStack {
         Some(self.data[offset..offset + size].to_vec())
     }
 
-    /// Get a Fixed local by name (for debugging/testing)
-    pub fn get_fixed_by_name(&self, name: &str) -> Option<Fixed> {
+    /// Get a Dec32 local by name (for debugging/testing)
+    pub fn get_dec32_by_name(&self, name: &str) -> Option<Dec32> {
         let meta = self.metadata.iter().find(|m| m.name.as_str() == name)?;
-        if meta.ty == Type::Fixed || meta.ty == Type::Bool {
-            Some(Fixed(self.data[meta.offset]))
+        if meta.ty == Type::Dec32 || meta.ty == Type::Bool {
+            Some(Dec32(self.data[meta.offset]))
         } else {
             None
         }
@@ -428,11 +428,11 @@ impl LocalStack {
     }
 
     /// Get a Vec2 local by name (for debugging/testing)
-    pub fn get_vec2_by_name(&self, name: &str) -> Option<(Fixed, Fixed)> {
+    pub fn get_vec2_by_name(&self, name: &str) -> Option<(Dec32, Dec32)> {
         let meta = self.metadata.iter().find(|m| m.name.as_str() == name)?;
         if meta.ty == Type::Vec2 {
-            let x = Fixed(self.data[meta.offset]);
-            let y = Fixed(self.data[meta.offset + 1]);
+            let x = Dec32(self.data[meta.offset]);
+            let y = Dec32(self.data[meta.offset + 1]);
             Some((x, y))
         } else {
             None
@@ -440,12 +440,12 @@ impl LocalStack {
     }
 
     /// Get a Vec3 local by name (for debugging/testing)
-    pub fn get_vec3_by_name(&self, name: &str) -> Option<(Fixed, Fixed, Fixed)> {
+    pub fn get_vec3_by_name(&self, name: &str) -> Option<(Dec32, Dec32, Dec32)> {
         let meta = self.metadata.iter().find(|m| m.name.as_str() == name)?;
         if meta.ty == Type::Vec3 {
-            let x = Fixed(self.data[meta.offset]);
-            let y = Fixed(self.data[meta.offset + 1]);
-            let z = Fixed(self.data[meta.offset + 2]);
+            let x = Dec32(self.data[meta.offset]);
+            let y = Dec32(self.data[meta.offset + 1]);
+            let z = Dec32(self.data[meta.offset + 2]);
             Some((x, y, z))
         } else {
             None
@@ -453,13 +453,13 @@ impl LocalStack {
     }
 
     /// Get a Vec4 local by name (for debugging/testing)
-    pub fn get_vec4_by_name(&self, name: &str) -> Option<(Fixed, Fixed, Fixed, Fixed)> {
+    pub fn get_vec4_by_name(&self, name: &str) -> Option<(Dec32, Dec32, Dec32, Dec32)> {
         let meta = self.metadata.iter().find(|m| m.name == name)?;
         if meta.ty == Type::Vec4 {
-            let x = Fixed(self.data[meta.offset]);
-            let y = Fixed(self.data[meta.offset + 1]);
-            let z = Fixed(self.data[meta.offset + 2]);
-            let w = Fixed(self.data[meta.offset + 3]);
+            let x = Dec32(self.data[meta.offset]);
+            let y = Dec32(self.data[meta.offset + 1]);
+            let z = Dec32(self.data[meta.offset + 2]);
+            let w = Dec32(self.data[meta.offset + 3]);
             Some((x, y, z, w))
         } else {
             None
@@ -478,7 +478,7 @@ impl LocalStack {
 /// Metadata for a single local variable
 ///
 /// Maps a logical local index to its physical location and type in the i32 array.
-/// This enables efficient storage: Fixed uses 1 i32, Vec2 uses 2, Vec4 uses 4, etc.
+/// This enables efficient storage: Dec32 uses 1 i32, Vec2 uses 2, Vec4 uses 4, etc.
 #[derive(Debug)]
 struct LocalMetadata {
     name: String,  // For debugging
@@ -491,7 +491,7 @@ struct LocalMetadata {
 ///
 /// Uses a raw i32 array instead of enum variants to minimize wasted space.
 /// Each local variable is allocated based on its actual size:
-/// - Fixed: 1 i32
+/// - Dec32: 1 i32
 /// - Vec2: 2 i32s
 /// - Vec3: 3 i32s
 /// - Vec4: 4 i32s
@@ -509,7 +509,7 @@ pub struct LocalStack {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::fixed::ToFixed;
+    use crate::dec32::ToDec32;
     use crate::vm::lps_program::LocalVarDef;
 
     #[test]
@@ -524,9 +524,9 @@ mod tests {
     fn test_allocate_deallocate() {
         let mut storage = LocalStack::new(1024);
 
-        // Allocate 3 locals: Fixed, Vec2, Vec4
+        // Allocate 3 locals: Dec32, Vec2, Vec4
         let defs = vec![
-            LocalVarDef::new("x".into(), Type::Fixed),
+            LocalVarDef::new("x".into(), Type::Dec32),
             LocalVarDef::new("v".into(), Type::Vec2),
             LocalVarDef::new("color".into(), Type::Vec4),
         ];
@@ -543,16 +543,16 @@ mod tests {
     }
 
     #[test]
-    fn test_fixed_get_set() {
+    fn test_dec32_get_set() {
         let mut storage = LocalStack::new(64);
 
-        let defs = vec![LocalVarDef::new("x".into(), Type::Fixed)];
+        let defs = vec![LocalVarDef::new("x".into(), Type::Dec32)];
         storage.allocate_locals(&defs).unwrap();
 
         storage
-            .set_fixed(0, std::f32::consts::PI.to_fixed())
+            .set_dec32(0, std::f32::consts::PI.to_dec32())
             .unwrap();
-        let val = storage.get_fixed(0).unwrap();
+        let val = storage.get_dec32(0).unwrap();
         assert!((val.to_f32() - std::f32::consts::PI).abs() < 0.01);
     }
 
@@ -575,7 +575,7 @@ mod tests {
         let defs = vec![LocalVarDef::new("pos".into(), Type::Vec2)];
         storage.allocate_locals(&defs).unwrap();
 
-        storage.set_vec2(0, 1.0.to_fixed(), 2.0.to_fixed()).unwrap();
+        storage.set_vec2(0, 1.0.to_dec32(), 2.0.to_dec32()).unwrap();
         let (x, y) = storage.get_vec2(0).unwrap();
         assert_eq!(x.to_f32(), 1.0);
         assert_eq!(y.to_f32(), 2.0);
@@ -589,7 +589,7 @@ mod tests {
         storage.allocate_locals(&defs).unwrap();
 
         storage
-            .set_vec3(0, 1.0.to_fixed(), 2.0.to_fixed(), 3.0.to_fixed())
+            .set_vec3(0, 1.0.to_dec32(), 2.0.to_dec32(), 3.0.to_dec32())
             .unwrap();
         let (x, y, z) = storage.get_vec3(0).unwrap();
         assert_eq!(x.to_f32(), 1.0);
@@ -607,10 +607,10 @@ mod tests {
         storage
             .set_vec4(
                 0,
-                1.0.to_fixed(),
-                2.0.to_fixed(),
-                3.0.to_fixed(),
-                4.0.to_fixed(),
+                1.0.to_dec32(),
+                2.0.to_dec32(),
+                3.0.to_dec32(),
+                4.0.to_dec32(),
             )
             .unwrap();
         let (x, y, z, w) = storage.get_vec4(0).unwrap();
@@ -624,38 +624,38 @@ mod tests {
     fn test_multiple_locals_layout() {
         let mut storage = LocalStack::new(1024);
 
-        // Allocate: Fixed at offset 0, Vec2 at offset 1-2, Fixed at offset 3
+        // Allocate: Dec32 at offset 0, Vec2 at offset 1-2, Dec32 at offset 3
         let defs = vec![
-            LocalVarDef::new("x".into(), Type::Fixed),
+            LocalVarDef::new("x".into(), Type::Dec32),
             LocalVarDef::new("pos".into(), Type::Vec2),
-            LocalVarDef::new("y".into(), Type::Fixed),
+            LocalVarDef::new("y".into(), Type::Dec32),
         ];
 
         storage.allocate_locals(&defs).unwrap();
 
         // Set values
-        storage.set_fixed(0, 10.0.to_fixed()).unwrap();
+        storage.set_dec32(0, 10.0.to_dec32()).unwrap();
         storage
-            .set_vec2(1, 20.0.to_fixed(), 30.0.to_fixed())
+            .set_vec2(1, 20.0.to_dec32(), 30.0.to_dec32())
             .unwrap();
-        storage.set_fixed(2, 40.0.to_fixed()).unwrap();
+        storage.set_dec32(2, 40.0.to_dec32()).unwrap();
 
         // Verify values
-        assert_eq!(storage.get_fixed(0).unwrap().to_f32(), 10.0);
+        assert_eq!(storage.get_dec32(0).unwrap().to_f32(), 10.0);
         let (x, y) = storage.get_vec2(1).unwrap();
         assert_eq!(x.to_f32(), 20.0);
         assert_eq!(y.to_f32(), 30.0);
-        assert_eq!(storage.get_fixed(2).unwrap().to_f32(), 40.0);
+        assert_eq!(storage.get_dec32(2).unwrap().to_f32(), 40.0);
     }
 
     #[test]
     fn test_type_mismatch() {
         let mut storage = LocalStack::new(64);
 
-        let defs = vec![LocalVarDef::new("x".into(), Type::Fixed)];
+        let defs = vec![LocalVarDef::new("x".into(), Type::Dec32)];
         storage.allocate_locals(&defs).unwrap();
 
-        // Try to access as Int32 when it's Fixed
+        // Try to access as Int32 when it's Dec32
         let result = storage.get_int32(0);
         assert!(matches!(result, Err(LpsVmError::TypeMismatch)));
     }
@@ -664,11 +664,11 @@ mod tests {
     fn test_out_of_bounds() {
         let mut storage = LocalStack::new(64);
 
-        let defs = vec![LocalVarDef::new("x".into(), Type::Fixed)];
+        let defs = vec![LocalVarDef::new("x".into(), Type::Dec32)];
         storage.allocate_locals(&defs).unwrap();
 
         // Try to access non-existent local
-        let result = storage.get_fixed(10);
+        let result = storage.get_dec32(10);
         assert!(matches!(
             result,
             Err(LpsVmError::LocalOutOfBounds {
@@ -682,9 +682,9 @@ mod tests {
     fn test_frame_simulation() {
         let mut storage = LocalStack::new(1024);
 
-        // Main function: Fixed, Vec2
+        // Main function: Dec32, Vec2
         let main_defs = vec![
-            LocalVarDef::new("time".into(), Type::Fixed),
+            LocalVarDef::new("time".into(), Type::Dec32),
             LocalVarDef::new("resolution".into(), Type::Vec2),
         ];
         let main_base = storage.allocate_locals(&main_defs).unwrap();
@@ -704,10 +704,10 @@ mod tests {
         storage
             .set_vec4(
                 2,
-                1.0.to_fixed(),
-                0.0.to_fixed(),
-                0.0.to_fixed(),
-                1.0.to_fixed(),
+                1.0.to_dec32(),
+                0.0.to_dec32(),
+                0.0.to_dec32(),
+                1.0.to_dec32(),
             )
             .unwrap();
         storage.set_int32(3, 99).unwrap();
@@ -723,8 +723,8 @@ mod tests {
         assert_eq!(storage.sp(), 3);
 
         // Main locals should still be accessible
-        storage.set_fixed(0, 1.5.to_fixed()).unwrap();
-        assert_eq!(storage.get_fixed(0).unwrap().to_f32(), 1.5);
+        storage.set_dec32(0, 1.5.to_dec32()).unwrap();
+        assert_eq!(storage.get_dec32(0).unwrap().to_f32(), 1.5);
     }
 
     #[test]
@@ -733,7 +733,7 @@ mod tests {
 
         // Allocate locals with names
         let defs = vec![
-            LocalVarDef::new("time".into(), Type::Fixed),
+            LocalVarDef::new("time".into(), Type::Dec32),
             LocalVarDef::new("position".into(), Type::Vec2),
             LocalVarDef::new("count".into(), Type::Int32),
             LocalVarDef::new("color".into(), Type::Vec4),
@@ -741,23 +741,23 @@ mod tests {
         storage.allocate_locals(&defs).unwrap();
 
         // Set values
-        storage.set_fixed(0, 1.5.to_fixed()).unwrap();
+        storage.set_dec32(0, 1.5.to_dec32()).unwrap();
         storage
-            .set_vec2(1, 10.0.to_fixed(), 20.0.to_fixed())
+            .set_vec2(1, 10.0.to_dec32(), 20.0.to_dec32())
             .unwrap();
         storage.set_int32(2, 42).unwrap();
         storage
             .set_vec4(
                 3,
-                1.0.to_fixed(),
-                0.5.to_fixed(),
-                0.25.to_fixed(),
-                1.0.to_fixed(),
+                1.0.to_dec32(),
+                0.5.to_dec32(),
+                0.25.to_dec32(),
+                1.0.to_dec32(),
             )
             .unwrap();
 
         // Get by name
-        assert_eq!(storage.get_fixed_by_name("time").unwrap().to_f32(), 1.5);
+        assert_eq!(storage.get_dec32_by_name("time").unwrap().to_f32(), 1.5);
 
         let (x, y) = storage.get_vec2_by_name("position").unwrap();
         assert_eq!(x.to_f32(), 10.0);
@@ -772,7 +772,7 @@ mod tests {
         assert_eq!(a.to_f32(), 1.0);
 
         // Test not found
-        assert!(storage.get_fixed_by_name("nonexistent").is_none());
+        assert!(storage.get_dec32_by_name("nonexistent").is_none());
     }
 
     #[test]
@@ -780,7 +780,7 @@ mod tests {
         let mut storage = LocalStack::new(1024);
 
         let defs = vec![
-            LocalVarDef::new("x".into(), Type::Fixed),
+            LocalVarDef::new("x".into(), Type::Dec32),
             LocalVarDef::new("pos".into(), Type::Vec2),
             LocalVarDef::new("count".into(), Type::Int32),
         ];
@@ -789,7 +789,7 @@ mod tests {
         let locals_list = storage.list_locals();
         assert_eq!(locals_list.len(), 3);
         assert_eq!(locals_list[0].0, "x");
-        assert_eq!(locals_list[0].1, Type::Fixed);
+        assert_eq!(locals_list[0].1, Type::Dec32);
         assert_eq!(locals_list[1].0, "pos");
         assert_eq!(locals_list[1].1, Type::Vec2);
         assert_eq!(locals_list[2].0, "count");

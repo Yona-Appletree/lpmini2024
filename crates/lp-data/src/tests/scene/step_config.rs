@@ -1,4 +1,4 @@
-use lp_math::fixed::Fixed;
+use lp_math::dec32::Dec32;
 
 /// Union type for different step configurations
 #[derive(
@@ -8,7 +8,7 @@ pub enum StepConfig {
     /// Expression step variant
     Expr {
         /// Expression output value
-        output: Fixed,
+        output: Dec32,
         /// Expression parameter count
         param_count: i32,
     },
@@ -17,11 +17,11 @@ pub enum StepConfig {
         /// Palette size
         size: i32,
         /// Brightness multiplier
-        brightness: Fixed,
+        brightness: Dec32,
     },
     /// Blur step variant
     Blur {
         /// Blur radius
-        radius: Fixed,
+        radius: Dec32,
     },
 }

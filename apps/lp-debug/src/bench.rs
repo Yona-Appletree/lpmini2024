@@ -4,7 +4,7 @@ use std::time::Instant;
 use engine_core::test_engine::demo_program::create_demo_scene;
 use engine_core::test_engine::scene::SceneRuntime;
 use engine_core::test_engine::RuntimeOptions;
-use lp_script::fixed::ToFixed;
+use lp_script::dec32::ToDec32;
 
 const FRAME_COUNT: u32 = 1000;
 
@@ -17,7 +17,7 @@ fn benchmark_size(width: usize, height: usize) {
     let start = Instant::now();
 
     for i in 0..FRAME_COUNT {
-        let time = (i as f32 * 0.01).to_fixed();
+        let time = (i as f32 * 0.01).to_dec32();
         scene.render(time, 1).expect("Render failed");
     }
 

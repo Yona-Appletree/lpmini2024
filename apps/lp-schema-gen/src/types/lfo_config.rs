@@ -1,4 +1,4 @@
-use lp_math::fixed::Fixed;
+use lp_math::dec32::Dec32;
 use serde::{Deserialize, Serialize};
 
 #[allow(dead_code)]
@@ -12,22 +12,22 @@ pub enum LfoWaveformShape {
     Sawtooth,
 }
 
-/// Range type for LFO (min, max as Fixed)
+/// Range type for LFO (min, max as Dec32)
 #[allow(dead_code)]
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct LfoRange {
     /// Minimum value
-    pub min: Fixed,
+    pub min: Dec32,
 
     /// Maximum value
-    pub max: Fixed,
+    pub max: Dec32,
 }
 
 impl Default for LfoRange {
     fn default() -> Self {
         LfoRange {
-            min: Fixed::from_f32(0.0),
-            max: Fixed::from_f32(1.0),
+            min: Dec32::from_f32(0.0),
+            max: Dec32::from_f32(1.0),
         }
     }
 }
@@ -60,6 +60,6 @@ impl Default for LfoConfig {
 #[allow(dead_code)]
 pub type LfoShape = LfoWaveformShape;
 
-// Manual implementations until LpSchema derive is fixed
+// Manual implementations until LpSchema derive is dec32
 // These types need to implement LpValue first - for now this is a placeholder
 // TODO: Implement LpValue for these types or fix LpSchema derive

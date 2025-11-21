@@ -17,9 +17,9 @@ impl<'a> CodeGenerator<'a> {
             ExprKind::Number(n) => self.gen_number(*n),
             ExprKind::IntNumber(n) => {
                 self.gen_int_number(*n);
-                // If Int32 was promoted to Fixed, emit conversion
-                if expr_ty == Some(&crate::shared::Type::Fixed) {
-                    self.code.push(LpsOpCode::Int32ToFixed);
+                // If Int32 was promoted to Dec32, emit conversion
+                if expr_ty == Some(&crate::shared::Type::Dec32) {
+                    self.code.push(LpsOpCode::Int32ToDec32);
                 }
             }
             ExprKind::Variable(name) => {

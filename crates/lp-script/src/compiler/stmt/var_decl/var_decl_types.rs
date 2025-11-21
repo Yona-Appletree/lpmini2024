@@ -24,9 +24,9 @@ impl TypeChecker {
 
             // Check type matches
             if ty != init_ty {
-                // Allow int -> fixed promotion
-                if *ty == Type::Fixed && *init_ty == Type::Int32 {
-                    init_expr.ty = Some(Type::Fixed);
+                // Allow int -> dec32 promotion
+                if *ty == Type::Dec32 && *init_ty == Type::Int32 {
+                    init_expr.ty = Some(Type::Dec32);
                 } else {
                     return Err(TypeError {
                         kind: TypeErrorKind::Mismatch {

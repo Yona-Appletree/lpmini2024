@@ -10,7 +10,7 @@ mod tests {
         ExprTest::new("x")
             .expect_opcodes(vec![LpsOpCode::Load(LoadSource::XNorm), LpsOpCode::Return])
             .with_x(0.7)
-            .expect_result_fixed(0.7)
+            .expect_result_dec32(0.7)
             .run()
     }
 
@@ -18,7 +18,7 @@ mod tests {
     fn test_builtin_variable_y() -> Result<(), String> {
         ExprTest::new("y")
             .with_y(0.3)
-            .expect_result_fixed(0.3)
+            .expect_result_dec32(0.3)
             .run()
     }
 
@@ -27,7 +27,7 @@ mod tests {
         ExprTest::new("time")
             .expect_opcodes(vec![LpsOpCode::Load(LoadSource::Time), LpsOpCode::Return])
             .with_time(5.0)
-            .expect_result_fixed(5.0)
+            .expect_result_dec32(5.0)
             .run()
     }
 
@@ -35,7 +35,7 @@ mod tests {
     fn test_legacy_variable_xnorm() -> Result<(), String> {
         ExprTest::new("xNorm")
             .with_x(0.3)
-            .expect_result_fixed(0.3)
+            .expect_result_dec32(0.3)
             .run()
     }
 
@@ -43,7 +43,7 @@ mod tests {
     fn test_legacy_variable_ynorm() -> Result<(), String> {
         ExprTest::new("yNorm")
             .with_y(0.8)
-            .expect_result_fixed(0.8)
+            .expect_result_dec32(0.8)
             .run()
     }
 
@@ -52,13 +52,13 @@ mod tests {
         ExprTest::new("x + y")
             .with_x(0.3)
             .with_y(0.7)
-            .expect_result_fixed(1.0)
+            .expect_result_dec32(1.0)
             .run()?;
 
         ExprTest::new("x * y")
             .with_x(2.0)
             .with_y(3.0)
-            .expect_result_fixed(6.0)
+            .expect_result_dec32(6.0)
             .run()
     }
 
@@ -67,12 +67,12 @@ mod tests {
         // uv is a built-in vec2, so uv.x should work
         ExprTest::new("uv.x")
             .with_x(0.7)
-            .expect_result_fixed(0.7)
+            .expect_result_dec32(0.7)
             .run()?;
 
         ExprTest::new("uv.y")
             .with_y(0.4)
-            .expect_result_fixed(0.4)
+            .expect_result_dec32(0.4)
             .run()
     }
 
@@ -81,7 +81,7 @@ mod tests {
     fn test_variable_typecheck() -> Result<(), String> {
         ExprTest::new("xNorm")
             .with_x(0.5)
-            .expect_result_fixed(0.5)
+            .expect_result_dec32(0.5)
             .run()
     }
 
@@ -90,7 +90,7 @@ mod tests {
         ExprTest::new("uv.x + uv.y")
             .with_x(0.3)
             .with_y(0.7)
-            .expect_result_fixed(1.0)
+            .expect_result_dec32(1.0)
             .run()
     }
 
@@ -100,7 +100,7 @@ mod tests {
         // Use uv.x for normalized coordinates instead
         ExprTest::new("uv.x")
             .with_x(0.5)
-            .expect_result_fixed(0.5)
+            .expect_result_dec32(0.5)
             .run()
     }
 }

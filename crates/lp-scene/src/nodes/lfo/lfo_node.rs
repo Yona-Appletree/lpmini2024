@@ -1,5 +1,5 @@
 use lp_data::RuntimeError;
-use lp_math::fixed::Fixed;
+use lp_math::dec32::Dec32;
 
 use super::lfo_input::LfoInput;
 use super::lfo_math::{calc_phase_t, calc_wave_t, offset_to_maintain_phase, range_from_t};
@@ -17,8 +17,8 @@ pub struct LfoNode {
     /// Internal state.
     pub state: crate::nodes::lfo::lfo_state::LfoState,
 
-    /// Output value (Fixed).
-    pub output: Fixed,
+    /// Output value (Dec32).
+    pub output: Dec32,
 }
 
 impl Default for LfoNode {
@@ -26,7 +26,7 @@ impl Default for LfoNode {
         Self {
             input: LfoInput::default(),
             state: LfoState::default(),
-            output: Fixed::ZERO,
+            output: Dec32::ZERO,
         }
     }
 }
@@ -42,7 +42,7 @@ impl LfoNode {
         Self {
             input,
             state: LfoState::default(),
-            output: Fixed::ZERO,
+            output: Dec32::ZERO,
         }
     }
 }
@@ -82,8 +82,8 @@ mod tests {
     fn test_lfo_node_update() {
         let mut node = LfoNode::new();
         node.input.period_ms = 1000;
-        node.input.min = Fixed::ZERO;
-        node.input.max = Fixed::ONE;
+        node.input.min = Dec32::ZERO;
+        node.input.max = Dec32::ONE;
 
         struct TestContext {
             time_ms: i64,
@@ -94,8 +94,8 @@ mod tests {
                 self.time_ms
             }
 
-            fn delta_ms(&self) -> Fixed {
-                Fixed::ZERO
+            fn delta_ms(&self) -> Dec32 {
+                Dec32::ZERO
             }
         }
 
@@ -134,8 +134,8 @@ mod tests {
     fn test_lfo_node_period_change() {
         let mut node = LfoNode::new();
         node.input.period_ms = 1000;
-        node.input.min = Fixed::ZERO;
-        node.input.max = Fixed::ONE;
+        node.input.min = Dec32::ZERO;
+        node.input.max = Dec32::ONE;
 
         struct TestContext {
             time_ms: i64,
@@ -146,8 +146,8 @@ mod tests {
                 self.time_ms
             }
 
-            fn delta_ms(&self) -> Fixed {
-                Fixed::ZERO
+            fn delta_ms(&self) -> Dec32 {
+                Dec32::ZERO
             }
         }
 

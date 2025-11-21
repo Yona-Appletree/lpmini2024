@@ -206,7 +206,7 @@ mod tests {
             }
         ",
         )
-        .expect_function_metadata("add", vec![Type::Fixed, Type::Fixed], Type::Fixed, 3)
+        .expect_function_metadata("add", vec![Type::Dec32, Type::Dec32], Type::Dec32, 3)
         .expect_function_local_names("add", vec!["a", "b", "result"])
         .run()
         .unwrap();
@@ -241,7 +241,7 @@ mod tests {
             }
         ",
         )
-        .expect_function_metadata("getPi", vec![], Type::Fixed, 0)
+        .expect_function_metadata("getPi", vec![], Type::Dec32, 0)
         .run()
         .unwrap();
     }
@@ -255,7 +255,7 @@ mod tests {
             }
         ",
         )
-        .expect_function_metadata("add", vec![Type::Fixed, Type::Fixed], Type::Fixed, 2)
+        .expect_function_metadata("add", vec![Type::Dec32, Type::Dec32], Type::Dec32, 2)
         .expect_function_local_names("add", vec!["a", "b"])
         .run()
         .unwrap();
@@ -271,7 +271,7 @@ mod tests {
             }
         ",
         )
-        .expect_function_metadata("calculate", vec![Type::Fixed], Type::Fixed, 2)
+        .expect_function_metadata("calculate", vec![Type::Dec32], Type::Dec32, 2)
         .expect_function_local_names("calculate", vec!["x", "result"])
         .run()
         .unwrap();
@@ -286,7 +286,7 @@ mod tests {
             }
         ",
         )
-        .expect_function_metadata("sumComponents", vec![Type::Vec2], Type::Fixed, 1)
+        .expect_function_metadata("sumComponents", vec![Type::Vec2], Type::Dec32, 1)
         .expect_function_local_names("sumComponents", vec!["v"])
         .run()
         .unwrap();
@@ -322,7 +322,7 @@ mod tests {
             }
         ",
         )
-        .expect_function_params("transform", vec![Type::Vec2, Type::Fixed, Type::Fixed])
+        .expect_function_params("transform", vec![Type::Vec2, Type::Dec32, Type::Dec32])
         .expect_function_local_count("transform", 5) // pos, scale, offset, scaled, result
         .expect_function_local_names(
             "transform",
@@ -444,7 +444,7 @@ mod tests {
             }
         ",
         )
-        .expect_function_metadata("blend", vec![Type::Vec3, Type::Fixed], Type::Vec4, 2)
+        .expect_function_metadata("blend", vec![Type::Vec3, Type::Dec32], Type::Vec4, 2)
         .expect_function_local_names("blend", vec!["color", "alpha"])
         .run()
         .unwrap();
@@ -486,9 +486,9 @@ mod tests {
         ",
         )
         // Test signature
-        .expect_function_params("processColor", vec![Type::Vec3, Type::Fixed])
+        .expect_function_params("processColor", vec![Type::Vec3, Type::Dec32])
         // Test return type
-        .expect_function_metadata("processColor", vec![Type::Vec3, Type::Fixed], Type::Vec3, 4)
+        .expect_function_metadata("processColor", vec![Type::Vec3, Type::Dec32], Type::Vec3, 4)
         // Test locals: rgb, brightness (params), scaled, clamped (locals)
         .expect_function_local_names(
             "processColor",

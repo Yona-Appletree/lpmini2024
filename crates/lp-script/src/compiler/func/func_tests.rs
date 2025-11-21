@@ -290,7 +290,7 @@ mod return_path_tests {
 
 #[cfg(test)]
 mod vector_function_tests {
-    use crate::fixed::ToFixed;
+    use crate::dec32::ToDec32;
     use crate::vm::lps_vm::LpsVm;
     use crate::vm::vm_limits::VmLimits;
     use crate::{compile_script_with_options, OptimizeOptions};
@@ -312,10 +312,10 @@ mod vector_function_tests {
             .expect("Compilation should succeed");
         let mut vm = LpsVm::new(&program, VmLimits::default()).expect("VM creation should succeed");
         let result = vm
-            .run_scalar(0.5.to_fixed(), 0.5.to_fixed(), 0.0.to_fixed())
+            .run_scalar(0.5.to_dec32(), 0.5.to_dec32(), 0.0.to_dec32())
             .expect("Execution should succeed");
 
-        let expected = 7.0.to_fixed(); // 3.0 + 4.0
+        let expected = 7.0.to_dec32(); // 3.0 + 4.0
         let diff = (result.to_f32() - expected.to_f32()).abs();
         assert!(
             diff < 0.0001,
@@ -341,10 +341,10 @@ mod vector_function_tests {
             .expect("Compilation should succeed");
         let mut vm = LpsVm::new(&program, VmLimits::default()).expect("VM creation should succeed");
         let result = vm
-            .run_scalar(0.5.to_fixed(), 0.5.to_fixed(), 0.0.to_fixed())
+            .run_scalar(0.5.to_dec32(), 0.5.to_dec32(), 0.0.to_dec32())
             .expect("Execution should succeed");
 
-        let expected = 5.0.to_fixed();
+        let expected = 5.0.to_dec32();
         let diff = (result.to_f32() - expected.to_f32()).abs();
         assert!(
             diff < 0.0001,
@@ -367,10 +367,10 @@ mod vector_function_tests {
             .expect("Compilation should succeed");
         let mut vm = LpsVm::new(&program, VmLimits::default()).expect("VM creation should succeed");
         let result = vm
-            .run_scalar(0.5.to_fixed(), 0.5.to_fixed(), 0.0.to_fixed())
+            .run_scalar(0.5.to_dec32(), 0.5.to_dec32(), 0.0.to_dec32())
             .expect("Execution should succeed");
 
-        let expected = 23.0.to_fixed(); // 2*4 + 3*5 = 8 + 15 = 23
+        let expected = 23.0.to_dec32(); // 2*4 + 3*5 = 8 + 15 = 23
         let diff = (result.to_f32() - expected.to_f32()).abs();
         assert!(
             diff < 0.0001,
@@ -398,10 +398,10 @@ mod vector_function_tests {
             .expect("Compilation should succeed");
         let mut vm = LpsVm::new(&program, VmLimits::default()).expect("VM creation should succeed");
         let result = vm
-            .run_scalar(0.5.to_fixed(), 0.5.to_fixed(), 0.0.to_fixed())
+            .run_scalar(0.5.to_dec32(), 0.5.to_dec32(), 0.0.to_dec32())
             .expect("Execution should succeed");
 
-        let expected = 10.0.to_fixed(); // (2*2) + (3*2) = 4 + 6 = 10
+        let expected = 10.0.to_dec32(); // (2*2) + (3*2) = 4 + 6 = 10
         let diff = (result.to_f32() - expected.to_f32()).abs();
         assert!(
             diff < 0.0001,
@@ -425,10 +425,10 @@ mod vector_function_tests {
             .expect("Compilation should succeed");
         let mut vm = LpsVm::new(&program, VmLimits::default()).expect("VM creation should succeed");
         let result = vm
-            .run_scalar(0.5.to_fixed(), 0.5.to_fixed(), 0.0.to_fixed())
+            .run_scalar(0.5.to_dec32(), 0.5.to_dec32(), 0.0.to_dec32())
             .expect("Execution should succeed");
 
-        let expected = 21.0.to_fixed(); // (1+4) + (2+5) + (3+6) = 5 + 7 + 9 = 21
+        let expected = 21.0.to_dec32(); // (1+4) + (2+5) + (3+6) = 5 + 7 + 9 = 21
         let diff = (result.to_f32() - expected.to_f32()).abs();
         assert!(
             diff < 0.0001,
@@ -452,10 +452,10 @@ mod vector_function_tests {
             .expect("Compilation should succeed");
         let mut vm = LpsVm::new(&program, VmLimits::default()).expect("VM creation should succeed");
         let result = vm
-            .run_scalar(0.5.to_fixed(), 0.5.to_fixed(), 0.0.to_fixed())
+            .run_scalar(0.5.to_dec32(), 0.5.to_dec32(), 0.0.to_dec32())
             .expect("Execution should succeed");
 
-        let expected = 8.0.to_fixed(); // 2.0 * 4.0
+        let expected = 8.0.to_dec32(); // 2.0 * 4.0
         let diff = (result.to_f32() - expected.to_f32()).abs();
         assert!(
             diff < 0.0001,
@@ -483,10 +483,10 @@ mod vector_function_tests {
             .expect("Compilation should succeed");
         let mut vm = LpsVm::new(&program, VmLimits::default()).expect("VM creation should succeed");
         let result = vm
-            .run_scalar(0.5.to_fixed(), 0.5.to_fixed(), 0.0.to_fixed())
+            .run_scalar(0.5.to_dec32(), 0.5.to_dec32(), 0.0.to_dec32())
             .expect("Execution should succeed");
 
-        let expected = 5.0.to_fixed(); // (2.0 * 2.0) + 1.0 = 5.0
+        let expected = 5.0.to_dec32(); // (2.0 * 2.0) + 1.0 = 5.0
         let diff = (result.to_f32() - expected.to_f32()).abs();
         assert!(
             diff < 0.0001,
@@ -510,10 +510,10 @@ mod vector_function_tests {
             .expect("Compilation should succeed");
         let mut vm = LpsVm::new(&program, VmLimits::default()).expect("VM creation should succeed");
         let result = vm
-            .run_scalar(0.5.to_fixed(), 0.5.to_fixed(), 0.0.to_fixed())
+            .run_scalar(0.5.to_dec32(), 0.5.to_dec32(), 0.0.to_dec32())
             .expect("Execution should succeed");
 
-        let expected = 5.0.to_fixed(); // sqrt(3^2 + 4^2) = sqrt(25) = 5
+        let expected = 5.0.to_dec32(); // sqrt(3^2 + 4^2) = sqrt(25) = 5
         let diff = (result.to_f32() - expected.to_f32()).abs();
         assert!(
             diff < 0.01,
@@ -526,7 +526,7 @@ mod vector_function_tests {
 
 #[cfg(test)]
 mod integration_tests {
-    use crate::fixed::Fixed;
+    use crate::dec32::Dec32;
     use crate::vm::vm_limits::VmLimits;
     use crate::*;
 
@@ -542,7 +542,7 @@ mod integration_tests {
         let mut vm = LpsVm::new(&program, VmLimits::default()).unwrap();
 
         let result = vm
-            .run_scalar(Fixed::ZERO, Fixed::ZERO, Fixed::ZERO)
+            .run_scalar(Dec32::ZERO, Dec32::ZERO, Dec32::ZERO)
             .unwrap();
         assert!((result.to_f32() - std::f32::consts::PI).abs() < 0.01);
     }
@@ -559,7 +559,7 @@ mod integration_tests {
         let mut vm = LpsVm::new(&program, VmLimits::default()).unwrap();
 
         let result = vm
-            .run_scalar(Fixed::ZERO, Fixed::ZERO, Fixed::ZERO)
+            .run_scalar(Dec32::ZERO, Dec32::ZERO, Dec32::ZERO)
             .unwrap();
         assert_eq!(result.to_f32(), 10.0);
     }
@@ -581,7 +581,7 @@ mod integration_tests {
         let mut vm = LpsVm::new(&program, VmLimits::default()).unwrap();
 
         let result = vm
-            .run_scalar(Fixed::ZERO, Fixed::ZERO, Fixed::ZERO)
+            .run_scalar(Dec32::ZERO, Dec32::ZERO, Dec32::ZERO)
             .unwrap();
         assert_eq!(result.to_f32(), 30.0);
     }
@@ -601,7 +601,7 @@ mod integration_tests {
         let mut vm = LpsVm::new(&program, VmLimits::default()).unwrap();
 
         let result = vm
-            .run_scalar(Fixed::ZERO, Fixed::ZERO, Fixed::ZERO)
+            .run_scalar(Dec32::ZERO, Dec32::ZERO, Dec32::ZERO)
             .unwrap();
         // fib(6) = 8
         assert_eq!(result.to_f32(), 8.0);
@@ -621,7 +621,7 @@ mod integration_tests {
         let mut vm = LpsVm::new(&program, VmLimits::default()).unwrap();
 
         let result = vm
-            .run_scalar(Fixed::ZERO, Fixed::ZERO, Fixed::ZERO)
+            .run_scalar(Dec32::ZERO, Dec32::ZERO, Dec32::ZERO)
             .unwrap();
         // (3 + 4) + (3 * 4) = 7 + 12 = 19
         assert_eq!(result.to_f32(), 19.0);
@@ -651,7 +651,7 @@ mod integration_tests {
         let mut vm = LpsVm::new(&program, VmLimits::default()).unwrap();
 
         let result = vm
-            .run_scalar(Fixed::ZERO, Fixed::ZERO, Fixed::ZERO)
+            .run_scalar(Dec32::ZERO, Dec32::ZERO, Dec32::ZERO)
             .unwrap();
         assert_eq!(result.to_f32(), 10.0);
     }
@@ -674,9 +674,9 @@ mod integration_tests {
         let mut vm = LpsVm::new(&program, VmLimits::default()).unwrap();
 
         let result = vm
-            .run_scalar(Fixed::ZERO, Fixed::ZERO, Fixed::ZERO)
+            .run_scalar(Dec32::ZERO, Dec32::ZERO, Dec32::ZERO)
             .unwrap();
-        assert!((result.to_f32() - 8.0).abs() < 0.1); // Relax for fixed-point precision
+        assert!((result.to_f32() - 8.0).abs() < 0.1); // Relax for dec32-point precision
     }
 
     #[test]
@@ -695,7 +695,7 @@ mod integration_tests {
         let mut vm = LpsVm::new(&program, VmLimits::default()).unwrap();
 
         let result = vm
-            .run_scalar(Fixed::ZERO, Fixed::ZERO, Fixed::ZERO)
+            .run_scalar(Dec32::ZERO, Dec32::ZERO, Dec32::ZERO)
             .unwrap();
         // 0 + 1 + 2 + 3 + 4 = 10
         assert_eq!(result.to_f32(), 10.0);
@@ -714,7 +714,7 @@ mod integration_tests {
         let mut vm = LpsVm::new(&program, VmLimits::default()).unwrap();
 
         let result = vm
-            .run_scalar(Fixed::ZERO, Fixed::ZERO, Fixed::ZERO)
+            .run_scalar(Dec32::ZERO, Dec32::ZERO, Dec32::ZERO)
             .unwrap();
         assert_eq!(result.to_f32(), 7.0);
     }

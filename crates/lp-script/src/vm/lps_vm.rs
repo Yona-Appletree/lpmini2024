@@ -2,7 +2,7 @@ use alloc::format;
 use alloc::string::String;
 use alloc::vec::Vec;
 
-use crate::fixed::{Fixed, Mat3, Vec2, Vec3, Vec4};
+use crate::dec32::{Dec32, Mat3, Vec2, Vec3, Vec4};
 use crate::vm::vm_limits::VmLimits;
 use crate::vm::{CallStack, ValueStack};
 use crate::{LocalStack, LpsProgram, LpsVmError, RuntimeErrorWithContext};
@@ -56,8 +56,8 @@ impl<'a> LpsVm<'a> {
     }
 
     /// Get a local value by name (for debugging/testing)
-    pub fn get_local_by_name(&self, name: &str) -> Option<Fixed> {
-        self.locals.get_fixed_by_name(name)
+    pub fn get_local_by_name(&self, name: &str) -> Option<Dec32> {
+        self.locals.get_dec32_by_name(name)
     }
 
     /// Execute the program with full coordinate information
@@ -66,14 +66,14 @@ impl<'a> LpsVm<'a> {
     #[allow(clippy::too_many_arguments)]
     pub fn run_with_coords(
         &mut self,
-        x_norm: Fixed,
-        y_norm: Fixed,
-        x_int: Fixed,
-        y_int: Fixed,
-        time: Fixed,
+        x_norm: Dec32,
+        y_norm: Dec32,
+        x_int: Dec32,
+        y_int: Dec32,
+        time: Dec32,
         width: usize,
         height: usize,
-    ) -> Result<Vec<Fixed>, RuntimeErrorWithContext> {
+    ) -> Result<Vec<Dec32>, RuntimeErrorWithContext> {
         self.run_impl(x_norm, y_norm, x_int, y_int, time, width, height)
     }
 
@@ -95,25 +95,25 @@ impl<'a> LpsVm<'a> {
     /// - Safe execution on embedded systems with limited RAM
     pub fn run(
         &mut self,
-        x: Fixed,
-        y: Fixed,
-        time: Fixed,
-    ) -> Result<Vec<Fixed>, RuntimeErrorWithContext> {
+        x: Dec32,
+        y: Dec32,
+        time: Dec32,
+    ) -> Result<Vec<Dec32>, RuntimeErrorWithContext> {
         // Call run_with_coords with zero pixel coordinates
-        self.run_with_coords(x, y, Fixed::ZERO, Fixed::ZERO, time, 0, 0)
+        self.run_with_coords(x, y, Dec32::ZERO, Dec32::ZERO, time, 0, 0)
     }
 
     #[allow(clippy::too_many_arguments)]
     fn run_impl(
         &mut self,
-        x_norm: Fixed,
-        y_norm: Fixed,
-        x_int: Fixed,
-        y_int: Fixed,
-        time: Fixed,
+        x_norm: Dec32,
+        y_norm: Dec32,
+        x_int: Dec32,
+        y_int: Dec32,
+        time: Dec32,
         width: usize,
         height: usize,
-    ) -> Result<Vec<Fixed>, RuntimeErrorWithContext> {
+    ) -> Result<Vec<Dec32>, RuntimeErrorWithContext> {
         self.stack.reset();
         self.pc = 0;
         self.call_stack.reset(0);
@@ -204,14 +204,14 @@ impl<'a> LpsVm<'a> {
     #[allow(clippy::too_many_arguments)]
     pub fn run_scalar_with_coords(
         &mut self,
-        x_norm: Fixed,
-        y_norm: Fixed,
-        x_int: Fixed,
-        y_int: Fixed,
-        time: Fixed,
+        x_norm: Dec32,
+        y_norm: Dec32,
+        x_int: Dec32,
+        y_int: Dec32,
+        time: Dec32,
         width: usize,
         height: usize,
-    ) -> Result<Fixed, RuntimeErrorWithContext> {
+    ) -> Result<Dec32, RuntimeErrorWithContext> {
         let stack = self.run_with_coords(x_norm, y_norm, x_int, y_int, time, width, height)?;
         if stack.len() != 1 {
             return Err(RuntimeErrorWithContext {
@@ -226,10 +226,10 @@ impl<'a> LpsVm<'a> {
     /// Execute the program and expect a scalar result (normalized coords only)
     pub fn run_scalar(
         &mut self,
-        x_norm: Fixed,
-        y_norm: Fixed,
-        time: Fixed,
-    ) -> Result<Fixed, RuntimeErrorWithContext> {
+        x_norm: Dec32,
+        y_norm: Dec32,
+        time: Dec32,
+    ) -> Result<Dec32, RuntimeErrorWithContext> {
         let stack = self.run(x_norm, y_norm, time)?;
         if stack.len() != 1 {
             return Err(RuntimeErrorWithContext {
@@ -244,9 +244,9 @@ impl<'a> LpsVm<'a> {
     /// Execute the program and expect a vec2 result
     pub fn run_vec2(
         &mut self,
-        x: Fixed,
-        y: Fixed,
-        time: Fixed,
+        x: Dec32,
+        y: Dec32,
+        time: Dec32,
     ) -> Result<Vec2, RuntimeErrorWithContext> {
         let stack = self.run(x, y, time)?;
         if stack.len() != 2 {
@@ -262,9 +262,9 @@ impl<'a> LpsVm<'a> {
     /// Execute the program and expect a vec3 result
     pub fn run_vec3(
         &mut self,
-        x: Fixed,
-        y: Fixed,
-        time: Fixed,
+        x: Dec32,
+        y: Dec32,
+        time: Dec32,
     ) -> Result<Vec3, RuntimeErrorWithContext> {
         let stack = self.run(x, y, time)?;
         if stack.len() != 3 {
@@ -280,9 +280,9 @@ impl<'a> LpsVm<'a> {
     /// Execute the program and expect a vec4 result
     pub fn run_vec4(
         &mut self,
-        x: Fixed,
-        y: Fixed,
-        time: Fixed,
+        x: Dec32,
+        y: Dec32,
+        time: Dec32,
     ) -> Result<Vec4, RuntimeErrorWithContext> {
         let stack = self.run(x, y, time)?;
         if stack.len() != 4 {
@@ -298,9 +298,9 @@ impl<'a> LpsVm<'a> {
     /// Execute the program and expect a mat3 result
     pub fn run_mat3(
         &mut self,
-        x: Fixed,
-        y: Fixed,
-        time: Fixed,
+        x: Dec32,
+        y: Dec32,
+        time: Dec32,
     ) -> Result<Mat3, RuntimeErrorWithContext> {
         let stack = self.run(x, y, time)?;
         if stack.len() != 9 {
@@ -331,7 +331,7 @@ impl<'a> LpsVm<'a> {
                 if i > start {
                     output.push_str(", ");
                 }
-                let value = Fixed(self.stack.raw_slice()[i]).to_f32();
+                let value = Dec32(self.stack.raw_slice()[i]).to_f32();
                 output.push_str(&format!("{}", value));
             }
             output.push_str("]\n");

@@ -5,9 +5,9 @@ pub use load::LoadSource;
 ///
 /// Design: Hybrid approach - small constants (indices, offsets) embedded in opcodes,
 /// data values flow through stack.
-use crate::fixed::Fixed;
+use crate::dec32::Dec32;
 
-// Fixed-point opcodes (split into basic, advanced, logic)
+// Dec32-point opcodes (split into basic, advanced, logic)
 pub mod fixed_advanced;
 pub mod fixed_basic;
 pub mod fixed_logic;
@@ -46,9 +46,9 @@ pub mod textures;
 #[allow(dead_code)]
 pub enum LpsOpCode {
     // Stack operations
-    Push(Fixed),
+    Push(Dec32),
     PushInt32(i32),
-    Dup1,  // Duplicate top 1 stack value (for Fixed/Int32)
+    Dup1,  // Duplicate top 1 stack value (for Dec32/Int32)
     Dup2,  // Duplicate top 2 stack values (for Vec2)
     Dup3,  // Duplicate top 3 stack values (for Vec3)
     Dup4,  // Duplicate top 4 stack values (for Vec4)
@@ -60,48 +60,48 @@ pub enum LpsOpCode {
     Drop9, // Drop top 9 stack values (for Mat3)
     Swap,
 
-    // Fixed-point arithmetic
-    AddFixed,
-    SubFixed,
-    MulFixed,
-    DivFixed,
-    NegFixed,
-    AbsFixed,
-    MinFixed,
-    MaxFixed,
-    SinFixed,
-    CosFixed,
-    TanFixed,
-    AtanFixed,  // Single arg atan
-    Atan2Fixed, // Two arg atan2
-    SqrtFixed,
-    FloorFixed,
-    CeilFixed,
-    FractFixed,      // Fractional part
-    ModFixed,        // Modulo
-    PowFixed,        // Power
-    SignFixed,       // Sign function
-    SaturateFixed,   // Clamp to 0..1
-    ClampFixed,      // Clamp to min..max
-    StepFixed,       // Step function
-    LerpFixed,       // Linear interpolation
-    SmoothstepFixed, // Smooth interpolation
+    // Dec32 arithmetic (fixed-point 16.16 generally)
+    AddDec32,
+    SubDec32,
+    MulDec32,
+    DivDec32,
+    NegDec32,
+    AbsDec32,
+    MinDec32,
+    MaxDec32,
+    SinDec32,
+    CosDec32,
+    TanDec32,
+    AtanDec32,  // Single arg atan
+    Atan2Dec32, // Two arg atan2
+    SqrtDec32,
+    FloorDec32,
+    CeilDec32,
+    FractDec32,      // Fractional part
+    ModDec32,        // Modulo
+    PowDec32,        // Power
+    SignDec32,       // Sign function
+    SaturateDec32,   // Clamp to 0..1
+    ClampDec32,      // Clamp to min..max
+    StepDec32,       // Step function
+    LerpDec32,       // Linear interpolation
+    SmoothstepDec32, // Smooth interpolation
 
     // Noise functions
     Perlin3(u8), // 3D Perlin noise, octaves embedded
 
-    // Fixed-point comparisons (return Fixed::ONE.0 or 0)
-    GreaterFixed,
-    LessFixed,
-    GreaterEqFixed,
-    LessEqFixed,
-    EqFixed,
-    NotEqFixed,
+    // Dec32-point comparisons (return Dec32::ONE.0 or 0)
+    GreaterDec32,
+    LessDec32,
+    GreaterEqDec32,
+    LessEqDec32,
+    EqDec32,
+    NotEqDec32,
 
     // Logical operations (treat 0 as false, non-zero as true)
-    AndFixed,
-    OrFixed,
-    NotFixed,
+    AndDec32,
+    OrDec32,
+    NotDec32,
 
     // Int32 arithmetic
     AddInt32,
@@ -131,8 +131,8 @@ pub enum LpsOpCode {
     RightShiftInt32,
 
     // Type conversions
-    Int32ToFixed, // Convert Int32 to Fixed (multiply by 2^16)
-    FixedToInt32, // Convert Fixed to Int32 (divide by 2^16, truncate)
+    Int32ToDec32, // Convert Int32 to Dec32 (multiply by 2^16)
+    FixedToInt32, // Convert Dec32 to Int32 (divide by 2^16, truncate)
 
     // Vec2 operations (operate on stack)
     AddVec2,       // pop 4, push 2
@@ -197,12 +197,12 @@ pub enum LpsOpCode {
     Swizzle4to4(u8, u8, u8, u8), // pop 4, push 4 (indices specify reordering)
 
     // Texture sampling (local index embedded, UV coords on stack)
-    TextureSampleR(u32),    // pop 2 Fixed (UV), push 1 Fixed (R)
-    TextureSampleRGBA(u32), // pop 2 Fixed (UV), push 4 Fixed (RGBA)
+    TextureSampleR(u32),    // pop 2 Dec32 (UV), push 1 Dec32 (R)
+    TextureSampleRGBA(u32), // pop 2 Dec32 (UV), push 4 Dec32 (RGBA)
 
     // Local variables (index and type embedded for safety)
-    LoadLocalFixed(u32),
-    StoreLocalFixed(u32),
+    LoadLocalDec32(u32),
+    StoreLocalDec32(u32),
     LoadLocalInt32(u32),
     StoreLocalInt32(u32),
     LoadLocalVec2(u32),
@@ -215,8 +215,8 @@ pub enum LpsOpCode {
     StoreLocalMat3(u32),
 
     // Array operations
-    GetElemInt32ArrayFixed, // pop array_ref, index; push Fixed
-    GetElemInt32ArrayU8,    // pop array_ref, index; push 4 Fixed (RGBA as bytes)
+    GetElemInt32ArrayDec32, // pop array_ref, index; push Dec32
+    GetElemInt32ArrayU8,    // pop array_ref, index; push 4 Dec32 (RGBA as bytes)
 
     // Control flow
     Jump(i32),          // Unconditional jump by offset
@@ -247,41 +247,41 @@ impl LpsOpCode {
             LpsOpCode::Drop4 => "Drop4",
             LpsOpCode::Drop9 => "Drop9",
             LpsOpCode::Swap => "Swap",
-            LpsOpCode::AddFixed => "AddFixed",
-            LpsOpCode::SubFixed => "SubFixed",
-            LpsOpCode::MulFixed => "MulFixed",
-            LpsOpCode::DivFixed => "DivFixed",
-            LpsOpCode::NegFixed => "NegFixed",
-            LpsOpCode::AbsFixed => "AbsFixed",
-            LpsOpCode::MinFixed => "MinFixed",
-            LpsOpCode::MaxFixed => "MaxFixed",
-            LpsOpCode::SinFixed => "SinFixed",
-            LpsOpCode::CosFixed => "CosFixed",
-            LpsOpCode::TanFixed => "TanFixed",
-            LpsOpCode::AtanFixed => "AtanFixed",
-            LpsOpCode::Atan2Fixed => "Atan2Fixed",
-            LpsOpCode::SqrtFixed => "SqrtFixed",
-            LpsOpCode::FloorFixed => "FloorFixed",
-            LpsOpCode::CeilFixed => "CeilFixed",
-            LpsOpCode::FractFixed => "FractFixed",
-            LpsOpCode::ModFixed => "ModFixed",
-            LpsOpCode::PowFixed => "PowFixed",
-            LpsOpCode::SignFixed => "SignFixed",
-            LpsOpCode::SaturateFixed => "SaturateFixed",
-            LpsOpCode::ClampFixed => "ClampFixed",
-            LpsOpCode::StepFixed => "StepFixed",
-            LpsOpCode::LerpFixed => "LerpFixed",
-            LpsOpCode::SmoothstepFixed => "SmoothstepFixed",
+            LpsOpCode::AddDec32 => "AddDec32",
+            LpsOpCode::SubDec32 => "SubDec32",
+            LpsOpCode::MulDec32 => "MulDec32",
+            LpsOpCode::DivDec32 => "DivDec32",
+            LpsOpCode::NegDec32 => "NegDec32",
+            LpsOpCode::AbsDec32 => "AbsDec32",
+            LpsOpCode::MinDec32 => "MinDec32",
+            LpsOpCode::MaxDec32 => "MaxDec32",
+            LpsOpCode::SinDec32 => "SinDec32",
+            LpsOpCode::CosDec32 => "CosDec32",
+            LpsOpCode::TanDec32 => "TanDec32",
+            LpsOpCode::AtanDec32 => "AtanDec32",
+            LpsOpCode::Atan2Dec32 => "Atan2Dec32",
+            LpsOpCode::SqrtDec32 => "SqrtDec32",
+            LpsOpCode::FloorDec32 => "FloorDec32",
+            LpsOpCode::CeilDec32 => "CeilDec32",
+            LpsOpCode::FractDec32 => "FractDec32",
+            LpsOpCode::ModDec32 => "ModDec32",
+            LpsOpCode::PowDec32 => "PowDec32",
+            LpsOpCode::SignDec32 => "SignDec32",
+            LpsOpCode::SaturateDec32 => "SaturateDec32",
+            LpsOpCode::ClampDec32 => "ClampDec32",
+            LpsOpCode::StepDec32 => "StepDec32",
+            LpsOpCode::LerpDec32 => "LerpDec32",
+            LpsOpCode::SmoothstepDec32 => "SmoothstepDec32",
             LpsOpCode::Perlin3(_) => "Perlin3",
-            LpsOpCode::GreaterFixed => "GreaterFixed",
-            LpsOpCode::LessFixed => "LessFixed",
-            LpsOpCode::GreaterEqFixed => "GreaterEqFixed",
-            LpsOpCode::LessEqFixed => "LessEqFixed",
-            LpsOpCode::EqFixed => "EqFixed",
-            LpsOpCode::NotEqFixed => "NotEqFixed",
-            LpsOpCode::AndFixed => "AndFixed",
-            LpsOpCode::OrFixed => "OrFixed",
-            LpsOpCode::NotFixed => "NotFixed",
+            LpsOpCode::GreaterDec32 => "GreaterDec32",
+            LpsOpCode::LessDec32 => "LessDec32",
+            LpsOpCode::GreaterEqDec32 => "GreaterEqDec32",
+            LpsOpCode::LessEqDec32 => "LessEqDec32",
+            LpsOpCode::EqDec32 => "EqDec32",
+            LpsOpCode::NotEqDec32 => "NotEqDec32",
+            LpsOpCode::AndDec32 => "AndDec32",
+            LpsOpCode::OrDec32 => "OrDec32",
+            LpsOpCode::NotDec32 => "NotDec32",
             LpsOpCode::AddInt32 => "AddInt32",
             LpsOpCode::SubInt32 => "SubInt32",
             LpsOpCode::MulInt32 => "MulInt32",
@@ -303,7 +303,7 @@ impl LpsOpCode {
             LpsOpCode::BitwiseNotInt32 => "BitwiseNotInt32",
             LpsOpCode::LeftShiftInt32 => "LeftShiftInt32",
             LpsOpCode::RightShiftInt32 => "RightShiftInt32",
-            LpsOpCode::Int32ToFixed => "Int32ToFixed",
+            LpsOpCode::Int32ToDec32 => "Int32ToDec32",
             LpsOpCode::FixedToInt32 => "FixedToInt32",
             LpsOpCode::AddVec2 => "AddVec2",
             LpsOpCode::SubVec2 => "SubVec2",
@@ -359,8 +359,8 @@ impl LpsOpCode {
             LpsOpCode::Swizzle4to4(_, _, _, _) => "Swizzle4to4",
             LpsOpCode::TextureSampleR(_) => "TextureSampleR",
             LpsOpCode::TextureSampleRGBA(_) => "TextureSampleRGBA",
-            LpsOpCode::LoadLocalFixed(_) => "LoadLocalFixed",
-            LpsOpCode::StoreLocalFixed(_) => "StoreLocalFixed",
+            LpsOpCode::LoadLocalDec32(_) => "LoadLocalDec32",
+            LpsOpCode::StoreLocalDec32(_) => "StoreLocalDec32",
             LpsOpCode::LoadLocalInt32(_) => "LoadLocalInt32",
             LpsOpCode::StoreLocalInt32(_) => "StoreLocalInt32",
             LpsOpCode::LoadLocalVec2(_) => "LoadLocalVec2",
@@ -371,7 +371,7 @@ impl LpsOpCode {
             LpsOpCode::StoreLocalVec4(_) => "StoreLocalVec4",
             LpsOpCode::LoadLocalMat3(_) => "LoadLocalMat3",
             LpsOpCode::StoreLocalMat3(_) => "StoreLocalMat3",
-            LpsOpCode::GetElemInt32ArrayFixed => "GetElemInt32ArrayFixed",
+            LpsOpCode::GetElemInt32ArrayDec32 => "GetElemInt32ArrayDec32",
             LpsOpCode::GetElemInt32ArrayU8 => "GetElemInt32ArrayU8",
             LpsOpCode::Jump(_) => "Jump",
             LpsOpCode::JumpIfZero(_) => "JumpIfZero",

@@ -1,7 +1,7 @@
 /// If statement tests
 #[cfg(test)]
 mod tests {
-    use crate::fixed::{Fixed, ToFixed};
+    use crate::dec32::{Dec32, ToDec32};
     use crate::vm::vm_limits::VmLimits;
     use crate::*;
 
@@ -11,7 +11,7 @@ mod tests {
         let program = parse_script(script);
         let mut vm = LpsVm::new(&program, VmLimits::default()).unwrap();
         let result = vm
-            .run_scalar(Fixed::ZERO, Fixed::ZERO, Fixed::ZERO)
+            .run_scalar(Dec32::ZERO, Dec32::ZERO, Dec32::ZERO)
             .unwrap();
         assert_eq!(result.to_f32(), 10.0);
     }
@@ -22,7 +22,7 @@ mod tests {
         let program = parse_script(script);
         let mut vm = LpsVm::new(&program, VmLimits::default()).unwrap();
         let result = vm
-            .run_scalar(Fixed::ZERO, Fixed::ZERO, Fixed::ZERO)
+            .run_scalar(Dec32::ZERO, Dec32::ZERO, Dec32::ZERO)
             .unwrap();
         assert_eq!(result.to_f32(), 10.0);
     }
@@ -33,7 +33,7 @@ mod tests {
         let program = parse_script(script);
         let mut vm = LpsVm::new(&program, VmLimits::default()).unwrap();
         let result = vm
-            .run_scalar(Fixed::ZERO, Fixed::ZERO, Fixed::ZERO)
+            .run_scalar(Dec32::ZERO, Dec32::ZERO, Dec32::ZERO)
             .unwrap();
         assert_eq!(result.to_f32(), 0.0);
     }
@@ -44,7 +44,7 @@ mod tests {
         let program = parse_script(script);
         let mut vm = LpsVm::new(&program, VmLimits::default()).unwrap();
         let result = vm
-            .run_scalar(Fixed::ZERO, Fixed::ZERO, 10.0.to_fixed())
+            .run_scalar(Dec32::ZERO, Dec32::ZERO, 10.0.to_dec32())
             .unwrap();
         assert_eq!(result.to_f32(), 100.0);
     }
@@ -67,17 +67,17 @@ mod tests {
         let mut vm = LpsVm::new(&program, VmLimits::default()).unwrap();
 
         let result = vm
-            .run_scalar(0.9.to_fixed(), Fixed::ZERO, Fixed::ZERO)
+            .run_scalar(0.9.to_dec32(), Dec32::ZERO, Dec32::ZERO)
             .unwrap();
         assert_eq!(result.to_f32(), 3.0);
 
         let result = vm
-            .run_scalar(0.6.to_fixed(), Fixed::ZERO, Fixed::ZERO)
+            .run_scalar(0.6.to_dec32(), Dec32::ZERO, Dec32::ZERO)
             .unwrap();
         assert_eq!(result.to_f32(), 2.0);
 
         let result = vm
-            .run_scalar(0.3.to_fixed(), Fixed::ZERO, Fixed::ZERO)
+            .run_scalar(0.3.to_dec32(), Dec32::ZERO, Dec32::ZERO)
             .unwrap();
         assert_eq!(result.to_f32(), 1.0);
     }
@@ -100,22 +100,22 @@ mod tests {
         let mut vm = LpsVm::new(&program, VmLimits::default()).unwrap();
 
         let result = vm
-            .run_scalar(0.1.to_fixed(), Fixed::ZERO, Fixed::ZERO)
+            .run_scalar(0.1.to_dec32(), Dec32::ZERO, Dec32::ZERO)
             .unwrap();
         assert_eq!(result.to_f32(), 1.0);
 
         let result = vm
-            .run_scalar(0.3.to_fixed(), Fixed::ZERO, Fixed::ZERO)
+            .run_scalar(0.3.to_dec32(), Dec32::ZERO, Dec32::ZERO)
             .unwrap();
         assert_eq!(result.to_f32(), 2.0);
 
         let result = vm
-            .run_scalar(0.6.to_fixed(), Fixed::ZERO, Fixed::ZERO)
+            .run_scalar(0.6.to_dec32(), Dec32::ZERO, Dec32::ZERO)
             .unwrap();
         assert_eq!(result.to_f32(), 3.0);
 
         let result = vm
-            .run_scalar(0.9.to_fixed(), Fixed::ZERO, Fixed::ZERO)
+            .run_scalar(0.9.to_dec32(), Dec32::ZERO, Dec32::ZERO)
             .unwrap();
         assert_eq!(result.to_f32(), 4.0);
     }

@@ -1,13 +1,13 @@
 /// Swizzle operation type checking
 extern crate alloc;
+use alloc::boxed::Box;
 use alloc::string::String;
 use alloc::{format, vec};
 
 use crate::compiler::ast::Expr;
-use crate::compiler::typechecker::{FunctionTable, SymbolTable, TypeChecker};
 use crate::compiler::error::{TypeError, TypeErrorKind};
+use crate::compiler::typechecker::{FunctionTable, SymbolTable, TypeChecker};
 use crate::shared::Type;
-use alloc::boxed::Box;
 
 impl TypeChecker {
     /// Type check swizzle operation
@@ -75,7 +75,7 @@ impl TypeChecker {
 
         // Result type based on component count
         Ok(match components.len() {
-            1 => Type::Fixed,
+            1 => Type::Dec32,
             2 => Type::Vec2,
             3 => Type::Vec3,
             4 => Type::Vec4,
@@ -94,7 +94,7 @@ impl TypeChecker {
 
 fn type_to_string(ty: &Type) -> &str {
     match ty {
-        Type::Fixed => "float",
+        Type::Dec32 => "float",
         Type::Int32 => "int",
         Type::Bool => "bool",
         Type::Vec2 => "vec2",

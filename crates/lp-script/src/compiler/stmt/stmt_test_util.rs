@@ -12,7 +12,7 @@ use crate::compiler::func::FunctionMetadata;
 use crate::compiler::optimize::{self, OptimizeOptions};
 use crate::compiler::stmt::stmt_test_ast::StmtBuilder;
 use crate::compiler::{codegen, lexer, parser, typechecker};
-use crate::fixed::{Fixed, ToFixed};
+use crate::dec32::{Dec32, ToDec32};
 use crate::shared::Type;
 use crate::vm::lps_vm::LpsVm;
 use crate::vm::vm_limits::VmLimits;
@@ -54,13 +54,13 @@ pub struct ScriptTest {
     expected_result: Option<TestResult>,
     expected_function_metadata: Vec<FunctionMetadataAssertion>,
     expected_error: Option<ExpectedError>, // If set, expect this error during compilation
-    x: Fixed,
-    y: Fixed,
-    time: Fixed,
+    x: Dec32,
+    y: Dec32,
+    time: Dec32,
 }
 
 enum TestResult {
-    Fixed(Fixed),
+    Dec32(Dec32),
 }
 
 impl ScriptTest {
@@ -72,9 +72,9 @@ impl ScriptTest {
             expected_result: None,
             expected_function_metadata: Vec::new(),
             expected_error: None,
-            x: 0.5.to_fixed(),
-            y: 0.5.to_fixed(),
-            time: Fixed::ZERO,
+            x: 0.5.to_dec32(),
+            y: 0.5.to_dec32(),
+            time: Dec32::ZERO,
         }
     }
 
@@ -87,7 +87,7 @@ impl ScriptTest {
     }
 
     pub fn with_time(mut self, time: f32) -> Self {
-        self.time = time.to_fixed();
+        self.time = time.to_dec32();
         self
     }
 
@@ -96,8 +96,8 @@ impl ScriptTest {
         self
     }
 
-    pub fn expect_result_fixed(mut self, expected: f32) -> Self {
-        self.expected_result = Some(TestResult::Fixed(expected.to_fixed()));
+    pub fn expect_result_dec32(mut self, expected: f32) -> Self {
+        self.expected_result = Some(TestResult::Dec32(expected.to_dec32()));
         self
     }
 
@@ -426,7 +426,7 @@ impl ScriptTest {
         if let Some(expected) = expected_result {
             match LpsVm::new(&program_obj, VmLimits::default()) {
                 Ok(mut vm) => match expected {
-                    TestResult::Fixed(expected) => match vm.run_scalar(x, y, time) {
+                    TestResult::Dec32(expected) => match vm.run_scalar(x, y, time) {
                         Ok(result) => {
                             let diff = (expected.to_f32() - result.to_f32()).abs();
                             if diff > 0.01 {

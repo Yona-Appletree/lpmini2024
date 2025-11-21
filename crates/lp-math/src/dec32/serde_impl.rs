@@ -1,8 +1,8 @@
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 
-use super::{Fixed, Mat3, Vec2, Vec3, Vec4};
+use super::{Dec32, Mat3, Vec2, Vec3, Vec4};
 
-impl Serialize for Fixed {
+impl Serialize for Dec32 {
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
     where
         S: Serializer,
@@ -11,13 +11,13 @@ impl Serialize for Fixed {
     }
 }
 
-impl<'de> Deserialize<'de> for Fixed {
+impl<'de> Deserialize<'de> for Dec32 {
     fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
     where
         D: Deserializer<'de>,
     {
         let f = f32::deserialize(deserializer)?;
-        Ok(Fixed::from_f32(f))
+        Ok(Dec32::from_f32(f))
     }
 }
 

@@ -1,4 +1,4 @@
-use crate::fixed::Fixed;
+use crate::dec32::Dec32;
 /// Int32 arithmetic and bitwise operations
 use crate::vm::error::LpsVmError;
 use crate::vm::value_stack::ValueStack;
@@ -93,7 +93,7 @@ pub fn exec_max_int32(stack: &mut ValueStack) -> Result<(), LpsVmError> {
 #[inline(always)]
 pub fn exec_greater_int32(stack: &mut ValueStack) -> Result<(), LpsVmError> {
     let (a, b) = stack.pop2()?;
-    let result = if a > b { Fixed::ONE.0 } else { 0 };
+    let result = if a > b { Dec32::ONE.0 } else { 0 };
     stack.push_int32(result)?;
     Ok(())
 }
@@ -102,7 +102,7 @@ pub fn exec_greater_int32(stack: &mut ValueStack) -> Result<(), LpsVmError> {
 #[inline(always)]
 pub fn exec_less_int32(stack: &mut ValueStack) -> Result<(), LpsVmError> {
     let (a, b) = stack.pop2()?;
-    let result = if a < b { Fixed::ONE.0 } else { 0 };
+    let result = if a < b { Dec32::ONE.0 } else { 0 };
     stack.push_int32(result)?;
     Ok(())
 }
@@ -161,22 +161,22 @@ pub fn exec_right_shift_int32(stack: &mut ValueStack) -> Result<(), LpsVmError> 
     Ok(())
 }
 
-/// Execute Int32ToFixed: convert Int32 to Fixed format
-/// pop a (raw int32); push a << 16 (Fixed format)
+/// Execute Int32ToDec32: convert Int32 to Dec32 format
+/// pop a (raw int32); push a << 16 (Dec32 format)
 #[inline(always)]
-pub fn exec_int32_to_fixed(stack: &mut ValueStack) -> Result<(), LpsVmError> {
+pub fn exec_int32_to_dec32(stack: &mut ValueStack) -> Result<(), LpsVmError> {
     let a = stack.pop_int32()?;
-    // Convert from raw int32 to Fixed format by shifting left
-    stack.push_fixed(crate::fixed::Fixed::from_i32(a))?;
+    // Convert from raw int32 to Dec32 format by shifting left
+    stack.push_dec32(crate::dec32::Dec32::from_i32(a))?;
     Ok(())
 }
 
-/// Execute FixedToInt32: convert Fixed to Int32 format
-/// pop a (Fixed format); push a >> 16 (raw int32)
+/// Execute FixedToInt32: convert Dec32 to Int32 format
+/// pop a (Dec32 format); push a >> 16 (raw int32)
 #[inline(always)]
-pub fn exec_fixed_to_int32(stack: &mut ValueStack) -> Result<(), LpsVmError> {
-    let a = stack.pop_fixed()?;
-    // Convert from Fixed format to raw int32 by extracting integer part
+pub fn exec_dec32_to_int32(stack: &mut ValueStack) -> Result<(), LpsVmError> {
+    let a = stack.pop_dec32()?;
+    // Convert from Dec32 format to raw int32 by extracting integer part
     stack.push_int32(a.to_i32())?;
     Ok(())
 }
@@ -279,7 +279,7 @@ mod tests {
         stack.push_int32(5).unwrap();
         stack.push_int32(3).unwrap();
         exec_greater_int32(&mut stack).unwrap();
-        assert_eq!(stack.pop_int32().unwrap(), Fixed::ONE.0);
+        assert_eq!(stack.pop_int32().unwrap(), Dec32::ONE.0);
     }
 
     #[test]
@@ -288,7 +288,7 @@ mod tests {
         stack.push_int32(3).unwrap();
         stack.push_int32(5).unwrap();
         exec_less_int32(&mut stack).unwrap();
-        assert_eq!(stack.pop_int32().unwrap(), Fixed::ONE.0);
+        assert_eq!(stack.pop_int32().unwrap(), Dec32::ONE.0);
     }
 
     #[test]

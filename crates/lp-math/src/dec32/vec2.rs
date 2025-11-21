@@ -1,34 +1,34 @@
 use core::ops::{Add, Div, Mul, Neg, Sub};
 
-/// 2D vector for fixed-point coordinates
-use super::conversions::ToFixed;
-use super::fixed::Fixed;
+/// 2D vector for dec32-point coordinates
+use super::conversions::ToDec32;
+use super::dec32::Dec32;
 
 #[derive(Copy, Clone, Debug, PartialEq)]
 pub struct Vec2 {
-    pub x: Fixed,
-    pub y: Fixed,
+    pub x: Dec32,
+    pub y: Dec32,
 }
 
 impl Vec2 {
     #[inline(always)]
-    pub const fn new(x: Fixed, y: Fixed) -> Self {
+    pub const fn new(x: Dec32, y: Dec32) -> Self {
         Vec2 { x, y }
     }
 
     #[inline(always)]
     pub fn from_f32(x: f32, y: f32) -> Self {
         Vec2 {
-            x: x.to_fixed(),
-            y: y.to_fixed(),
+            x: x.to_dec32(),
+            y: y.to_dec32(),
         }
     }
 
     #[inline(always)]
     pub fn from_i32(x: i32, y: i32) -> Self {
         Vec2 {
-            x: x.to_fixed(),
-            y: y.to_fixed(),
+            x: x.to_dec32(),
+            y: y.to_dec32(),
         }
     }
 
@@ -36,8 +36,8 @@ impl Vec2 {
     #[inline(always)]
     pub const fn from_pixel(x: usize, y: usize) -> Self {
         Vec2 {
-            x: Fixed(((x as i32) << Fixed::SHIFT) + (Fixed::HALF.0)),
-            y: Fixed(((y as i32) << Fixed::SHIFT) + (Fixed::HALF.0)),
+            x: Dec32(((x as i32) << Dec32::SHIFT) + (Dec32::HALF.0)),
+            y: Dec32(((y as i32) << Dec32::SHIFT) + (Dec32::HALF.0)),
         }
     }
 
@@ -48,32 +48,32 @@ impl Vec2 {
 
     /// Dot product
     #[inline(always)]
-    pub fn dot(self, rhs: Self) -> Fixed {
+    pub fn dot(self, rhs: Self) -> Dec32 {
         (self.x * rhs.x) + (self.y * rhs.y)
     }
 
     /// Cross product (returns scalar in 2D, representing z-component of 3D cross product)
     #[inline(always)]
-    pub fn cross(self, rhs: Self) -> Fixed {
+    pub fn cross(self, rhs: Self) -> Dec32 {
         (self.x * rhs.y) - (self.y * rhs.x)
     }
 
     /// Length squared (avoids sqrt)
     #[inline(always)]
-    pub fn length_squared(self) -> Fixed {
+    pub fn length_squared(self) -> Dec32 {
         self.dot(self)
     }
 
     /// Length (magnitude)
     #[inline(always)]
-    pub fn length(self) -> Fixed {
-        use crate::fixed::advanced::sqrt;
+    pub fn length(self) -> Dec32 {
+        use crate::dec32::advanced::sqrt;
         sqrt(self.length_squared())
     }
 
     /// Distance to another vector
     #[inline(always)]
-    pub fn distance(self, other: Self) -> Fixed {
+    pub fn distance(self, other: Self) -> Dec32 {
         (self - other).length()
     }
 
@@ -82,39 +82,39 @@ impl Vec2 {
     pub fn normalize(self) -> Self {
         let len = self.length();
         if len.0 == 0 {
-            return Vec2::new(Fixed::ZERO, Fixed::ZERO);
+            return Vec2::new(Dec32::ZERO, Dec32::ZERO);
         }
         self / len
     }
 
     // Swizzle accessors (GLSL-style)
     #[inline(always)]
-    pub fn x(self) -> Fixed {
+    pub fn x(self) -> Dec32 {
         self.x
     }
 
     #[inline(always)]
-    pub fn y(self) -> Fixed {
+    pub fn y(self) -> Dec32 {
         self.y
     }
 
     #[inline(always)]
-    pub fn r(self) -> Fixed {
+    pub fn r(self) -> Dec32 {
         self.x
     }
 
     #[inline(always)]
-    pub fn g(self) -> Fixed {
+    pub fn g(self) -> Dec32 {
         self.y
     }
 
     #[inline(always)]
-    pub fn s(self) -> Fixed {
+    pub fn s(self) -> Dec32 {
         self.x
     }
 
     #[inline(always)]
-    pub fn t(self) -> Fixed {
+    pub fn t(self) -> Dec32 {
         self.y
     }
 
@@ -214,21 +214,21 @@ impl Sub for Vec2 {
 }
 
 // Vector * Scalar
-impl Mul<Fixed> for Vec2 {
+impl Mul<Dec32> for Vec2 {
     type Output = Self;
 
     #[inline(always)]
-    fn mul(self, rhs: Fixed) -> Self {
+    fn mul(self, rhs: Dec32) -> Self {
         Vec2::new(self.x * rhs, self.y * rhs)
     }
 }
 
 // Vector / Scalar
-impl Div<Fixed> for Vec2 {
+impl Div<Dec32> for Vec2 {
     type Output = Self;
 
     #[inline(always)]
-    fn div(self, rhs: Fixed) -> Self {
+    fn div(self, rhs: Dec32) -> Self {
         Vec2::new(self.x / rhs, self.y / rhs)
     }
 }

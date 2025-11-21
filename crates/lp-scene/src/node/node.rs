@@ -16,8 +16,8 @@ pub trait NodeContext {
 
     /// Get the time elapsed since the last frame in milliseconds (delta time).
     ///
-    /// Returns a Fixed-point value to allow sub-millisecond precision.
-    fn delta_ms(&self) -> lp_math::fixed::Fixed;
+    /// Returns a Dec32-point value to allow sub-millisecond precision.
+    fn delta_ms(&self) -> lp_math::dec32::Dec32;
 
     /// Get the output of another node by ID (for future input resolution).
     ///

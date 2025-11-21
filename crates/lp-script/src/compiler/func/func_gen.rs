@@ -38,7 +38,7 @@ pub fn gen_user_function(
     // Generate parameter store code (reverse order - last param on top of stack)
     for (i, param) in ast_func.params.iter().enumerate().rev() {
         match param.ty {
-            Type::Bool | Type::Fixed => func_code.push(LpsOpCode::StoreLocalFixed(i as u32)),
+            Type::Bool | Type::Dec32 => func_code.push(LpsOpCode::StoreLocalDec32(i as u32)),
             Type::Int32 => func_code.push(LpsOpCode::StoreLocalInt32(i as u32)),
             Type::Vec2 => func_code.push(LpsOpCode::StoreLocalVec2(i as u32)),
             Type::Vec3 => func_code.push(LpsOpCode::StoreLocalVec3(i as u32)),
@@ -59,7 +59,7 @@ pub fn gen_user_function(
         if ast_func.return_type == Type::Void {
             func_code.push(LpsOpCode::Return);
         } else {
-            func_code.push(LpsOpCode::Push(crate::fixed::Fixed::ZERO));
+            func_code.push(LpsOpCode::Push(crate::dec32::Dec32::ZERO));
             func_code.push(LpsOpCode::Return);
         }
     }

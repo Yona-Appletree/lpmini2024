@@ -2,7 +2,7 @@
 #[cfg(test)]
 mod tests {
     use crate::compiler::stmt::stmt_test_util::ScriptTest;
-    use crate::fixed::ToFixed;
+    use crate::dec32::ToDec32;
     use crate::shared::Type;
     use crate::vm::lps_vm::LpsVm;
     use crate::vm::opcodes::LpsOpCode;
@@ -13,18 +13,18 @@ mod tests {
         ScriptTest::new("float x = 5.0; return x;")
             .expect_ast(|b| {
                 let init = b.num(5.0);
-                let var_stmt = b.var_decl(Type::Fixed, "x", Some(init));
-                let ret_var = b.typed_var("x", Type::Fixed);
+                let var_stmt = b.var_decl(Type::Dec32, "x", Some(init));
+                let ret_var = b.typed_var("x", Type::Dec32);
                 let ret_stmt = b.return_stmt(ret_var);
                 b.program(vec![var_stmt, ret_stmt])
             })
             .expect_opcodes(vec![
-                LpsOpCode::Push(5.0.to_fixed()),
-                LpsOpCode::StoreLocalFixed(0),
-                LpsOpCode::LoadLocalFixed(0),
+                LpsOpCode::Push(5.0.to_dec32()),
+                LpsOpCode::StoreLocalDec32(0),
+                LpsOpCode::LoadLocalDec32(0),
                 LpsOpCode::Return,
             ])
-            .expect_result_fixed(5.0)
+            .expect_result_dec32(5.0)
             .run()
     }
 
@@ -32,23 +32,23 @@ mod tests {
     fn test_var_decl_without_init() -> Result<(), String> {
         ScriptTest::new("float x; x = 10.0; return x;")
             .expect_ast(|b| {
-                let var_stmt = b.var_decl(Type::Fixed, "x", None);
+                let var_stmt = b.var_decl(Type::Dec32, "x", None);
                 let assign_value = b.num(10.0);
-                let assign_expr = b.assign("x", assign_value, Type::Fixed);
+                let assign_expr = b.assign("x", assign_value, Type::Dec32);
                 let assign_stmt = b.expr_stmt(assign_expr);
-                let ret_var = b.typed_var("x", Type::Fixed);
+                let ret_var = b.typed_var("x", Type::Dec32);
                 let ret_stmt = b.return_stmt(ret_var);
                 b.program(vec![var_stmt, assign_stmt, ret_stmt])
             })
             .expect_opcodes(vec![
-                LpsOpCode::Push(10.0.to_fixed()),
+                LpsOpCode::Push(10.0.to_dec32()),
                 LpsOpCode::Dup1,
-                LpsOpCode::StoreLocalFixed(0),
+                LpsOpCode::StoreLocalDec32(0),
                 LpsOpCode::Drop1,
-                LpsOpCode::LoadLocalFixed(0),
+                LpsOpCode::LoadLocalDec32(0),
                 LpsOpCode::Return,
             ])
-            .expect_result_fixed(10.0)
+            .expect_result_dec32(10.0)
             .run()
     }
 
@@ -57,26 +57,26 @@ mod tests {
         ScriptTest::new("float x = 1.0; float y = 2.0; return x + y;")
             .expect_ast(|b| {
                 let x_init = b.num(1.0);
-                let x_decl = b.var_decl(Type::Fixed, "x", Some(x_init));
+                let x_decl = b.var_decl(Type::Dec32, "x", Some(x_init));
                 let y_init = b.num(2.0);
-                let y_decl = b.var_decl(Type::Fixed, "y", Some(y_init));
-                let x_var = b.typed_var("x", Type::Fixed);
-                let y_var = b.typed_var("y", Type::Fixed);
-                let add_expr = b.add(x_var, y_var, Type::Fixed);
+                let y_decl = b.var_decl(Type::Dec32, "y", Some(y_init));
+                let x_var = b.typed_var("x", Type::Dec32);
+                let y_var = b.typed_var("y", Type::Dec32);
+                let add_expr = b.add(x_var, y_var, Type::Dec32);
                 let ret_stmt = b.return_stmt(add_expr);
                 b.program(vec![x_decl, y_decl, ret_stmt])
             })
             .expect_opcodes(vec![
-                LpsOpCode::Push(1.0.to_fixed()),
-                LpsOpCode::StoreLocalFixed(0),
-                LpsOpCode::Push(2.0.to_fixed()),
-                LpsOpCode::StoreLocalFixed(1),
-                LpsOpCode::LoadLocalFixed(0),
-                LpsOpCode::LoadLocalFixed(1),
-                LpsOpCode::AddFixed,
+                LpsOpCode::Push(1.0.to_dec32()),
+                LpsOpCode::StoreLocalDec32(0),
+                LpsOpCode::Push(2.0.to_dec32()),
+                LpsOpCode::StoreLocalDec32(1),
+                LpsOpCode::LoadLocalDec32(0),
+                LpsOpCode::LoadLocalDec32(1),
+                LpsOpCode::AddDec32,
                 LpsOpCode::Return,
             ])
-            .expect_result_fixed(3.0)
+            .expect_result_dec32(3.0)
             .run()
     }
 
@@ -86,21 +86,21 @@ mod tests {
             .expect_ast(|b| {
                 let left = b.num(1.0);
                 let right = b.num(2.0);
-                let init = b.add(left, right, Type::Fixed);
-                let var_stmt = b.var_decl(Type::Fixed, "x", Some(init));
-                let ret_var = b.typed_var("x", Type::Fixed);
+                let init = b.add(left, right, Type::Dec32);
+                let var_stmt = b.var_decl(Type::Dec32, "x", Some(init));
+                let ret_var = b.typed_var("x", Type::Dec32);
                 let ret_stmt = b.return_stmt(ret_var);
                 b.program(vec![var_stmt, ret_stmt])
             })
             .expect_opcodes(vec![
-                LpsOpCode::Push(1.0.to_fixed()),
-                LpsOpCode::Push(2.0.to_fixed()),
-                LpsOpCode::AddFixed,
-                LpsOpCode::StoreLocalFixed(0),
-                LpsOpCode::LoadLocalFixed(0),
+                LpsOpCode::Push(1.0.to_dec32()),
+                LpsOpCode::Push(2.0.to_dec32()),
+                LpsOpCode::AddDec32,
+                LpsOpCode::StoreLocalDec32(0),
+                LpsOpCode::LoadLocalDec32(0),
                 LpsOpCode::Return,
             ])
-            .expect_result_fixed(3.0)
+            .expect_result_dec32(3.0)
             .run()
     }
 
@@ -116,10 +116,10 @@ mod tests {
         let mut vm = LpsVm::new(&program, VmLimits::default())
             .map_err(|e| format!("VM creation failed: {:?}", e))?;
         let result = vm
-            .run_scalar(0.5.to_fixed(), 0.5.to_fixed(), 0.0.to_fixed())
+            .run_scalar(0.5.to_dec32(), 0.5.to_dec32(), 0.0.to_dec32())
             .map_err(|e| format!("Execution failed: {:?}", e))?;
 
-        let expected = 1.0.to_fixed();
+        let expected = 1.0.to_dec32();
         let diff = (result.to_f32() - expected.to_f32()).abs();
         if diff > 0.0001 {
             return Err(format!(
@@ -143,10 +143,10 @@ mod tests {
         let mut vm = LpsVm::new(&program, VmLimits::default())
             .map_err(|e| format!("VM creation failed: {:?}", e))?;
         let result = vm
-            .run_scalar(0.5.to_fixed(), 0.5.to_fixed(), 0.0.to_fixed())
+            .run_scalar(0.5.to_dec32(), 0.5.to_dec32(), 0.0.to_dec32())
             .map_err(|e| format!("Execution failed: {:?}", e))?;
 
-        let expected = 2.0.to_fixed();
+        let expected = 2.0.to_dec32();
         let diff = (result.to_f32() - expected.to_f32()).abs();
         if diff > 0.0001 {
             return Err(format!(
@@ -170,10 +170,10 @@ mod tests {
         let mut vm = LpsVm::new(&program, VmLimits::default())
             .map_err(|e| format!("VM creation failed: {:?}", e))?;
         let result = vm
-            .run_scalar(0.5.to_fixed(), 0.5.to_fixed(), 0.0.to_fixed())
+            .run_scalar(0.5.to_dec32(), 0.5.to_dec32(), 0.0.to_dec32())
             .map_err(|e| format!("Execution failed: {:?}", e))?;
 
-        let expected = 4.0.to_fixed();
+        let expected = 4.0.to_dec32();
         let diff = (result.to_f32() - expected.to_f32()).abs();
         if diff > 0.0001 {
             return Err(format!(
@@ -197,10 +197,10 @@ mod tests {
         let mut vm = LpsVm::new(&program, VmLimits::default())
             .map_err(|e| format!("VM creation failed: {:?}", e))?;
         let result = vm
-            .run_scalar(0.5.to_fixed(), 0.5.to_fixed(), 0.0.to_fixed())
+            .run_scalar(0.5.to_dec32(), 0.5.to_dec32(), 0.0.to_dec32())
             .map_err(|e| format!("Execution failed: {:?}", e))?;
 
-        let expected = 4.0.to_fixed(); // 1.0 + 3.0
+        let expected = 4.0.to_dec32(); // 1.0 + 3.0
         let diff = (result.to_f32() - expected.to_f32()).abs();
         if diff > 0.0001 {
             return Err(format!(
@@ -224,10 +224,10 @@ mod tests {
         let mut vm = LpsVm::new(&program, VmLimits::default())
             .map_err(|e| format!("VM creation failed: {:?}", e))?;
         let result = vm
-            .run_scalar(0.5.to_fixed(), 0.5.to_fixed(), 0.0.to_fixed())
+            .run_scalar(0.5.to_dec32(), 0.5.to_dec32(), 0.0.to_dec32())
             .map_err(|e| format!("Execution failed: {:?}", e))?;
 
-        let expected = 8.0.to_fixed(); // 4.0 * 2.0
+        let expected = 8.0.to_dec32(); // 4.0 * 2.0
         let diff = (result.to_f32() - expected.to_f32()).abs();
         if diff > 0.0001 {
             return Err(format!(
@@ -251,10 +251,10 @@ mod tests {
         let mut vm = LpsVm::new(&program, VmLimits::default())
             .map_err(|e| format!("VM creation failed: {:?}", e))?;
         let result = vm
-            .run_scalar(0.5.to_fixed(), 0.5.to_fixed(), 0.0.to_fixed())
+            .run_scalar(0.5.to_dec32(), 0.5.to_dec32(), 0.0.to_dec32())
             .map_err(|e| format!("Execution failed: {:?}", e))?;
 
-        let expected = 6.0.to_fixed();
+        let expected = 6.0.to_dec32();
         let diff = (result.to_f32() - expected.to_f32()).abs();
         if diff > 0.0001 {
             return Err(format!(
@@ -270,31 +270,31 @@ mod tests {
     fn test_var_decl_from_builtin() -> Result<(), String> {
         ScriptTest::new("float t = time; return t * 2.0;")
             .expect_ast(|b| {
-                let time_var = b.typed_var("time", Type::Fixed);
-                let t_decl = b.var_decl(Type::Fixed, "t", Some(time_var));
-                let t_var = b.typed_var("t", Type::Fixed);
+                let time_var = b.typed_var("time", Type::Dec32);
+                let t_decl = b.var_decl(Type::Dec32, "t", Some(time_var));
+                let t_var = b.typed_var("t", Type::Dec32);
                 let mul_right = b.num(2.0);
-                let mul_expr = b.mul(t_var, mul_right, Type::Fixed);
+                let mul_expr = b.mul(t_var, mul_right, Type::Dec32);
                 let ret_stmt = b.return_stmt(mul_expr);
                 b.program(vec![t_decl, ret_stmt])
             })
             .expect_opcodes(vec![
                 LpsOpCode::Load(crate::vm::opcodes::load::LoadSource::Time),
-                LpsOpCode::StoreLocalFixed(0),
-                LpsOpCode::LoadLocalFixed(0),
-                LpsOpCode::Push(2.0.to_fixed()),
-                LpsOpCode::MulFixed,
+                LpsOpCode::StoreLocalDec32(0),
+                LpsOpCode::LoadLocalDec32(0),
+                LpsOpCode::Push(2.0.to_dec32()),
+                LpsOpCode::MulDec32,
                 LpsOpCode::Return,
             ])
             .with_time(3.0)
-            .expect_result_fixed(6.0)
+            .expect_result_dec32(6.0)
             .run()
     }
 }
 
 #[cfg(test)]
 mod variable_integration_tests {
-    use crate::fixed::Fixed;
+    use crate::dec32::Dec32;
     use crate::vm::vm_limits::VmLimits;
     use crate::*;
 
@@ -310,7 +310,7 @@ mod variable_integration_tests {
         let mut vm = LpsVm::new(&program, VmLimits::default()).unwrap();
 
         let result = vm
-            .run_scalar(Fixed::ZERO, Fixed::ZERO, Fixed::ZERO)
+            .run_scalar(Dec32::ZERO, Dec32::ZERO, Dec32::ZERO)
             .unwrap();
         // (1 + 2) * 3 = 9
         assert_eq!(result.to_f32(), 9.0);
@@ -327,7 +327,7 @@ mod variable_integration_tests {
         let mut vm = LpsVm::new(&program, VmLimits::default()).unwrap();
 
         let result = vm
-            .run_scalar(Fixed::ZERO, Fixed::ZERO, Fixed::ZERO)
+            .run_scalar(Dec32::ZERO, Dec32::ZERO, Dec32::ZERO)
             .unwrap();
         assert_eq!(result.to_f32(), 5.0);
     }
@@ -345,7 +345,7 @@ mod variable_integration_tests {
         let mut vm = LpsVm::new(&program, VmLimits::default()).unwrap();
 
         let result = vm
-            .run_scalar(Fixed::ZERO, Fixed::ZERO, Fixed::ZERO)
+            .run_scalar(Dec32::ZERO, Dec32::ZERO, Dec32::ZERO)
             .unwrap();
         assert_eq!(result.to_f32(), 21.0);
     }

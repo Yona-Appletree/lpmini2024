@@ -1,4 +1,4 @@
-use lp_math::fixed::{Fixed, Mat3, Vec2, Vec3, Vec4};
+use lp_math::dec32::{Dec32, Mat3, Vec2, Vec3, Vec4};
 
 use crate::kind::value::{LpValue, LpValueBox, LpValueRef};
 
@@ -6,8 +6,8 @@ use crate::kind::value::{LpValue, LpValueBox, LpValueRef};
 /// Traverse the scene graph and print all data generically.
 pub fn print_lp_value(value_box: LpValueBox, indent: usize) {
     match value_box {
-        LpValueBox::Fixed(boxed) => {
-            print_lp_value_ref(LpValueRef::Fixed(boxed.as_ref()), indent);
+        LpValueBox::Dec32(boxed) => {
+            print_lp_value_ref(LpValueRef::Dec32(boxed.as_ref()), indent);
         }
         LpValueBox::Int32(boxed) => {
             print_lp_value_ref(LpValueRef::Int32(boxed.as_ref()), indent);
@@ -48,8 +48,8 @@ pub fn print_lp_value(value_box: LpValueBox, indent: usize) {
 /// Traverse the scene graph and return a string representation.
 pub fn print_lp_value_to_string(value_box: LpValueBox, indent: usize) -> String {
     match value_box {
-        LpValueBox::Fixed(boxed) => {
-            print_lp_value_ref_to_string(LpValueRef::Fixed(boxed.as_ref()), indent)
+        LpValueBox::Dec32(boxed) => {
+            print_lp_value_ref_to_string(LpValueRef::Dec32(boxed.as_ref()), indent)
         }
         LpValueBox::Int32(boxed) => {
             print_lp_value_ref_to_string(LpValueRef::Int32(boxed.as_ref()), indent)
@@ -91,13 +91,13 @@ pub fn print_lp_value_to_string(value_box: LpValueBox, indent: usize) -> String 
 /// Print a value reference recursively.
 fn print_lp_value_ref(value_ref: LpValueRef, indent: usize) {
     match value_ref {
-        LpValueRef::Fixed(fixed_ref) => {
-            let fixed_value = unsafe {
-                // SAFETY: We know this is a Fixed because it's in the Fixed variant
-                // The vtable pointer points to Fixed's implementation
-                &*(fixed_ref as *const dyn LpValue as *const Fixed)
+        LpValueRef::Dec32(dec32_ref) => {
+            let dec32_value = unsafe {
+                // SAFETY: We know this is a Dec32 because it's in the Dec32 variant
+                // The vtable pointer points to Dec32's implementation
+                &*(dec32_ref as *const dyn LpValue as *const Dec32)
             };
-            println!("Fixed({})", fixed_value.to_f32());
+            println!("Dec32({})", dec32_value.to_f32());
         }
         LpValueRef::Int32(int32_ref) => {
             let int32_value = unsafe {
@@ -255,13 +255,13 @@ fn print_lp_value_ref(value_ref: LpValueRef, indent: usize) {
 /// Print a value reference recursively to a string.
 fn print_lp_value_ref_to_string(value_ref: LpValueRef, indent: usize) -> String {
     match value_ref {
-        LpValueRef::Fixed(fixed_ref) => {
-            let fixed_value = unsafe {
-                // SAFETY: We know this is a Fixed because it's in the Fixed variant
-                // The vtable pointer points to Fixed's implementation
-                &*(fixed_ref as *const dyn LpValue as *const Fixed)
+        LpValueRef::Dec32(dec32_ref) => {
+            let dec32_value = unsafe {
+                // SAFETY: We know this is a Dec32 because it's in the Dec32 variant
+                // The vtable pointer points to Dec32's implementation
+                &*(dec32_ref as *const dyn LpValue as *const Dec32)
             };
-            format!("Fixed({})\n", fixed_value.to_f32())
+            format!("Dec32({})\n", dec32_value.to_f32())
         }
         LpValueRef::Int32(int32_ref) => {
             let int32_value = unsafe {

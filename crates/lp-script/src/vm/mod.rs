@@ -18,7 +18,7 @@ pub use opcodes::LpsOpCode;
 pub use value_stack::ValueStack;
 pub use vm_limits::VmLimits;
 
-use crate::fixed::Fixed;
+use crate::dec32::Dec32;
 
 /// Execute a program on all pixels in the buffer
 ///
@@ -27,10 +27,10 @@ use crate::fixed::Fixed;
 ///
 /// # Arguments
 /// * `program` - Compiled LPS program to execute
-/// * `output` - Output buffer (16.16 fixed-point grayscale values)
+/// * `output` - Output buffer (16.16 dec32-point grayscale values)
 /// * `width` - Width of the image
 /// * `height` - Height of the image
-/// * `time` - Time value in 16.16 fixed-point format
+/// * `time` - Time value in 16.16 dec32-point format
 ///
 /// # Panics
 /// Panics if the program encounters a runtime error. In production, you may want
@@ -38,10 +38,10 @@ use crate::fixed::Fixed;
 #[inline(never)]
 pub fn execute_program_lps(
     program: &LpsProgram,
-    output: &mut [Fixed],
+    output: &mut [Dec32],
     width: usize,
     height: usize,
-    time: Fixed,
+    time: Dec32,
 ) {
     // CRITICAL: Create VM once and reuse it for all pixels to avoid cloning the program
     // Cloning the program for each pixel causes catastrophic memory usage!
@@ -51,11 +51,11 @@ pub fn execute_program_lps(
         for x in 0..width {
             // Calculate normalized coordinates (0..1 range)
             // Add 0.5 to center pixels (x + 0.5, y + 0.5)
-            // Use fixed-point arithmetic throughout to avoid float fixed
-            let x_plus_half = Fixed::from_i32(x as i32) + Fixed::HALF;
-            let x_norm = x_plus_half / Fixed::from_i32(width as i32);
-            let y_plus_half = Fixed::from_i32(y as i32) + Fixed::HALF;
-            let y_norm = y_plus_half / Fixed::from_i32(height as i32);
+            // Use dec32-point arithmetic throughout to avoid float dec32
+            let x_plus_half = Dec32::from_i32(x as i32) + Dec32::HALF;
+            let x_norm = x_plus_half / Dec32::from_i32(width as i32);
+            let y_plus_half = Dec32::from_i32(y as i32) + Dec32::HALF;
+            let y_norm = y_plus_half / Dec32::from_i32(height as i32);
 
             // Pass both normalized AND pixel coordinates
             let result = vm
@@ -84,10 +84,10 @@ pub fn execute_program_lps(
 /// Output buffer should be sized width * height * 3 (r, g, b values)
 pub fn execute_program_lps_vec3(
     program: &LpsProgram,
-    output: &mut [Fixed],
+    output: &mut [Dec32],
     width: usize,
     height: usize,
-    time: Fixed,
+    time: Dec32,
 ) {
     // Create VM once and reuse it for all pixels
     let mut vm = LpsVm::new(program, VmLimits::default()).expect("Failed to create VM");
@@ -95,10 +95,10 @@ pub fn execute_program_lps_vec3(
     for y in 0..height {
         for x in 0..width {
             // Calculate normalized coordinates
-            let x_plus_half = Fixed::from_i32(x as i32) + Fixed::HALF;
-            let x_norm = x_plus_half / Fixed::from_i32(width as i32);
-            let y_plus_half = Fixed::from_i32(y as i32) + Fixed::HALF;
-            let y_norm = y_plus_half / Fixed::from_i32(height as i32);
+            let x_plus_half = Dec32::from_i32(x as i32) + Dec32::HALF;
+            let x_norm = x_plus_half / Dec32::from_i32(width as i32);
+            let y_plus_half = Dec32::from_i32(y as i32) + Dec32::HALF;
+            let y_norm = y_plus_half / Dec32::from_i32(height as i32);
 
             // Run program - it should return 3 values on stack for Vec3
             vm.run_with_coords(
@@ -117,15 +117,15 @@ pub fn execute_program_lps_vec3(
             // Pop 3 values from stack (b, g, r in reverse order)
             let b = vm
                 .stack
-                .pop_fixed()
+                .pop_dec32()
                 .expect("Vec3 should have blue component");
             let g = vm
                 .stack
-                .pop_fixed()
+                .pop_dec32()
                 .expect("Vec3 should have green component");
             let r = vm
                 .stack
-                .pop_fixed()
+                .pop_dec32()
                 .expect("Vec3 should have red component");
 
             let idx = (y * width + x) * 3;

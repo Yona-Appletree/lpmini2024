@@ -10,7 +10,7 @@ use lp_alloc::init_test_allocator;
 use crate::compiler::ast::Expr;
 use crate::compiler::expr::expr_test_util::expr_eq_ignore_spans;
 use crate::compiler::{codegen, lexer, parser, typechecker};
-use crate::fixed::{Fixed, Mat3, ToFixed, Vec2, Vec3, Vec4};
+use crate::dec32::{Dec32, Mat3, ToDec32, Vec2, Vec3, Vec4};
 use crate::shared::Type;
 use crate::vm::{FunctionDef, LpsProgram, LpsVm, VmLimits};
 
@@ -30,9 +30,9 @@ pub struct AstOptTest {
     pass: Option<OptPassFn>,
     expected_ast_builder: Option<ExprBuilder>,
     check_semantics: bool,
-    x: Fixed,
-    y: Fixed,
-    time: Fixed,
+    x: Dec32,
+    y: Dec32,
+    time: Dec32,
 }
 
 impl AstOptTest {
@@ -42,9 +42,9 @@ impl AstOptTest {
             pass: None,
             expected_ast_builder: None,
             check_semantics: false,
-            x: 0.5.to_fixed(),
-            y: 0.5.to_fixed(),
-            time: Fixed::ZERO,
+            x: 0.5.to_dec32(),
+            y: 0.5.to_dec32(),
+            time: Dec32::ZERO,
         }
     }
 
@@ -67,14 +67,14 @@ impl AstOptTest {
     }
 
     pub fn with_time(mut self, time: f32) -> Self {
-        self.time = time.to_fixed();
+        self.time = time.to_dec32();
         self
     }
 
     pub fn with_vm_params(mut self, x: f32, y: f32, time: f32) -> Self {
-        self.x = x.to_fixed();
-        self.y = y.to_fixed();
-        self.time = time.to_fixed();
+        self.x = x.to_dec32();
+        self.y = y.to_dec32();
+        self.time = time.to_dec32();
         self
     }
 
@@ -159,7 +159,7 @@ impl AstOptTest {
 
 #[derive(Debug)]
 enum EvalResult {
-    Scalar(Fixed),
+    Scalar(Dec32),
     Vec2(Vec2),
     Vec3(Vec3),
     Vec4(Vec4),
@@ -199,11 +199,11 @@ impl EvalResult {
 fn evaluate_expr(
     expr: &Expr,
     source: &str,
-    x: Fixed,
-    y: Fixed,
-    time: Fixed,
+    x: Dec32,
+    y: Dec32,
+    time: Dec32,
 ) -> Result<EvalResult, String> {
-    let return_type = expr.ty.clone().unwrap_or(Type::Fixed);
+    let return_type = expr.ty.clone().unwrap_or(Type::Dec32);
     let opcodes =
         codegen::CodeGenerator::generate(expr).map_err(|e| format!("Codegen error: {}", e))?;
     let program = LpsProgram::new(source.into())
@@ -215,7 +215,7 @@ fn evaluate_expr(
         .map_err(|e| format!("Failed to create VM: {:?}", e))?;
 
     match return_type {
-        Type::Fixed | Type::Bool | Type::Int32 => vm
+        Type::Dec32 | Type::Bool | Type::Int32 => vm
             .run_scalar(x, y, time)
             .map(EvalResult::Scalar)
             .map_err(|e| format!("Runtime error: {:?}", e)),

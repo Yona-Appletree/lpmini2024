@@ -1,190 +1,189 @@
-/// Basic fixed-point arithmetic opcodes with error handling
+use crate::math::trig::{cos, sin};
+use crate::math::{ceil, floor, sqrt, Dec32};
+/// Basic dec32-point arithmetic opcodes with error handling
 use crate::vm::error::RuntimeError;
 use crate::vm::vm_stack::Stack;
-use crate::math::trig::{cos, sin};
-use crate::math::Fixed;
-use crate::math::{ceil, floor, sqrt};
 
-/// Execute AddFixed: pop b, a; push a + b
+/// Execute AddDec32: pop b, a; push a + b
 #[inline(always)]
-pub fn exec_add_fixed(stack: &mut Stack) -> Result<(), RuntimeError> {
+pub fn exec_add_dec32(stack: &mut Stack) -> Result<(), RuntimeError> {
     let (a, b) = stack.pop2()?;
-    let result = Fixed(a) + Fixed(b);
-    stack.push_fixed(result)?;
+    let result = Dec32(a) + Dec32(b);
+    stack.push_dec32(result)?;
     Ok(())
 }
 
-/// Execute SubFixed: pop b, a; push a - b
+/// Execute SubDec32: pop b, a; push a - b
 #[inline(always)]
-pub fn exec_sub_fixed(stack: &mut Stack) -> Result<(), RuntimeError> {
+pub fn exec_sub_dec32(stack: &mut Stack) -> Result<(), RuntimeError> {
     let (a, b) = stack.pop2()?;
-    let result = Fixed(a) - Fixed(b);
-    stack.push_fixed(result)?;
+    let result = Dec32(a) - Dec32(b);
+    stack.push_dec32(result)?;
     Ok(())
 }
 
-/// Execute MulFixed: pop b, a; push a * b
+/// Execute MulDec32: pop b, a; push a * b
 #[inline(always)]
-pub fn exec_mul_fixed(stack: &mut Stack) -> Result<(), RuntimeError> {
+pub fn exec_mul_dec32(stack: &mut Stack) -> Result<(), RuntimeError> {
     let (a, b) = stack.pop2()?;
-    let result = Fixed(a) * Fixed(b);
-    stack.push_fixed(result)?;
+    let result = Dec32(a) * Dec32(b);
+    stack.push_dec32(result)?;
     Ok(())
 }
 
-/// Execute DivFixed: pop b, a; push a / b
+/// Execute DivDec32: pop b, a; push a / b
 #[inline(always)]
-pub fn exec_div_fixed(stack: &mut Stack) -> Result<(), RuntimeError> {
+pub fn exec_div_dec32(stack: &mut Stack) -> Result<(), RuntimeError> {
     let (a, b) = stack.pop2()?;
 
     if b == 0 {
         return Err(RuntimeError::DivisionByZero);
     }
 
-    let result = Fixed(a) / Fixed(b);
-    stack.push_fixed(result)?;
+    let result = Dec32(a) / Dec32(b);
+    stack.push_dec32(result)?;
     Ok(())
 }
 
-/// Execute NegFixed: pop a; push -a
+/// Execute NegDec32: pop a; push -a
 #[inline(always)]
-pub fn exec_neg_fixed(stack: &mut Stack) -> Result<(), RuntimeError> {
-    let a = stack.pop_fixed()?;
-    stack.push_fixed(-a)?;
+pub fn exec_neg_dec32(stack: &mut Stack) -> Result<(), RuntimeError> {
+    let a = stack.pop_dec32()?;
+    stack.push_dec32(-a)?;
     Ok(())
 }
 
-/// Execute AbsFixed: pop a; push abs(a)
+/// Execute AbsDec32: pop a; push abs(a)
 #[inline(always)]
-pub fn exec_abs_fixed(stack: &mut Stack) -> Result<(), RuntimeError> {
-    let a = stack.pop_fixed()?;
-    stack.push_fixed(a.abs())?;
+pub fn exec_abs_dec32(stack: &mut Stack) -> Result<(), RuntimeError> {
+    let a = stack.pop_dec32()?;
+    stack.push_dec32(a.abs())?;
     Ok(())
 }
 
-/// Execute MinFixed: pop b, a; push min(a, b)
+/// Execute MinDec32: pop b, a; push min(a, b)
 #[inline(always)]
-pub fn exec_min_fixed(stack: &mut Stack) -> Result<(), RuntimeError> {
+pub fn exec_min_dec32(stack: &mut Stack) -> Result<(), RuntimeError> {
     let (a, b) = stack.pop2()?;
-    let result = Fixed(a).min(Fixed(b));
-    stack.push_fixed(result)?;
+    let result = Dec32(a).min(Dec32(b));
+    stack.push_dec32(result)?;
     Ok(())
 }
 
-/// Execute MaxFixed: pop b, a; push max(a, b)
+/// Execute MaxDec32: pop b, a; push max(a, b)
 #[inline(always)]
-pub fn exec_max_fixed(stack: &mut Stack) -> Result<(), RuntimeError> {
+pub fn exec_max_dec32(stack: &mut Stack) -> Result<(), RuntimeError> {
     let (a, b) = stack.pop2()?;
-    let result = Fixed(a).max(Fixed(b));
-    stack.push_fixed(result)?;
+    let result = Dec32(a).max(Dec32(b));
+    stack.push_dec32(result)?;
     Ok(())
 }
 
-/// Execute SinFixed: pop a; push sin(a)
+/// Execute SinDec32: pop a; push sin(a)
 #[inline(always)]
-pub fn exec_sin_fixed(stack: &mut Stack) -> Result<(), RuntimeError> {
-    let a = stack.pop_fixed()?;
-    stack.push_fixed(sin(a))?;
+pub fn exec_sin_dec32(stack: &mut Stack) -> Result<(), RuntimeError> {
+    let a = stack.pop_dec32()?;
+    stack.push_dec32(sin(a))?;
     Ok(())
 }
 
-/// Execute CosFixed: pop a; push cos(a)
+/// Execute CosDec32: pop a; push cos(a)
 #[inline(always)]
-pub fn exec_cos_fixed(stack: &mut Stack) -> Result<(), RuntimeError> {
-    let a = stack.pop_fixed()?;
-    stack.push_fixed(cos(a))?;
+pub fn exec_cos_dec32(stack: &mut Stack) -> Result<(), RuntimeError> {
+    let a = stack.pop_dec32()?;
+    stack.push_dec32(cos(a))?;
     Ok(())
 }
 
-/// Execute SqrtFixed: pop a; push sqrt(a)
+/// Execute SqrtDec32: pop a; push sqrt(a)
 #[inline(always)]
-pub fn exec_sqrt_fixed(stack: &mut Stack) -> Result<(), RuntimeError> {
-    let a = stack.pop_fixed()?;
-    stack.push_fixed(sqrt(a))?;
+pub fn exec_sqrt_dec32(stack: &mut Stack) -> Result<(), RuntimeError> {
+    let a = stack.pop_dec32()?;
+    stack.push_dec32(sqrt(a))?;
     Ok(())
 }
 
-/// Execute FloorFixed: pop a; push floor(a)
+/// Execute FloorDec32: pop a; push floor(a)
 #[inline(always)]
-pub fn exec_floor_fixed(stack: &mut Stack) -> Result<(), RuntimeError> {
-    let a = stack.pop_fixed()?;
-    stack.push_fixed(floor(a))?;
+pub fn exec_floor_dec32(stack: &mut Stack) -> Result<(), RuntimeError> {
+    let a = stack.pop_dec32()?;
+    stack.push_dec32(floor(a))?;
     Ok(())
 }
 
-/// Execute CeilFixed: pop a; push ceil(a)
+/// Execute CeilDec32: pop a; push ceil(a)
 #[inline(always)]
-pub fn exec_ceil_fixed(stack: &mut Stack) -> Result<(), RuntimeError> {
-    let a = stack.pop_fixed()?;
-    stack.push_fixed(ceil(a))?;
+pub fn exec_ceil_dec32(stack: &mut Stack) -> Result<(), RuntimeError> {
+    let a = stack.pop_dec32()?;
+    stack.push_dec32(ceil(a))?;
     Ok(())
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::math::ToFixed;
+    use crate::math::ToDec32;
 
     #[test]
     fn test_add() {
         let mut stack = Stack::new(64);
 
-        stack.push_fixed(2.0.to_fixed()).unwrap();
-        stack.push_fixed(3.0.to_fixed()).unwrap();
+        stack.push_dec32(2.0.to_dec32()).unwrap();
+        stack.push_dec32(3.0.to_dec32()).unwrap();
 
-        exec_add_fixed(&mut stack).unwrap();
+        exec_add_dec32(&mut stack).unwrap();
 
         assert_eq!(stack.sp(), 1);
-        assert_eq!(stack.pop_fixed().unwrap().to_f32(), 5.0);
+        assert_eq!(stack.pop_dec32().unwrap().to_f32(), 5.0);
     }
 
     #[test]
     fn test_sub() {
         let mut stack = Stack::new(64);
 
-        stack.push_fixed(5.0.to_fixed()).unwrap();
-        stack.push_fixed(3.0.to_fixed()).unwrap();
+        stack.push_dec32(5.0.to_dec32()).unwrap();
+        stack.push_dec32(3.0.to_dec32()).unwrap();
 
-        exec_sub_fixed(&mut stack).unwrap();
+        exec_sub_dec32(&mut stack).unwrap();
 
         assert_eq!(stack.sp(), 1);
-        assert_eq!(stack.pop_fixed().unwrap().to_f32(), 2.0);
+        assert_eq!(stack.pop_dec32().unwrap().to_f32(), 2.0);
     }
 
     #[test]
     fn test_mul() {
         let mut stack = Stack::new(64);
 
-        stack.push_fixed(4.0.to_fixed()).unwrap();
-        stack.push_fixed(3.0.to_fixed()).unwrap();
+        stack.push_dec32(4.0.to_dec32()).unwrap();
+        stack.push_dec32(3.0.to_dec32()).unwrap();
 
-        exec_mul_fixed(&mut stack).unwrap();
+        exec_mul_dec32(&mut stack).unwrap();
 
         assert_eq!(stack.sp(), 1);
-        assert_eq!(stack.pop_fixed().unwrap().to_f32(), 12.0);
+        assert_eq!(stack.pop_dec32().unwrap().to_f32(), 12.0);
     }
 
     #[test]
     fn test_div() {
         let mut stack = Stack::new(64);
 
-        stack.push_fixed(12.0.to_fixed()).unwrap();
-        stack.push_fixed(4.0.to_fixed()).unwrap();
+        stack.push_dec32(12.0.to_dec32()).unwrap();
+        stack.push_dec32(4.0.to_dec32()).unwrap();
 
-        exec_div_fixed(&mut stack).unwrap();
+        exec_div_dec32(&mut stack).unwrap();
 
         assert_eq!(stack.sp(), 1);
-        assert_eq!(stack.pop_fixed().unwrap().to_f32(), 3.0);
+        assert_eq!(stack.pop_dec32().unwrap().to_f32(), 3.0);
     }
 
     #[test]
     fn test_div_by_zero() {
         let mut stack = Stack::new(64);
 
-        stack.push_fixed(5.0.to_fixed()).unwrap();
-        stack.push_fixed(0.0.to_fixed()).unwrap();
+        stack.push_dec32(5.0.to_dec32()).unwrap();
+        stack.push_dec32(0.0.to_dec32()).unwrap();
 
-        let result = exec_div_fixed(&mut stack);
+        let result = exec_div_dec32(&mut stack);
         assert!(matches!(result, Err(RuntimeError::DivisionByZero)));
     }
 
@@ -192,51 +191,49 @@ mod tests {
     fn test_neg() {
         let mut stack = Stack::new(64);
 
-        stack.push_fixed(5.0.to_fixed()).unwrap();
+        stack.push_dec32(5.0.to_dec32()).unwrap();
 
-        exec_neg_fixed(&mut stack).unwrap();
+        exec_neg_dec32(&mut stack).unwrap();
 
         assert_eq!(stack.sp(), 1);
-        assert_eq!(stack.pop_fixed().unwrap().to_f32(), -5.0);
+        assert_eq!(stack.pop_dec32().unwrap().to_f32(), -5.0);
     }
 
     #[test]
     fn test_abs() {
         let mut stack = Stack::new(64);
 
-        stack.push_fixed((-5.0).to_fixed()).unwrap();
+        stack.push_dec32((-5.0).to_dec32()).unwrap();
 
-        exec_abs_fixed(&mut stack).unwrap();
+        exec_abs_dec32(&mut stack).unwrap();
 
         assert_eq!(stack.sp(), 1);
-        assert_eq!(stack.pop_fixed().unwrap().to_f32(), 5.0);
+        assert_eq!(stack.pop_dec32().unwrap().to_f32(), 5.0);
     }
 
     #[test]
     fn test_min() {
         let mut stack = Stack::new(64);
 
-        stack.push_fixed(5.0.to_fixed()).unwrap();
-        stack.push_fixed(3.0.to_fixed()).unwrap();
+        stack.push_dec32(5.0.to_dec32()).unwrap();
+        stack.push_dec32(3.0.to_dec32()).unwrap();
 
-        exec_min_fixed(&mut stack).unwrap();
+        exec_min_dec32(&mut stack).unwrap();
 
         assert_eq!(stack.sp(), 1);
-        assert_eq!(stack.pop_fixed().unwrap().to_f32(), 3.0);
+        assert_eq!(stack.pop_dec32().unwrap().to_f32(), 3.0);
     }
 
     #[test]
     fn test_max() {
         let mut stack = Stack::new(64);
 
-        stack.push_fixed(5.0.to_fixed()).unwrap();
-        stack.push_fixed(3.0.to_fixed()).unwrap();
+        stack.push_dec32(5.0.to_dec32()).unwrap();
+        stack.push_dec32(3.0.to_dec32()).unwrap();
 
-        exec_max_fixed(&mut stack).unwrap();
+        exec_max_dec32(&mut stack).unwrap();
 
         assert_eq!(stack.sp(), 1);
-        assert_eq!(stack.pop_fixed().unwrap().to_f32(), 5.0);
+        assert_eq!(stack.pop_dec32().unwrap().to_f32(), 5.0);
     }
 }
-
-

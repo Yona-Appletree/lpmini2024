@@ -1,4 +1,4 @@
-use crate::fixed::{Fixed, ToFixed};
+use crate::dec32::{Dec32, ToDec32};
 /// Load coordinate/builtin variable operations
 use crate::vm::error::LpsVmError;
 use crate::vm::value_stack::ValueStack;
@@ -22,11 +22,11 @@ pub enum LoadSource {
 pub fn exec_load(
     stack: &mut ValueStack,
     source: LoadSource,
-    x_norm: Fixed,
-    y_norm: Fixed,
-    x_int: Fixed,
-    y_int: Fixed,
-    time: Fixed,
+    x_norm: Dec32,
+    y_norm: Dec32,
+    x_int: Dec32,
+    y_int: Dec32,
+    time: Dec32,
     width: usize,
     height: usize,
 ) -> Result<(), LpsVmError> {
@@ -38,20 +38,20 @@ pub fn exec_load(
         LoadSource::Time => time,
         LoadSource::TimeNorm => {
             // Wrap time to 0..1 range
-            time % Fixed::ONE
+            time % Dec32::ONE
         }
         LoadSource::CenterDist => {
             // Distance from center (0 at center, 1 at farthest corner)
-            let center_x: Fixed = Fixed::from_i32(width as i32 / 2);
-            let center_y: Fixed = Fixed::from_i32(height as i32 / 2);
-            let dx: Fixed = x_int - center_x;
-            let dy: Fixed = y_int - center_y;
+            let center_x: Dec32 = Dec32::from_i32(width as i32 / 2);
+            let center_y: Dec32 = Dec32::from_i32(height as i32 / 2);
+            let dx: Dec32 = x_int - center_x;
+            let dy: Dec32 = y_int - center_y;
 
             // Use Manhattan distance normalized by half-diagonal
-            let manhattan: Fixed = dx.abs() + dy.abs();
-            let max_manhattan: Fixed = center_x + center_y;
+            let manhattan: Dec32 = dx.abs() + dy.abs();
+            let max_manhattan: Dec32 = center_x + center_y;
             if max_manhattan.is_zero() {
-                Fixed::ZERO
+                Dec32::ZERO
             } else {
                 manhattan / max_manhattan
             }
@@ -59,55 +59,55 @@ pub fn exec_load(
         LoadSource::CenterAngle => {
             // Angle from center in radians (-π to π, 0 = east/right)
             // Compatible with sin/cos which expect radians
-            let center_x: Fixed = Fixed::from_i32(width as i32 / 2);
-            let center_y: Fixed = Fixed::from_i32(height as i32 / 2);
-            let dx: Fixed = x_int - center_x;
-            let dy: Fixed = y_int - center_y;
+            let center_x: Dec32 = Dec32::from_i32(width as i32 / 2);
+            let center_y: Dec32 = Dec32::from_i32(height as i32 / 2);
+            let dx: Dec32 = x_int - center_x;
+            let dy: Dec32 = y_int - center_y;
 
             // atan2(dy, dx) in radians
             if dx.is_zero() && dy.is_zero() {
-                Fixed::ZERO // Center has no angle
+                Dec32::ZERO // Center has no angle
             } else {
                 // Approximate atan2 using octants (result in 0..1 range)
-                let abs_dx: Fixed = dx.abs();
-                let abs_dy: Fixed = dy.abs();
+                let abs_dx: Dec32 = dx.abs();
+                let abs_dy: Dec32 = dy.abs();
 
-                let angle: Fixed = if abs_dx > abs_dy {
+                let angle: Dec32 = if abs_dx > abs_dy {
                     // Closer to horizontal
-                    let ratio: Fixed = abs_dy / abs_dx;
-                    ratio / 8i32.to_fixed() // Scale to ~0..0.125
+                    let ratio: Dec32 = abs_dy / abs_dx;
+                    ratio / 8i32.to_dec32() // Scale to ~0..0.125
                 } else if !abs_dy.is_zero() {
                     // Closer to vertical
-                    let ratio: Fixed = abs_dx / abs_dy;
-                    Fixed::HALF / 2i32.to_fixed() - ratio / 8i32.to_fixed() // 0.25 - scaled ratio
+                    let ratio: Dec32 = abs_dx / abs_dy;
+                    Dec32::HALF / 2i32.to_dec32() - ratio / 8i32.to_dec32() // 0.25 - scaled ratio
                 } else {
-                    Fixed::ZERO
+                    Dec32::ZERO
                 };
 
                 // Adjust based on quadrant to get normalized angle (0..1)
-                let normalized: Fixed = if dx >= Fixed::ZERO && dy >= Fixed::ZERO {
+                let normalized: Dec32 = if dx >= Dec32::ZERO && dy >= Dec32::ZERO {
                     // Q1: 0 to 0.25
                     angle
-                } else if dx < Fixed::ZERO && dy >= Fixed::ZERO {
+                } else if dx < Dec32::ZERO && dy >= Dec32::ZERO {
                     // Q2: 0.25 to 0.5
-                    Fixed::HALF - angle
-                } else if dx < Fixed::ZERO && dy < Fixed::ZERO {
+                    Dec32::HALF - angle
+                } else if dx < Dec32::ZERO && dy < Dec32::ZERO {
                     // Q3: 0.5 to 0.75
-                    Fixed::HALF + angle
+                    Dec32::HALF + angle
                 } else {
                     // Q4: 0.75 to 1.0
-                    Fixed::ONE - angle
+                    Dec32::ONE - angle
                 };
 
                 // Convert normalized (0..1) to radians (0..2π)
                 // Then shift to -π..π range to match atan2 convention
-                let radians: Fixed = normalized * Fixed::TAU;
-                radians - Fixed::PI // Convert 0..2π to -π..π
+                let radians: Dec32 = normalized * Dec32::TAU;
+                radians - Dec32::PI // Convert 0..2π to -π..π
             }
         }
     };
 
-    stack.push_fixed(value)?;
+    stack.push_dec32(value)?;
 
     Ok(())
 }
@@ -115,7 +115,7 @@ pub fn exec_load(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::fixed::ToFixed;
+    use crate::dec32::ToDec32;
 
     #[test]
     fn test_load_x_norm() {
@@ -124,18 +124,18 @@ mod tests {
         exec_load(
             &mut stack,
             LoadSource::XNorm,
-            0.5f32.to_fixed(),
-            0.0f32.to_fixed(),
-            Fixed::ZERO,
-            Fixed::ZERO,
-            Fixed::ZERO,
+            0.5f32.to_dec32(),
+            0.0f32.to_dec32(),
+            Dec32::ZERO,
+            Dec32::ZERO,
+            Dec32::ZERO,
             100,
             100,
         )
         .unwrap();
 
         assert_eq!(stack.sp(), 1);
-        assert_eq!(Fixed(stack.raw_slice()[0]).to_f32(), 0.5);
+        assert_eq!(Dec32(stack.raw_slice()[0]).to_f32(), 0.5);
     }
 
     #[test]
@@ -145,18 +145,18 @@ mod tests {
         exec_load(
             &mut stack,
             LoadSource::YNorm,
-            0.0f32.to_fixed(),
-            0.75f32.to_fixed(),
-            Fixed::ZERO,
-            Fixed::ZERO,
-            Fixed::ZERO,
+            0.0f32.to_dec32(),
+            0.75f32.to_dec32(),
+            Dec32::ZERO,
+            Dec32::ZERO,
+            Dec32::ZERO,
             100,
             100,
         )
         .unwrap();
 
         assert_eq!(stack.sp(), 1);
-        assert_eq!(Fixed(stack.raw_slice()[0]).to_f32(), 0.75);
+        assert_eq!(Dec32(stack.raw_slice()[0]).to_f32(), 0.75);
     }
 
     #[test]
@@ -166,18 +166,18 @@ mod tests {
         exec_load(
             &mut stack,
             LoadSource::Time,
-            Fixed::ZERO,
-            Fixed::ZERO,
-            Fixed::ZERO,
-            Fixed::ZERO,
-            5.5f32.to_fixed(),
+            Dec32::ZERO,
+            Dec32::ZERO,
+            Dec32::ZERO,
+            Dec32::ZERO,
+            5.5f32.to_dec32(),
             100,
             100,
         )
         .unwrap();
 
         assert_eq!(stack.sp(), 1);
-        assert_eq!(Fixed(stack.raw_slice()[0]).to_f32(), 5.5);
+        assert_eq!(Dec32(stack.raw_slice()[0]).to_f32(), 5.5);
     }
 
     #[test]
@@ -188,18 +188,18 @@ mod tests {
         exec_load(
             &mut stack,
             LoadSource::TimeNorm,
-            Fixed::ZERO,
-            Fixed::ZERO,
-            Fixed::ZERO,
-            Fixed::ZERO,
-            2.3f32.to_fixed(),
+            Dec32::ZERO,
+            Dec32::ZERO,
+            Dec32::ZERO,
+            Dec32::ZERO,
+            2.3f32.to_dec32(),
             100,
             100,
         )
         .unwrap();
 
         assert_eq!(stack.sp(), 1);
-        assert!((Fixed(stack.raw_slice()[0]).to_f32() - 0.3).abs() < 0.01);
+        assert!((Dec32(stack.raw_slice()[0]).to_f32() - 0.3).abs() < 0.01);
     }
 
     #[test]
@@ -210,11 +210,11 @@ mod tests {
         exec_load(
             &mut stack,
             LoadSource::CenterDist,
-            Fixed::ZERO,
-            Fixed::ZERO,
-            50.0f32.to_fixed(),
-            50.0f32.to_fixed(),
-            Fixed::ZERO,
+            Dec32::ZERO,
+            Dec32::ZERO,
+            50.0f32.to_dec32(),
+            50.0f32.to_dec32(),
+            Dec32::ZERO,
             100,
             100,
         )
@@ -222,7 +222,7 @@ mod tests {
 
         assert_eq!(stack.sp(), 1);
         // At center, distance should be 0
-        assert_eq!(Fixed(stack.raw_slice()[0]).to_f32(), 0.0);
+        assert_eq!(Dec32(stack.raw_slice()[0]).to_f32(), 0.0);
     }
 
     #[test]
@@ -233,11 +233,11 @@ mod tests {
         exec_load(
             &mut stack,
             LoadSource::CenterAngle,
-            Fixed::ZERO,
-            Fixed::ZERO,
-            50.0f32.to_fixed(),
-            50.0f32.to_fixed(),
-            Fixed::ZERO,
+            Dec32::ZERO,
+            Dec32::ZERO,
+            50.0f32.to_dec32(),
+            50.0f32.to_dec32(),
+            Dec32::ZERO,
             100,
             100,
         )
@@ -245,7 +245,7 @@ mod tests {
 
         assert_eq!(stack.sp(), 1);
         // At center, angle should be 0 (undefined, we return 0)
-        assert_eq!(Fixed(stack.raw_slice()[0]).to_f32(), 0.0);
+        assert_eq!(Dec32(stack.raw_slice()[0]).to_f32(), 0.0);
     }
 
     #[test]
@@ -258,11 +258,11 @@ mod tests {
         let result = exec_load(
             &mut stack,
             LoadSource::XNorm,
-            0.5f32.to_fixed(),
-            0.0f32.to_fixed(),
-            Fixed::ZERO,
-            Fixed::ZERO,
-            Fixed::ZERO,
+            0.5f32.to_dec32(),
+            0.0f32.to_dec32(),
+            Dec32::ZERO,
+            Dec32::ZERO,
+            Dec32::ZERO,
             100,
             100,
         );

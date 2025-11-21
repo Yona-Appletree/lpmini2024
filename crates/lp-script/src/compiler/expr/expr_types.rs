@@ -180,7 +180,7 @@ impl TypeChecker {
 
     // Helper methods for leaf node type checking
     fn check_number() -> Type {
-        Type::Fixed
+        Type::Dec32
     }
 
     fn check_int_number() -> Type {
@@ -247,7 +247,7 @@ impl TypeChecker {
         Self::infer_type(true_expr, symbols, func_table)?;
         Self::infer_type(false_expr, symbols, func_table)?;
 
-        let true_ty = true_expr.ty.clone().unwrap_or(Type::Fixed);
+        let true_ty = true_expr.ty.clone().unwrap_or(Type::Dec32);
         Ok(true_ty)
     }
 
@@ -259,7 +259,7 @@ impl TypeChecker {
     ) -> Result<Type, TypeError> {
         use alloc::string::ToString;
         Self::infer_type(value, symbols, func_table)?;
-        let value_ty = value.ty.clone().unwrap_or(Type::Fixed);
+        let value_ty = value.ty.clone().unwrap_or(Type::Dec32);
 
         // Update symbol table
         symbols.set(target.to_string(), value_ty.clone());
@@ -285,7 +285,7 @@ impl TypeChecker {
             3 => Type::Vec3,
             4 => Type::Vec4,
             9 => Type::Mat3,
-            _ => Type::Fixed,
+            _ => Type::Dec32,
         })
     }
 
@@ -353,7 +353,7 @@ impl TypeChecker {
 
         // Result type based on component count
         Ok(match components.len() {
-            1 => Type::Fixed,
+            1 => Type::Dec32,
             2 => Type::Vec2,
             3 => Type::Vec3,
             4 => Type::Vec4,
@@ -372,7 +372,7 @@ impl TypeChecker {
 
 fn type_to_string(ty: &Type) -> &str {
     match ty {
-        Type::Fixed => "float",
+        Type::Dec32 => "float",
         Type::Int32 => "int",
         Type::Bool => "bool",
         Type::Vec2 => "vec2",

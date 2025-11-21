@@ -2,31 +2,31 @@
 #[cfg(test)]
 mod tests {
     use crate::compiler::expr::expr_test_util::ExprTest;
-    use crate::fixed::ToFixed;
+    use crate::dec32::ToDec32;
     use crate::vm::opcodes::LpsOpCode;
 
     #[test]
     fn test_length() -> Result<(), String> {
         ExprTest::new("length(vec3(2.0, 3.0, 6.0))")
             .expect_opcodes(vec![
-                LpsOpCode::Push(2.0.to_fixed()),
-                LpsOpCode::Push(3.0.to_fixed()),
-                LpsOpCode::Push(6.0.to_fixed()),
+                LpsOpCode::Push(2.0.to_dec32()),
+                LpsOpCode::Push(3.0.to_dec32()),
+                LpsOpCode::Push(6.0.to_dec32()),
                 LpsOpCode::Length3,
                 LpsOpCode::Return,
             ])
-            .expect_result_fixed(7.0) // sqrt(4 + 9 + 36) = 7
+            .expect_result_dec32(7.0) // sqrt(4 + 9 + 36) = 7
             .run()
     }
 
     #[test]
     fn test_normalize() -> Result<(), String> {
         ExprTest::new("normalize(vec3(2.0, 0.0, 0.0)).x")
-            .expect_result_fixed(1.0)
+            .expect_result_dec32(1.0)
             .run()?;
 
         ExprTest::new("normalize(vec3(2.0, 0.0, 0.0)).y")
-            .expect_result_fixed(0.0)
+            .expect_result_dec32(0.0)
             .run()
     }
 
@@ -34,16 +34,16 @@ mod tests {
     fn test_dot() -> Result<(), String> {
         ExprTest::new("dot(vec3(1.0, 2.0, 3.0), vec3(4.0, 5.0, 6.0))")
             .expect_opcodes(vec![
-                LpsOpCode::Push(1.0.to_fixed()),
-                LpsOpCode::Push(2.0.to_fixed()),
-                LpsOpCode::Push(3.0.to_fixed()),
-                LpsOpCode::Push(4.0.to_fixed()),
-                LpsOpCode::Push(5.0.to_fixed()),
-                LpsOpCode::Push(6.0.to_fixed()),
+                LpsOpCode::Push(1.0.to_dec32()),
+                LpsOpCode::Push(2.0.to_dec32()),
+                LpsOpCode::Push(3.0.to_dec32()),
+                LpsOpCode::Push(4.0.to_dec32()),
+                LpsOpCode::Push(5.0.to_dec32()),
+                LpsOpCode::Push(6.0.to_dec32()),
                 LpsOpCode::Dot3,
                 LpsOpCode::Return,
             ])
-            .expect_result_fixed(32.0) // 1*4 + 2*5 + 3*6 = 32
+            .expect_result_dec32(32.0) // 1*4 + 2*5 + 3*6 = 32
             .run()
     }
 
@@ -51,19 +51,19 @@ mod tests {
     fn test_cross() -> Result<(), String> {
         ExprTest::new("cross(vec3(1.0, 0.0, 0.0), vec3(0.0, 1.0, 0.0))")
             .expect_opcodes(vec![
-                LpsOpCode::Push(1.0.to_fixed()),
-                LpsOpCode::Push(0.0.to_fixed()),
-                LpsOpCode::Push(0.0.to_fixed()),
-                LpsOpCode::Push(0.0.to_fixed()),
-                LpsOpCode::Push(1.0.to_fixed()),
-                LpsOpCode::Push(0.0.to_fixed()),
+                LpsOpCode::Push(1.0.to_dec32()),
+                LpsOpCode::Push(0.0.to_dec32()),
+                LpsOpCode::Push(0.0.to_dec32()),
+                LpsOpCode::Push(0.0.to_dec32()),
+                LpsOpCode::Push(1.0.to_dec32()),
+                LpsOpCode::Push(0.0.to_dec32()),
                 LpsOpCode::Cross3,
                 LpsOpCode::Return,
             ])
-            .expect_result_vec3(crate::fixed::Vec3::new(
-                0.0.to_fixed(),
-                0.0.to_fixed(),
-                1.0.to_fixed(),
+            .expect_result_vec3(crate::dec32::Vec3::new(
+                0.0.to_dec32(),
+                0.0.to_dec32(),
+                1.0.to_dec32(),
             ))
             .run()
     }
@@ -72,16 +72,16 @@ mod tests {
     fn test_distance() -> Result<(), String> {
         ExprTest::new("distance(vec3(0.0, 0.0, 0.0), vec3(2.0, 3.0, 6.0))")
             .expect_opcodes(vec![
-                LpsOpCode::Push(0.0.to_fixed()),
-                LpsOpCode::Push(0.0.to_fixed()),
-                LpsOpCode::Push(0.0.to_fixed()),
-                LpsOpCode::Push(2.0.to_fixed()),
-                LpsOpCode::Push(3.0.to_fixed()),
-                LpsOpCode::Push(6.0.to_fixed()),
+                LpsOpCode::Push(0.0.to_dec32()),
+                LpsOpCode::Push(0.0.to_dec32()),
+                LpsOpCode::Push(0.0.to_dec32()),
+                LpsOpCode::Push(2.0.to_dec32()),
+                LpsOpCode::Push(3.0.to_dec32()),
+                LpsOpCode::Push(6.0.to_dec32()),
                 LpsOpCode::Distance3,
                 LpsOpCode::Return,
             ])
-            .expect_result_fixed(7.0)
+            .expect_result_dec32(7.0)
             .run()
     }
 
@@ -98,9 +98,9 @@ mod tests {
         let program = crate::parse_expr("cos(perlin3(vec3(uv * 0.3, time), 3))");
         let opcodes = &program.main_function().unwrap().opcodes;
         let has_perlin = opcodes.iter().any(|op| matches!(op, LpsOpCode::Perlin3(_)));
-        let has_cos = opcodes.iter().any(|op| matches!(op, LpsOpCode::CosFixed));
+        let has_cos = opcodes.iter().any(|op| matches!(op, LpsOpCode::CosDec32));
         assert!(has_perlin, "Should have Perlin3 opcode");
-        assert!(has_cos, "Should have CosFixed opcode");
+        assert!(has_cos, "Should have CosDec32 opcode");
         Ok(())
     }
 

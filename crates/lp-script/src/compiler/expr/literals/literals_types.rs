@@ -7,9 +7,9 @@ use crate::shared::Type;
 impl TypeChecker {
     /// Type check number literal
     ///
-    /// Returns Type::Fixed.
+    /// Returns Type::Dec32.
     pub(crate) fn check_number() -> Type {
-        Type::Fixed
+        Type::Dec32
     }
 
     /// Type check int literal

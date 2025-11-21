@@ -77,7 +77,7 @@ pub fn gen_program_with_functions(
 
     // Add return if missing
     if !matches!(main_code.last(), Some(LpsOpCode::Return)) {
-        main_code.push(LpsOpCode::Push(crate::fixed::Fixed::ZERO));
+        main_code.push(LpsOpCode::Push(crate::dec32::Dec32::ZERO));
         main_code.push(LpsOpCode::Return);
     }
 
@@ -87,7 +87,7 @@ pub fn gen_program_with_functions(
                 .local_types
                 .get(&i)
                 .cloned()
-                .unwrap_or(Type::Fixed);
+                .unwrap_or(Type::Dec32);
             LocalVarDef::new(alloc::format!("local_{}", i), ty)
         })
         .collect();

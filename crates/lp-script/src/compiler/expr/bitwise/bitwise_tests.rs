@@ -169,7 +169,7 @@ mod tests {
 #[cfg(test)]
 mod integration_tests {
     use crate::compile_script;
-    use crate::fixed::ToFixed;
+    use crate::dec32::ToDec32;
     use crate::vm::lps_vm::LpsVm;
     use crate::vm::vm_limits::VmLimits;
 
@@ -182,7 +182,7 @@ mod integration_tests {
         let program = compile_script(script).unwrap();
         let mut vm = LpsVm::new(&program, VmLimits::default()).unwrap();
         let result = vm
-            .run_scalar(0.0.to_fixed(), 0.0.to_fixed(), 0.0.to_fixed())
+            .run_scalar(0.0.to_dec32(), 0.0.to_dec32(), 0.0.to_dec32())
             .unwrap();
         assert_eq!(result.0, 8); // 12 & 10 = 8 (use .0 for raw Int32)
     }
@@ -196,7 +196,7 @@ mod integration_tests {
         let program = compile_script(script).unwrap();
         let mut vm = LpsVm::new(&program, VmLimits::default()).unwrap();
         let result = vm
-            .run_scalar(0.0.to_fixed(), 0.0.to_fixed(), 0.0.to_fixed())
+            .run_scalar(0.0.to_dec32(), 0.0.to_dec32(), 0.0.to_dec32())
             .unwrap();
         assert_eq!(result.0, 14); // 12 | 10 = 14
     }
@@ -210,7 +210,7 @@ mod integration_tests {
         let program = compile_script(script).unwrap();
         let mut vm = LpsVm::new(&program, VmLimits::default()).unwrap();
         let result = vm
-            .run_scalar(0.0.to_fixed(), 0.0.to_fixed(), 0.0.to_fixed())
+            .run_scalar(0.0.to_dec32(), 0.0.to_dec32(), 0.0.to_dec32())
             .unwrap();
         assert_eq!(result.0, 6); // 12 ^ 10 = 6
     }
@@ -224,7 +224,7 @@ mod integration_tests {
         let program = compile_script(script).unwrap();
         let mut vm = LpsVm::new(&program, VmLimits::default()).unwrap();
         let result = vm
-            .run_scalar(0.0.to_fixed(), 0.0.to_fixed(), 0.0.to_fixed())
+            .run_scalar(0.0.to_dec32(), 0.0.to_dec32(), 0.0.to_dec32())
             .unwrap();
         assert_eq!(result.0, -6); // ~5 = -6
     }
@@ -238,7 +238,7 @@ mod integration_tests {
         let program = compile_script(script).unwrap();
         let mut vm = LpsVm::new(&program, VmLimits::default()).unwrap();
         let result = vm
-            .run_scalar(0.0.to_fixed(), 0.0.to_fixed(), 0.0.to_fixed())
+            .run_scalar(0.0.to_dec32(), 0.0.to_dec32(), 0.0.to_dec32())
             .unwrap();
         assert_eq!(result.0, 20); // 5 << 2 = 20
     }
@@ -252,7 +252,7 @@ mod integration_tests {
         let program = compile_script(script).unwrap();
         let mut vm = LpsVm::new(&program, VmLimits::default()).unwrap();
         let result = vm
-            .run_scalar(0.0.to_fixed(), 0.0.to_fixed(), 0.0.to_fixed())
+            .run_scalar(0.0.to_dec32(), 0.0.to_dec32(), 0.0.to_dec32())
             .unwrap();
         assert_eq!(result.0, 5); // 20 >> 2 = 5
     }
@@ -266,7 +266,7 @@ mod integration_tests {
         let program = compile_script(script).unwrap();
         let mut vm = LpsVm::new(&program, VmLimits::default()).unwrap();
         let result = vm
-            .run_scalar(0.0.to_fixed(), 0.0.to_fixed(), 0.0.to_fixed())
+            .run_scalar(0.0.to_dec32(), 0.0.to_dec32(), 0.0.to_dec32())
             .unwrap();
         // Should be 8 & (4 << 1) = 8 & 8 = 8
         assert_eq!(result.0, 8);

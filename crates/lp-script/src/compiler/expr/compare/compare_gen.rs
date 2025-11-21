@@ -16,12 +16,12 @@ impl<'a> CodeGenerator<'a> {
             (ComparisonOp::GreaterEq, Type::Int32) => LpsOpCode::GreaterEqInt32,
             (ComparisonOp::Eq, Type::Int32) => LpsOpCode::EqInt32,
             (ComparisonOp::NotEq, Type::Int32) => LpsOpCode::NotEqInt32,
-            (ComparisonOp::Less, _) => LpsOpCode::LessFixed,
-            (ComparisonOp::Greater, _) => LpsOpCode::GreaterFixed,
-            (ComparisonOp::LessEq, _) => LpsOpCode::LessEqFixed,
-            (ComparisonOp::GreaterEq, _) => LpsOpCode::GreaterEqFixed,
-            (ComparisonOp::Eq, _) => LpsOpCode::EqFixed,
-            (ComparisonOp::NotEq, _) => LpsOpCode::NotEqFixed,
+            (ComparisonOp::Less, _) => LpsOpCode::LessDec32,
+            (ComparisonOp::Greater, _) => LpsOpCode::GreaterDec32,
+            (ComparisonOp::LessEq, _) => LpsOpCode::LessEqDec32,
+            (ComparisonOp::GreaterEq, _) => LpsOpCode::GreaterEqDec32,
+            (ComparisonOp::Eq, _) => LpsOpCode::EqDec32,
+            (ComparisonOp::NotEq, _) => LpsOpCode::NotEqDec32,
         }
     }
 
@@ -29,7 +29,7 @@ impl<'a> CodeGenerator<'a> {
         self.gen_expr(left)?;
         self.gen_expr(right)?;
         // Determine type from left operand (both should be same type after type checking)
-        let ty = left.ty.as_ref().unwrap_or(&Type::Fixed);
+        let ty = left.ty.as_ref().unwrap_or(&Type::Dec32);
         self.code
             .push(self.get_comparison_opcode(ComparisonOp::Less, ty));
         Ok(())
@@ -38,7 +38,7 @@ impl<'a> CodeGenerator<'a> {
     pub(crate) fn gen_greater(&mut self, left: &Expr, right: &Expr) -> Result<(), CodegenError> {
         self.gen_expr(left)?;
         self.gen_expr(right)?;
-        let ty = left.ty.as_ref().unwrap_or(&Type::Fixed);
+        let ty = left.ty.as_ref().unwrap_or(&Type::Dec32);
         self.code
             .push(self.get_comparison_opcode(ComparisonOp::Greater, ty));
         Ok(())
@@ -47,7 +47,7 @@ impl<'a> CodeGenerator<'a> {
     pub(crate) fn gen_less_eq(&mut self, left: &Expr, right: &Expr) -> Result<(), CodegenError> {
         self.gen_expr(left)?;
         self.gen_expr(right)?;
-        let ty = left.ty.as_ref().unwrap_or(&Type::Fixed);
+        let ty = left.ty.as_ref().unwrap_or(&Type::Dec32);
         self.code
             .push(self.get_comparison_opcode(ComparisonOp::LessEq, ty));
         Ok(())
@@ -56,7 +56,7 @@ impl<'a> CodeGenerator<'a> {
     pub(crate) fn gen_greater_eq(&mut self, left: &Expr, right: &Expr) -> Result<(), CodegenError> {
         self.gen_expr(left)?;
         self.gen_expr(right)?;
-        let ty = left.ty.as_ref().unwrap_or(&Type::Fixed);
+        let ty = left.ty.as_ref().unwrap_or(&Type::Dec32);
         self.code
             .push(self.get_comparison_opcode(ComparisonOp::GreaterEq, ty));
         Ok(())
@@ -65,7 +65,7 @@ impl<'a> CodeGenerator<'a> {
     pub(crate) fn gen_eq(&mut self, left: &Expr, right: &Expr) -> Result<(), CodegenError> {
         self.gen_expr(left)?;
         self.gen_expr(right)?;
-        let ty = left.ty.as_ref().unwrap_or(&Type::Fixed);
+        let ty = left.ty.as_ref().unwrap_or(&Type::Dec32);
         self.code
             .push(self.get_comparison_opcode(ComparisonOp::Eq, ty));
         Ok(())
@@ -74,7 +74,7 @@ impl<'a> CodeGenerator<'a> {
     pub(crate) fn gen_not_eq(&mut self, left: &Expr, right: &Expr) -> Result<(), CodegenError> {
         self.gen_expr(left)?;
         self.gen_expr(right)?;
-        let ty = left.ty.as_ref().unwrap_or(&Type::Fixed);
+        let ty = left.ty.as_ref().unwrap_or(&Type::Dec32);
         self.code
             .push(self.get_comparison_opcode(ComparisonOp::NotEq, ty));
         Ok(())

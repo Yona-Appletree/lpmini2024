@@ -1,4 +1,4 @@
-use crate::fixed::{modulo, Vec2};
+use crate::dec32::{modulo, Vec2};
 /// Vec2 operations
 use crate::vm::error::LpsVmError;
 use crate::vm::value_stack::ValueStack;
@@ -52,7 +52,7 @@ pub fn exec_mod_vec2(stack: &mut ValueStack) -> Result<(), LpsVmError> {
 
 #[inline(always)]
 pub fn exec_mul_vec2_scalar(stack: &mut ValueStack) -> Result<(), LpsVmError> {
-    let scalar = stack.pop_fixed()?;
+    let scalar = stack.pop_dec32()?;
     let vec = stack.pop_vec2()?;
     stack.push_vec2(vec * scalar)?;
     Ok(())
@@ -60,7 +60,7 @@ pub fn exec_mul_vec2_scalar(stack: &mut ValueStack) -> Result<(), LpsVmError> {
 
 #[inline(always)]
 pub fn exec_div_vec2_scalar(stack: &mut ValueStack) -> Result<(), LpsVmError> {
-    let scalar = stack.pop_fixed()?;
+    let scalar = stack.pop_dec32()?;
     let vec = stack.pop_vec2()?;
     stack.push_vec2(vec / scalar)?;
     Ok(())
@@ -70,14 +70,14 @@ pub fn exec_div_vec2_scalar(stack: &mut ValueStack) -> Result<(), LpsVmError> {
 pub fn exec_dot2(stack: &mut ValueStack) -> Result<(), LpsVmError> {
     let b = stack.pop_vec2()?;
     let a = stack.pop_vec2()?;
-    stack.push_fixed(a.dot(b))?;
+    stack.push_dec32(a.dot(b))?;
     Ok(())
 }
 
 #[inline(always)]
 pub fn exec_length2(stack: &mut ValueStack) -> Result<(), LpsVmError> {
     let a = stack.pop_vec2()?;
-    stack.push_fixed(a.length())?;
+    stack.push_dec32(a.length())?;
     Ok(())
 }
 
@@ -92,6 +92,6 @@ pub fn exec_normalize2(stack: &mut ValueStack) -> Result<(), LpsVmError> {
 pub fn exec_distance2(stack: &mut ValueStack) -> Result<(), LpsVmError> {
     let b = stack.pop_vec2()?;
     let a = stack.pop_vec2()?;
-    stack.push_fixed(a.distance(b))?;
+    stack.push_dec32(a.distance(b))?;
     Ok(())
 }

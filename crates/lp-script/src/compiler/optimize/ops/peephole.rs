@@ -30,7 +30,7 @@ pub fn optimize(opcodes: Vec<LpsOpCode>) -> Vec<LpsOpCode> {
         // Pattern: LoadLocal(x) followed by StoreLocal(x) with same index
         if i + 1 < opcodes.len() {
             match (&opcodes[i], &opcodes[i + 1]) {
-                (LpsOpCode::LoadLocalFixed(idx1), LpsOpCode::StoreLocalFixed(idx2))
+                (LpsOpCode::LoadLocalDec32(idx1), LpsOpCode::StoreLocalDec32(idx2))
                 | (LpsOpCode::LoadLocalInt32(idx1), LpsOpCode::StoreLocalInt32(idx2))
                 | (LpsOpCode::LoadLocalVec2(idx1), LpsOpCode::StoreLocalVec2(idx2))
                 | (LpsOpCode::LoadLocalVec3(idx1), LpsOpCode::StoreLocalVec3(idx2))

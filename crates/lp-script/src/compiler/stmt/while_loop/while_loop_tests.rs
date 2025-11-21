@@ -1,7 +1,7 @@
 /// While loop tests
 #[cfg(test)]
 mod tests {
-    use crate::fixed::Fixed;
+    use crate::dec32::Dec32;
     use crate::vm::vm_limits::VmLimits;
     use crate::*;
 
@@ -11,7 +11,7 @@ mod tests {
         let program = parse_script(script);
         let mut vm = LpsVm::new(&program, VmLimits::default()).unwrap();
         let result = vm
-            .run_scalar(Fixed::ZERO, Fixed::ZERO, Fixed::ZERO)
+            .run_scalar(Dec32::ZERO, Dec32::ZERO, Dec32::ZERO)
             .unwrap();
         assert_eq!(result.to_f32(), 5.0);
     }
@@ -22,7 +22,7 @@ mod tests {
         let program = parse_script(script);
         let mut vm = LpsVm::new(&program, VmLimits::default()).unwrap();
         let result = vm
-            .run_scalar(Fixed::ZERO, Fixed::ZERO, Fixed::ZERO)
+            .run_scalar(Dec32::ZERO, Dec32::ZERO, Dec32::ZERO)
             .unwrap();
         assert_eq!(result.to_f32(), 6.0); // 1 + 2 + 3
     }
@@ -33,7 +33,7 @@ mod tests {
         let program = parse_script(script);
         let mut vm = LpsVm::new(&program, VmLimits::default()).unwrap();
         let result = vm
-            .run_scalar(Fixed::ZERO, Fixed::ZERO, Fixed::ZERO)
+            .run_scalar(Dec32::ZERO, Dec32::ZERO, Dec32::ZERO)
             .unwrap();
         assert_eq!(result.to_f32(), 10.0);
     }

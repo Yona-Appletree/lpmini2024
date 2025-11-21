@@ -49,6 +49,6 @@ pub const ARRAY_SHAPE: ArrayShapeStatic = ArrayShapeStatic {
         name: "Array",
         docs: None,
     },
-    element_shape: &crate::kind::fixed::fixed_static::FIXED_SHAPE,
+    element_shape: &crate::kind::dec32::dec32_static::DEC32_SHAPE,
     len: 0,
 };

@@ -2,7 +2,7 @@
 #[cfg(test)]
 mod tests {
     use crate::compiler::expr::expr_test_util::ExprTest;
-    use crate::fixed::{ToFixed, Vec4};
+    use crate::dec32::{ToDec32, Vec4};
     use crate::shared::Type;
     use crate::vm::opcodes::LpsOpCode;
 
@@ -18,18 +18,18 @@ mod tests {
                 b.neg(operand, Type::Vec4)
             })
             .expect_opcodes(vec![
-                LpsOpCode::Push(1.0.to_fixed()),
-                LpsOpCode::Push(2.0.to_fixed()),
-                LpsOpCode::Push(3.0.to_fixed()),
-                LpsOpCode::Push(4.0.to_fixed()),
+                LpsOpCode::Push(1.0.to_dec32()),
+                LpsOpCode::Push(2.0.to_dec32()),
+                LpsOpCode::Push(3.0.to_dec32()),
+                LpsOpCode::Push(4.0.to_dec32()),
                 LpsOpCode::NegVec4,
                 LpsOpCode::Return,
             ])
             .expect_result_vec4(Vec4::new(
-                -1.0.to_fixed(),
-                -2.0.to_fixed(),
-                -3.0.to_fixed(),
-                -4.0.to_fixed(),
+                -1.0.to_dec32(),
+                -2.0.to_dec32(),
+                -3.0.to_dec32(),
+                -4.0.to_dec32(),
             ))
             .run()
     }
@@ -38,10 +38,10 @@ mod tests {
     fn test_negation_zero() -> Result<(), String> {
         ExprTest::new("-vec4(0.0, 0.0, 0.0, 0.0)")
             .expect_result_vec4(Vec4::new(
-                0.0.to_fixed(),
-                0.0.to_fixed(),
-                0.0.to_fixed(),
-                0.0.to_fixed(),
+                0.0.to_dec32(),
+                0.0.to_dec32(),
+                0.0.to_dec32(),
+                0.0.to_dec32(),
             ))
             .run()
     }
@@ -50,10 +50,10 @@ mod tests {
     fn test_negation_negative() -> Result<(), String> {
         ExprTest::new("--vec4(1.0, 2.0, 3.0, 4.0)")
             .expect_result_vec4(Vec4::new(
-                1.0.to_fixed(),
-                2.0.to_fixed(),
-                3.0.to_fixed(),
-                4.0.to_fixed(),
+                1.0.to_dec32(),
+                2.0.to_dec32(),
+                3.0.to_dec32(),
+                4.0.to_dec32(),
             ))
             .run()
     }
@@ -62,10 +62,10 @@ mod tests {
     fn test_negation_with_expression() -> Result<(), String> {
         ExprTest::new("-(vec4(1.0, 2.0, 3.0, 4.0) + vec4(1.0, 1.0, 1.0, 1.0))")
             .expect_result_vec4(Vec4::new(
-                -2.0.to_fixed(),
-                -3.0.to_fixed(),
-                -4.0.to_fixed(),
-                -5.0.to_fixed(),
+                -2.0.to_dec32(),
+                -3.0.to_dec32(),
+                -4.0.to_dec32(),
+                -5.0.to_dec32(),
             ))
             .run()
     }

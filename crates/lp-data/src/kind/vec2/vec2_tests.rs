@@ -2,7 +2,7 @@
 
 #[cfg(test)]
 mod tests {
-    use lp_math::fixed::{Fixed, Vec2};
+    use lp_math::dec32::{Dec32, Vec2};
 
     use crate::kind::kind::LpKind;
     use crate::kind::shape::LpShape;
@@ -16,7 +16,7 @@ mod tests {
 
     #[test]
     fn test_vec2_value() {
-        let value = Vec2::new(Fixed::ZERO, Fixed::ZERO);
+        let value = Vec2::new(Dec32::ZERO, Dec32::ZERO);
         let shape = value.shape();
         assert_eq!(shape.kind(), LpKind::Vec2);
     }
@@ -47,7 +47,7 @@ mod tests {
     fn test_vec2_value_box() {
         use crate::kind::value::LpValueBox;
 
-        let value = Vec2::new(Fixed::ZERO, Fixed::ZERO);
+        let value = Vec2::new(Dec32::ZERO, Dec32::ZERO);
         let value_box: LpValueBox = value.into();
         match value_box {
             LpValueBox::Vec2(_) => {}

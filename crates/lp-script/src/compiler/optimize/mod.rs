@@ -41,7 +41,7 @@ pub struct OptimizeOptions {
     /// Enable opcode peephole optimization
     pub peephole_optimization: bool,
 
-    /// Maximum number of AST optimization passes (to reach fixed point)
+    /// Maximum number of AST optimization passes (to reach dec32 point)
     pub max_ast_passes: usize,
 }
 
@@ -78,7 +78,7 @@ impl Default for OptimizeOptions {
 /// Optimize an expression AST
 ///
 /// Applies AST-level optimizations based on the provided options.
-/// Runs multiple passes until a fixed point is reached or max iterations exceeded.
+/// Runs multiple passes until a dec32 point is reached or max iterations exceeded.
 pub fn optimize_ast_expr(expr: &mut crate::compiler::ast::Expr, options: &OptimizeOptions) {
     if options.max_ast_passes == 0 {
         return;

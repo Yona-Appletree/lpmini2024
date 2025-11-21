@@ -2,7 +2,7 @@
 #[cfg(test)]
 mod tests {
     use crate::compiler::expr::expr_test_util::ExprTest;
-    use crate::fixed::{Mat3, ToFixed};
+    use crate::dec32::{Mat3, ToDec32};
     use crate::vm::opcodes::LpsOpCode;
 
     #[test]
@@ -10,15 +10,15 @@ mod tests {
         // Transpose of identity is identity
         ExprTest::new("transpose(mat3(1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 1.0))")
             .expect_opcodes(vec![
-                LpsOpCode::Push(1.0.to_fixed()),
-                LpsOpCode::Push(0.0.to_fixed()),
-                LpsOpCode::Push(0.0.to_fixed()),
-                LpsOpCode::Push(0.0.to_fixed()),
-                LpsOpCode::Push(1.0.to_fixed()),
-                LpsOpCode::Push(0.0.to_fixed()),
-                LpsOpCode::Push(0.0.to_fixed()),
-                LpsOpCode::Push(0.0.to_fixed()),
-                LpsOpCode::Push(1.0.to_fixed()),
+                LpsOpCode::Push(1.0.to_dec32()),
+                LpsOpCode::Push(0.0.to_dec32()),
+                LpsOpCode::Push(0.0.to_dec32()),
+                LpsOpCode::Push(0.0.to_dec32()),
+                LpsOpCode::Push(1.0.to_dec32()),
+                LpsOpCode::Push(0.0.to_dec32()),
+                LpsOpCode::Push(0.0.to_dec32()),
+                LpsOpCode::Push(0.0.to_dec32()),
+                LpsOpCode::Push(1.0.to_dec32()),
                 LpsOpCode::TransposeMat3,
                 LpsOpCode::Return,
             ])
@@ -36,24 +36,24 @@ mod tests {
         // Determinant of identity is 1
         ExprTest::new("determinant(mat3(1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 1.0))")
             .expect_opcodes(vec![
-                LpsOpCode::Push(1.0.to_fixed()),
-                LpsOpCode::Push(0.0.to_fixed()),
-                LpsOpCode::Push(0.0.to_fixed()),
-                LpsOpCode::Push(0.0.to_fixed()),
-                LpsOpCode::Push(1.0.to_fixed()),
-                LpsOpCode::Push(0.0.to_fixed()),
-                LpsOpCode::Push(0.0.to_fixed()),
-                LpsOpCode::Push(0.0.to_fixed()),
-                LpsOpCode::Push(1.0.to_fixed()),
+                LpsOpCode::Push(1.0.to_dec32()),
+                LpsOpCode::Push(0.0.to_dec32()),
+                LpsOpCode::Push(0.0.to_dec32()),
+                LpsOpCode::Push(0.0.to_dec32()),
+                LpsOpCode::Push(1.0.to_dec32()),
+                LpsOpCode::Push(0.0.to_dec32()),
+                LpsOpCode::Push(0.0.to_dec32()),
+                LpsOpCode::Push(0.0.to_dec32()),
+                LpsOpCode::Push(1.0.to_dec32()),
                 LpsOpCode::DeterminantMat3,
                 LpsOpCode::Return,
             ])
-            .expect_result_fixed(1.0)
+            .expect_result_dec32(1.0)
             .run()?;
 
         // Determinant of zero matrix is 0
         ExprTest::new("determinant(mat3(0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0))")
-            .expect_result_fixed(0.0)
+            .expect_result_dec32(0.0)
             .run()
     }
 
@@ -62,15 +62,15 @@ mod tests {
         // Inverse of identity is identity
         ExprTest::new("inverse(mat3(1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 1.0))")
             .expect_opcodes(vec![
-                LpsOpCode::Push(1.0.to_fixed()),
-                LpsOpCode::Push(0.0.to_fixed()),
-                LpsOpCode::Push(0.0.to_fixed()),
-                LpsOpCode::Push(0.0.to_fixed()),
-                LpsOpCode::Push(1.0.to_fixed()),
-                LpsOpCode::Push(0.0.to_fixed()),
-                LpsOpCode::Push(0.0.to_fixed()),
-                LpsOpCode::Push(0.0.to_fixed()),
-                LpsOpCode::Push(1.0.to_fixed()),
+                LpsOpCode::Push(1.0.to_dec32()),
+                LpsOpCode::Push(0.0.to_dec32()),
+                LpsOpCode::Push(0.0.to_dec32()),
+                LpsOpCode::Push(0.0.to_dec32()),
+                LpsOpCode::Push(1.0.to_dec32()),
+                LpsOpCode::Push(0.0.to_dec32()),
+                LpsOpCode::Push(0.0.to_dec32()),
+                LpsOpCode::Push(0.0.to_dec32()),
+                LpsOpCode::Push(1.0.to_dec32()),
                 LpsOpCode::InverseMat3,
                 LpsOpCode::Return,
             ])
@@ -90,7 +90,7 @@ mod tests {
     fn test_determinant_non_zero() -> Result<(), String> {
         // Determinant of a simple matrix
         ExprTest::new("determinant(mat3(2.0, 0.0, 0.0, 0.0, 2.0, 0.0, 0.0, 0.0, 2.0))")
-            .expect_result_fixed(8.0)
+            .expect_result_dec32(8.0)
             .run()
     }
 
@@ -98,7 +98,7 @@ mod tests {
     fn test_determinant_negative() -> Result<(), String> {
         // Determinant can be negative
         ExprTest::new("determinant(mat3(-1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 1.0))")
-            .expect_result_fixed(-1.0)
+            .expect_result_dec32(-1.0)
             .run()
     }
 
@@ -118,7 +118,7 @@ mod tests {
     fn test_determinant_after_operations() -> Result<(), String> {
         // Determinant of scaled identity
         ExprTest::new("determinant(mat3(1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 1.0) * 2.0)")
-            .expect_result_fixed(8.0)
+            .expect_result_dec32(8.0)
             .run()
     }
 }

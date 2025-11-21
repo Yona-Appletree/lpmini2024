@@ -18,11 +18,11 @@ impl<'a> CodeGenerator<'a> {
         self.gen_expr(value)?;
 
         if let Some(local_idx) = self.locals.get(target) {
-            let var_type = self.locals.get_type(local_idx).unwrap_or(&Type::Fixed);
+            let var_type = self.locals.get_type(local_idx).unwrap_or(&Type::Dec32);
 
             // Duplicate value based on type (assignment returns the assigned value)
             let dup_opcode = match var_type {
-                Type::Fixed | Type::Bool | Type::Int32 => LpsOpCode::Dup1,
+                Type::Dec32 | Type::Bool | Type::Int32 => LpsOpCode::Dup1,
                 Type::Vec2 => LpsOpCode::Dup2,
                 Type::Vec3 => LpsOpCode::Dup3,
                 Type::Vec4 => LpsOpCode::Dup4,
@@ -33,7 +33,7 @@ impl<'a> CodeGenerator<'a> {
 
             // Store using type-specific opcode
             let store_opcode = match var_type {
-                Type::Fixed | Type::Bool => LpsOpCode::StoreLocalFixed(local_idx),
+                Type::Dec32 | Type::Bool => LpsOpCode::StoreLocalDec32(local_idx),
                 Type::Int32 => LpsOpCode::StoreLocalInt32(local_idx),
                 Type::Vec2 => LpsOpCode::StoreLocalVec2(local_idx),
                 Type::Vec3 => LpsOpCode::StoreLocalVec3(local_idx),
@@ -69,7 +69,7 @@ mod tests {
 
     fn fixed_literal(value: f32) -> Expr {
         let mut expr = Expr::new(ExprKind::Number(value), Span::new(0, 0));
-        expr.ty = Some(Type::Fixed);
+        expr.ty = Some(Type::Dec32);
         expr
     }
 

@@ -2,7 +2,7 @@
 extern crate alloc;
 use alloc::vec;
 
-use lp_script::fixed::Fixed;
+use lp_script::dec32::Dec32;
 use lp_script::shared::Type;
 use lp_script::vm::{execute_program_lps, execute_program_lps_vec3};
 use lp_script::LpsProgram;
@@ -22,7 +22,7 @@ pub fn validate_expr_program_type(
         ))?;
 
     let expected_type = match expected_format {
-        BufferFormat::ImageGrey => Type::Fixed,
+        BufferFormat::ImageGrey => Type::Dec32,
         BufferFormat::ImageRgb => Type::Vec3,
     };
 
@@ -44,7 +44,7 @@ pub fn execute_expr_step(
     output_format: BufferFormat,
     width: usize,
     height: usize,
-    time: Fixed,
+    time: Dec32,
 ) -> Result<(), PipelineError> {
     // Validate program return type matches buffer format
     validate_expr_program_type(program, output_format)?;
@@ -52,7 +52,7 @@ pub fn execute_expr_step(
     match output_format {
         BufferFormat::ImageGrey => {
             // Execute VM program into a temporary greyscale buffer
-            let mut temp_grey: vec::Vec<Fixed> = vec![Fixed::ZERO; width * height];
+            let mut temp_grey: vec::Vec<Dec32> = vec![Dec32::ZERO; width * height];
             execute_program_lps(program, &mut temp_grey, width, height, time);
 
             // Write greyscale results to output buffer
@@ -65,19 +65,19 @@ pub fn execute_expr_step(
         BufferFormat::ImageRgb => {
             // Execute VM program into a temporary Vec3 buffer
             // Vec3 outputs are 3x the size (r, g, b per pixel)
-            let mut temp_vec3: vec::Vec<Fixed> = vec![Fixed::ZERO; width * height * 3];
+            let mut temp_vec3: vec::Vec<Dec32> = vec![Dec32::ZERO; width * height * 3];
             execute_program_lps_vec3(program, &mut temp_vec3, width, height, time);
 
             // Pack RGB triplets into output buffer
             for i in 0..(width * height) {
-                let r_fixed = temp_vec3[i * 3];
-                let g_fixed = temp_vec3[i * 3 + 1];
-                let b_fixed = temp_vec3[i * 3 + 2];
+                let r_dec32 = temp_vec3[i * 3];
+                let g_dec32 = temp_vec3[i * 3 + 1];
+                let b_dec32 = temp_vec3[i * 3 + 2];
 
-                // Convert Fixed (0..1) to u8 (0..255)
-                let r = (r_fixed.to_f32().clamp(0.0, 1.0) * 255.0) as u8;
-                let g = (g_fixed.to_f32().clamp(0.0, 1.0) * 255.0) as u8;
-                let b = (b_fixed.to_f32().clamp(0.0, 1.0) * 255.0) as u8;
+                // Convert Dec32 (0..1) to u8 (0..255)
+                let r = (r_dec32.to_f32().clamp(0.0, 1.0) * 255.0) as u8;
+                let g = (g_dec32.to_f32().clamp(0.0, 1.0) * 255.0) as u8;
+                let b = (b_dec32.to_f32().clamp(0.0, 1.0) * 255.0) as u8;
 
                 // Pack into i32
                 output_data[i] = super::rgb_utils::pack_rgb(r, g, b);
@@ -95,14 +95,14 @@ mod tests {
     use super::*;
 
     #[test]
-    fn test_validate_type_fixed_to_grey_succeeds() {
-        // Expression returning Fixed should work with ImageGrey
+    fn test_validate_type_dec32_to_grey_succeeds() {
+        // Expression returning Dec32 should work with ImageGrey
         let program = parse_expr("0.5");
 
         let result = validate_expr_program_type(&program, BufferFormat::ImageGrey);
         assert!(
             result.is_ok(),
-            "Fixed return type should be valid for ImageGrey"
+            "Dec32 return type should be valid for ImageGrey"
         );
     }
 
@@ -119,14 +119,14 @@ mod tests {
     }
 
     #[test]
-    fn test_validate_type_fixed_to_rgb_fails() {
-        // Expression returning Fixed should FAIL with ImageRgb
+    fn test_validate_type_dec32_to_rgb_fails() {
+        // Expression returning Dec32 should FAIL with ImageRgb
         let program = parse_expr("0.5");
 
         let result = validate_expr_program_type(&program, BufferFormat::ImageRgb);
         assert!(
             result.is_err(),
-            "Fixed return type should NOT be valid for ImageRgb"
+            "Dec32 return type should NOT be valid for ImageRgb"
         );
 
         match result {
@@ -134,7 +134,7 @@ mod tests {
                 expected, actual, ..
             }) => {
                 assert_eq!(expected, Type::Vec3);
-                assert_eq!(actual, Type::Fixed);
+                assert_eq!(actual, Type::Dec32);
             }
             _ => panic!("Expected TypeMismatch error"),
         }
@@ -155,7 +155,7 @@ mod tests {
             Err(PipelineError::TypeMismatch {
                 expected, actual, ..
             }) => {
-                assert_eq!(expected, Type::Fixed);
+                assert_eq!(expected, Type::Dec32);
                 assert_eq!(actual, Type::Vec3);
             }
             _ => panic!("Expected TypeMismatch error"),
@@ -174,11 +174,11 @@ mod tests {
             BufferFormat::ImageGrey,
             4,
             4,
-            Fixed::ZERO,
+            Dec32::ZERO,
         );
 
         assert!(result.is_ok());
-        // First pixel should be (0+0.5)/4 = 0.125 in fixed point
+        // First pixel should be (0+0.5)/4 = 0.125 in dec32 point
         assert!(output[0] != 0, "Output should have non-zero values");
     }
 
@@ -194,7 +194,7 @@ mod tests {
             BufferFormat::ImageGrey,
             4,
             4,
-            Fixed::ZERO,
+            Dec32::ZERO,
         );
 
         assert!(result.is_err());
@@ -202,7 +202,7 @@ mod tests {
             Err(PipelineError::TypeMismatch {
                 expected, actual, ..
             }) => {
-                assert_eq!(expected, Type::Fixed);
+                assert_eq!(expected, Type::Dec32);
                 assert_eq!(actual, Type::Vec3);
             }
             _ => panic!("Expected TypeMismatch error, got {:?}", result),
@@ -222,7 +222,7 @@ mod tests {
             BufferFormat::ImageGrey, // Wrong format!
             16,
             16,
-            Fixed::ZERO,
+            Dec32::ZERO,
         );
 
         // Should fail with type mismatch, not crash
@@ -236,7 +236,7 @@ mod tests {
                 actual,
                 context,
             }) => {
-                assert_eq!(expected, Type::Fixed);
+                assert_eq!(expected, Type::Dec32);
                 assert_eq!(actual, Type::Vec3);
                 assert!(
                     context.contains("Expression step"),
@@ -259,7 +259,7 @@ mod tests {
             BufferFormat::ImageRgb,
             4,
             4,
-            Fixed::ZERO,
+            Dec32::ZERO,
         );
 
         assert!(result.is_ok(), "RGB expression should execute successfully");
@@ -329,7 +329,7 @@ mod tests {
             BufferFormat::ImageRgb,
             4,
             4,
-            Fixed::ZERO,
+            Dec32::ZERO,
         );
 
         assert!(

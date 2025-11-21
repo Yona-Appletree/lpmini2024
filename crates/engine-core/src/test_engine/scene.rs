@@ -4,7 +4,7 @@ use alloc::vec::Vec;
 
 use crate::test_engine::power_limit::{apply_power_limit_to_bytes, PowerLimitConfig};
 use crate::test_engine::{
-    apply_2d_mapping, Fixed, FxPipeline, FxPipelineConfig, LedMapping, MappingConfig,
+    apply_2d_mapping, Dec32, FxPipeline, FxPipelineConfig, LedMapping, MappingConfig,
     PipelineError, RuntimeOptions,
 };
 
@@ -66,7 +66,7 @@ impl SceneRuntime {
     }
 
     /// Render a single frame
-    pub fn render(&mut self, time: Fixed, output_buffer_idx: usize) -> Result<(), PipelineError> {
+    pub fn render(&mut self, time: Dec32, output_buffer_idx: usize) -> Result<(), PipelineError> {
         // Render the pipeline
         self.pipeline.render(time)?;
 

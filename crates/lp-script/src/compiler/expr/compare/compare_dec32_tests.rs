@@ -1,8 +1,8 @@
-/// Comparison operator tests for Fixed (scalar) type
+/// Comparison operator tests for Dec32 (scalar) type
 #[cfg(test)]
 mod tests {
     use crate::compiler::expr::expr_test_util::ExprTest;
-    use crate::fixed::ToFixed;
+    use crate::dec32::ToDec32;
     use crate::vm::opcodes::LpsOpCode;
 
     #[test]
@@ -15,9 +15,9 @@ mod tests {
                 b.less(left, right)
             })
             .expect_opcodes(vec![
-                LpsOpCode::Push(1.0.to_fixed()),
-                LpsOpCode::Push(2.0.to_fixed()),
-                LpsOpCode::LessFixed,
+                LpsOpCode::Push(1.0.to_dec32()),
+                LpsOpCode::Push(2.0.to_dec32()),
+                LpsOpCode::LessDec32,
                 LpsOpCode::Return,
             ])
             .expect_result_bool(true)
@@ -46,9 +46,9 @@ mod tests {
                 b.greater(left, right)
             })
             .expect_opcodes(vec![
-                LpsOpCode::Push(5.0.to_fixed()),
-                LpsOpCode::Push(3.0.to_fixed()),
-                LpsOpCode::GreaterFixed,
+                LpsOpCode::Push(5.0.to_dec32()),
+                LpsOpCode::Push(3.0.to_dec32()),
+                LpsOpCode::GreaterDec32,
                 LpsOpCode::Return,
             ])
             .expect_result_bool(true)
@@ -77,9 +77,9 @@ mod tests {
                 b.less_eq(left, right)
             })
             .expect_opcodes(vec![
-                LpsOpCode::Push(2.0.to_fixed()),
-                LpsOpCode::Push(3.0.to_fixed()),
-                LpsOpCode::LessEqFixed,
+                LpsOpCode::Push(2.0.to_dec32()),
+                LpsOpCode::Push(3.0.to_dec32()),
+                LpsOpCode::LessEqDec32,
                 LpsOpCode::Return,
             ])
             .expect_result_bool(true)
@@ -114,9 +114,9 @@ mod tests {
                 b.greater_eq(left, right)
             })
             .expect_opcodes(vec![
-                LpsOpCode::Push(5.0.to_fixed()),
-                LpsOpCode::Push(3.0.to_fixed()),
-                LpsOpCode::GreaterEqFixed,
+                LpsOpCode::Push(5.0.to_dec32()),
+                LpsOpCode::Push(3.0.to_dec32()),
+                LpsOpCode::GreaterEqDec32,
                 LpsOpCode::Return,
             ])
             .expect_result_bool(true)
@@ -151,9 +151,9 @@ mod tests {
                 b.eq(left, right)
             })
             .expect_opcodes(vec![
-                LpsOpCode::Push(2.0.to_fixed()),
-                LpsOpCode::Push(2.0.to_fixed()),
-                LpsOpCode::EqFixed,
+                LpsOpCode::Push(2.0.to_dec32()),
+                LpsOpCode::Push(2.0.to_dec32()),
+                LpsOpCode::EqDec32,
                 LpsOpCode::Return,
             ])
             .expect_result_bool(true)
@@ -182,9 +182,9 @@ mod tests {
                 b.not_eq(left, right)
             })
             .expect_opcodes(vec![
-                LpsOpCode::Push(2.0.to_fixed()),
-                LpsOpCode::Push(3.0.to_fixed()),
-                LpsOpCode::NotEqFixed,
+                LpsOpCode::Push(2.0.to_dec32()),
+                LpsOpCode::Push(3.0.to_dec32()),
+                LpsOpCode::NotEqDec32,
                 LpsOpCode::Return,
             ])
             .expect_result_bool(true)
@@ -233,23 +233,23 @@ mod tests {
         // Comparison used in ternary condition
         ExprTest::new("x > 0.5 ? 1.0 : 0.0")
             .with_x(0.6)
-            .expect_result_fixed(1.0)
+            .expect_result_dec32(1.0)
             .run()?;
 
         ExprTest::new("x > 0.5 ? 1.0 : 0.0")
             .with_x(0.4)
-            .expect_result_fixed(0.0)
+            .expect_result_dec32(0.0)
             .run()?;
 
         // Complex: chained comparisons in ternary
         ExprTest::new("x > 0.3 && x < 0.7 ? 10.0 : -10.0")
             .with_x(0.5)
-            .expect_result_fixed(10.0)
+            .expect_result_dec32(10.0)
             .run()?;
 
         ExprTest::new("x > 0.3 && x < 0.7 ? 10.0 : -10.0")
             .with_x(0.2)
-            .expect_result_fixed(-10.0)
+            .expect_result_dec32(-10.0)
             .run()
     }
 

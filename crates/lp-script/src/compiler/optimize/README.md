@@ -104,7 +104,7 @@ pub struct OptimizeOptions {
     /// Enable opcode peephole optimization
     pub peephole_optimization: bool,
 
-    /// Maximum number of AST optimization passes (to reach fixed point)
+    /// Maximum number of AST optimization passes (to reach dec32 point)
     pub max_ast_passes: usize,
 }
 ```

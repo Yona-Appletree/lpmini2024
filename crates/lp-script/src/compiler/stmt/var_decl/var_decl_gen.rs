@@ -24,7 +24,7 @@ impl<'a> CodeGenerator<'a> {
             self.gen_expr(init_expr)?;
             // Use type-specific StoreLocal opcode
             self.code.push(match ty {
-                Type::Fixed | Type::Bool => LpsOpCode::StoreLocalFixed(local_idx),
+                Type::Dec32 | Type::Bool => LpsOpCode::StoreLocalDec32(local_idx),
                 Type::Int32 => LpsOpCode::StoreLocalInt32(local_idx),
                 Type::Vec2 => LpsOpCode::StoreLocalVec2(local_idx),
                 Type::Vec3 => LpsOpCode::StoreLocalVec3(local_idx),
@@ -58,7 +58,7 @@ mod tests {
 
     fn literal_expr() -> Expr {
         let mut expr = Expr::new(ExprKind::Number(0.0), Span::new(0, 0));
-        expr.ty = Some(Type::Fixed);
+        expr.ty = Some(Type::Dec32);
         expr
     }
 

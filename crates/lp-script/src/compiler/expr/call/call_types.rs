@@ -96,7 +96,7 @@ fn builtin_function_return_type(
     span: crate::shared::Span,
 ) -> Result<Type, TypeError> {
     match name {
-        // Math functions: Fixed -> Fixed
+        // Math functions: Dec32 -> Dec32
         "sin" | "cos" | "tan" | "abs" | "floor" | "ceil" | "sqrt" | "sign" | "frac" | "fract"
         | "saturate" => {
             if args.len() != 1 {
@@ -108,7 +108,7 @@ fn builtin_function_return_type(
                     span,
                 });
             }
-            Ok(Type::Fixed)
+            Ok(Type::Dec32)
         }
 
         // atan: can take 1 or 2 args
@@ -122,7 +122,7 @@ fn builtin_function_return_type(
                     span,
                 });
             }
-            Ok(Type::Fixed)
+            Ok(Type::Dec32)
         }
 
         // Vector length: vec -> float
@@ -138,7 +138,7 @@ fn builtin_function_return_type(
             }
             let arg_ty = args[0].ty.as_ref().unwrap();
             match arg_ty {
-                Type::Vec2 | Type::Vec3 | Type::Vec4 => Ok(Type::Fixed),
+                Type::Vec2 | Type::Vec3 | Type::Vec4 => Ok(Type::Dec32),
                 _ => Err(TypeError {
                     kind: TypeErrorKind::InvalidOperation {
                         op: "length".to_string(),
@@ -196,7 +196,7 @@ fn builtin_function_return_type(
                 });
             }
             match left_ty {
-                Type::Vec2 | Type::Vec3 | Type::Vec4 => Ok(Type::Fixed),
+                Type::Vec2 | Type::Vec3 | Type::Vec4 => Ok(Type::Dec32),
                 _ => Err(TypeError {
                     kind: TypeErrorKind::InvalidOperation {
                         op: "dot".to_string(),
@@ -230,7 +230,7 @@ fn builtin_function_return_type(
                 });
             }
             match left_ty {
-                Type::Vec2 | Type::Vec3 | Type::Vec4 => Ok(Type::Fixed),
+                Type::Vec2 | Type::Vec3 | Type::Vec4 => Ok(Type::Dec32),
                 _ => Err(TypeError {
                     kind: TypeErrorKind::InvalidOperation {
                         op: "distance".to_string(),
@@ -266,7 +266,7 @@ fn builtin_function_return_type(
             Ok(Type::Vec3)
         }
 
-        // Binary functions: Fixed x Fixed -> Fixed
+        // Binary functions: Dec32 x Dec32 -> Dec32
         "pow" | "mod" | "min" | "max" | "step" => {
             if args.len() != 2 {
                 return Err(TypeError {
@@ -277,10 +277,10 @@ fn builtin_function_return_type(
                     span,
                 });
             }
-            Ok(Type::Fixed)
+            Ok(Type::Dec32)
         }
 
-        // Ternary functions: Fixed x Fixed x Fixed -> Fixed
+        // Ternary functions: Dec32 x Dec32 x Dec32 -> Dec32
         "clamp" | "lerp" | "mix" | "smoothstep" => {
             if args.len() != 3 {
                 return Err(TypeError {
@@ -291,7 +291,7 @@ fn builtin_function_return_type(
                     span,
                 });
             }
-            Ok(Type::Fixed)
+            Ok(Type::Dec32)
         }
 
         // Perlin noise: vec3 -> float
@@ -315,10 +315,10 @@ fn builtin_function_return_type(
                     span: args[0].span,
                 });
             }
-            Ok(Type::Fixed)
+            Ok(Type::Dec32)
         }
 
-        // Matrix functions: Mat3 -> Mat3 or Mat3 -> Fixed
+        // Matrix functions: Mat3 -> Mat3 or Mat3 -> Dec32
         "transpose" => {
             if args.len() != 1 {
                 return Err(TypeError {
@@ -361,7 +361,7 @@ fn builtin_function_return_type(
                     span: args[0].span,
                 });
             }
-            Ok(Type::Fixed)
+            Ok(Type::Dec32)
         }
         "inverse" => {
             if args.len() != 1 {

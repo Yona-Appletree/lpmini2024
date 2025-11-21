@@ -2,7 +2,7 @@
 #[cfg(test)]
 mod tests {
     use crate::compiler::expr::expr_test_util::ExprTest;
-    use crate::fixed::Mat3;
+    use crate::dec32::Mat3;
 
     // Mat3 + Mat3 (component-wise addition)
     #[test]

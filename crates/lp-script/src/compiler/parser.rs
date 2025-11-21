@@ -120,14 +120,14 @@ impl Parser {
 
     pub(crate) fn parse_type(&mut self) -> Type {
         let ty = match &self.current().kind {
-            TokenKind::Float => Type::Fixed,
+            TokenKind::Float => Type::Dec32,
             TokenKind::Int => Type::Int32,
             TokenKind::Vec2 => Type::Vec2,
             TokenKind::Vec3 => Type::Vec3,
             TokenKind::Vec4 => Type::Vec4,
             TokenKind::Mat3 => Type::Mat3,
             TokenKind::Void => Type::Void,
-            _ => Type::Fixed, // Fallback
+            _ => Type::Dec32, // Fallback
         };
         self.advance();
         ty

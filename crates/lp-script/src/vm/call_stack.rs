@@ -18,7 +18,7 @@ pub struct CallFrame {
 ///
 /// Pre-allocates frames to avoid runtime allocations during execution.
 /// Supports variable-sized frames - each function can allocate the exact
-/// number of locals it needs, not a fixed size.
+/// number of locals it needs, not a dec32 size.
 pub struct CallStack {
     frames: Vec<CallFrame>,
     depth: usize,

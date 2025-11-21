@@ -2,7 +2,7 @@
 extern crate alloc;
 use alloc::vec::Vec;
 
-use lp_script::fixed::Fixed;
+use lp_script::dec32::Dec32;
 use lp_script::LpsProgram;
 
 use super::palette::Palette;
@@ -78,7 +78,7 @@ pub enum PipelineStep {
     BlurStep {
         input: BufferRef,
         output: BufferRef,
-        radius: Fixed, // Blur radius in fixed-point (pixels)
+        radius: Dec32, // Blur radius in dec32-point (pixels)
     },
 }
 

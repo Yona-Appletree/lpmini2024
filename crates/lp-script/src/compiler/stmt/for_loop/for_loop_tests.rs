@@ -12,7 +12,7 @@ mod tests {
              } 
              return sum;",
         )
-        .expect_result_fixed(3.0) // 0 + 1 + 2
+        .expect_result_dec32(3.0) // 0 + 1 + 2
         .run()
     }
 
@@ -23,7 +23,7 @@ mod tests {
              for (; i < 3.0; i = i + 1.0) { } 
              return i;",
         )
-        .expect_result_fixed(3.0)
+        .expect_result_dec32(3.0)
         .run()
     }
 
@@ -38,7 +38,7 @@ mod tests {
              }
              return sum;",
         )
-        .expect_result_fixed(4.0) // 2 * 2 iterations
+        .expect_result_dec32(4.0) // 2 * 2 iterations
         .run()
     }
 
@@ -52,7 +52,7 @@ mod tests {
              return result;",
         )
         .with_time(5.0)
-        .expect_result_fixed(5.0)
+        .expect_result_dec32(5.0)
         .run()
     }
 
@@ -68,7 +68,7 @@ mod tests {
              }
              return sum;",
         )
-        .expect_result_fixed(6.0) // (0*2) + (1*2) + (2*2) = 0 + 2 + 4 = 6
+        .expect_result_dec32(6.0) // (0*2) + (1*2) + (2*2) = 0 + 2 + 4 = 6
         .run()
     }
 
@@ -83,7 +83,7 @@ mod tests {
              }
              return sum;",
         )
-        .expect_result_fixed(15.0) // i=0: 0, i=1: 5, i=2: 10 => total 15
+        .expect_result_dec32(15.0) // i=0: 0, i=1: 5, i=2: 10 => total 15
         .run()
     }
 
@@ -97,7 +97,7 @@ mod tests {
              }
              return result;",
         )
-        .expect_result_fixed(18.0) // 5 + 6 + 7 = 18
+        .expect_result_dec32(18.0) // 5 + 6 + 7 = 18
         .run()
     }
 
@@ -114,7 +114,7 @@ mod tests {
              }
              return sum;",
         )
-        .expect_result_fixed(30.0) // i=0,j=0: 0, i=0,j=1: 5, i=1,j=0: 10, i=1,j=1: 15 => 30
+        .expect_result_dec32(30.0) // i=0,j=0: 0, i=0,j=1: 5, i=1,j=0: 10, i=1,j=1: 15 => 30
         .run()
     }
 
@@ -129,7 +129,7 @@ mod tests {
              }
              return sum + x;", // Uses outer x
         )
-        .expect_result_fixed(102.0) // inner: (0*2) + (1*2) = 2, outer: 100 => 102
+        .expect_result_dec32(102.0) // inner: (0*2) + (1*2) = 2, outer: 100 => 102
         .run()
     }
 
@@ -143,7 +143,7 @@ mod tests {
              }
              return product;",
         )
-        .expect_result_fixed(24.0) // 1 * 2 * 3 * 4 = 24
+        .expect_result_dec32(24.0) // 1 * 2 * 3 * 4 = 24
         .run()
     }
 
@@ -161,7 +161,7 @@ mod tests {
              }
              return count;",
         )
-        .expect_result_fixed(8.0) // 2 * 2 * 2 = 8 iterations
+        .expect_result_dec32(8.0) // 2 * 2 * 2 = 8 iterations
         .run()
     }
 
@@ -175,7 +175,7 @@ mod tests {
              }
              return sum;",
         )
-        .expect_result_fixed(14.0) // 1² + 2² + 3² = 1 + 4 + 9 = 14
+        .expect_result_dec32(14.0) // 1² + 2² + 3² = 1 + 4 + 9 = 14
         .run()
     }
 
@@ -192,13 +192,13 @@ mod tests {
              }
              return result;",
         )
-        .expect_result_fixed(11.0) // 0 + 1 + 2 + (3*2) + (4*2) = 0+1+2+6+8 = 17... wait let me recalc
+        .expect_result_dec32(11.0) // 0 + 1 + 2 + (3*2) + (4*2) = 0+1+2+6+8 = 17... wait let me recalc
         // i=0: value=0, result=0
         // i=1: value=1, result=1
         // i=2: value=2, result=3
         // i=3: value=6, result=9
         // i=4: value=8, result=17
-        .expect_result_fixed(17.0)
+        .expect_result_dec32(17.0)
         .run()
     }
 
@@ -215,7 +215,7 @@ mod tests {
              }
              return sum;",
         )
-        .expect_result_fixed(33.0) // (10+0) + (10+1) + (10+2) = 10 + 11 + 12 = 33
+        .expect_result_dec32(33.0) // (10+0) + (10+1) + (10+2) = 10 + 11 + 12 = 33
         .run()
     }
 
@@ -229,7 +229,7 @@ mod tests {
              }
              return sum;",
         )
-        .expect_result_fixed(10.0) // 1 + 2 + 3 + 4 = 10
+        .expect_result_dec32(10.0) // 1 + 2 + 3 + 4 = 10
         .run()
     }
 
@@ -246,7 +246,7 @@ mod tests {
              }
              return result;",
         )
-        .expect_result_fixed(3.0)
+        .expect_result_dec32(3.0)
         .run()
     }
 }

@@ -2,7 +2,7 @@
 extern crate alloc;
 use alloc::vec::Vec;
 
-use lp_script::fixed::Fixed;
+use lp_script::dec32::Dec32;
 
 use super::super::palette::Palette;
 use super::config::FxPipelineConfig;
@@ -39,7 +39,7 @@ impl FxPipeline {
     }
 
     /// Render a frame by executing all pipeline steps
-    pub fn render(&mut self, time: Fixed) -> Result<(), PipelineError> {
+    pub fn render(&mut self, time: Dec32) -> Result<(), PipelineError> {
         // Clone steps to avoid borrow checker issues
         let steps = self.steps.clone();
 
@@ -80,7 +80,7 @@ impl FxPipeline {
         program: &crate::lp_script::LpsProgram,
         output: &BufferRef,
         _params: &[BufferRef], // TODO: implement param buffer support
-        time: Fixed,
+        time: Dec32,
         _step_idx: usize,
     ) -> Result<(), PipelineError> {
         let output_buf = &mut self.buffers[output.buffer_idx];
@@ -119,7 +119,7 @@ impl FxPipeline {
         }
 
         // Extract greyscale values
-        let grey_values: Vec<Fixed> = input_buf.data.iter().map(|&v| i32_to_grey(v)).collect();
+        let grey_values: Vec<Dec32> = input_buf.data.iter().map(|&v| i32_to_grey(v)).collect();
 
         // Apply palette to each pixel
         let output_buf = &mut self.buffers[output.buffer_idx];
@@ -137,7 +137,7 @@ impl FxPipeline {
         &mut self,
         input: &BufferRef,
         output: &BufferRef,
-        radius: Fixed,
+        radius: Dec32,
         _step_idx: usize,
     ) -> Result<(), PipelineError> {
         let input_buf = &self.buffers[input.buffer_idx];
@@ -146,11 +146,11 @@ impl FxPipeline {
         // Clone input data for reading
         let input_data = input_buf.data.clone();
 
-        // Convert radius from fixed-point to pixel radius (relative to image size)
+        // Convert radius from dec32-point to pixel radius (relative to image size)
         // radius is a fraction (e.g., 0.2 = 20% of image dimension)
         // Multiply by average dimension to get absolute pixels
         let avg_dimension = (self.width + self.height) / 2;
-        let radius_pixels_fp = (radius.0 as i64 * avg_dimension as i64) >> 16; // Fixed-point multiply
+        let radius_pixels_fp = (radius.0 as i64 * avg_dimension as i64) >> 16; // Dec32-point multiply
         let radius_pixels = radius_pixels_fp.max(1) as usize; // Clamp to at least 1 pixel
 
         // Box blur (faster than Gaussian for embedded)
@@ -259,8 +259,8 @@ impl FxPipeline {
         }
     }
 
-    /// Get greyscale buffer as Fixed slice for visualization
-    pub fn get_greyscale_fixed(&self, buffer_idx: usize) -> Vec<Fixed> {
+    /// Get greyscale buffer as Dec32 slice for visualization
+    pub fn get_greyscale_dec32(&self, buffer_idx: usize) -> Vec<Dec32> {
         if let Some(buf) = self.buffers.get(buffer_idx) {
             buf.data.iter().map(|&v| i32_to_grey(v)).collect()
         } else {

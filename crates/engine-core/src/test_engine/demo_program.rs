@@ -75,7 +75,7 @@ pub fn create_demo_scene(width: usize, height: usize) -> SceneConfig {
             // PipelineStep::BlurStep {
             //     input: BufferRef::new(1, BufferFormat::ImageRgb),
             //     output: BufferRef::new(0, BufferFormat::ImageRgb), // Reuse buffer 0
-            //     radius: Fixed::from_f32(0.1),                      // 0.2 pixel blur radius
+            //     radius: Dec32::from_f32(0.1),                      // 0.2 pixel blur radius
             // },
         ],
     );
@@ -97,7 +97,7 @@ pub fn run_demo_with_profiling(
     extern crate std;
     use std::time::Instant;
 
-    use lp_script::fixed::ToFixed;
+    use lp_script::dec32::ToDec32;
     use pprof::ProfilerGuard;
 
     use crate::test_engine::scene::SceneRuntime;
@@ -129,7 +129,7 @@ pub fn run_demo_with_profiling(
 
     // Run the demo for the specified number of frames
     for i in 0..num_frames {
-        let time = (i as f32 * 0.01).to_fixed();
+        let time = (i as f32 * 0.01).to_dec32();
         scene
             .render(time, 1)
             .map_err(|e| format!("Render failed: {:?}", e))?;
@@ -192,7 +192,7 @@ pub fn run_demo_with_profiling(
 
 #[cfg(test)]
 mod tests {
-    use lp_script::fixed::Fixed;
+    use lp_script::dec32::Dec32;
 
     use super::*;
 
@@ -200,17 +200,17 @@ mod tests {
     fn test_simple_white() {
         // First test: just output white for everything
         use lp_script::vm::execute_program_lps;
-        let mut output = vec![Fixed::ZERO; 16 * 16];
+        let mut output = vec![Dec32::ZERO; 16 * 16];
 
         let program = parse_expr("1.0");
 
-        execute_program_lps(&program, &mut output, 16, 16, Fixed::ZERO);
+        execute_program_lps(&program, &mut output, 16, 16, Dec32::ZERO);
 
         // All pixels should be white
-        assert_eq!(output[0], Fixed::ONE, "First pixel should be white");
+        assert_eq!(output[0], Dec32::ONE, "First pixel should be white");
         assert_eq!(
             output[8 * 16],
-            Fixed::ONE,
+            Dec32::ONE,
             "Row 8 first pixel should be white"
         );
     }
@@ -219,19 +219,19 @@ mod tests {
     fn test_yint_load() {
         // Test that YInt loads correctly
         use lp_script::vm::execute_program_lps;
-        let mut output = vec![Fixed::ZERO; 16 * 16];
+        let mut output = vec![Dec32::ZERO; 16 * 16];
 
         let program = parse_expr("coord.y");
 
-        execute_program_lps(&program, &mut output, 16, 16, Fixed::ZERO);
+        execute_program_lps(&program, &mut output, 16, 16, Dec32::ZERO);
 
-        // Row 0 should have Y values of 0.5 in fixed-point
+        // Row 0 should have Y values of 0.5 in dec32-point
         println!(
             "Row 0, pixel 0: {:#x} (expected ~{:#x})",
             output[0].0,
             1 << 15
         );
-        // Row 8 should have Y values of 8.5 in fixed-point
+        // Row 8 should have Y values of 8.5 in dec32-point
         println!(
             "Row 8, pixel 0: {:#x} (expected ~{:#x})",
             output[8 * 16].0,
@@ -248,45 +248,45 @@ mod tests {
         use lp_script::vm::execute_program_lps;
 
         // Test with 16x16 - center should be between row 7 and 8
-        let mut output = vec![Fixed::ZERO; 16 * 16];
+        let mut output = vec![Dec32::ZERO; 16 * 16];
 
         // Adjusted range to match actual uv.y values
         // Row 7: uv.y = 0.4688, Row 8: uv.y = 0.5312
         let program = parse_expr("(uv.y > 0.46 && uv.y < 0.54) ? 1.0 : 0.0");
 
-        execute_program_lps(&program, &mut output, 16, 16, Fixed::ZERO);
+        execute_program_lps(&program, &mut output, 16, 16, Dec32::ZERO);
 
         // Center rows (7 and 8) should be white
         assert_eq!(
             output[7 * 16],
-            Fixed::ONE,
+            Dec32::ONE,
             "Row 7 (uv.y=0.4688) should be white"
         );
         assert_eq!(
             output[8 * 16],
-            Fixed::ONE,
+            Dec32::ONE,
             "Row 8 (uv.y=0.5312) should be white"
         );
         // Rows far from center should be black
-        assert_eq!(output[0], Fixed::ZERO, "Top row should be black");
-        assert_eq!(output[15 * 16], Fixed::ZERO, "Bottom row should be black");
+        assert_eq!(output[0], Dec32::ZERO, "Top row should be black");
+        assert_eq!(output[15 * 16], Dec32::ZERO, "Bottom row should be black");
 
         // Test with 8x8 - center should be between row 3 and 4
-        let mut output8 = vec![Fixed::ZERO; 8 * 8];
+        let mut output8 = vec![Dec32::ZERO; 8 * 8];
         // Row 3: (3+0.5)/8 = 0.4375, Row 4: (4+0.5)/8 = 0.5625
-        execute_program_lps(&program, &mut output8, 8, 8, Fixed::ZERO);
+        execute_program_lps(&program, &mut output8, 8, 8, Dec32::ZERO);
 
         // Center rows (3 and 4) should be white with the range 0.46-0.54
         assert_eq!(
             output8[3 * 8],
-            Fixed::ZERO,
+            Dec32::ZERO,
             "Row 3 (uv.y=0.4375) should be black (outside range)"
         );
         assert_eq!(
             output8[4 * 8],
-            Fixed::ZERO,
+            Dec32::ZERO,
             "Row 4 (uv.y=0.5625) should be black (outside range)"
         );
-        assert_eq!(output8[0], Fixed::ZERO, "Top row in 8x8 should be black");
+        assert_eq!(output8[0], Dec32::ZERO, "Top row in 8x8 should be black");
     }
 }

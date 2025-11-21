@@ -1,5 +1,5 @@
 /// 2D to 1D LED mapping system
-use lp_script::fixed::{Fixed, Vec2};
+use lp_script::dec32::{Dec32, Vec2};
 
 mod circular;
 pub mod config;
@@ -23,7 +23,7 @@ impl LedMap {
         }
     }
 
-    pub fn new_fixed(x: Fixed, y: Fixed) -> Self {
+    pub fn new_dec32(x: Dec32, y: Dec32) -> Self {
         LedMap {
             pos: Vec2::new(x, y),
         }
@@ -89,7 +89,7 @@ mod tests {
     fn test_grid_mapping() {
         let mapping = LedMapping::grid_16x8();
 
-        // First LED should map to (0.5, 0.5) in fixed point
+        // First LED should map to (0.5, 0.5) in dec32 point
         let first = mapping.get(0).unwrap();
         assert_eq!(first.pos.x.to_i32(), 0);
         assert_eq!(first.pos.y.to_i32(), 0);

@@ -1,38 +1,38 @@
 use core::ops::{Add, Div, Mul, Neg, Sub};
 
-/// 3x3 matrix for fixed-point math (GLSL-compatible, column-major storage)
+/// 3x3 matrix for dec32-point math (GLSL-compatible, column-major storage)
 ///
 /// Storage layout (column-major):
 /// [m00, m10, m20, m01, m11, m21, m02, m12, m22]
 /// Where m[row][col] represents the element at row `row` and column `col`
-use super::conversions::ToFixed;
-use super::fixed::Fixed;
+use super::conversions::ToDec32;
+use super::dec32::Dec32;
 use super::vec3::Vec3;
 
 #[derive(Copy, Clone, Debug, PartialEq)]
 pub struct Mat3 {
     // Column-major storage: [col0, col1, col2] where each column is [x, y, z]
     // Storage: [m00, m10, m20, m01, m11, m21, m02, m12, m22]
-    pub m: [Fixed; 9],
+    pub m: [Dec32; 9],
 }
 
 impl Mat3 {
-    /// Create a new matrix from 9 Fixed values (column-major order)
+    /// Create a new matrix from 9 Dec32 values (column-major order)
     ///
     /// Parameters are in column-major order:
     /// m00, m10, m20, m01, m11, m21, m02, m12, m22
     #[allow(clippy::too_many_arguments)]
     #[inline(always)]
     pub const fn new(
-        m00: Fixed,
-        m10: Fixed,
-        m20: Fixed,
-        m01: Fixed,
-        m11: Fixed,
-        m21: Fixed,
-        m02: Fixed,
-        m12: Fixed,
-        m22: Fixed,
+        m00: Dec32,
+        m10: Dec32,
+        m20: Dec32,
+        m01: Dec32,
+        m11: Dec32,
+        m21: Dec32,
+        m02: Dec32,
+        m12: Dec32,
+        m22: Dec32,
     ) -> Self {
         Mat3 {
             m: [m00, m10, m20, m01, m11, m21, m02, m12, m22],
@@ -54,15 +54,15 @@ impl Mat3 {
         m22: f32,
     ) -> Self {
         Mat3::new(
-            m00.to_fixed(),
-            m10.to_fixed(),
-            m20.to_fixed(),
-            m01.to_fixed(),
-            m11.to_fixed(),
-            m21.to_fixed(),
-            m02.to_fixed(),
-            m12.to_fixed(),
-            m22.to_fixed(),
+            m00.to_dec32(),
+            m10.to_dec32(),
+            m20.to_dec32(),
+            m01.to_dec32(),
+            m11.to_dec32(),
+            m21.to_dec32(),
+            m02.to_dec32(),
+            m12.to_dec32(),
+            m22.to_dec32(),
         )
     }
 
@@ -78,15 +78,15 @@ impl Mat3 {
     #[inline(always)]
     pub const fn identity() -> Self {
         Mat3::new(
-            Fixed::ONE,
-            Fixed(0),
-            Fixed(0),
-            Fixed(0),
-            Fixed::ONE,
-            Fixed(0),
-            Fixed(0),
-            Fixed(0),
-            Fixed::ONE,
+            Dec32::ONE,
+            Dec32(0),
+            Dec32(0),
+            Dec32(0),
+            Dec32::ONE,
+            Dec32(0),
+            Dec32(0),
+            Dec32(0),
+            Dec32::ONE,
         )
     }
 
@@ -94,27 +94,27 @@ impl Mat3 {
     #[inline(always)]
     pub const fn zero() -> Self {
         Mat3::new(
-            Fixed(0),
-            Fixed(0),
-            Fixed(0),
-            Fixed(0),
-            Fixed(0),
-            Fixed(0),
-            Fixed(0),
-            Fixed(0),
-            Fixed(0),
+            Dec32(0),
+            Dec32(0),
+            Dec32(0),
+            Dec32(0),
+            Dec32(0),
+            Dec32(0),
+            Dec32(0),
+            Dec32(0),
+            Dec32(0),
         )
     }
 
     /// Get element at row `row` and column `col`
     #[inline(always)]
-    pub fn get(self, row: usize, col: usize) -> Fixed {
+    pub fn get(self, row: usize, col: usize) -> Dec32 {
         self.m[col * 3 + row]
     }
 
     /// Set element at row `row` and column `col`
     #[inline(always)]
-    pub fn set(&mut self, row: usize, col: usize, value: Fixed) {
+    pub fn set(&mut self, row: usize, col: usize, value: Dec32) {
         self.m[col * 3 + row] = value;
     }
 
@@ -179,7 +179,7 @@ impl Mat3 {
 
     /// Calculate determinant
     #[inline(always)]
-    pub fn determinant(self) -> Fixed {
+    pub fn determinant(self) -> Dec32 {
         let m = &self.m;
         // Using Sarrus' rule for 3x3 determinant
         let a = m[0] * m[4] * m[8];
@@ -214,7 +214,7 @@ impl Mat3 {
         let c22 = m[0] * m[4] - m[1] * m[3];
 
         // Adjugate matrix (transpose of cofactor) divided by determinant
-        let inv_det = Fixed::ONE / det;
+        let inv_det = Dec32::ONE / det;
         Some(Mat3::new(
             c00 * inv_det,
             c01 * inv_det,
@@ -290,11 +290,11 @@ impl Mul<Vec3> for Mat3 {
 }
 
 // Matrix * Scalar
-impl Mul<Fixed> for Mat3 {
+impl Mul<Dec32> for Mat3 {
     type Output = Self;
 
     #[inline(always)]
-    fn mul(self, rhs: Fixed) -> Self {
+    fn mul(self, rhs: Dec32) -> Self {
         Mat3::new(
             self.m[0] * rhs,
             self.m[1] * rhs,
@@ -310,11 +310,11 @@ impl Mul<Fixed> for Mat3 {
 }
 
 // Matrix / Scalar
-impl Div<Fixed> for Mat3 {
+impl Div<Dec32> for Mat3 {
     type Output = Self;
 
     #[inline(always)]
-    fn div(self, rhs: Fixed) -> Self {
+    fn div(self, rhs: Dec32) -> Self {
         Mat3::new(
             self.m[0] / rhs,
             self.m[1] / rhs,
@@ -402,7 +402,7 @@ mod tests {
     #[test]
     fn test_mul_scalar() {
         let m = Mat3::from_f32(1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 9.0);
-        let s = 2.0.to_fixed();
+        let s = 2.0.to_dec32();
         let result = m * s;
         assert_eq!(result.get(0, 0).to_f32(), 2.0);
         assert_eq!(result.get(2, 2).to_f32(), 18.0);

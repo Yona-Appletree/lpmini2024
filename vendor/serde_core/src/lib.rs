@@ -67,7 +67,7 @@
     clippy::single_match_else,
     clippy::type_complexity,
     clippy::use_self,
-    clippy::zero_prefixed_literal,
+    clippy::zero_preDec32_literal,
     // correctly used
     clippy::derive_partial_eq_without_eq,
     clippy::enum_glob_use,
@@ -114,83 +114,36 @@ mod lib {
         pub use std::*;
     }
 
-    pub use self::core::iter::{IntoIterator, Iterator};
-    pub use self::core::marker::{Copy, Sized};
-    pub use self::core::option::Option;
-    pub use self::core::option::Option::{None, Some};
-    pub use self::core::prelude::rust_2021::*;
-    pub use self::core::result::Result;
-    pub use self::core::result::Result::{Err, Ok};
-    pub use self::core::{f32, f64};
-    pub use self::core::{iter, num, str};
-
-    #[cfg(any(feature = "std", feature = "alloc"))]
-    pub use self::core::{cmp, mem};
-
-    pub use self::core::cell::{Cell, RefCell};
-    pub use self::core::cmp::Reverse;
-    pub use self::core::fmt::{self, Debug, Display, Write as FmtWrite};
-    pub use self::core::marker::PhantomData;
-    pub use self::core::num::Wrapping;
-    pub use self::core::ops::{Bound, Range, RangeFrom, RangeInclusive, RangeTo};
-    pub use self::core::result;
-    pub use self::core::time::Duration;
-
     #[cfg(all(feature = "alloc", not(feature = "std")))]
     pub use alloc::borrow::{Cow, ToOwned};
-    #[cfg(feature = "std")]
-    pub use std::borrow::{Cow, ToOwned};
-
+    #[cfg(all(feature = "alloc", not(feature = "std")))]
+    pub use alloc::boxed::Box;
+    #[cfg(all(feature = "alloc", not(feature = "std")))]
+    pub use alloc::collections::{BTreeMap, BTreeSet, BinaryHeap, LinkedList, VecDeque};
+    #[cfg(all(not(no_core_cstr), feature = "alloc", not(feature = "std")))]
+    pub use alloc::ffi::CString;
+    #[cfg(all(feature = "rc", feature = "alloc", not(feature = "std")))]
+    pub use alloc::rc::{Rc, Weak as RcWeak};
     #[cfg(all(feature = "alloc", not(feature = "std")))]
     pub use alloc::string::{String, ToString};
-    #[cfg(feature = "std")]
-    pub use std::string::{String, ToString};
-
+    #[cfg(all(feature = "rc", feature = "alloc", not(feature = "std")))]
+    pub use alloc::sync::{Arc, Weak as ArcWeak};
     #[cfg(all(feature = "alloc", not(feature = "std")))]
     pub use alloc::vec::Vec;
     #[cfg(feature = "std")]
-    pub use std::vec::Vec;
-
-    #[cfg(all(feature = "alloc", not(feature = "std")))]
-    pub use alloc::boxed::Box;
+    pub use std::borrow::{Cow, ToOwned};
     #[cfg(feature = "std")]
     pub use std::boxed::Box;
-
-    #[cfg(all(feature = "rc", feature = "alloc", not(feature = "std")))]
-    pub use alloc::rc::{Rc, Weak as RcWeak};
-    #[cfg(all(feature = "rc", feature = "std"))]
-    pub use std::rc::{Rc, Weak as RcWeak};
-
-    #[cfg(all(feature = "rc", feature = "alloc", not(feature = "std")))]
-    pub use alloc::sync::{Arc, Weak as ArcWeak};
-    #[cfg(all(feature = "rc", feature = "std"))]
-    pub use std::sync::{Arc, Weak as ArcWeak};
-
-    #[cfg(all(feature = "alloc", not(feature = "std")))]
-    pub use alloc::collections::{BTreeMap, BTreeSet, BinaryHeap, LinkedList, VecDeque};
     #[cfg(feature = "std")]
     pub use std::collections::{BTreeMap, BTreeSet, BinaryHeap, LinkedList, VecDeque};
-
-    #[cfg(all(not(no_core_cstr), not(feature = "std")))]
-    pub use self::core::ffi::CStr;
-    #[cfg(feature = "std")]
-    pub use std::ffi::CStr;
-
-    #[cfg(all(not(no_core_cstr), feature = "alloc", not(feature = "std")))]
-    pub use alloc::ffi::CString;
-    #[cfg(feature = "std")]
-    pub use std::ffi::CString;
-
-    #[cfg(all(not(no_core_net), not(feature = "std")))]
-    pub use self::core::net;
-    #[cfg(feature = "std")]
-    pub use std::net;
-
-    #[cfg(feature = "std")]
-    pub use std::error;
-
     #[cfg(feature = "std")]
     pub use std::collections::{HashMap, HashSet};
+    #[cfg(feature = "std")]
+    pub use std::error;
+    #[cfg(feature = "std")]
+    pub use std::ffi::CStr;
+    #[cfg(feature = "std")]
+    pub use std::ffi::CString;
     #[cfg(feature = "std")]
     pub use std::ffi::{OsStr, OsString};
     #[cfg(feature = "std")]
@@ -198,35 +151,63 @@ mod lib {
     #[cfg(feature = "std")]
     pub use std::io::Write;
     #[cfg(feature = "std")]
+    pub use std::net;
+    #[cfg(feature = "std")]
     pub use std::path::{Path, PathBuf};
+    #[cfg(all(feature = "rc", feature = "std"))]
+    pub use std::rc::{Rc, Weak as RcWeak};
     #[cfg(feature = "std")]
-    pub use std::sync::{Mutex, RwLock};
-    #[cfg(feature = "std")]
-    pub use std::time::{SystemTime, UNIX_EPOCH};
-
+    pub use std::string::{String, ToString};
+    #[cfg(all(feature = "std", not(no_target_has_atomic)))]
+    pub use std::sync::atomic::Ordering;
     #[cfg(all(feature = "std", no_target_has_atomic, not(no_std_atomic)))]
     pub use std::sync::atomic::{
         AtomicBool, AtomicI16, AtomicI32, AtomicI8, AtomicIsize, AtomicU16, AtomicU32, AtomicU8,
         AtomicUsize, Ordering,
     };
-    #[cfg(all(feature = "std", no_target_has_atomic, not(no_std_atomic64)))]
-    pub use std::sync::atomic::{AtomicI64, AtomicU64};
-
-    #[cfg(all(feature = "std", not(no_target_has_atomic)))]
-    pub use std::sync::atomic::Ordering;
     #[cfg(all(feature = "std", not(no_target_has_atomic), target_has_atomic = "8"))]
     pub use std::sync::atomic::{AtomicBool, AtomicI8, AtomicU8};
     #[cfg(all(feature = "std", not(no_target_has_atomic), target_has_atomic = "16"))]
     pub use std::sync::atomic::{AtomicI16, AtomicU16};
     #[cfg(all(feature = "std", not(no_target_has_atomic), target_has_atomic = "32"))]
     pub use std::sync::atomic::{AtomicI32, AtomicU32};
+    #[cfg(all(feature = "std", no_target_has_atomic, not(no_std_atomic64)))]
+    pub use std::sync::atomic::{AtomicI64, AtomicU64};
     #[cfg(all(feature = "std", not(no_target_has_atomic), target_has_atomic = "64"))]
     pub use std::sync::atomic::{AtomicI64, AtomicU64};
     #[cfg(all(feature = "std", not(no_target_has_atomic), target_has_atomic = "ptr"))]
     pub use std::sync::atomic::{AtomicIsize, AtomicUsize};
+    #[cfg(all(feature = "rc", feature = "std"))]
+    pub use std::sync::{Arc, Weak as ArcWeak};
+    #[cfg(feature = "std")]
+    pub use std::sync::{Mutex, RwLock};
+    #[cfg(feature = "std")]
+    pub use std::time::{SystemTime, UNIX_EPOCH};
+    #[cfg(feature = "std")]
+    pub use std::vec::Vec;
 
+    pub use self::core::cell::{Cell, RefCell};
+    pub use self::core::cmp::Reverse;
+    #[cfg(all(not(no_core_cstr), not(feature = "std")))]
+    pub use self::core::ffi::CStr;
+    pub use self::core::fmt::{self, Debug, Display, Write as FmtWrite};
+    pub use self::core::iter::{IntoIterator, Iterator};
+    pub use self::core::marker::{Copy, PhantomData, Sized};
+    #[cfg(all(not(no_core_net), not(feature = "std")))]
+    pub use self::core::net;
     #[cfg(not(no_core_num_saturating))]
     pub use self::core::num::Saturating;
+    pub use self::core::num::Wrapping;
+    pub use self::core::ops::{Bound, Range, RangeFrom, RangeInclusive, RangeTo};
+    pub use self::core::option::Option;
+    pub use self::core::option::Option::{None, Some};
+    pub use self::core::prelude::rust_2021::*;
+    pub use self::core::result::Result;
+    pub use self::core::result::Result::{Err, Ok};
+    pub use self::core::time::Duration;
+    #[cfg(any(feature = "std", feature = "alloc"))]
+    pub use self::core::{cmp, mem};
+    pub use self::core::{f32, f64, iter, num, result, str};
 }
 
 // None of this crate's error handling needs the `From::from` error conversion
@@ -265,9 +246,10 @@ mod private;
 #[doc(hidden)]
 pub mod __private {
     #[doc(hidden)]
-    pub use crate::private::doc;
-    #[doc(hidden)]
     pub use core::result::Result;
+
+    #[doc(hidden)]
+    pub use crate::private::doc;
 }
 
 include!(concat!(env!("OUT_DIR"), "/private.rs"));

@@ -122,7 +122,7 @@ mod algebraic_simplification_tests {
             .unwrap();
     }
 
-    // NOTE: Skipping tests that mix Fixed and Int32 types as they have
+    // NOTE: Skipping tests that mix Dec32 and Int32 types as they have
     // complex type coercion behavior that's not the focus of algebraic simplification
 
     #[test]
@@ -198,7 +198,7 @@ mod algebraic_simplification_tests {
     #[test]
     fn test_x_and_false() {
         // x && false → false
-        // Note: The result type will be Bool, not Fixed
+        // Note: The result type will be Bool, not Dec32
         AstOptTest::new("time && 0.0")
             .with_pass(algebraic::simplify_expr)
             .expect_semantics_preserved()
@@ -210,7 +210,7 @@ mod algebraic_simplification_tests {
     #[test]
     fn test_false_and_x() {
         // false && x → false
-        // Note: The result type will be Bool, not Fixed
+        // Note: The result type will be Bool, not Dec32
         AstOptTest::new("0.0 && time")
             .with_pass(algebraic::simplify_expr)
             .expect_semantics_preserved()
@@ -226,7 +226,7 @@ mod algebraic_simplification_tests {
     #[test]
     fn test_x_or_true() {
         // x || true → true
-        // Note: The result type will be Bool, not Fixed
+        // Note: The result type will be Bool, not Dec32
         AstOptTest::new("time || 1.0")
             .with_pass(algebraic::simplify_expr)
             .expect_semantics_preserved()
@@ -238,7 +238,7 @@ mod algebraic_simplification_tests {
     #[test]
     fn test_true_or_x() {
         // true || x → true
-        // Note: The result type will be Bool, not Fixed
+        // Note: The result type will be Bool, not Dec32
         AstOptTest::new("1.0 || time")
             .with_pass(algebraic::simplify_expr)
             .expect_semantics_preserved()

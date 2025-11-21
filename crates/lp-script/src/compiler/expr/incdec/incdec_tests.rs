@@ -67,7 +67,7 @@ mod tests {
 #[cfg(test)]
 mod integration_tests {
     use crate::compile_script;
-    use crate::fixed::ToFixed;
+    use crate::dec32::ToDec32;
     use crate::vm::lps_vm::LpsVm;
     use crate::vm::vm_limits::VmLimits;
 
@@ -81,7 +81,7 @@ mod integration_tests {
         let program = compile_script(script).unwrap();
         let mut vm = LpsVm::new(&program, VmLimits::default()).unwrap();
         let result = vm
-            .run_scalar(0.0.to_fixed(), 0.0.to_fixed(), 0.0.to_fixed())
+            .run_scalar(0.0.to_dec32(), 0.0.to_dec32(), 0.0.to_dec32())
             .unwrap();
         assert_eq!(result.0, 6); // ++5 = 6
     }
@@ -96,7 +96,7 @@ mod integration_tests {
         let program = compile_script(script).unwrap();
         let mut vm = LpsVm::new(&program, VmLimits::default()).unwrap();
         let result = vm
-            .run_scalar(0.0.to_fixed(), 0.0.to_fixed(), 0.0.to_fixed())
+            .run_scalar(0.0.to_dec32(), 0.0.to_dec32(), 0.0.to_dec32())
             .unwrap();
         assert_eq!(result.0, 5); // Returns original value
     }
@@ -111,7 +111,7 @@ mod integration_tests {
         let program = compile_script(script).unwrap();
         let mut vm = LpsVm::new(&program, VmLimits::default()).unwrap();
         let result = vm
-            .run_scalar(0.0.to_fixed(), 0.0.to_fixed(), 0.0.to_fixed())
+            .run_scalar(0.0.to_dec32(), 0.0.to_dec32(), 0.0.to_dec32())
             .unwrap();
         assert_eq!(result.0, 15); // 10 + 5 = 15
     }
@@ -126,7 +126,7 @@ mod integration_tests {
         let program = compile_script(script).unwrap();
         let mut vm = LpsVm::new(&program, VmLimits::default()).unwrap();
         let result = vm
-            .run_scalar(0.0.to_fixed(), 0.0.to_fixed(), 0.0.to_fixed())
+            .run_scalar(0.0.to_dec32(), 0.0.to_dec32(), 0.0.to_dec32())
             .unwrap();
         assert_eq!(result.0, 7); // 15 & 7 = 7
     }

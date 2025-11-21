@@ -1,9 +1,9 @@
-use lp_math::fixed::Fixed;
+use lp_math::dec32::Dec32;
 
 use crate::nodes::lfo::lfo_waveform::LfoWaveform;
 
-fn default_max() -> Fixed {
-    Fixed::ONE
+fn default_max() -> Dec32 {
+    Dec32::ONE
 }
 
 /// Input parameters for LFO node.
@@ -20,11 +20,11 @@ pub struct LfoInput {
     pub shape: crate::nodes::lfo::lfo_waveform::LfoWaveform,
 
     /// Minimum output value.
-    pub min: Fixed,
+    pub min: Dec32,
 
     /// Maximum output value.
     #[serde(default = "default_max")]
-    pub max: Fixed,
+    pub max: Dec32,
 }
 
 impl Default for LfoInput {
@@ -32,14 +32,14 @@ impl Default for LfoInput {
         Self {
             period_ms: 1000,
             shape: LfoWaveform::Sine,
-            min: Fixed::ZERO,
+            min: Dec32::ZERO,
             max: default_max(),
         }
     }
 }
 
 impl LfoInput {
-    pub fn new(period_ms: i32, min: Fixed, max: Fixed) -> Self {
+    pub fn new(period_ms: i32, min: Dec32, max: Dec32) -> Self {
         Self {
             period_ms,
             shape: LfoWaveform::Sine,

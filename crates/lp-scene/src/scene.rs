@@ -10,7 +10,7 @@ use std::string::String;
 use lp_data::kind::record::record_value::RecordValue;
 use lp_data::kind::value::LpValueRef;
 use lp_data::RuntimeError;
-use lp_math::fixed::Fixed;
+use lp_math::dec32::Dec32;
 
 use crate::node::{LpNode, NodeContext};
 use crate::nodes::LfoNode;
@@ -98,10 +98,10 @@ impl LpScene {
 
         // Calculate delta time
         let delta_ms = if let Some(last_time) = self.last_frame_time_ms {
-            Fixed::from_f32((frame_time_ms - last_time) as f32)
+            Dec32::from_f32((frame_time_ms - last_time) as f32)
         } else {
             // First frame: use zero delta
-            Fixed::ZERO
+            Dec32::ZERO
         };
 
         // Update last frame time
@@ -110,7 +110,7 @@ impl LpScene {
         // Create context that doesn't hold a reference to self
         struct SimpleContext {
             frame_time_ms: i64,
-            delta_ms: Fixed,
+            delta_ms: Dec32,
         }
 
         impl NodeContext for SimpleContext {
@@ -118,7 +118,7 @@ impl LpScene {
                 self.frame_time_ms
             }
 
-            fn delta_ms(&self) -> Fixed {
+            fn delta_ms(&self) -> Dec32 {
                 self.delta_ms
             }
         }

@@ -30,7 +30,7 @@ impl AstBuilder {
     }
 
     pub fn num(&mut self, value: f32) -> Expr {
-        self.expr_with_type(ExprKind::Number(value), Some(Type::Fixed))
+        self.expr_with_type(ExprKind::Number(value), Some(Type::Dec32))
     }
 
     pub fn var(&mut self, name: &str) -> Expr {

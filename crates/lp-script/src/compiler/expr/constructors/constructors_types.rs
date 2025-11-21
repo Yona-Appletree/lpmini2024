@@ -13,7 +13,7 @@ impl TypeChecker {
     /// Get the number of components in a type (for vector constructor validation)
     fn component_count(ty: &Type) -> usize {
         match ty {
-            Type::Bool | Type::Fixed | Type::Int32 => 1,
+            Type::Bool | Type::Dec32 | Type::Int32 => 1,
             Type::Vec2 => 2,
             Type::Vec3 => 3,
             Type::Vec4 => 4,
@@ -81,7 +81,7 @@ impl TypeChecker {
         for arg in args.iter() {
             let ty = arg.ty.as_ref().unwrap();
             total_components += match ty {
-                Type::Fixed | Type::Int32 | Type::Bool => 1,
+                Type::Dec32 | Type::Int32 | Type::Bool => 1,
                 Type::Vec2 => 2,
                 Type::Vec3 => 3,
                 Type::Vec4 => 4,

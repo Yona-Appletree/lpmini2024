@@ -1,6 +1,6 @@
 //! Value implementation for Vec4.
 
-use lp_math::fixed::Vec4;
+use lp_math::dec32::Vec4;
 
 use crate::kind::vec4::vec4_static::VEC4_SHAPE;
 

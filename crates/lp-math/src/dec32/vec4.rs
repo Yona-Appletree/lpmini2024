@@ -1,77 +1,77 @@
 use core::ops::{Add, Div, Mul, Neg, Sub};
 
-/// 4D vector for fixed-point fixed (useful for RGBA colors and homogeneous coordinates)
-use super::conversions::ToFixed;
-use super::fixed::Fixed;
+/// 4D vector for dec32-point dec32 (useful for RGBA colors and homogeneous coordinates)
+use super::conversions::ToDec32;
+use super::dec32::Dec32;
 use super::vec2::Vec2;
 use super::vec3::Vec3;
 
 #[derive(Copy, Clone, Debug, PartialEq)]
 pub struct Vec4 {
-    pub x: Fixed,
-    pub y: Fixed,
-    pub z: Fixed,
-    pub w: Fixed,
+    pub x: Dec32,
+    pub y: Dec32,
+    pub z: Dec32,
+    pub w: Dec32,
 }
 
 impl Vec4 {
     #[inline(always)]
-    pub const fn new(x: Fixed, y: Fixed, z: Fixed, w: Fixed) -> Self {
+    pub const fn new(x: Dec32, y: Dec32, z: Dec32, w: Dec32) -> Self {
         Vec4 { x, y, z, w }
     }
 
     #[inline(always)]
     pub fn from_f32(x: f32, y: f32, z: f32, w: f32) -> Self {
         Vec4 {
-            x: x.to_fixed(),
-            y: y.to_fixed(),
-            z: z.to_fixed(),
-            w: w.to_fixed(),
+            x: x.to_dec32(),
+            y: y.to_dec32(),
+            z: z.to_dec32(),
+            w: w.to_dec32(),
         }
     }
 
     #[inline(always)]
     pub fn from_i32(x: i32, y: i32, z: i32, w: i32) -> Self {
         Vec4 {
-            x: x.to_fixed(),
-            y: y.to_fixed(),
-            z: z.to_fixed(),
-            w: w.to_fixed(),
+            x: x.to_dec32(),
+            y: y.to_dec32(),
+            z: z.to_dec32(),
+            w: w.to_dec32(),
         }
     }
 
     #[inline(always)]
     pub const fn zero() -> Self {
-        Vec4::new(Fixed(0), Fixed(0), Fixed(0), Fixed(0))
+        Vec4::new(Dec32(0), Dec32(0), Dec32(0), Dec32(0))
     }
 
     #[inline(always)]
     pub const fn one() -> Self {
-        Vec4::new(Fixed::ONE, Fixed::ONE, Fixed::ONE, Fixed::ONE)
+        Vec4::new(Dec32::ONE, Dec32::ONE, Dec32::ONE, Dec32::ONE)
     }
 
     /// Dot product
     #[inline(always)]
-    pub fn dot(self, rhs: Self) -> Fixed {
+    pub fn dot(self, rhs: Self) -> Dec32 {
         (self.x * rhs.x) + (self.y * rhs.y) + (self.z * rhs.z) + (self.w * rhs.w)
     }
 
     /// Length squared (avoids sqrt)
     #[inline(always)]
-    pub fn length_squared(self) -> Fixed {
+    pub fn length_squared(self) -> Dec32 {
         self.dot(self)
     }
 
     /// Length
     #[inline(always)]
-    pub fn length(self) -> Fixed {
-        use crate::fixed::advanced::sqrt;
+    pub fn length(self) -> Dec32 {
+        use crate::dec32::advanced::sqrt;
         sqrt(self.length_squared())
     }
 
     /// Distance between two vectors
     #[inline(always)]
-    pub fn distance(self, other: Self) -> Fixed {
+    pub fn distance(self, other: Self) -> Dec32 {
         (self - other).length()
     }
 
@@ -87,42 +87,42 @@ impl Vec4 {
 
     // Swizzle accessors (GLSL-style) - scalar
     #[inline(always)]
-    pub fn x(self) -> Fixed {
+    pub fn x(self) -> Dec32 {
         self.x
     }
 
     #[inline(always)]
-    pub fn y(self) -> Fixed {
+    pub fn y(self) -> Dec32 {
         self.y
     }
 
     #[inline(always)]
-    pub fn z(self) -> Fixed {
+    pub fn z(self) -> Dec32 {
         self.z
     }
 
     #[inline(always)]
-    pub fn w(self) -> Fixed {
+    pub fn w(self) -> Dec32 {
         self.w
     }
 
     #[inline(always)]
-    pub fn r(self) -> Fixed {
+    pub fn r(self) -> Dec32 {
         self.x
     }
 
     #[inline(always)]
-    pub fn g(self) -> Fixed {
+    pub fn g(self) -> Dec32 {
         self.y
     }
 
     #[inline(always)]
-    pub fn b(self) -> Fixed {
+    pub fn b(self) -> Dec32 {
         self.z
     }
 
     #[inline(always)]
-    pub fn a(self) -> Fixed {
+    pub fn a(self) -> Dec32 {
         self.w
     }
 
@@ -229,7 +229,7 @@ impl Vec4 {
 
     /// Clamp components between min and max
     #[inline(always)]
-    pub fn clamp(self, min: Fixed, max: Fixed) -> Self {
+    pub fn clamp(self, min: Dec32, max: Dec32) -> Self {
         Vec4::new(
             self.x.clamp(min, max),
             self.y.clamp(min, max),
@@ -270,21 +270,21 @@ impl Sub for Vec4 {
 }
 
 // Vector * Scalar
-impl Mul<Fixed> for Vec4 {
+impl Mul<Dec32> for Vec4 {
     type Output = Self;
 
     #[inline(always)]
-    fn mul(self, rhs: Fixed) -> Self {
+    fn mul(self, rhs: Dec32) -> Self {
         Vec4::new(self.x * rhs, self.y * rhs, self.z * rhs, self.w * rhs)
     }
 }
 
 // Vector / Scalar
-impl Div<Fixed> for Vec4 {
+impl Div<Dec32> for Vec4 {
     type Output = Self;
 
     #[inline(always)]
-    fn div(self, rhs: Fixed) -> Self {
+    fn div(self, rhs: Dec32) -> Self {
         Vec4::new(self.x / rhs, self.y / rhs, self.z / rhs, self.w / rhs)
     }
 }
@@ -304,7 +304,7 @@ mod tests {
 
     #[test]
     fn test_new() {
-        let v = Vec4::new(1.to_fixed(), 2.to_fixed(), 3.to_fixed(), 4.to_fixed());
+        let v = Vec4::new(1.to_dec32(), 2.to_dec32(), 3.to_dec32(), 4.to_dec32());
         assert_eq!(v.x.to_f32(), 1.0);
         assert_eq!(v.y.to_f32(), 2.0);
         assert_eq!(v.z.to_f32(), 3.0);
@@ -345,7 +345,7 @@ mod tests {
     #[test]
     fn test_mul_scalar() {
         let v = Vec4::from_f32(1.0, 2.0, 3.0, 4.0);
-        let s = 2.0.to_fixed();
+        let s = 2.0.to_dec32();
         let result = v * s;
         assert_eq!(result.x.to_f32(), 2.0);
         assert_eq!(result.y.to_f32(), 4.0);
@@ -356,7 +356,7 @@ mod tests {
     #[test]
     fn test_div_scalar() {
         let v = Vec4::from_f32(4.0, 6.0, 8.0, 10.0);
-        let s = 2.0.to_fixed();
+        let s = 2.0.to_dec32();
         let result = v / s;
         assert_eq!(result.x.to_f32(), 2.0);
         assert_eq!(result.y.to_f32(), 3.0);

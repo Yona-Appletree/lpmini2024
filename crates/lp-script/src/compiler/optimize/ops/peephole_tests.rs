@@ -16,7 +16,7 @@ mod peephole_optimization_tests {
         // Test that peephole optimization preserves semantics for simple expression
         ExprTest::new("2.0 + 3.0")
             .with_peephole_optimization()
-            .expect_result_fixed(5.0)
+            .expect_result_dec32(5.0)
             .run()
             .unwrap();
     }
@@ -27,7 +27,7 @@ mod peephole_optimization_tests {
         ExprTest::new("time * 2.0")
             .with_peephole_optimization()
             .with_time(5.0)
-            .expect_result_fixed(10.0)
+            .expect_result_dec32(10.0)
             .run()
             .unwrap();
     }
@@ -38,7 +38,7 @@ mod peephole_optimization_tests {
         ExprTest::new("(x + y) * time")
             .with_peephole_optimization()
             .with_vm_params(3.0, 4.0, 2.0)
-            .expect_result_fixed(14.0)
+            .expect_result_dec32(14.0)
             .run()
             .unwrap();
     }
@@ -85,7 +85,7 @@ mod peephole_optimization_tests {
 
         ExprTest::new("(2.0 + 3.0) * 1.0")
             .with_optimization(options)
-            .expect_result_fixed(5.0)
+            .expect_result_dec32(5.0)
             .run()
             .unwrap();
     }
@@ -101,7 +101,7 @@ mod peephole_optimization_tests {
         ExprTest::new("(2.0 + 3.0) * time")
             .with_optimization(options)
             .with_time(2.0)
-            .expect_result_fixed(10.0)
+            .expect_result_dec32(10.0)
             .run()
             .unwrap();
     }
@@ -116,14 +116,14 @@ mod peephole_optimization_tests {
         ExprTest::new("x > 5.0")
             .with_peephole_optimization()
             .with_x(10.0)
-            .expect_result_fixed(1.0)
+            .expect_result_dec32(1.0)
             .run()
             .unwrap();
 
         ExprTest::new("x < 5.0")
             .with_peephole_optimization()
             .with_x(3.0)
-            .expect_result_fixed(1.0)
+            .expect_result_dec32(1.0)
             .run()
             .unwrap();
     }
@@ -134,14 +134,14 @@ mod peephole_optimization_tests {
         ExprTest::new("(x > 5.0) && (y < 10.0)")
             .with_peephole_optimization()
             .with_vm_params(7.0, 8.0, 0.0)
-            .expect_result_fixed(1.0)
+            .expect_result_dec32(1.0)
             .run()
             .unwrap();
 
         ExprTest::new("(x > 5.0) || (y < 10.0)")
             .with_peephole_optimization()
             .with_vm_params(3.0, 8.0, 0.0)
-            .expect_result_fixed(1.0)
+            .expect_result_dec32(1.0)
             .run()
             .unwrap();
     }
@@ -152,14 +152,14 @@ mod peephole_optimization_tests {
         ExprTest::new("x > 5.0 ? 10.0 : 20.0")
             .with_peephole_optimization()
             .with_x(7.0)
-            .expect_result_fixed(10.0)
+            .expect_result_dec32(10.0)
             .run()
             .unwrap();
 
         ExprTest::new("x > 5.0 ? 10.0 : 20.0")
             .with_peephole_optimization()
             .with_x(3.0)
-            .expect_result_fixed(20.0)
+            .expect_result_dec32(20.0)
             .run()
             .unwrap();
     }
@@ -174,7 +174,7 @@ mod peephole_optimization_tests {
         ExprTest::new("((x + y) * 2.0) / time")
             .with_peephole_optimization()
             .with_vm_params(3.0, 4.0, 2.0)
-            .expect_result_fixed(7.0)
+            .expect_result_dec32(7.0)
             .run()
             .unwrap();
     }
@@ -185,14 +185,14 @@ mod peephole_optimization_tests {
         ExprTest::new("sin(time)")
             .with_peephole_optimization()
             .with_time(0.0)
-            .expect_result_fixed(0.0)
+            .expect_result_dec32(0.0)
             .run()
             .unwrap();
 
         ExprTest::new("max(x, y)")
             .with_peephole_optimization()
             .with_vm_params(5.0, 3.0, 0.0)
-            .expect_result_fixed(5.0)
+            .expect_result_dec32(5.0)
             .run()
             .unwrap();
     }
@@ -203,7 +203,7 @@ mod peephole_optimization_tests {
         ExprTest::new("x + y - time * 2.0")
             .with_peephole_optimization()
             .with_vm_params(10.0, 5.0, 2.0)
-            .expect_result_fixed(11.0)
+            .expect_result_dec32(11.0)
             .run()
             .unwrap();
     }
@@ -226,14 +226,14 @@ mod peephole_optimization_tests {
         for (expr, expected) in expressions {
             // Unoptimized
             ExprTest::new(expr)
-                .expect_result_fixed(expected)
+                .expect_result_dec32(expected)
                 .run()
                 .unwrap();
 
             // Peephole optimized
             ExprTest::new(expr)
                 .with_peephole_optimization()
-                .expect_result_fixed(expected)
+                .expect_result_dec32(expected)
                 .run()
                 .unwrap();
         }
@@ -245,7 +245,7 @@ mod peephole_optimization_tests {
 
         // No optimization
         ExprTest::new("2.0 + 3.0")
-            .expect_result_fixed(5.0)
+            .expect_result_dec32(5.0)
             .run()
             .unwrap();
 
@@ -254,7 +254,7 @@ mod peephole_optimization_tests {
         options.peephole_optimization = true;
         ExprTest::new("2.0 + 3.0")
             .with_optimization(options)
-            .expect_result_fixed(5.0)
+            .expect_result_dec32(5.0)
             .run()
             .unwrap();
 
@@ -264,14 +264,14 @@ mod peephole_optimization_tests {
         options.max_ast_passes = 5;
         ExprTest::new("2.0 + 3.0")
             .with_optimization(options)
-            .expect_result_fixed(5.0)
+            .expect_result_dec32(5.0)
             .run()
             .unwrap();
 
         // All optimizations
         ExprTest::new("2.0 + 3.0")
             .with_optimization(OptimizeOptions::all())
-            .expect_result_fixed(5.0)
+            .expect_result_dec32(5.0)
             .run()
             .unwrap();
     }
@@ -290,7 +290,7 @@ mod peephole_optimization_tests {
 
         ExprTest::new("5.0")
             .with_peephole_optimization()
-            .expect_result_fixed(5.0)
+            .expect_result_dec32(5.0)
             .run()
             .unwrap();
     }
@@ -301,7 +301,7 @@ mod peephole_optimization_tests {
         ExprTest::new("x + y + time")
             .with_peephole_optimization()
             .with_vm_params(1.0, 2.0, 3.0)
-            .expect_result_fixed(6.0)
+            .expect_result_dec32(6.0)
             .run()
             .unwrap();
     }
@@ -312,21 +312,21 @@ mod peephole_optimization_tests {
         ExprTest::new("x > 5.0 ? (y > 3.0 ? 10.0 : 20.0) : 30.0")
             .with_peephole_optimization()
             .with_vm_params(7.0, 4.0, 0.0)
-            .expect_result_fixed(10.0)
+            .expect_result_dec32(10.0)
             .run()
             .unwrap();
 
         ExprTest::new("x > 5.0 ? (y > 3.0 ? 10.0 : 20.0) : 30.0")
             .with_peephole_optimization()
             .with_vm_params(7.0, 2.0, 0.0)
-            .expect_result_fixed(20.0)
+            .expect_result_dec32(20.0)
             .run()
             .unwrap();
 
         ExprTest::new("x > 5.0 ? (y > 3.0 ? 10.0 : 20.0) : 30.0")
             .with_peephole_optimization()
             .with_vm_params(3.0, 4.0, 0.0)
-            .expect_result_fixed(30.0)
+            .expect_result_dec32(30.0)
             .run()
             .unwrap();
     }

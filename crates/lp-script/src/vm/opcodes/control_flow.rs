@@ -2,7 +2,7 @@
 extern crate alloc;
 use alloc::vec::Vec;
 
-use crate::fixed::Fixed;
+use crate::dec32::Dec32;
 use crate::vm::call_stack::CallStack;
 use crate::vm::error::LpsVmError;
 use crate::vm::local_stack::LocalStack;
@@ -16,7 +16,7 @@ pub enum ReturnAction {
     /// (return_pc, return_fn_idx)
     Continue(usize, usize),
     /// Exit program with the given stack values (returning from main)
-    Exit(Vec<Fixed>),
+    Exit(Vec<Dec32>),
 }
 
 /// Execute Return: pop call frame and continue, or exit if in main
@@ -34,9 +34,9 @@ pub fn exec_return(
         Ok(ReturnAction::Continue(return_pc, return_fn_idx))
     } else {
         // Exiting main - return all stack values as result
-        let result: Vec<Fixed> = stack.raw_slice()[0..stack.sp()]
+        let result: Vec<Dec32> = stack.raw_slice()[0..stack.sp()]
             .iter()
-            .map(|&i| Fixed(i))
+            .map(|&i| Dec32(i))
             .collect();
         Ok(ReturnAction::Exit(result))
     }
@@ -142,23 +142,23 @@ pub fn exec_call(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::fixed::{Fixed, ToFixed};
+    use crate::dec32::{Dec32, ToDec32};
 
     #[test]
     fn test_select_true() {
         let mut stack = ValueStack::new(64);
 
         // condition = 1 (true)
-        stack.push_fixed(1.0f32.to_fixed()).unwrap();
+        stack.push_dec32(1.0f32.to_dec32()).unwrap();
         // true_val = 10
-        stack.push_fixed(10.0f32.to_fixed()).unwrap();
+        stack.push_dec32(10.0f32.to_dec32()).unwrap();
         // false_val = 20
-        stack.push_fixed(20.0f32.to_fixed()).unwrap();
+        stack.push_dec32(20.0f32.to_dec32()).unwrap();
 
         exec_select(&mut stack).unwrap();
 
         assert_eq!(stack.sp(), 1);
-        assert_eq!(Fixed(stack.raw_slice()[0]).to_f32(), 10.0);
+        assert_eq!(Dec32(stack.raw_slice()[0]).to_f32(), 10.0);
     }
 
     #[test]
@@ -168,14 +168,14 @@ mod tests {
         // condition = 0 (false)
         stack.push_int32(0).unwrap();
         // true_val = 10
-        stack.push_fixed(10.0f32.to_fixed()).unwrap();
+        stack.push_dec32(10.0f32.to_dec32()).unwrap();
         // false_val = 20
-        stack.push_fixed(20.0f32.to_fixed()).unwrap();
+        stack.push_dec32(20.0f32.to_dec32()).unwrap();
 
         exec_select(&mut stack).unwrap();
 
         assert_eq!(stack.sp(), 1);
-        assert_eq!(Fixed(stack.raw_slice()[0]).to_f32(), 20.0);
+        assert_eq!(Dec32(stack.raw_slice()[0]).to_f32(), 20.0);
     }
 
     #[test]
@@ -239,7 +239,7 @@ mod tests {
     fn test_jump_if_zero_no_jump() {
         let mut stack = ValueStack::new(64);
 
-        stack.push_fixed(1.0f32.to_fixed()).unwrap();
+        stack.push_dec32(1.0f32.to_dec32()).unwrap();
 
         let result = exec_jump_if_zero(&mut stack, 10, 5).unwrap();
 
@@ -279,9 +279,9 @@ mod tests {
         let mut locals = LocalStack::new(1024);
 
         // Push some values on the stack
-        stack.push_fixed(1.5.to_fixed()).unwrap();
-        stack.push_fixed(2.5.to_fixed()).unwrap();
-        stack.push_fixed(3.5.to_fixed()).unwrap();
+        stack.push_dec32(1.5.to_dec32()).unwrap();
+        stack.push_dec32(2.5.to_dec32()).unwrap();
+        stack.push_dec32(3.5.to_dec32()).unwrap();
 
         // Execute return from main (depth 0)
         let result = exec_return(&stack, &mut call_stack, &mut locals).unwrap();
@@ -359,10 +359,10 @@ mod tests {
 
         // Create a simple program with 2 functions
         let main_fn = FunctionDef::new("main".into(), Type::Void)
-            .with_locals(vec![LocalVarDef::new("x".into(), Type::Fixed)]);
+            .with_locals(vec![LocalVarDef::new("x".into(), Type::Dec32)]);
 
-        let target_fn = FunctionDef::new("foo".into(), Type::Fixed).with_locals(vec![
-            LocalVarDef::new("a".into(), Type::Fixed),
+        let target_fn = FunctionDef::new("foo".into(), Type::Dec32).with_locals(vec![
+            LocalVarDef::new("a".into(), Type::Dec32),
             LocalVarDef::new("b".into(), Type::Vec2),
         ]);
 

@@ -17,7 +17,7 @@ impl<'a> CodeGenerator<'a> {
                 self.code.push(LpsOpCode::Load(LoadSource::YNorm));
             }
             "coord" => {
-                // Push pixel coordinates as vec2 (converted to Fixed)
+                // Push pixel coordinates as vec2 (converted to Dec32)
                 self.code.push(LpsOpCode::Load(LoadSource::XInt));
                 self.code.push(LpsOpCode::Load(LoadSource::YInt));
             }
@@ -26,8 +26,8 @@ impl<'a> CodeGenerator<'a> {
                 if let Some(index) = self.locals.get(name) {
                     // Load from local variable using the correct opcode for the type
                     match var_type {
-                        Type::Fixed | Type::Bool => {
-                            self.code.push(LpsOpCode::LoadLocalFixed(index));
+                        Type::Dec32 | Type::Bool => {
+                            self.code.push(LpsOpCode::LoadLocalDec32(index));
                         }
                         Type::Int32 => {
                             self.code.push(LpsOpCode::LoadLocalInt32(index));
@@ -46,7 +46,7 @@ impl<'a> CodeGenerator<'a> {
                         }
                         _ => {
                             // Fallback for unsupported types
-                            self.code.push(LpsOpCode::LoadLocalFixed(index));
+                            self.code.push(LpsOpCode::LoadLocalDec32(index));
                         }
                     }
                 } else {

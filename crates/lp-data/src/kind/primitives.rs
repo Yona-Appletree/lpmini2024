@@ -1,6 +1,6 @@
 //! Macros for defining primitive types in lp-data.
 //!
-//! These macros reduce boilerplate when adding new primitive types like Fixed, Int32, Bool, etc.
+//! These macros reduce boilerplate when adding new primitive types like Dec32, Int32, Bool, etc.
 
 /// Defines the shape, meta, static, and dyn modules for a primitive type.
 ///
@@ -13,8 +13,8 @@
 /// Usage:
 /// ```ignore
 /// define_primitive_shape! {
-///     name: Fixed,
-///     kind: Fixed,
+///     name: Dec32,
+///     kind: Dec32,
 ///     shape_trait: FixedShape,
 ///     meta_trait: FixedMeta,
 ///     meta_static: FixedMetaStatic,
@@ -172,10 +172,10 @@ macro_rules! define_primitive_shape {
 /// Usage:
 /// ```ignore
 /// define_primitive_value! {
-///     rust_type: Fixed,
-///     kind: Fixed,
+///     rust_type: Dec32,
+///     kind: Dec32,
 ///     shape_const: FIXED_SHAPE,
-///     value_box_variant: Fixed,
+///     value_box_variant: Dec32,
 /// }
 /// ```
 #[macro_export]

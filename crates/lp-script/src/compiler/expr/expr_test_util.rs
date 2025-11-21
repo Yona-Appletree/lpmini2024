@@ -11,7 +11,7 @@ use crate::compiler::error::{CodegenErrorKind, TypeErrorKind};
 use crate::compiler::optimize::OptimizeOptions;
 use crate::compiler::test_ast::AstBuilder;
 use crate::compiler::{codegen, lexer, optimize, parser, typechecker};
-use crate::fixed::{Fixed, Mat3, ToFixed, Vec2, Vec3, Vec4};
+use crate::dec32::{Dec32, Mat3, ToDec32, Vec2, Vec3, Vec4};
 use crate::shared::Type;
 use crate::vm::lps_vm::LpsVm;
 use crate::vm::vm_limits::VmLimits;
@@ -32,17 +32,17 @@ pub struct ExprTest {
     expected_ast_builder: Option<ExprBuilder>,
     expected_opcodes: Option<Vec<LpsOpCode>>,
     expected_result: Option<TestResult>,
-    expected_locals: Vec<(String, Fixed)>, // Expected local values after execution
+    expected_locals: Vec<(String, Dec32)>, // Expected local values after execution
     optimize_options: Option<OptimizeOptions>, // If set, apply optimizations to opcodes
     expected_error: Option<ExpectedError>, // If set, expect this error during compilation
-    x: Fixed,
-    y: Fixed,
-    time: Fixed,
+    x: Dec32,
+    y: Dec32,
+    time: Dec32,
 }
 
 #[cfg(test)]
 enum TestResult {
-    Fixed(Fixed),
+    Dec32(Dec32),
     Vec2(Vec2),
     Vec3(Vec3),
     Vec4(Vec4),
@@ -71,15 +71,15 @@ impl ExprTest {
             expected_locals: Vec::new(),
             optimize_options: None, // No optimization by default
             expected_error: None,
-            x: 0.5.to_fixed(),
-            y: 0.5.to_fixed(),
-            time: Fixed::ZERO,
+            x: 0.5.to_dec32(),
+            y: 0.5.to_dec32(),
+            time: Dec32::ZERO,
         }
     }
 
-    /// Add a Fixed local variable with initial value
-    pub fn local_fixed(mut self, _index: usize, name: &str, value: Fixed) -> Self {
-        self.declared_locals.push((String::from(name), Type::Fixed));
+    /// Add a Dec32 local variable with initial value
+    pub fn local_dec32(mut self, _index: usize, name: &str, value: Dec32) -> Self {
+        self.declared_locals.push((String::from(name), Type::Dec32));
         self.local_initial_values
             .push((String::from(name), vec![value.0]));
         self
@@ -113,28 +113,28 @@ impl ExprTest {
 
     /// Set x value for built-in `x` variable (default: 0.5)
     pub fn with_x(mut self, x: f32) -> Self {
-        self.x = x.to_fixed();
+        self.x = x.to_dec32();
         self
     }
 
     /// Set y value for built-in `y` variable (default: 0.5)
     pub fn with_y(mut self, y: f32) -> Self {
-        self.y = y.to_fixed();
+        self.y = y.to_dec32();
         self
     }
 
     /// Set time value for built-in (default: 0.0)
     pub fn with_time(mut self, time: f32) -> Self {
-        self.time = time.to_fixed();
+        self.time = time.to_dec32();
         self
     }
 
     /// Set VM run parameters (x, y, time) for built-in variables
     /// Built-in variables like `x`, `y`, `time` derive their values from these
     pub fn with_vm_params(mut self, x: f32, y: f32, time: f32) -> Self {
-        self.x = x.to_fixed();
-        self.y = y.to_fixed();
-        self.time = time.to_fixed();
+        self.x = x.to_dec32();
+        self.y = y.to_dec32();
+        self.time = time.to_dec32();
         self
     }
 
@@ -170,25 +170,25 @@ impl ExprTest {
     }
 
     /// Expect a specific result when executed (takes f32, converts internally)
-    pub fn expect_result_fixed(mut self, expected: f32) -> Self {
-        self.expected_result = Some(TestResult::Fixed(expected.to_fixed()));
+    pub fn expect_result_dec32(mut self, expected: f32) -> Self {
+        self.expected_result = Some(TestResult::Dec32(expected.to_dec32()));
         self
     }
 
     /// Expect a boolean result (for comparisons, logical operators)
     /// true = 1, false = 0
     pub fn expect_result_bool(mut self, expected: bool) -> Self {
-        self.expected_result = Some(TestResult::Fixed(if expected {
-            1.0.to_fixed()
+        self.expected_result = Some(TestResult::Dec32(if expected {
+            1.0.to_dec32()
         } else {
-            0.0.to_fixed()
+            0.0.to_dec32()
         }));
         self
     }
 
-    /// Expect an int32 result (stored as raw i32, not Fixed)
+    /// Expect an int32 result (stored as raw i32, not Dec32)
     pub fn expect_result_int(mut self, expected: i32) -> Self {
-        self.expected_result = Some(TestResult::Fixed(Fixed(expected)));
+        self.expected_result = Some(TestResult::Dec32(Dec32(expected)));
         self
     }
 
@@ -217,9 +217,9 @@ impl ExprTest {
     }
 
     /// Expect a specific value for a local variable after execution
-    pub fn expect_local_fixed(mut self, name: &str, expected: f32) -> Self {
+    pub fn expect_local_dec32(mut self, name: &str, expected: f32) -> Self {
         self.expected_locals
-            .push((String::from(name), expected.to_fixed()));
+            .push((String::from(name), expected.to_dec32()));
         self
     }
 
@@ -425,7 +425,7 @@ impl ExprTest {
                 Ok(mut vm) => {
                     if let Some(expected_result) = expected_result {
                         match expected_result {
-                            TestResult::Fixed(expected) => match vm.run_scalar(x, y, time) {
+                            TestResult::Dec32(expected) => match vm.run_scalar(x, y, time) {
                                 Ok(actual) => {
                                     let diff = (expected.to_f32() - actual.to_f32()).abs();
                                     if diff > 0.01 {
@@ -727,7 +727,7 @@ mod tests {
     fn test_case_opcodes_check() {
         // Test opcode checking
         ExprTest::new("5.0")
-            .expect_opcodes(vec![LpsOpCode::Push(5.0.to_fixed()), LpsOpCode::Return])
+            .expect_opcodes(vec![LpsOpCode::Push(5.0.to_dec32()), LpsOpCode::Return])
             .run()
             .expect("Opcodes should match");
     }
@@ -737,7 +737,7 @@ mod tests {
         // Test that opcode mismatch is caught
         let result = ExprTest::new("5.0")
             .expect_opcodes(vec![
-                LpsOpCode::Push(99.0.to_fixed()), // Wrong value
+                LpsOpCode::Push(99.0.to_dec32()), // Wrong value
                 LpsOpCode::Return,
             ])
             .run();
@@ -750,7 +750,7 @@ mod tests {
     fn test_case_result_check() {
         // Test execution result checking
         ExprTest::new("1.0 + 2.0")
-            .expect_result_fixed(3.0)
+            .expect_result_dec32(3.0)
             .run()
             .expect("Result should be 3.0");
     }
@@ -759,7 +759,7 @@ mod tests {
     fn test_case_result_mismatch() {
         // Test that result mismatch is caught
         let result = ExprTest::new("1.0 + 2.0")
-            .expect_result_fixed(99.0) // Wrong result
+            .expect_result_dec32(99.0) // Wrong result
             .run();
 
         assert!(result.is_err());
@@ -771,7 +771,7 @@ mod tests {
         // Test using VM parameters for built-in variables
         ExprTest::new("x + y")
             .with_vm_params(3.0, 4.0, 0.0)
-            .expect_result_fixed(7.0)
+            .expect_result_dec32(7.0)
             .run()
             .expect("x + y should equal 7.0");
     }
@@ -781,7 +781,7 @@ mod tests {
         // Test using time parameter
         ExprTest::new("time * 2.0")
             .with_time(5.0)
-            .expect_result_fixed(10.0)
+            .expect_result_dec32(10.0)
             .run()
             .expect("time * 2 should equal 10.0");
     }
@@ -793,15 +793,15 @@ mod tests {
             .expect_ast(|b| {
                 let left = b.num(2.0);
                 let right = b.num(3.0);
-                b.mul(left, right, Type::Fixed)
+                b.mul(left, right, Type::Dec32)
             })
             .expect_opcodes(vec![
-                LpsOpCode::Push(2.0.to_fixed()),
-                LpsOpCode::Push(3.0.to_fixed()),
-                LpsOpCode::MulFixed,
+                LpsOpCode::Push(2.0.to_dec32()),
+                LpsOpCode::Push(3.0.to_dec32()),
+                LpsOpCode::MulDec32,
                 LpsOpCode::Return,
             ])
-            .expect_result_fixed(6.0)
+            .expect_result_dec32(6.0)
             .run()
             .expect("All expectations should pass");
     }
@@ -813,13 +813,13 @@ mod tests {
             .expect_ast(|b| {
                 let left = b.num(1.0);
                 let right = b.num(2.0);
-                b.sub(left, right, Type::Fixed) // WRONG: should be Add
+                b.sub(left, right, Type::Dec32) // WRONG: should be Add
             })
             .expect_opcodes(vec![
-                LpsOpCode::Push(99.0.to_fixed()), // WRONG: wrong values
+                LpsOpCode::Push(99.0.to_dec32()), // WRONG: wrong values
                 LpsOpCode::Return,
             ])
-            .expect_result_fixed(99.0) // WRONG: should be 3.0
+            .expect_result_dec32(99.0) // WRONG: should be 3.0
             .run();
 
         assert!(result.is_err());
@@ -849,7 +849,7 @@ mod tests {
                 let right = b.num(3.0);
                 b.greater(left, right)
             })
-            .expect_result_fixed(1.0)
+            .expect_result_dec32(1.0)
             .run()
             .expect("5.0 > 3.0 should be true");
 
@@ -859,7 +859,7 @@ mod tests {
                 let right = b.num(1.0);
                 b.less(left, right)
             })
-            .expect_result_fixed(0.0)
+            .expect_result_dec32(0.0)
             .run()
             .expect("2.0 < 1.0 should be false");
     }
@@ -877,13 +877,13 @@ mod tests {
     fn test_case_chaining() {
         // Test that builder methods can be chained in any order
         let result1 = ExprTest::new("1.0")
-            .expect_result_fixed(1.0)
+            .expect_result_dec32(1.0)
             .expect_ast(|b| b.num(1.0))
             .run();
 
         let result2 = ExprTest::new("1.0")
             .expect_ast(|b| b.num(1.0))
-            .expect_result_fixed(1.0)
+            .expect_result_dec32(1.0)
             .run();
 
         assert!(result1.is_ok());
@@ -891,12 +891,12 @@ mod tests {
     }
 
     #[test]
-    fn test_case_with_local_fixed() {
+    fn test_case_with_local_dec32() {
         // Test with a local variable (would work in script mode)
         // In expression mode, this tests that locals are properly passed to VM
         ExprTest::new("time")
             .with_time(42.0)
-            .expect_result_fixed(42.0)
+            .expect_result_dec32(42.0)
             .run()
             .expect("Should access time value");
     }

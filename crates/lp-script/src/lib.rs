@@ -33,7 +33,7 @@ mod sin_table;
 /// ```
 /// use lp_script::parse_expr;
 ///
-/// // Simple fixed (constant expressions are folded at compile time)
+/// // Simple dec32 (constant expressions are folded at compile time)
 /// let code = parse_expr("2.0 + 3.0"); // Compiles to Push(5.0)
 /// let code = parse_expr("sin(time) * 0.5 + 0.5");
 ///
@@ -79,8 +79,8 @@ use alloc::vec::Vec;
 pub mod shared;
 pub mod vm;
 
-// Re-export fixed from lp-fixed crate
-pub use lp_math::fixed;
+// Re-export dec32 from lp-dec32 crate
+pub use lp_math::dec32;
 
 mod compiler;
 

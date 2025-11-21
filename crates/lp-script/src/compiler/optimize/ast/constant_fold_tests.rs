@@ -129,7 +129,7 @@ mod constant_folding_tests {
     #[test]
     fn test_less_than_true() {
         // 2.0 < 3.0 → true (1.0)
-        // Note: Result type is Bool, not Fixed
+        // Note: Result type is Bool, not Dec32
         AstOptTest::new("2.0 < 3.0")
             .with_pass(constant_fold::fold_constants)
             .expect_semantics_preserved()
@@ -234,7 +234,7 @@ mod constant_folding_tests {
     #[test]
     fn test_logical_and_true() {
         // 1.0 && 1.0 → true (1.0)
-        // Note: Result type is Bool, not Fixed
+        // Note: Result type is Bool, not Dec32
         AstOptTest::new("1.0 && 1.0")
             .with_pass(constant_fold::fold_constants)
             .expect_semantics_preserved()
@@ -372,8 +372,8 @@ mod constant_folding_tests {
 
     #[test]
     fn test_cos_zero() {
-        // cos(0.0) → ~1.0 (fixed-point precision: 0.9996948)
-        // Fixed-point trig uses lookup tables, so there's slight precision loss
+        // cos(0.0) → ~1.0 (dec32-point precision: 0.9996948)
+        // Dec32-point trig uses lookup tables, so there's slight precision loss
         AstOptTest::new("cos(0.0)")
             .with_pass(constant_fold::fold_constants)
             .expect_ast(|b| b.num(0.9996948))

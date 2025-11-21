@@ -4,12 +4,12 @@ use alloc::vec;
 use alloc::vec::Vec;
 
 use super::error::LpsVmError;
-use crate::fixed::{Fixed, Mat3, Vec2, Vec3, Vec4};
+use crate::dec32::{Dec32, Mat3, Vec2, Vec3, Vec4};
 
 /// VM Stack for LPS execution
 ///
 /// Internally stores raw i32 values for type-independence and performance,
-/// but provides type-safe push/pop methods for Fixed, Int32, and vector types.
+/// but provides type-safe push/pop methods for Dec32, Int32, and vector types.
 pub struct ValueStack {
     data: Vec<i32>,
     sp: usize,
@@ -61,26 +61,26 @@ impl ValueStack {
         self.data.as_mut_slice()
     }
 
-    /// Get current stack contents as Vec<Fixed>
+    /// Get current stack contents as Vec<Dec32>
     ///
-    /// Returns all values currently on the stack (0..sp) as Fixed values.
+    /// Returns all values currently on the stack (0..sp) as Dec32 values.
     /// This allocates a new Vec - use sparingly.
     #[inline(always)]
-    pub fn to_vec_fixed(&self) -> Vec<Fixed> {
+    pub fn to_vec_dec32(&self) -> Vec<Dec32> {
         self.data
             .as_slice()
             .iter()
             .take(self.sp)
             .copied()
-            .map(Fixed)
+            .map(Dec32)
             .collect()
     }
 
     // === Basic push/pop for single values ===
 
-    /// Push a Fixed value onto the stack
+    /// Push a Dec32 value onto the stack
     #[inline(always)]
-    pub fn push_fixed(&mut self, val: Fixed) -> Result<(), LpsVmError> {
+    pub fn push_dec32(&mut self, val: Dec32) -> Result<(), LpsVmError> {
         if self.sp >= self.max_size {
             return Err(LpsVmError::StackOverflow { sp: self.sp });
         }
@@ -89,9 +89,9 @@ impl ValueStack {
         Ok(())
     }
 
-    /// Pop a Fixed value from the stack
+    /// Pop a Dec32 value from the stack
     #[inline(always)]
-    pub fn pop_fixed(&mut self) -> Result<Fixed, LpsVmError> {
+    pub fn pop_dec32(&mut self) -> Result<Dec32, LpsVmError> {
         if self.sp == 0 {
             return Err(LpsVmError::StackUnderflow {
                 required: 1,
@@ -99,7 +99,7 @@ impl ValueStack {
             });
         }
         self.sp -= 1;
-        Ok(Fixed(self.data[self.sp]))
+        Ok(Dec32(self.data[self.sp]))
     }
 
     /// Push an Int32 value onto the stack
@@ -223,7 +223,7 @@ impl ValueStack {
 
     // === Vec2/3/4 operations ===
 
-    /// Push a Vec2 onto the stack (as 2 Fixed values)
+    /// Push a Vec2 onto the stack (as 2 Dec32 values)
     #[inline(always)]
     pub fn push_vec2(&mut self, v: Vec2) -> Result<(), LpsVmError> {
         self.push2(v.x.0, v.y.0)
@@ -233,10 +233,10 @@ impl ValueStack {
     #[inline(always)]
     pub fn pop_vec2(&mut self) -> Result<Vec2, LpsVmError> {
         let (x, y) = self.pop2()?;
-        Ok(Vec2::new(Fixed(x), Fixed(y)))
+        Ok(Vec2::new(Dec32(x), Dec32(y)))
     }
 
-    /// Push a Vec3 onto the stack (as 3 Fixed values)
+    /// Push a Vec3 onto the stack (as 3 Dec32 values)
     #[inline(always)]
     pub fn push_vec3(&mut self, v: Vec3) -> Result<(), LpsVmError> {
         self.push3(v.x.0, v.y.0, v.z.0)
@@ -246,10 +246,10 @@ impl ValueStack {
     #[inline(always)]
     pub fn pop_vec3(&mut self) -> Result<Vec3, LpsVmError> {
         let (x, y, z) = self.pop3()?;
-        Ok(Vec3::new(Fixed(x), Fixed(y), Fixed(z)))
+        Ok(Vec3::new(Dec32(x), Dec32(y), Dec32(z)))
     }
 
-    /// Push a Vec4 onto the stack (as 4 Fixed values)
+    /// Push a Vec4 onto the stack (as 4 Dec32 values)
     #[inline(always)]
     pub fn push_vec4(&mut self, v: Vec4) -> Result<(), LpsVmError> {
         self.push4(v.x.0, v.y.0, v.z.0, v.w.0)
@@ -259,7 +259,7 @@ impl ValueStack {
     #[inline(always)]
     pub fn pop_vec4(&mut self) -> Result<Vec4, LpsVmError> {
         let (x, y, z, w) = self.pop4()?;
-        Ok(Vec4::new(Fixed(x), Fixed(y), Fixed(z), Fixed(w)))
+        Ok(Vec4::new(Dec32(x), Dec32(y), Dec32(z), Dec32(w)))
     }
 
     /// Push 9 raw i32 values onto the stack
@@ -324,7 +324,7 @@ impl ValueStack {
         Ok((a, b, c, d, e, f, g, h, i))
     }
 
-    /// Push a Mat3 onto the stack (as 9 Fixed values)
+    /// Push a Mat3 onto the stack (as 9 Dec32 values)
     #[inline(always)]
     pub fn push_mat3(&mut self, m: Mat3) -> Result<(), LpsVmError> {
         self.push9(
@@ -338,15 +338,15 @@ impl ValueStack {
     pub fn pop_mat3(&mut self) -> Result<Mat3, LpsVmError> {
         let (m00, m10, m20, m01, m11, m21, m02, m12, m22) = self.pop9()?;
         Ok(Mat3::new(
-            Fixed(m00),
-            Fixed(m10),
-            Fixed(m20),
-            Fixed(m01),
-            Fixed(m11),
-            Fixed(m21),
-            Fixed(m02),
-            Fixed(m12),
-            Fixed(m22),
+            Dec32(m00),
+            Dec32(m10),
+            Dec32(m20),
+            Dec32(m01),
+            Dec32(m11),
+            Dec32(m21),
+            Dec32(m02),
+            Dec32(m12),
+            Dec32(m22),
         ))
     }
 
@@ -701,7 +701,7 @@ impl ValueStack {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::fixed::ToFixed;
+    use crate::dec32::ToDec32;
 
     #[test]
     fn test_stack_creation() {
@@ -711,16 +711,16 @@ mod tests {
     }
 
     #[test]
-    fn test_push_pop_fixed() {
+    fn test_push_pop_dec32() {
         let mut stack = ValueStack::new(64);
 
-        stack.push_fixed(1.5.to_fixed()).unwrap();
-        stack.push_fixed(2.5.to_fixed()).unwrap();
+        stack.push_dec32(1.5.to_dec32()).unwrap();
+        stack.push_dec32(2.5.to_dec32()).unwrap();
 
         assert_eq!(stack.sp(), 2);
 
-        let b = stack.pop_fixed().unwrap();
-        let a = stack.pop_fixed().unwrap();
+        let b = stack.pop_dec32().unwrap();
+        let a = stack.pop_dec32().unwrap();
 
         assert_eq!(a.to_f32(), 1.5);
         assert_eq!(b.to_f32(), 2.5);
@@ -832,7 +832,7 @@ mod tests {
     fn test_push_pop_vec2() {
         let mut stack = ValueStack::new(64);
 
-        let v = Vec2::new(1.5.to_fixed(), 2.5.to_fixed());
+        let v = Vec2::new(1.5.to_dec32(), 2.5.to_dec32());
         stack.push_vec2(v).unwrap();
 
         assert_eq!(stack.sp(), 2);
@@ -847,7 +847,7 @@ mod tests {
     fn test_push_pop_vec3() {
         let mut stack = ValueStack::new(64);
 
-        let v = Vec3::new(1.5.to_fixed(), 2.5.to_fixed(), 3.5.to_fixed());
+        let v = Vec3::new(1.5.to_dec32(), 2.5.to_dec32(), 3.5.to_dec32());
         stack.push_vec3(v).unwrap();
 
         assert_eq!(stack.sp(), 3);
@@ -864,10 +864,10 @@ mod tests {
         let mut stack = ValueStack::new(64);
 
         let v = Vec4::new(
-            1.5.to_fixed(),
-            2.5.to_fixed(),
-            3.5.to_fixed(),
-            4.5.to_fixed(),
+            1.5.to_dec32(),
+            2.5.to_dec32(),
+            3.5.to_dec32(),
+            4.5.to_dec32(),
         );
         stack.push_vec4(v).unwrap();
 

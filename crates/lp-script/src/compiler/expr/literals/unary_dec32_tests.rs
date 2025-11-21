@@ -1,8 +1,8 @@
-/// Unary negation tests for Fixed (scalar) type
+/// Unary negation tests for Dec32 (scalar) type
 #[cfg(test)]
 mod tests {
     use crate::compiler::expr::expr_test_util::ExprTest;
-    use crate::fixed::ToFixed;
+    use crate::dec32::ToDec32;
     use crate::shared::Type;
     use crate::vm::opcodes::LpsOpCode;
 
@@ -11,31 +11,31 @@ mod tests {
         ExprTest::new("-5.0")
             .expect_ast(|b| {
                 let operand = b.num(5.0);
-                b.neg(operand, Type::Fixed)
+                b.neg(operand, Type::Dec32)
             })
             .expect_opcodes(vec![
-                LpsOpCode::Push(5.0.to_fixed()),
-                LpsOpCode::NegFixed,
+                LpsOpCode::Push(5.0.to_dec32()),
+                LpsOpCode::NegDec32,
                 LpsOpCode::Return,
             ])
-            .expect_result_fixed(-5.0)
+            .expect_result_dec32(-5.0)
             .run()
     }
 
     #[test]
     fn test_negation_zero() -> Result<(), String> {
-        ExprTest::new("-0.0").expect_result_fixed(0.0).run()
+        ExprTest::new("-0.0").expect_result_dec32(0.0).run()
     }
 
     #[test]
     fn test_negation_negative() -> Result<(), String> {
-        ExprTest::new("--3.0").expect_result_fixed(3.0).run()
+        ExprTest::new("--3.0").expect_result_dec32(3.0).run()
     }
 
     #[test]
     fn test_negation_with_expression() -> Result<(), String> {
         ExprTest::new("-(1.0 + 2.0)")
-            .expect_result_fixed(-3.0)
+            .expect_result_dec32(-3.0)
             .run()
     }
 }

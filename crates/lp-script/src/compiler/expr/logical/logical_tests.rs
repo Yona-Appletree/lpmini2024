@@ -2,7 +2,7 @@
 #[cfg(test)]
 mod tests {
     use crate::compiler::expr::expr_test_util::ExprTest;
-    use crate::fixed::ToFixed;
+    use crate::dec32::ToDec32;
     use crate::vm::opcodes::LpsOpCode;
 
     #[test]
@@ -18,13 +18,13 @@ mod tests {
                 b.logical_and(left, right)
             })
             .expect_opcodes(vec![
-                LpsOpCode::Push(1.0.to_fixed()),
-                LpsOpCode::Push(0.5.to_fixed()),
-                LpsOpCode::GreaterFixed,
-                LpsOpCode::Push(2.0.to_fixed()),
-                LpsOpCode::Push(1.5.to_fixed()),
-                LpsOpCode::LessFixed,
-                LpsOpCode::AndFixed,
+                LpsOpCode::Push(1.0.to_dec32()),
+                LpsOpCode::Push(0.5.to_dec32()),
+                LpsOpCode::GreaterDec32,
+                LpsOpCode::Push(2.0.to_dec32()),
+                LpsOpCode::Push(1.5.to_dec32()),
+                LpsOpCode::LessDec32,
+                LpsOpCode::AndDec32,
                 LpsOpCode::Return,
             ])
             .expect_result_bool(false) // true && false = false

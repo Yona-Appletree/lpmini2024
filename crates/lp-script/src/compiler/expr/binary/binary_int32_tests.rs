@@ -102,16 +102,16 @@ mod tests {
 
     #[test]
     fn test_int_float_promotion() -> Result<(), String> {
-        // Int + Fixed should promote Int to Fixed
-        ExprTest::new("1 + 2.0").expect_result_fixed(3.0).run()?;
+        // Int + Dec32 should promote Int to Dec32
+        ExprTest::new("1 + 2.0").expect_result_dec32(3.0).run()?;
 
-        // Fixed + Int should promote Int to Fixed
-        ExprTest::new("2.0 + 1").expect_result_fixed(3.0).run()?;
+        // Dec32 + Int should promote Int to Dec32
+        ExprTest::new("2.0 + 1").expect_result_dec32(3.0).run()?;
 
         // Verify promotion in multiplication
-        ExprTest::new("3 * 2.0").expect_result_fixed(6.0).run()?;
+        ExprTest::new("3 * 2.0").expect_result_dec32(6.0).run()?;
 
-        ExprTest::new("2.0 * 3").expect_result_fixed(6.0).run()
+        ExprTest::new("2.0 * 3").expect_result_dec32(6.0).run()
     }
 
     #[test]

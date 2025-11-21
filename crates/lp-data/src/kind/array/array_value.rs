@@ -45,7 +45,7 @@ impl<'a> LpValueRef<'a> {
     /// Try to get a reference to the value as ArrayValue.
     pub fn as_array(&self) -> Option<&'a dyn ArrayValue> {
         match self {
-            LpValueRef::Fixed(_) => None,
+            LpValueRef::Dec32(_) => None,
             LpValueRef::Int32(_) => None,
             LpValueRef::Bool(_) => None,
             LpValueRef::Vec2(_) => None,
@@ -65,7 +65,7 @@ impl<'a> LpValueRefMut<'a> {
     /// Try to get a mutable reference to the value as ArrayValue.
     pub fn as_array_mut(&mut self) -> Option<&mut dyn ArrayValue> {
         match self {
-            LpValueRefMut::Fixed(_) => None,
+            LpValueRefMut::Dec32(_) => None,
             LpValueRefMut::Int32(_) => None,
             LpValueRefMut::Bool(_) => None,
             LpValueRefMut::Vec2(_) => None,

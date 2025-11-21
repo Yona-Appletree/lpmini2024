@@ -2,7 +2,7 @@
 
 #[cfg(test)]
 mod tests {
-    use crate::kind::fixed::fixed_static::FIXED_SHAPE;
+    use crate::kind::dec32::dec32_static::DEC32_SHAPE;
     use crate::kind::kind::LpKind;
     use crate::kind::record::record_meta::{RecordFieldMetaStatic, RecordMetaStatic};
     use crate::kind::record::record_static::{RecordFieldStatic, RecordShapeStatic};
@@ -13,7 +13,7 @@ mod tests {
     fn test_record_shape_static() {
         const FIELD: RecordFieldStatic = RecordFieldStatic {
             name: "period_ms",
-            shape: &FIXED_SHAPE,
+            shape: &DEC32_SHAPE,
             meta: RecordFieldMetaStatic { docs: None },
         };
 
@@ -36,7 +36,7 @@ mod tests {
     fn test_record_field_access() {
         const FIELD: RecordFieldStatic = RecordFieldStatic {
             name: "period_ms",
-            shape: &FIXED_SHAPE,
+            shape: &DEC32_SHAPE,
             meta: RecordFieldMetaStatic {
                 docs: Some("Oscillation period in milliseconds"),
             },
@@ -44,7 +44,7 @@ mod tests {
 
         let field: &dyn RecordFieldShape = &FIELD;
         assert_eq!(field.name(), "period_ms");
-        assert_eq!(field.shape().kind(), LpKind::Fixed);
+        assert_eq!(field.shape().kind(), LpKind::Dec32);
         assert_eq!(
             field.meta().docs(),
             Some("Oscillation period in milliseconds")
@@ -87,7 +87,7 @@ mod tests {
             },
             RecordFieldStatic {
                 name: "frequency",
-                shape: &FIXED_SHAPE,
+                shape: &DEC32_SHAPE,
                 meta: RecordFieldMetaStatic { docs: None },
             },
         ];
@@ -124,7 +124,7 @@ mod tests {
         );
         assert_eq!(
             shape.find_field("frequency").unwrap().shape().kind(),
-            LpKind::Fixed
+            LpKind::Dec32
         );
     }
 }

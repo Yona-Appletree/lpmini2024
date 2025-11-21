@@ -12,7 +12,7 @@ mod literals_tests;
 #[cfg(test)]
 mod unary_codegen_tests;
 #[cfg(test)]
-mod unary_fixed_tests;
+mod unary_dec32_tests;
 #[cfg(test)]
 mod unary_int32_tests;
 #[cfg(test)]

@@ -1,24 +1,24 @@
 pub mod advanced;
 pub mod clamping;
 pub mod conversions;
-/// Fixed-point fixed library
+/// Dec32-point dec32 library
 ///
-/// Provides clean APIs for fixed-point arithmetic and fixed functions.
+/// Provides clean APIs for dec32-point arithmetic and dec32 functions.
 ///
 /// # Core Types
-/// - `Fixed` - 16.16 fixed-point integer
+/// - `Dec32` - 16.16 dec32-point integer
 ///
 /// # Constants
-/// - `fixed::ONE` - 1.0 in fixed-point
-/// - `fixed::ZERO` - 0.0 in fixed-point
-/// - `fixed::HALF` - 0.5 in fixed-point
+/// - `dec32::ONE` - 1.0 in dec32-point
+/// - `dec32::ZERO` - 0.0 in dec32-point
+/// - `dec32::HALF` - 0.5 in dec32-point
 ///
 /// # Conversions
-/// Use the `ToFixed` trait for ergonomic conversions:
+/// Use the `ToDec32` trait for ergonomic conversions:
 /// ```
-/// use lp_math::fixed::ToFixed;
-/// let a = 5i32.to_fixed();
-/// let b = 1.5f32.to_fixed();
+/// use lp_math::dec32::ToDec32;
+/// let a = 5i32.to_dec32();
+/// let b = 1.5f32.to_dec32();
 /// ```
 ///
 /// # Math Utilities
@@ -38,7 +38,7 @@ pub mod conversions;
 /// # Noise
 /// - `noise::perlin3(x, y, z, octaves)` - 3D Perlin noise
 #[allow(clippy::module_inception)]
-pub mod fixed;
+pub mod dec32;
 pub mod interpolation;
 pub mod mat3;
 pub mod noise;
@@ -53,8 +53,8 @@ pub mod vec4;
 
 // Re-export commonly used items at module level
 pub use clamping::{saturate, sign};
-pub use conversions::ToFixed;
-pub use fixed::Fixed;
+pub use conversions::ToDec32;
+pub use dec32::Dec32;
 pub use interpolation::{lerp, smoothstep, step};
 pub use mat3::Mat3;
 pub use rounding::{ceil, floor, frac};
@@ -63,42 +63,42 @@ pub use vec2::Vec2;
 pub use vec3::Vec3;
 pub use vec4::Vec4;
 
-// Re-export fixed utilities
-pub use crate::fixed::advanced::{atan, atan2, fract, modulo, pow, sqrt};
+// Re-export dec32 utilities
+pub use crate::dec32::advanced::{atan, atan2, fract, modulo, pow, sqrt};
 
-#[deprecated(note = "Use Fixed operators instead")]
+#[deprecated(note = "Use Dec32 operators instead")]
 #[inline(always)]
 pub fn fixed_mul(a: i32, b: i32) -> i32 {
-    ((a as i64 * b as i64) >> Fixed::SHIFT) as i32
+    ((a as i64 * b as i64) >> Dec32::SHIFT) as i32
 }
 
-#[deprecated(note = "Use Fixed operators instead")]
+#[deprecated(note = "Use Dec32 operators instead")]
 #[inline(always)]
 pub fn fixed_div(a: i32, b: i32) -> i32 {
     if b != 0 {
-        ((a as i64 * Fixed::ONE.0 as i64) / b as i64) as i32
+        ((a as i64 * Dec32::ONE.0 as i64) / b as i64) as i32
     } else {
         0
     }
 }
 
-#[deprecated(note = "Use Fixed::from_i32 instead")]
+#[deprecated(note = "Use Dec32::from_i32 instead")]
 #[inline(always)]
 pub fn fixed_from_int(i: i32) -> i32 {
-    i << Fixed::SHIFT
+    i << Dec32::SHIFT
 }
 
-#[deprecated(note = "Use Fixed::from_f32 instead")]
+#[deprecated(note = "Use Dec32::from_f32 instead")]
 #[inline(always)]
 pub fn fixed_from_f32(f: f32) -> i32 {
-    (f * Fixed::ONE.0 as f32) as i32
+    (f * Dec32::ONE.0 as f32) as i32
 }
 
-#[deprecated(note = "Use Fixed::to_f32 instead")]
+#[deprecated(note = "Use Dec32::to_f32 instead")]
 #[inline(always)]
 pub fn fixed_to_f32(f: i32) -> f32 {
-    f as f32 / Fixed::ONE.0 as f32
+    f as f32 / Dec32::ONE.0 as f32
 }
 
 // Legacy trig
-pub use trig::{cos as cos_fixed, sin as sin_fixed};
+pub use trig::{cos as cos_dec32, sin as sin_dec32};

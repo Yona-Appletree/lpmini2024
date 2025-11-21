@@ -25,13 +25,13 @@ pub(in crate::compiler) fn check_variable(
         "coord" => Type::Vec2, // pixel coordinates
 
         // Scalar built-ins
-        "time" | "t" => Type::Fixed,
-        "timeNorm" => Type::Fixed,
-        "centerAngle" | "angle" => Type::Fixed,
-        "centerDist" | "dist" => Type::Fixed,
+        "time" | "t" => Type::Dec32,
+        "timeNorm" => Type::Dec32,
+        "centerAngle" | "angle" => Type::Dec32,
+        "centerDist" | "dist" => Type::Dec32,
 
         // Legacy scalar built-ins (deprecated, kept for compatibility)
-        "x" | "xNorm" | "y" | "yNorm" => Type::Fixed,
+        "x" | "xNorm" | "y" | "yNorm" => Type::Dec32,
 
         // Not found anywhere
         _ => {

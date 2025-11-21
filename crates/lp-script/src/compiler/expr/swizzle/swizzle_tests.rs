@@ -2,7 +2,7 @@
 #[cfg(test)]
 mod tests {
     use crate::compiler::expr::expr_test_util::ExprTest;
-    use crate::fixed::{ToFixed, Vec2};
+    use crate::dec32::{ToDec32, Vec2};
     use crate::shared::Type;
     use crate::vm::opcodes::LpsOpCode;
 
@@ -13,15 +13,15 @@ mod tests {
                 let arg1 = b.num(1.0);
                 let arg2 = b.num(2.0);
                 let vec = b.vec2(vec![arg1, arg2]);
-                b.swizzle(vec, "x", Some(Type::Fixed))
+                b.swizzle(vec, "x", Some(Type::Dec32))
             })
             .expect_opcodes(vec![
-                LpsOpCode::Push(1.0.to_fixed()),
-                LpsOpCode::Push(2.0.to_fixed()),
+                LpsOpCode::Push(1.0.to_dec32()),
+                LpsOpCode::Push(2.0.to_dec32()),
                 LpsOpCode::Drop1, // Drop y, keep x
                 LpsOpCode::Return,
             ])
-            .expect_result_fixed(1.0)
+            .expect_result_dec32(1.0)
             .run()
     }
 
@@ -32,9 +32,9 @@ mod tests {
                 let arg1 = b.num(1.0);
                 let arg2 = b.num(2.0);
                 let vec = b.vec2(vec![arg1, arg2]);
-                b.swizzle(vec, "y", Some(Type::Fixed))
+                b.swizzle(vec, "y", Some(Type::Dec32))
             })
-            .expect_result_fixed(2.0)
+            .expect_result_dec32(2.0)
             .run()
     }
 
@@ -49,15 +49,15 @@ mod tests {
                 b.swizzle(vec, "xy", Some(Type::Vec2))
             })
             .expect_result_vec2(Vec2 {
-                x: 1.0.to_fixed(),
-                y: 2.0.to_fixed(),
+                x: 1.0.to_dec32(),
+                y: 2.0.to_dec32(),
             })
             .run()?;
 
         ExprTest::new("vec3(1.0, 2.0, 3.0).yz")
             .expect_result_vec2(Vec2 {
-                x: 2.0.to_fixed(),
-                y: 3.0.to_fixed(),
+                x: 2.0.to_dec32(),
+                y: 3.0.to_dec32(),
             })
             .run()
     }
@@ -72,14 +72,14 @@ mod tests {
                 b.swizzle(vec, "yx", Some(Type::Vec2))
             })
             .expect_opcodes(vec![
-                LpsOpCode::Push(1.0.to_fixed()),
-                LpsOpCode::Push(2.0.to_fixed()),
+                LpsOpCode::Push(1.0.to_dec32()),
+                LpsOpCode::Push(2.0.to_dec32()),
                 LpsOpCode::Swap, // Swap x and y
                 LpsOpCode::Return,
             ])
             .expect_result_vec2(Vec2 {
-                x: 2.0.to_fixed(),
-                y: 1.0.to_fixed(),
+                x: 2.0.to_dec32(),
+                y: 1.0.to_dec32(),
             })
             .run()
     }
@@ -94,22 +94,22 @@ mod tests {
                 b.swizzle(vec, "xx", Some(Type::Vec2))
             })
             .expect_opcodes(vec![
-                LpsOpCode::Push(1.0.to_fixed()),
-                LpsOpCode::Push(2.0.to_fixed()),
+                LpsOpCode::Push(1.0.to_dec32()),
+                LpsOpCode::Push(2.0.to_dec32()),
                 LpsOpCode::Drop1, // Drop y
                 LpsOpCode::Dup1,  // Duplicate x
                 LpsOpCode::Return,
             ])
             .expect_result_vec2(Vec2 {
-                x: 1.0.to_fixed(),
-                y: 1.0.to_fixed(),
+                x: 1.0.to_dec32(),
+                y: 1.0.to_dec32(),
             })
             .run()?;
 
         ExprTest::new("vec2(1.0, 2.0).yy")
             .expect_result_vec2(Vec2 {
-                x: 2.0.to_fixed(),
-                y: 2.0.to_fixed(),
+                x: 2.0.to_dec32(),
+                y: 2.0.to_dec32(),
             })
             .run()
     }
@@ -124,8 +124,8 @@ mod tests {
                 b.swizzle(vec, "gr", Some(Type::Vec2))
             })
             .expect_result_vec2(Vec2 {
-                x: 2.0.to_fixed(),
-                y: 1.0.to_fixed(),
+                x: 2.0.to_dec32(),
+                y: 1.0.to_dec32(),
             })
             .run()
     }
@@ -134,15 +134,15 @@ mod tests {
     fn test_swizzle_builtin_variable() -> Result<(), String> {
         ExprTest::new("uv.x")
             .with_x(0.7)
-            .expect_result_fixed(0.7)
+            .expect_result_dec32(0.7)
             .run()?;
 
         ExprTest::new("uv.yx")
             .with_x(0.3)
             .with_y(0.7)
             .expect_result_vec2(Vec2 {
-                x: 0.7.to_fixed(),
-                y: 0.3.to_fixed(),
+                x: 0.7.to_dec32(),
+                y: 0.3.to_dec32(),
             })
             .run()
     }

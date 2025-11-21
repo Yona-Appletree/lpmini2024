@@ -1,7 +1,7 @@
 /// Perlin noise implementation
 use core::cmp::Ord;
 
-use super::fixed::Fixed;
+use super::dec32::Dec32;
 use super::interpolation::lerp;
 
 // Permutation table for perlin noise (standard 256-entry table)
@@ -23,22 +23,22 @@ const PERM: [u8; 256] = [
 
 // Fade function for perlin noise: 6t^5 - 15t^4 + 10t^3
 #[inline(always)]
-fn fade(t: Fixed) -> Fixed {
+fn fade(t: Dec32) -> Dec32 {
     let t2 = t * t;
     let t3 = t2 * t;
     let t4 = t3 * t;
     let t5 = t4 * t;
 
-    let six = Fixed::from_i32(6);
-    let fifteen = Fixed::from_i32(15);
-    let ten = Fixed::from_i32(10);
+    let six = Dec32::from_i32(6);
+    let fifteen = Dec32::from_i32(15);
+    let ten = Dec32::from_i32(10);
 
     six * t5 - fifteen * t4 + ten * t3
 }
 
 // Gradient function - uses permutation table to get pseudo-random gradient
 #[inline(always)]
-fn grad(hash: u8, x: Fixed, y: Fixed, z: Fixed) -> Fixed {
+fn grad(hash: u8, x: Dec32, y: Dec32, z: Dec32) -> Dec32 {
     let h = hash & 15;
     let u = if h < 8 { x } else { y };
     let v = if h < 4 {
@@ -56,16 +56,16 @@ fn grad(hash: u8, x: Fixed, y: Fixed, z: Fixed) -> Fixed {
 /// 3D Perlin noise with multiple octaves
 ///
 /// # Arguments
-/// * `x`, `y`, `z` - 3D coordinates in fixed-point
+/// * `x`, `y`, `z` - 3D coordinates in dec32-point
 /// * `octaves` - Number of octaves (1-8) for fractal noise
 ///
 /// # Returns
-/// Fixed-point value in range 0..1 (normalized for ease of use)
-pub fn perlin3(x: Fixed, y: Fixed, z: Fixed, octaves: u8) -> Fixed {
+/// Dec32-point value in range 0..1 (normalized for ease of use)
+pub fn perlin3(x: Dec32, y: Dec32, z: Dec32, octaves: u8) -> Dec32 {
     let octaves = octaves.clamp(1, 8);
     let mut total = 0i64;
-    let mut amplitude = Fixed::ONE.0 as i64;
-    let mut frequency = Fixed::ONE;
+    let mut amplitude = Dec32::ONE.0 as i64;
+    let mut frequency = Dec32::ONE;
 
     for _ in 0..octaves {
         let sample_x = x * frequency;
@@ -76,28 +76,28 @@ pub fn perlin3(x: Fixed, y: Fixed, z: Fixed, octaves: u8) -> Fixed {
         total += noise_val * amplitude;
 
         amplitude >>= 1; // Halve amplitude for next octave
-        frequency = Fixed(frequency.0 << 1);
+        frequency = Dec32(frequency.0 << 1);
     }
 
-    let raw = Fixed((total >> Fixed::SHIFT) as i32);
+    let raw = Dec32((total >> Dec32::SHIFT) as i32);
 
     // Normalize from natural range (approx -0.866..0.866) to 0..1
     // Scale by ~1.15 (to get -1..1 range) then map to 0..1
-    // Using fixed point: multiply by 1.2 and add 0.6 to center and scale
-    let scaled = raw * Fixed::from_f32(1.2) + Fixed::from_f32(0.6);
+    // Using dec32 point: multiply by 1.2 and add 0.6 to center and scale
+    let scaled = raw * Dec32::from_f32(1.2) + Dec32::from_f32(0.6);
 
     // Clamp to 0..1 range
     if scaled.0 < 0 {
-        Fixed::ZERO
-    } else if scaled.0 > Fixed::ONE.0 {
-        Fixed::ONE
+        Dec32::ZERO
+    } else if scaled.0 > Dec32::ONE.0 {
+        Dec32::ONE
     } else {
         scaled
     }
 }
 
 /// Single octave of 3D Perlin noise
-fn perlin3_single(x: Fixed, y: Fixed, z: Fixed) -> Fixed {
+fn perlin3_single(x: Dec32, y: Dec32, z: Dec32) -> Dec32 {
     // Find unit cube containing point
     let xi = (x.to_i32() & 255) as usize;
     let yi = (y.to_i32() & 255) as usize;
@@ -127,27 +127,27 @@ fn perlin3_single(x: Fixed, y: Fixed, z: Fixed) -> Fixed {
     // Blend contributions from 8 corners
     let x1 = lerp(
         grad(PERM[aaa], xf, yf, zf),
-        grad(PERM[baa], xf - Fixed::ONE, yf, zf),
+        grad(PERM[baa], xf - Dec32::ONE, yf, zf),
         u,
     );
 
     let x2 = lerp(
-        grad(PERM[aba], xf, yf - Fixed::ONE, zf),
-        grad(PERM[bba], xf - Fixed::ONE, yf - Fixed::ONE, zf),
+        grad(PERM[aba], xf, yf - Dec32::ONE, zf),
+        grad(PERM[bba], xf - Dec32::ONE, yf - Dec32::ONE, zf),
         u,
     );
 
     let y1 = lerp(x1, x2, v);
 
     let x3 = lerp(
-        grad(PERM[aab], xf, yf, zf - Fixed::ONE),
-        grad(PERM[bab], xf - Fixed::ONE, yf, zf - Fixed::ONE),
+        grad(PERM[aab], xf, yf, zf - Dec32::ONE),
+        grad(PERM[bab], xf - Dec32::ONE, yf, zf - Dec32::ONE),
         u,
     );
 
     let x4 = lerp(
-        grad(PERM[abb], xf, yf - Fixed::ONE, zf - Fixed::ONE),
-        grad(PERM[bbb], xf - Fixed::ONE, yf - Fixed::ONE, zf - Fixed::ONE),
+        grad(PERM[abb], xf, yf - Dec32::ONE, zf - Dec32::ONE),
+        grad(PERM[bbb], xf - Dec32::ONE, yf - Dec32::ONE, zf - Dec32::ONE),
         u,
     );
 
@@ -158,22 +158,22 @@ fn perlin3_single(x: Fixed, y: Fixed, z: Fixed) -> Fixed {
 
 #[cfg(test)]
 mod tests {
-    use super::super::conversions::ToFixed;
+    use super::super::conversions::ToDec32;
     use super::*;
 
     #[test]
     fn test_perlin3_basic() {
-        let result = perlin3(0i32.to_fixed(), 0i32.to_fixed(), 0i32.to_fixed(), 3);
+        let result = perlin3(0i32.to_dec32(), 0i32.to_dec32(), 0i32.to_dec32(), 3);
         let f = result.to_f32();
         assert!(f >= -2.0 && f <= 2.0, "Perlin output {} out of range", f);
     }
 
     #[test]
     fn test_perlin3_variation() {
-        let p1 = perlin3(0.1f32.to_fixed(), 0.1f32.to_fixed(), 0i32.to_fixed(), 3);
-        let p2 = perlin3(0.9f32.to_fixed(), 0.9f32.to_fixed(), 0i32.to_fixed(), 3);
-        let p3 = perlin3(1.5f32.to_fixed(), 2.3f32.to_fixed(), 0.7f32.to_fixed(), 3);
-        let p4 = perlin3(10.5f32.to_fixed(), 5.2f32.to_fixed(), 3.1f32.to_fixed(), 3);
+        let p1 = perlin3(0.1f32.to_dec32(), 0.1f32.to_dec32(), 0i32.to_dec32(), 3);
+        let p2 = perlin3(0.9f32.to_dec32(), 0.9f32.to_dec32(), 0i32.to_dec32(), 3);
+        let p3 = perlin3(1.5f32.to_dec32(), 2.3f32.to_dec32(), 0.7f32.to_dec32(), 3);
+        let p4 = perlin3(10.5f32.to_dec32(), 5.2f32.to_dec32(), 3.1f32.to_dec32(), 3);
 
         // At least one pair should be different
         let has_variation = p1 != p2 || p2 != p3 || p3 != p4;
@@ -186,7 +186,7 @@ mod tests {
     #[test]
     fn test_perlin3_single_octave() {
         // Test single octave to isolate the issue
-        let p = perlin3(0.5f32.to_fixed(), 0.5f32.to_fixed(), 0.5f32.to_fixed(), 1);
+        let p = perlin3(0.5f32.to_dec32(), 0.5f32.to_dec32(), 0.5f32.to_dec32(), 1);
         let f = p.to_f32();
         assert!(
             f.abs() > 0.001 || f == 0.0,
@@ -197,9 +197,9 @@ mod tests {
     #[test]
     fn test_perlin3_single_direct() {
         // Test perlin3_single directly with detailed debug
-        let x = 0.5f32.to_fixed();
-        let y = 0.5f32.to_fixed();
-        let z = 0.5f32.to_fixed();
+        let x = 0.5f32.to_dec32();
+        let y = 0.5f32.to_dec32();
+        let z = 0.5f32.to_dec32();
 
         // Manually compute what should happen
         let xi = (x.to_i32() & 255) as usize;
@@ -216,12 +216,12 @@ mod tests {
             "indices must remain within table"
         );
         assert!(
-            xf >= Fixed::ZERO
-                && xf <= Fixed::ONE
-                && yf >= Fixed::ZERO
-                && yf <= Fixed::ONE
-                && zf >= Fixed::ZERO
-                && zf <= Fixed::ONE
+            xf >= Dec32::ZERO
+                && xf <= Dec32::ONE
+                && yf >= Dec32::ZERO
+                && yf <= Dec32::ONE
+                && zf >= Dec32::ZERO
+                && zf <= Dec32::ONE
         );
         let f = result.to_f32();
         assert!(
@@ -233,9 +233,9 @@ mod tests {
     #[test]
     fn test_lerp_function() {
         // Test that lerp works
-        let a = 0i32.to_fixed();
-        let b = 1i32.to_fixed();
-        let t = 0.5f32.to_fixed();
+        let a = 0i32.to_dec32();
+        let b = 1i32.to_dec32();
+        let t = 0.5f32.to_dec32();
         let result = lerp(a, b, t);
         let f = result.to_f32();
         assert!((f - 0.5).abs() < 0.01, "lerp should give 0.5, got {}", f);
@@ -244,9 +244,9 @@ mod tests {
     #[test]
     fn test_grad_function() {
         // Test that grad produces non-zero output
-        let g = grad(1, 1i32.to_fixed(), 1i32.to_fixed(), 1i32.to_fixed());
+        let g = grad(1, 1i32.to_dec32(), 1i32.to_dec32(), 1i32.to_dec32());
         // Grad can be zero for some hashes, but test a few
-        let g2 = grad(5, 1i32.to_fixed(), 0i32.to_fixed(), 0i32.to_fixed());
+        let g2 = grad(5, 1i32.to_dec32(), 0i32.to_dec32(), 0i32.to_dec32());
 
         assert!(
             g.to_f32().abs() <= 1.5 && g2.to_f32().abs() <= 1.5,
@@ -269,7 +269,7 @@ mod tests {
 
         for &(x, y, z) in &test_cases {
             for octaves in 1..=8 {
-                let result = perlin3(x.to_fixed(), y.to_fixed(), z.to_fixed(), octaves);
+                let result = perlin3(x.to_dec32(), y.to_dec32(), z.to_dec32(), octaves);
                 let val = result.to_f32();
 
                 assert!(
@@ -296,9 +296,9 @@ mod tests {
             for y in 0..16 {
                 for z in 0..4 {
                     let val = perlin3(
-                        (x as f32 * 0.5).to_fixed(),
-                        (y as f32 * 0.5).to_fixed(),
-                        (z as f32 * 0.5).to_fixed(),
+                        (x as f32 * 0.5).to_dec32(),
+                        (y as f32 * 0.5).to_dec32(),
+                        (z as f32 * 0.5).to_dec32(),
                         3,
                     )
                     .to_f32();

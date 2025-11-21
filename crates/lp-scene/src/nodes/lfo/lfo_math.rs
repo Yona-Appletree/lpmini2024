@@ -1,4 +1,4 @@
-use lp_math::fixed::{trig, Fixed};
+use lp_math::dec32::{trig, Dec32};
 
 use crate::nodes::lfo::lfo_waveform::LfoWaveform;
 
@@ -25,37 +25,37 @@ pub fn calc_phase_t(adjusted_ms: i64, period_ms: i64) -> f64 {
 }
 
 /// Calculates the wave values for a given phase and waveform.
-pub fn calc_wave_t(phase_unit: f64, waveform: LfoWaveform) -> Fixed {
+pub fn calc_wave_t(phase_unit: f64, waveform: LfoWaveform) -> Dec32 {
     match waveform {
         LfoWaveform::Sine => {
             // Convert phase [0, 1) to radians [0, 2π)
-            let radians = Fixed::from_f32(phase_unit as f32 * 2.0 * core::f32::consts::PI);
+            let radians = Dec32::from_f32(phase_unit as f32 * 2.0 * core::f32::consts::PI);
             trig::sin(radians)
         }
         LfoWaveform::Square => {
             if phase_unit < 0.5 {
-                Fixed::ONE
+                Dec32::ONE
             } else {
-                -Fixed::ONE
+                -Dec32::ONE
             }
         }
         LfoWaveform::Triangle => {
             if phase_unit < 0.5 {
-                Fixed::from_f32((phase_unit * 2.0) as f32)
+                Dec32::from_f32((phase_unit * 2.0) as f32)
             } else {
-                Fixed::from_f32((2.0 - phase_unit * 2.0) as f32)
+                Dec32::from_f32((2.0 - phase_unit * 2.0) as f32)
             }
         }
-        LfoWaveform::Sawtooth => Fixed::from_f32((phase_unit * 2.0 - 1.0) as f32),
+        LfoWaveform::Sawtooth => Dec32::from_f32((phase_unit * 2.0 - 1.0) as f32),
     }
 }
 
 /// Scales a value from the range [-1, 1] to a value in the range [min, max].
-pub fn range_from_t(unit: Fixed, min: Fixed, max: Fixed) -> Fixed {
+pub fn range_from_t(unit: Dec32, min: Dec32, max: Dec32) -> Dec32 {
     // unit is in range [-1, 1], we need to map it to [min, max]
     // Map [-1, 1] -> [0, 1]: (unit + 1) / 2
     // Then scale [0, 1] -> [min, max]: unit_scaled * (max - min) + min
-    let unit_scaled = (unit + Fixed::ONE) / Fixed::from_i32(2);
+    let unit_scaled = (unit + Dec32::ONE) / Dec32::from_i32(2);
     unit_scaled * (max - min) + min
 }
 
@@ -65,7 +65,7 @@ mod tests {
 
     const EPSILON: f32 = 1e-5;
 
-    fn assert_close_to(actual: Fixed, expected: f32) {
+    fn assert_close_to(actual: Dec32, expected: f32) {
         let actual_f32 = actual.to_f32();
         assert!(
             (actual_f32 - expected).abs() < EPSILON,
@@ -122,7 +122,7 @@ mod tests {
     fn test_calc_wave_t_sine() {
         // Sine at phase 0.0 should be 0.0
         assert_close_to(calc_wave_t(0.0, LfoWaveform::Sine), 0.0);
-        // Sine at phase 0.25 should be approximately 1.0 (fixed-point precision)
+        // Sine at phase 0.25 should be approximately 1.0 (dec32-point precision)
         let sine_025 = calc_wave_t(0.25, LfoWaveform::Sine).to_f32();
         assert!(
             (sine_025 - 1.0).abs() < 0.01,
@@ -150,13 +150,13 @@ mod tests {
     #[test]
     fn test_calc_wave_t_square() {
         // Square: <0.5 is 1.0, >=0.5 is -1.0
-        assert_eq!(calc_wave_t(0.0, LfoWaveform::Square), Fixed::ONE);
-        assert_eq!(calc_wave_t(0.49, LfoWaveform::Square), Fixed::ONE);
-        assert_eq!(calc_wave_t(0.5, LfoWaveform::Square), -Fixed::ONE);
-        assert_eq!(calc_wave_t(0.99, LfoWaveform::Square), -Fixed::ONE);
+        assert_eq!(calc_wave_t(0.0, LfoWaveform::Square), Dec32::ONE);
+        assert_eq!(calc_wave_t(0.49, LfoWaveform::Square), Dec32::ONE);
+        assert_eq!(calc_wave_t(0.5, LfoWaveform::Square), -Dec32::ONE);
+        assert_eq!(calc_wave_t(0.99, LfoWaveform::Square), -Dec32::ONE);
         // Edge cases
-        assert_eq!(calc_wave_t(0.499, LfoWaveform::Square), Fixed::ONE);
-        assert_eq!(calc_wave_t(0.501, LfoWaveform::Square), -Fixed::ONE);
+        assert_eq!(calc_wave_t(0.499, LfoWaveform::Square), Dec32::ONE);
+        assert_eq!(calc_wave_t(0.501, LfoWaveform::Square), -Dec32::ONE);
     }
 
     #[test]
@@ -190,25 +190,25 @@ mod tests {
     fn test_range_from_t() {
         // t=-1.0 (min), min=2, max=4 => 2
         assert_close_to(
-            range_from_t(-Fixed::ONE, Fixed::from_i32(2), Fixed::from_i32(4)),
+            range_from_t(-Dec32::ONE, Dec32::from_i32(2), Dec32::from_i32(4)),
             2.0,
         );
         // t=1.0 (max), min=2, max=4 => 4
         assert_close_to(
-            range_from_t(Fixed::ONE, Fixed::from_i32(2), Fixed::from_i32(4)),
+            range_from_t(Dec32::ONE, Dec32::from_i32(2), Dec32::from_i32(4)),
             4.0,
         );
         // t=0.0 (mid), min=2, max=4 => 3
         assert_close_to(
-            range_from_t(Fixed::ZERO, Fixed::from_i32(2), Fixed::from_i32(4)),
+            range_from_t(Dec32::ZERO, Dec32::from_i32(2), Dec32::from_i32(4)),
             3.0,
         );
         // t=-0.5, min=-1, max=1 => -0.5
         assert_close_to(
             range_from_t(
-                Fixed::from_f32(-0.5),
-                Fixed::from_i32(-1),
-                Fixed::from_i32(1),
+                Dec32::from_f32(-0.5),
+                Dec32::from_i32(-1),
+                Dec32::from_i32(1),
             ),
             -0.5,
         );
@@ -218,20 +218,20 @@ mod tests {
     fn test_range_from_t_edge_cases() {
         // Zero range
         assert_close_to(
-            range_from_t(Fixed::ZERO, Fixed::from_i32(5), Fixed::from_i32(5)),
+            range_from_t(Dec32::ZERO, Dec32::from_i32(5), Dec32::from_i32(5)),
             5.0,
         );
         assert_close_to(
-            range_from_t(Fixed::ONE, Fixed::from_i32(5), Fixed::from_i32(5)),
+            range_from_t(Dec32::ONE, Dec32::from_i32(5), Dec32::from_i32(5)),
             5.0,
         );
         // Negative range
         assert_close_to(
-            range_from_t(Fixed::ZERO, Fixed::from_i32(10), Fixed::from_i32(5)),
+            range_from_t(Dec32::ZERO, Dec32::from_i32(10), Dec32::from_i32(5)),
             7.5,
         );
-        // Very small range (fixed-point precision may vary)
-        let result = range_from_t(Fixed::ZERO, Fixed::from_f32(1.0), Fixed::from_f32(1.001));
+        // Very small range (dec32-point precision may vary)
+        let result = range_from_t(Dec32::ZERO, Dec32::from_f32(1.0), Dec32::from_f32(1.001));
         let result_f32 = result.to_f32();
         assert!(
             (result_f32 - 1.0005).abs() < 0.0001,

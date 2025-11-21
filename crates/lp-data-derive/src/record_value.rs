@@ -101,8 +101,8 @@ fn expand_struct(input: &DeriveInput, data: &DataStruct) -> Result<TokenStream2,
         let field_ty = &field.ty;
         let primitive_variant = match &field.ty {
             Type::Path(path) => {
-                if is_fixed(path) {
-                    Some(quote! { Fixed })
+                if is_dec32(path) {
+                    Some(quote! { Dec32 })
                 } else if is_i32(path) {
                     Some(quote! { Int32 })
                 } else if is_bool(path) {
@@ -140,9 +140,9 @@ fn expand_struct(input: &DeriveInput, data: &DataStruct) -> Result<TokenStream2,
                 where_bounds.push(quote! { #elem_ty: crate::kind::value::LpValue });
 
                 // Check if element type is likely an enum_struct (not a primitive type)
-                // Primitives: Fixed, i32, bool, Vec2, Vec3, Vec4, Mat3
+                // Primitives: Dec32, i32, bool, Vec2, Vec3, Vec4, Mat3
                 let is_primitive = if let Type::Path(elem_path) = &elem_ty {
-                    is_fixed(elem_path)
+                    is_dec32(elem_path)
                         || is_i32(elem_path)
                         || is_bool(elem_path)
                         || is_vec2(elem_path)
@@ -512,7 +512,7 @@ fn generate_record_shape_static(
                 );
                 // Check if element type is an enum_struct (not a primitive)
                 let is_primitive_elem = if let Type::Path(elem_path) = &elem_ty {
-                    is_fixed(elem_path)
+                    is_dec32(elem_path)
                         || is_i32(elem_path)
                         || is_bool(elem_path)
                         || is_vec2(elem_path)
@@ -665,10 +665,10 @@ fn get_field_shape_for_vec_element(
 ) -> Result<FieldShape, Error> {
     match ty {
         Type::Path(path) => {
-            if is_fixed(path) {
+            if is_dec32(path) {
                 Ok(FieldShape {
                     shape_expr: quote! {
-                        &crate::kind::fixed::fixed_static::FIXED_SHAPE
+                        &crate::kind::dec32::dec32_static::DEC32_SHAPE
                     },
                     bounds: Vec::new(),
                     is_enum: false,
@@ -725,7 +725,7 @@ fn get_field_shape_for_vec_element(
                 // Vec<T> - create array shape
                 // Check if element type is an enum_struct (not a primitive)
                 let is_primitive_elem = if let Type::Path(elem_path) = &elem_ty {
-                    is_fixed(elem_path) || is_i32(elem_path) || is_bool(elem_path) ||
+                    is_dec32(elem_path) || is_i32(elem_path) || is_bool(elem_path) ||
                     is_vec2(elem_path) || is_vec3(elem_path) || is_vec4(elem_path) || is_mat3(elem_path)
                 } else {
                     false
@@ -848,16 +848,16 @@ fn get_field_shape_for_vec_element(
         }
         _ => Err(Error::new(
             ty.span(),
-            "unsupported field type; expected Fixed, Int32, Bool, Vec2, Vec3, Vec4, Mat3, Vec<T>, Option<T>, enum, or record types",
+            "unsupported field type; expected Dec32, Int32, Bool, Vec2, Vec3, Vec4, Mat3, Vec<T>, Option<T>, enum, or record types",
         )),
     }
 }
 
-fn is_fixed(path: &TypePath) -> bool {
+fn is_dec32(path: &TypePath) -> bool {
     path.path
         .segments
         .last()
-        .map(|seg| seg.ident == "Fixed")
+        .map(|seg| seg.ident == "Dec32")
         .unwrap_or(false)
 }
 

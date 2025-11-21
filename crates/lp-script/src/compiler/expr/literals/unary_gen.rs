@@ -12,9 +12,9 @@ use crate::vm::opcodes::LpsOpCode;
 impl<'a> CodeGenerator<'a> {
     pub(crate) fn gen_neg(&mut self, operand: &Expr) -> Result<(), CodegenError> {
         self.gen_expr(operand)?;
-        let operand_ty = operand.ty.as_ref().unwrap_or(&Type::Fixed);
+        let operand_ty = operand.ty.as_ref().unwrap_or(&Type::Dec32);
         self.code.push(match operand_ty {
-            Type::Fixed => LpsOpCode::NegFixed,
+            Type::Dec32 => LpsOpCode::NegDec32,
             Type::Int32 => LpsOpCode::NegInt32,
             Type::Vec2 => LpsOpCode::NegVec2,
             Type::Vec3 => LpsOpCode::NegVec3,

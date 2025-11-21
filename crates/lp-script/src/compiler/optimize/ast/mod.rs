@@ -28,7 +28,7 @@ pub fn optimize_expr(expr: &mut Expr, options: &OptimizeOptions) {
             changed |= algebraic::simplify_expr(expr);
         }
 
-        // Stop if no changes (fixed point reached)
+        // Stop if no changes (dec32 point reached)
         if !changed {
             break;
         }

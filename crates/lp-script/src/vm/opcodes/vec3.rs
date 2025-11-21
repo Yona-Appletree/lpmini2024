@@ -1,4 +1,4 @@
-use crate::fixed::{modulo, Vec3};
+use crate::dec32::{modulo, Vec3};
 /// Vec3 operations
 use crate::vm::error::LpsVmError;
 use crate::vm::value_stack::ValueStack;
@@ -56,7 +56,7 @@ pub fn exec_mod_vec3(stack: &mut ValueStack) -> Result<(), LpsVmError> {
 
 #[inline(always)]
 pub fn exec_mul_vec3_scalar(stack: &mut ValueStack) -> Result<(), LpsVmError> {
-    let scalar = stack.pop_fixed()?;
+    let scalar = stack.pop_dec32()?;
     let vec = stack.pop_vec3()?;
     stack.push_vec3(vec * scalar)?;
     Ok(())
@@ -64,7 +64,7 @@ pub fn exec_mul_vec3_scalar(stack: &mut ValueStack) -> Result<(), LpsVmError> {
 
 #[inline(always)]
 pub fn exec_div_vec3_scalar(stack: &mut ValueStack) -> Result<(), LpsVmError> {
-    let scalar = stack.pop_fixed()?;
+    let scalar = stack.pop_dec32()?;
     let vec = stack.pop_vec3()?;
     stack.push_vec3(vec / scalar)?;
     Ok(())
@@ -74,7 +74,7 @@ pub fn exec_div_vec3_scalar(stack: &mut ValueStack) -> Result<(), LpsVmError> {
 pub fn exec_dot3(stack: &mut ValueStack) -> Result<(), LpsVmError> {
     let b = stack.pop_vec3()?;
     let a = stack.pop_vec3()?;
-    stack.push_fixed(a.dot(b))?;
+    stack.push_dec32(a.dot(b))?;
     Ok(())
 }
 
@@ -89,7 +89,7 @@ pub fn exec_cross3(stack: &mut ValueStack) -> Result<(), LpsVmError> {
 #[inline(always)]
 pub fn exec_length3(stack: &mut ValueStack) -> Result<(), LpsVmError> {
     let a = stack.pop_vec3()?;
-    stack.push_fixed(a.length())?;
+    stack.push_dec32(a.length())?;
     Ok(())
 }
 
@@ -104,6 +104,6 @@ pub fn exec_normalize3(stack: &mut ValueStack) -> Result<(), LpsVmError> {
 pub fn exec_distance3(stack: &mut ValueStack) -> Result<(), LpsVmError> {
     let b = stack.pop_vec3()?;
     let a = stack.pop_vec3()?;
-    stack.push_fixed(a.distance(b))?;
+    stack.push_dec32(a.distance(b))?;
     Ok(())
 }

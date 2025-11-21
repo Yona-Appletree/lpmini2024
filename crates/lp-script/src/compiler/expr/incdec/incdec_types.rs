@@ -1,15 +1,16 @@
 /// Increment/Decrement operator type checking
 extern crate alloc;
 
+use alloc::string::String;
+
 use crate::compiler::error::{TypeError, TypeErrorKind};
 use crate::compiler::typechecker::{SymbolTable, TypeChecker};
 use crate::shared::{Span, Type};
-use alloc::string::String;
 
 impl TypeChecker {
     /// Type check increment/decrement operators (++, --)
     ///
-    /// These work on Fixed and Int32 types and return the same type.
+    /// These work on Dec32 and Int32 types and return the same type.
     pub(crate) fn check_incdec(
         var_name: &String,
         symbols: &mut SymbolTable,
@@ -21,12 +22,12 @@ impl TypeChecker {
             span,
         })?;
 
-        // Increment/decrement only work on Fixed and Int32
+        // Increment/decrement only work on Dec32 and Int32
         match var_ty {
-            Type::Fixed | Type::Int32 => Ok(var_ty.clone()),
+            Type::Dec32 | Type::Int32 => Ok(var_ty.clone()),
             _ => Err(TypeError {
                 kind: TypeErrorKind::Mismatch {
-                    expected: Type::Fixed, // Or Type::Int32
+                    expected: Type::Dec32, // Or Type::Int32
                     found: var_ty.clone(),
                 },
                 span,

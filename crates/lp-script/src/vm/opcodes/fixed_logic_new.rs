@@ -1,99 +1,97 @@
-/// Fixed-point logical operations (boolean logic on Fixed values)
+use crate::math::Dec32;
+/// Dec32-point logical operations (boolean logic on Dec32 values)
 use crate::vm::error::RuntimeError;
 use crate::vm::vm_stack::Stack;
-use crate::math::Fixed;
 
-/// Execute AndFixed: pop b, a; push (a && b) as Fixed
+/// Execute AndDec32: pop b, a; push (a && b) as Dec32
 #[inline(always)]
-pub fn exec_and_fixed(stack: &mut Stack) -> Result<(), RuntimeError> {
+pub fn exec_and_dec32(stack: &mut Stack) -> Result<(), RuntimeError> {
     let (a, b) = stack.pop2()?;
     let result = if a != 0 && b != 0 {
-        Fixed::ONE
+        Dec32::ONE
     } else {
-        Fixed::ZERO
+        Dec32::ZERO
     };
-    stack.push_fixed(result)?;
+    stack.push_dec32(result)?;
     Ok(())
 }
 
-/// Execute OrFixed: pop b, a; push (a || b) as Fixed
+/// Execute OrDec32: pop b, a; push (a || b) as Dec32
 #[inline(always)]
-pub fn exec_or_fixed(stack: &mut Stack) -> Result<(), RuntimeError> {
+pub fn exec_or_dec32(stack: &mut Stack) -> Result<(), RuntimeError> {
     let (a, b) = stack.pop2()?;
     let result = if a != 0 || b != 0 {
-        Fixed::ONE
+        Dec32::ONE
     } else {
-        Fixed::ZERO
+        Dec32::ZERO
     };
-    stack.push_fixed(result)?;
+    stack.push_dec32(result)?;
     Ok(())
 }
 
-/// Execute NotFixed: pop a; push (!a) as Fixed
+/// Execute NotDec32: pop a; push (!a) as Dec32
 #[inline(always)]
-pub fn exec_not_fixed(stack: &mut Stack) -> Result<(), RuntimeError> {
+pub fn exec_not_dec32(stack: &mut Stack) -> Result<(), RuntimeError> {
     let a = stack.pop_int32()?;
-    let result = if a == 0 { Fixed::ONE } else { Fixed::ZERO };
-    stack.push_fixed(result)?;
+    let result = if a == 0 { Dec32::ONE } else { Dec32::ZERO };
+    stack.push_dec32(result)?;
     Ok(())
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::math::ToFixed;
+    use crate::math::ToDec32;
 
     #[test]
     fn test_and_true() {
         let mut stack = Stack::new(64);
-        stack.push_fixed(1.0.to_fixed()).unwrap();
-        stack.push_fixed(1.0.to_fixed()).unwrap();
-        exec_and_fixed(&mut stack).unwrap();
-        assert_eq!(stack.pop_fixed().unwrap(), Fixed::ONE);
+        stack.push_dec32(1.0.to_dec32()).unwrap();
+        stack.push_dec32(1.0.to_dec32()).unwrap();
+        exec_and_dec32(&mut stack).unwrap();
+        assert_eq!(stack.pop_dec32().unwrap(), Dec32::ONE);
     }
 
     #[test]
     fn test_and_false() {
         let mut stack = Stack::new(64);
-        stack.push_fixed(1.0.to_fixed()).unwrap();
-        stack.push_fixed(0.0.to_fixed()).unwrap();
-        exec_and_fixed(&mut stack).unwrap();
-        assert_eq!(stack.pop_fixed().unwrap(), Fixed::ZERO);
+        stack.push_dec32(1.0.to_dec32()).unwrap();
+        stack.push_dec32(0.0.to_dec32()).unwrap();
+        exec_and_dec32(&mut stack).unwrap();
+        assert_eq!(stack.pop_dec32().unwrap(), Dec32::ZERO);
     }
 
     #[test]
     fn test_or_true() {
         let mut stack = Stack::new(64);
-        stack.push_fixed(1.0.to_fixed()).unwrap();
-        stack.push_fixed(0.0.to_fixed()).unwrap();
-        exec_or_fixed(&mut stack).unwrap();
-        assert_eq!(stack.pop_fixed().unwrap(), Fixed::ONE);
+        stack.push_dec32(1.0.to_dec32()).unwrap();
+        stack.push_dec32(0.0.to_dec32()).unwrap();
+        exec_or_dec32(&mut stack).unwrap();
+        assert_eq!(stack.pop_dec32().unwrap(), Dec32::ONE);
     }
 
     #[test]
     fn test_or_false() {
         let mut stack = Stack::new(64);
-        stack.push_fixed(0.0.to_fixed()).unwrap();
-        stack.push_fixed(0.0.to_fixed()).unwrap();
-        exec_or_fixed(&mut stack).unwrap();
-        assert_eq!(stack.pop_fixed().unwrap(), Fixed::ZERO);
+        stack.push_dec32(0.0.to_dec32()).unwrap();
+        stack.push_dec32(0.0.to_dec32()).unwrap();
+        exec_or_dec32(&mut stack).unwrap();
+        assert_eq!(stack.pop_dec32().unwrap(), Dec32::ZERO);
     }
 
     #[test]
     fn test_not_true() {
         let mut stack = Stack::new(64);
-        stack.push_fixed(0.0.to_fixed()).unwrap();
-        exec_not_fixed(&mut stack).unwrap();
-        assert_eq!(stack.pop_fixed().unwrap(), Fixed::ONE);
+        stack.push_dec32(0.0.to_dec32()).unwrap();
+        exec_not_dec32(&mut stack).unwrap();
+        assert_eq!(stack.pop_dec32().unwrap(), Dec32::ONE);
     }
 
     #[test]
     fn test_not_false() {
         let mut stack = Stack::new(64);
-        stack.push_fixed(1.0.to_fixed()).unwrap();
-        exec_not_fixed(&mut stack).unwrap();
-        assert_eq!(stack.pop_fixed().unwrap(), Fixed::ZERO);
+        stack.push_dec32(1.0.to_dec32()).unwrap();
+        exec_not_dec32(&mut stack).unwrap();
+        assert_eq!(stack.pop_dec32().unwrap(), Dec32::ZERO);
     }
 }
-
-

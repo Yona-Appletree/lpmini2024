@@ -9,7 +9,7 @@ use registry::SchemaRegistry;
 fn main() {
     // Create registry and register all types using LpSchema types
     // TODO: These types need to implement LpValue and LpDescribe first
-    // Once LpSchema derive is fixed or types implement LpValue manually, uncomment:
+    // Once LpSchema derive is dec32 or types implement LpValue manually, uncomment:
     let registry = SchemaRegistry::new();
     // registry.register::<UiSliderConfig>();
     // registry.register::<LfoShape>();
