@@ -7,4 +7,5 @@ packages/*/build
 apps/*/dist
 packages/*/dist
 **/*.hbs
-
+.venv
+.git_action_logs
