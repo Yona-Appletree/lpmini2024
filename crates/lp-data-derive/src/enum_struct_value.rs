@@ -139,8 +139,8 @@ fn expand_enum_struct(input: &DeriveInput, data: &DataEnum) -> Result<TokenStrea
             // Generate value extraction based on field type
             let primitive_variant = match field_ty {
                 Type::Path(path) => {
-                    if is_fixed(path) {
-                        Some(quote! { Fixed })
+                    if is_dec32(path) {
+                        Some(quote! { Dec32 })
                     } else if is_i32(path) {
                         Some(quote! { Int32 })
                     } else if is_bool(path) {
@@ -329,10 +329,10 @@ fn get_field_shape(
 ) -> Result<FieldShape, Error> {
     match ty {
         Type::Path(path) => {
-            if is_fixed(path) {
+            if is_dec32(path) {
 Ok(FieldShape {
     shape_expr: quote! {
-        &crate::kind::fixed::fixed_static::FIXED_SHAPE
+        &crate::kind::dec32::dec32_static::DEC32_SHAPE
     },
     bounds: Vec::new(),
     is_enum: false,
@@ -411,7 +411,7 @@ Ok(FieldShape {
         }
         _ => Err(Error::new(
             ty.span(),
-            "unsupported field type; expected Fixed, Int32, Bool, Vec2, Vec3, Vec4, Mat3, enum, or record types",
+            "unsupported field type; expected Dec32, Int32, Bool, Vec2, Vec3, Vec4, Mat3, enum, or record types",
         )),
     }
 }
@@ -629,11 +629,11 @@ fn generate_enum_struct_shape_static(
     Ok(tokens)
 }
 
-fn is_fixed(path: &TypePath) -> bool {
+fn is_dec32(path: &TypePath) -> bool {
     path.path
         .segments
         .last()
-        .map(|seg| seg.ident == "Fixed")
+        .map(|seg| seg.ident == "Dec32")
         .unwrap_or(false)
 }
 

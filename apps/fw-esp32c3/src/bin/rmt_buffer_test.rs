@@ -21,7 +21,7 @@ use esp_hal::rmt::Rmt;
 use esp_hal::time::Rate;
 use esp_hal::timer::systimer::SystemTimer;
 use fw_esp32c3::rmt_ws2811_driver;
-use lp_script::fixed::Fixed;
+use lp_gfx::lp_script::dec32::Dec32;
 use panic_rtt_target as _;
 
 // This creates a default app-descriptor required by the esp-idf bootloader.
@@ -40,7 +40,7 @@ async fn main(_spawner: Spawner) {
 
     // Allocate heap in DRAM (regular heap) - can allocate more here
     esp_alloc::heap_allocator!(size: 140 * 1024);
-    // DRAM2 is a fixed-size region (~64KB), keep this conservative
+    // DRAM2 is a dec32-size region (~64KB), keep this conservative
     esp_alloc::heap_allocator!(#[unsafe(link_section = ".dram2_uninit")] size: 64 * 1024);
 
     let timer0 = SystemTimer::new(peripherals.SYSTIMER);
@@ -79,11 +79,11 @@ async fn main(_spawner: Spawner) {
     loop {
         let frame_start = Instant::now();
 
-        // Calculate time in fixed-point (seconds since start) with speed adjustment
+        // Calculate time in dec32-point (seconds since start) with speed adjustment
         let elapsed_ms = frame_start.duration_since(start_time).as_millis() as u32;
         let adjusted_ms = (elapsed_ms * TIME_SPEED_256) / 256;
-        // Convert ms to seconds in fixed-point: (ms * Fixed::ONE) / 1000
-        let time = ((adjusted_ms as i64 * Fixed::ONE.0 as i64) / 1000) as i32;
+        // Convert ms to seconds in dec32-point: (ms * Dec32::ONE) / 1000
+        let time = ((adjusted_ms as i64 * Dec32::ONE.0 as i64) / 1000) as i32;
 
         // Log FPS
         if frame_start.duration_since(last_fps_time).as_millis() >= 1000 {

@@ -7,9 +7,10 @@ members = [
     "apps/lp-debug",
     "crates/lp-data",
     "crates/lp-data-derive",
-    "crates/lp-script",
+    "crates/lp-gfx",
     "crates/lp-math",
     "crates/lp-alloc",
+    "crates/lp-scene",
     "tools/migrations/lp-pool-to-alloc",
 ]
 # Exclude fw-esp32c3 from default builds since it requires ESP32 target
@@ -19,7 +20,7 @@ default-members = [
     "apps/lp-schema-gen",
     "crates/engine-core",
     "apps/lp-debug",
-    "crates/lp-script",
+    "crates/lp-gfx",
     "crates/lp-data",
 ]
 resolver = "2"

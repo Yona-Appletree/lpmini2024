@@ -21,7 +21,7 @@ path = "src/profile.rs"
 
 [dependencies]
 engine-core = { path = "../../crates/engine-core", features = ["profiling"] }
-lp-script = { path = "../../crates/lp-script" }
+lp-gfx = { path = "../../crates/lp-gfx" }
 lp-data = { path = "../../crates/lp-data", features = ["serde_json"] }
 minifb = "0.27"
 embedded-graphics = "0.8"

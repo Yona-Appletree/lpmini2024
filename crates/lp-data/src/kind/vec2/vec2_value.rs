@@ -1,6 +1,6 @@
 //! Value implementation for Vec2.
 
-use lp_math::fixed::Vec2;
+use lp_math::dec32::Vec2;
 
 use crate::kind::vec2::vec2_static::VEC2_SHAPE;
 

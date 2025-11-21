@@ -29,7 +29,7 @@ impl MappingConfig {
     pub fn led_count(&self) -> usize {
         match self {
             MappingConfig::Grid16x8 | MappingConfig::Serpentine16x8 => 128,
-            MappingConfig::Spiral { .. } => 128, // Fixed count for now
+            MappingConfig::Spiral { .. } => 128, // Dec32 count for now
             MappingConfig::CircularPanel { ring_counts, .. } => {
                 1 + ring_counts.iter().sum::<usize>()
             }

@@ -2,7 +2,7 @@ use crate::test_engine::demo_program::create_demo_scene;
 use crate::test_engine::scene::SceneRuntime;
 /// Test scene - shared between ESP32 and host
 /// This defines the standard test program and scene configuration
-use crate::test_engine::{Fixed, RuntimeOptions};
+use crate::test_engine::{Dec32, RuntimeOptions};
 
 pub const WIDTH: usize = 32;
 pub const HEIGHT: usize = 32;
@@ -62,6 +62,6 @@ impl SceneData {
 
 /// Render a single frame of the test scene
 #[inline(never)]
-pub fn render_test_scene(scene: &mut SceneData, time: Fixed) {
+pub fn render_test_scene(scene: &mut SceneData, time: Dec32) {
     scene.runtime.render(time, 1).expect("Render failed");
 }

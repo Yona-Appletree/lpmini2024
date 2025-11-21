@@ -20,5 +20,5 @@ pub mod image;
 /// Test engine - modular rendering pipeline for LED effects
 pub mod test_engine;
 
-// Re-export lp-script and fixed for convenience
-pub use lp_script;
+// Re-export lp-gfx and dec32 for convenience
+pub use lp_gfx;

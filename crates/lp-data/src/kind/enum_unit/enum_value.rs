@@ -41,7 +41,7 @@ impl<'a> LpValueRef<'a> {
     /// Try to get a reference to the value as EnumValue.
     pub fn as_enum(&self) -> Option<&'a dyn EnumUnitValue> {
         match self {
-            LpValueRef::Fixed(_) => None,
+            LpValueRef::Dec32(_) => None,
             LpValueRef::Int32(_) => None,
             LpValueRef::Bool(_) => None,
             LpValueRef::Vec2(_) => None,
@@ -61,7 +61,7 @@ impl<'a> LpValueRefMut<'a> {
     /// Try to get a mutable reference to the value as EnumValue.
     pub fn as_enum_mut(&mut self) -> Option<&mut dyn EnumUnitValue> {
         match self {
-            LpValueRefMut::Fixed(_) => None,
+            LpValueRefMut::Dec32(_) => None,
             LpValueRefMut::Int32(_) => None,
             LpValueRefMut::Bool(_) => None,
             LpValueRefMut::Vec2(_) => None,

@@ -13,7 +13,7 @@ const fn generate_gamma_table() -> [u8; 256] {
     let mut i = 1;
     while i < 256 {
         // Approximation of gamma 2.2: (i/255)^2.2 * 255
-        // Using integer fixed with better precision
+        // Using integer dec32 with better precision
         // Use (i * i * 256) / (255 * 255) to get more range
         let normalized = (i * i * 256) / (255 * 255);
         // Ensure non-zero inputs never become zero (preserve dim pixels)
@@ -27,7 +27,7 @@ const fn generate_gamma_table() -> [u8; 256] {
 /// Configuration for power limiting
 #[derive(Debug, Clone, Copy)]
 pub struct PowerLimitConfig {
-    /// Brightness multiplier in fixed-point (256 = 1.0, 128 = 0.5, etc.)
+    /// Brightness multiplier in dec32-point (256 = 1.0, 128 = 0.5, etc.)
     pub brightness_256: u32,
     /// Power budget in milliamps
     pub power_budget_ma: u32,
@@ -48,7 +48,7 @@ impl Default for PowerLimitConfig {
     }
 }
 
-/// Apply brightness scaling to a single channel using fixed-point fixed
+/// Apply brightness scaling to a single channel using dec32-point dec32
 #[inline]
 fn apply_brightness(value: u8, brightness_256: u32) -> u8 {
     let scaled = (value as u32 * brightness_256) / 256;
@@ -108,9 +108,9 @@ pub fn apply_power_limit(leds: &mut [RGB8], config: &PowerLimitConfig) {
         .map(|led| calculate_led_power(*led, config.led_white_power_ma, config.led_idle_power_ma))
         .sum();
 
-    // Step 4: If over budget, scale down using integer fixed
+    // Step 4: If over budget, scale down using integer dec32
     if total_power_ma > config.power_budget_ma {
-        // Use 16-bit fixed point: scale_factor_65536 = (budget * 65536) / total
+        // Use 16-bit dec32 point: scale_factor_65536 = (budget * 65536) / total
         // This gives us more precision than 8-bit
         let scale_factor_65536 = ((config.power_budget_ma as u64) << 16) / (total_power_ma as u64);
 
@@ -158,7 +158,7 @@ pub fn apply_power_limit_to_bytes(bytes: &mut [u8], config: &PowerLimitConfig) {
             calculate_led_power(led, config.led_white_power_ma, config.led_idle_power_ma);
     }
 
-    // Step 4: If over budget, scale down using integer fixed
+    // Step 4: If over budget, scale down using integer dec32
     if total_power_ma > config.power_budget_ma {
         let scale_factor_65536 = ((config.power_budget_ma as u64) << 16) / (total_power_ma as u64);
 

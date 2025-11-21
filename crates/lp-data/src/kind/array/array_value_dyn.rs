@@ -43,7 +43,7 @@ impl ArrayValueDyn {
     fn validate_element_shape(&self, value: &LpValueBox) -> Result<(), RuntimeError> {
         let element_shape = self.shape.element_shape();
         let value_shape = match value {
-            LpValueBox::Fixed(boxed) => Self::static_shape_of(boxed.as_ref()),
+            LpValueBox::Dec32(boxed) => Self::static_shape_of(boxed.as_ref()),
             LpValueBox::Int32(boxed) => Self::static_shape_of(boxed.as_ref()),
             LpValueBox::Bool(boxed) => Self::static_shape_of(boxed.as_ref()),
             LpValueBox::Vec2(boxed) => Self::static_shape_of(boxed.as_ref()),
@@ -99,7 +99,7 @@ impl ArrayValue for ArrayValueDyn {
             .ok_or(RuntimeError::IndexOutOfBounds { index, len })?;
 
         let value_ref = match element {
-            LpValueBox::Fixed(boxed) => LpValueRef::Fixed(boxed.as_ref()),
+            LpValueBox::Dec32(boxed) => LpValueRef::Dec32(boxed.as_ref()),
             LpValueBox::Int32(boxed) => LpValueRef::Int32(boxed.as_ref()),
             LpValueBox::Bool(boxed) => LpValueRef::Bool(boxed.as_ref()),
             LpValueBox::Vec2(boxed) => LpValueRef::Vec2(boxed.as_ref()),
@@ -124,7 +124,7 @@ impl ArrayValue for ArrayValueDyn {
             .ok_or(RuntimeError::IndexOutOfBounds { index, len })?;
 
         let value_ref_mut = match element {
-            LpValueBox::Fixed(boxed) => LpValueRefMut::Fixed(boxed.as_mut()),
+            LpValueBox::Dec32(boxed) => LpValueRefMut::Dec32(boxed.as_mut()),
             LpValueBox::Int32(boxed) => LpValueRefMut::Int32(boxed.as_mut()),
             LpValueBox::Bool(boxed) => LpValueRefMut::Bool(boxed.as_mut()),
             LpValueBox::Vec2(boxed) => LpValueRefMut::Vec2(boxed.as_mut()),

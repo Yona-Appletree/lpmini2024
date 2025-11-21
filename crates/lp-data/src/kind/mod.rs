@@ -13,9 +13,9 @@ mod primitives;
 
 pub mod array;
 pub mod bool;
+pub mod dec32;
 pub mod enum_struct;
 pub mod enum_unit;
-pub mod fixed;
 pub mod int32;
 pub mod mat3;
 pub mod option;

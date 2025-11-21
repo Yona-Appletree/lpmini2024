@@ -1,6 +1,6 @@
 //! Test node with all primitive types.
 
-use lp_math::fixed::{Fixed, Mat3, Vec2, Vec3, Vec4};
+use lp_math::dec32::{Dec32, Mat3, Vec2, Vec3, Vec4};
 
 use crate::tests::scene::step_config::StepConfig;
 
@@ -28,7 +28,7 @@ pub enum LfoWaveform {
 )]
 pub struct TestNodeConfig {
     /// Oscillation period in seconds.
-    pub period: Fixed,
+    pub period: Dec32,
 
     /// Waveform shape
     #[lp(enum_unit)]
@@ -68,14 +68,14 @@ pub struct TestNode {
     /// Node configuration
     pub config: TestNodeConfig,
     /// Output value
-    pub output: Fixed,
+    pub output: Dec32,
 }
 
 impl TestNode {
     pub fn new(config: TestNodeConfig) -> Self {
         Self {
             config,
-            output: Fixed::ZERO,
+            output: Dec32::ZERO,
         }
     }
 }

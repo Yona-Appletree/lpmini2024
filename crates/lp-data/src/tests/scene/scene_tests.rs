@@ -10,7 +10,7 @@ use alloc::boxed::Box;
 use alloc::string::String;
 
 use lp_alloc::{enter_global_alloc_allowance, init_test_allocator, AllocLimitError as AllocError};
-use lp_math::fixed::{Fixed, Mat3, ToFixed, Vec2, Vec3, Vec4};
+use lp_math::dec32::{Dec32, Mat3, ToDec32, Vec2, Vec3, Vec4};
 
 use crate::kind::record::record_value::RecordValue;
 use crate::kind::record::RecordValueDyn;
@@ -39,16 +39,16 @@ fn build_demo_scene() -> Result<RecordValueDyn, AllocError> {
 
     // Create a test node with all primitive types
     let test_node = TestNode::new(TestNodeConfig {
-        period: 2.0f32.to_fixed(),
+        period: 2.0f32.to_dec32(),
         waveform: LfoWaveform::Sine,
         count: 42,
         enabled: true,
-        position: Vec2::new(Fixed::ZERO, Fixed::ZERO),
-        rotation: Vec3::new(Fixed::ZERO, Fixed::ZERO, Fixed::ZERO),
-        color: Vec4::new(Fixed::ZERO, Fixed::ZERO, Fixed::ZERO, Fixed::ZERO),
+        position: Vec2::new(Dec32::ZERO, Dec32::ZERO),
+        rotation: Vec3::new(Dec32::ZERO, Dec32::ZERO, Dec32::ZERO),
+        color: Vec4::new(Dec32::ZERO, Dec32::ZERO, Dec32::ZERO, Dec32::ZERO),
         transform: Mat3::identity(),
         steps: vec![StepConfig::Expr {
-            output: Fixed::ZERO,
+            output: Dec32::ZERO,
             param_count: 0,
         }],
         values: vec![1, 2, 3, 4, 5],
@@ -73,17 +73,17 @@ fn build_demo_scene() -> Result<RecordValueDyn, AllocError> {
 fn test_record_metadata() {
     // Test that derived RecordValue types have correct metadata
     let test_config = TestNodeConfig {
-        period: 2.0f32.to_fixed(),
+        period: 2.0f32.to_dec32(),
         waveform: LfoWaveform::Square,
         count: 0,
         enabled: false,
-        position: Vec2::new(Fixed::ZERO, Fixed::ZERO),
-        rotation: Vec3::new(Fixed::ZERO, Fixed::ZERO, Fixed::ZERO),
-        color: Vec4::new(Fixed::ZERO, Fixed::ZERO, Fixed::ZERO, Fixed::ZERO),
+        position: Vec2::new(Dec32::ZERO, Dec32::ZERO),
+        rotation: Vec3::new(Dec32::ZERO, Dec32::ZERO, Dec32::ZERO),
+        color: Vec4::new(Dec32::ZERO, Dec32::ZERO, Dec32::ZERO, Dec32::ZERO),
         transform: Mat3::identity(),
         steps: vec![StepConfig::Palette {
             size: 256,
-            brightness: Fixed::ONE,
+            brightness: Dec32::ONE,
         }],
         values: vec![],
         optional_count: None,
@@ -197,7 +197,7 @@ fn test_scene_traversal() {
         "Record (anonymous)",
         "  test: Record(TestNode)",
         "    config: Record(TestNodeConfig)",
-        "      period: Fixed(2)",
+        "      period: Dec32(2)",
         "      waveform: EnumUnit(LfoWaveform)::Sine",
         "      count: Int32(42)",
         "      enabled: Bool(true)",
@@ -208,7 +208,7 @@ fn test_scene_traversal() {
         "      steps: Array[1]",
         "        [0]: Union(StepConfig)::Expr",
         "          value: Record(Expr)",
-        "            output: Fixed(0)",
+        "            output: Dec32(0)",
         "            param_count: Int32(0)",
         "      values: Array[5]",
         "        [0]: Int32(1)",
@@ -218,7 +218,7 @@ fn test_scene_traversal() {
         "        [4]: Int32(5)",
         "      optional_count: Option::Some",
         "        value: Int32(100)",
-        "    output: Fixed(0)",
+        "    output: Dec32(0)",
     ];
 
     let output_lines: Vec<&str> = output.lines().collect();
@@ -297,21 +297,21 @@ fn test_lfo_node_serialization() {
 
     // Test serialization of individual test node
     let test_node = TestNode::new(TestNodeConfig {
-        period: 2.0f32.to_fixed(),
+        period: 2.0f32.to_dec32(),
         waveform: LfoWaveform::Triangle,
         count: 100,
         enabled: true,
-        position: Vec2::new(10.0f32.to_fixed(), 20.0f32.to_fixed()),
-        rotation: Vec3::new(1.0f32.to_fixed(), 2.0f32.to_fixed(), 3.0f32.to_fixed()),
+        position: Vec2::new(10.0f32.to_dec32(), 20.0f32.to_dec32()),
+        rotation: Vec3::new(1.0f32.to_dec32(), 2.0f32.to_dec32(), 3.0f32.to_dec32()),
         color: Vec4::new(
-            0.5f32.to_fixed(),
-            0.6f32.to_fixed(),
-            0.7f32.to_fixed(),
-            1.0f32.to_fixed(),
+            0.5f32.to_dec32(),
+            0.6f32.to_dec32(),
+            0.7f32.to_dec32(),
+            1.0f32.to_dec32(),
         ),
         transform: Mat3::identity(),
         steps: vec![StepConfig::Blur {
-            radius: 1.to_fixed(), // 1.0
+            radius: 1.to_dec32(), // 1.0
         }],
         values: vec![10, 20],
         optional_count: Some(50),
@@ -344,21 +344,21 @@ fn test_lfo_node_deserialization() {
     use serde_json;
 
     let original_node = TestNode::new(TestNodeConfig {
-        period: 2.0f32.to_fixed(),
+        period: 2.0f32.to_dec32(),
         waveform: LfoWaveform::Sawtooth,
         count: 42,
         enabled: false,
-        position: Vec2::new(1.0f32.to_fixed(), 2.0f32.to_fixed()),
-        rotation: Vec3::new(3.0f32.to_fixed(), 4.0f32.to_fixed(), 5.0f32.to_fixed()),
+        position: Vec2::new(1.0f32.to_dec32(), 2.0f32.to_dec32()),
+        rotation: Vec3::new(3.0f32.to_dec32(), 4.0f32.to_dec32(), 5.0f32.to_dec32()),
         color: Vec4::new(
-            0.1f32.to_fixed(),
-            0.2f32.to_fixed(),
-            0.3f32.to_fixed(),
-            0.4f32.to_fixed(),
+            0.1f32.to_dec32(),
+            0.2f32.to_dec32(),
+            0.3f32.to_dec32(),
+            0.4f32.to_dec32(),
         ),
         transform: Mat3::identity(),
         steps: vec![StepConfig::Expr {
-            output: Fixed::ZERO,
+            output: Dec32::ZERO,
             param_count: 2,
         }],
         values: vec![1, 2, 3],
@@ -431,22 +431,22 @@ fn test_lfo_node_round_trip() {
     use serde_json;
 
     let original_node = TestNode::new(TestNodeConfig {
-        period: 2.0f32.to_fixed(),
+        period: 2.0f32.to_dec32(),
         waveform: LfoWaveform::Sine,
         count: 123,
         enabled: true,
-        position: Vec2::new(5.0f32.to_fixed(), 10.0f32.to_fixed()),
-        rotation: Vec3::new(15.0f32.to_fixed(), 30.0f32.to_fixed(), 45.0f32.to_fixed()),
+        position: Vec2::new(5.0f32.to_dec32(), 10.0f32.to_dec32()),
+        rotation: Vec3::new(15.0f32.to_dec32(), 30.0f32.to_dec32(), 45.0f32.to_dec32()),
         color: Vec4::new(
-            0.8f32.to_fixed(),
-            0.9f32.to_fixed(),
-            1.0f32.to_fixed(),
-            0.5f32.to_fixed(),
+            0.8f32.to_dec32(),
+            0.9f32.to_dec32(),
+            1.0f32.to_dec32(),
+            0.5f32.to_dec32(),
         ),
         transform: Mat3::identity(),
         steps: vec![StepConfig::Palette {
             size: 128,
-            brightness: 1.5f32.to_fixed(), // 1.5
+            brightness: 1.5f32.to_dec32(), // 1.5
         }],
         values: vec![5, 10, 15, 20],
         optional_count: Some(300),
@@ -532,21 +532,21 @@ fn test_print_all_primitive_types() {
     let pool = setup_pool();
     pool.run(|| {
         let test_node = TestNode::new(TestNodeConfig {
-            period: core::f32::consts::PI.to_fixed(),
+            period: core::f32::consts::PI.to_dec32(),
             waveform: LfoWaveform::Square,
             count: 999,
             enabled: true,
-            position: Vec2::new(100.0f32.to_fixed(), 200.0f32.to_fixed()),
-            rotation: Vec3::new(1.0f32.to_fixed(), 2.0f32.to_fixed(), 3.0f32.to_fixed()),
+            position: Vec2::new(100.0f32.to_dec32(), 200.0f32.to_dec32()),
+            rotation: Vec3::new(1.0f32.to_dec32(), 2.0f32.to_dec32(), 3.0f32.to_dec32()),
             color: Vec4::new(
-                0.25f32.to_fixed(),
-                0.5f32.to_fixed(),
-                0.75f32.to_fixed(),
-                1.0f32.to_fixed(),
+                0.25f32.to_dec32(),
+                0.5f32.to_dec32(),
+                0.75f32.to_dec32(),
+                1.0f32.to_dec32(),
             ),
             transform: Mat3::identity(),
             steps: vec![StepConfig::Blur {
-                radius: 2.0f32.to_fixed(), // 2.0
+                radius: 2.0f32.to_dec32(), // 2.0
             }],
             values: vec![100],
             optional_count: None,
@@ -578,10 +578,10 @@ fn test_print_all_primitive_types() {
             output.contains("Vec4(0.25, 0.5, 0.75, 1)"),
             "Output should contain Vec4 value"
         );
-        // Fixed is printed with period field - check for "period: Fixed("
+        // Dec32 is printed with period field - check for "period: Dec32("
         assert!(
-            output.contains("period: Fixed("),
-            "Output should contain Fixed value for period field, got: {}",
+            output.contains("period: Dec32("),
+            "Output should contain Dec32 value for period field, got: {}",
             output
         );
 

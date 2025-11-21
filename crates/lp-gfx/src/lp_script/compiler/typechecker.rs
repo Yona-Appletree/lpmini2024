@@ -1,0 +1,35 @@
+/// Type checker for LightPlayer Script
+///
+/// This module serves as the main entry point for type checking.
+/// The actual implementation is distributed across specialized modules:
+/// - expr/expr_types.rs: Expression type checking (check_expr, infer_type)
+/// - stmt/stmt_types.rs: Statement type checking (check_stmt)
+/// - prog/prog_types.rs: Program-level type checking (check_program)
+///
+/// Each expression and statement type has its own dedicated _types.rs file
+/// in the expr/ and stmt/ subdirectories respectively.
+use crate::lp_script::compiler::ast::Expr;
+use crate::lp_script::compiler::error::TypeError;
+// Import function-related types from compiler::func
+pub(crate) use crate::lp_script::compiler::func::FunctionTable;
+// Import symbol table from compiler::symbol_table
+pub(crate) use crate::lp_script::compiler::symbol_table::SymbolTable;
+
+pub struct TypeChecker;
+
+// Import the implementation modules to bring the impl blocks into scope
+#[allow(unused_imports)]
+use crate::lp_script::compiler::expr::expr_types;
+#[allow(unused_imports)]
+use crate::lp_script::compiler::prog::prog_types;
+#[allow(unused_imports)]
+use crate::lp_script::compiler::stmt::stmt_types;
+
+impl TypeChecker {
+    /// Type check an expression (expression mode)
+    pub fn check(expr: &mut Expr) -> Result<(), TypeError> {
+        let mut symbols = SymbolTable::new();
+        let func_table = FunctionTable::new(); // Empty for expression mode
+        Self::infer_type(expr, &mut symbols, &func_table)
+    }
+}

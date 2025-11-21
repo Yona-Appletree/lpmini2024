@@ -1,9 +1,9 @@
 use std::collections::BTreeMap;
 
 use lp_data::kind::array::ArrayShape;
+use lp_data::kind::dec32::Dec32Shape;
 use lp_data::kind::enum_struct::EnumStructShape;
 use lp_data::kind::enum_unit::EnumUnitShape;
-use lp_data::kind::fixed::FixedShape;
 use lp_data::kind::kind::LpKind;
 use lp_data::kind::option::OptionShape;
 use lp_data::kind::record::{RecordFieldShape, RecordShape};
@@ -57,11 +57,11 @@ fn lp_shape_to_zod(
     all_types: &BTreeMap<&'static str, &dyn LpShape>,
 ) -> String {
     match shape.kind() {
-        LpKind::Fixed => {
-            // SAFETY: We know this is a Fixed because kind() returned Fixed
+        LpKind::Dec32 => {
+            // SAFETY: We know this is a Dec32 because kind() returned Dec32
             // Shapes are 'static, so transmuting the reference is safe
-            let fixed_shape: &dyn FixedShape = unsafe { core::mem::transmute(shape) };
-            fixed_to_zod(fixed_shape)
+            let dec32_shape: &dyn Dec32Shape = unsafe { core::mem::transmute(shape) };
+            fixed_to_zod(dec32_shape)
         }
         LpKind::Int32 => "z.number().int()".to_string(),
         LpKind::Bool => "z.boolean()".to_string(),
@@ -102,7 +102,7 @@ fn lp_shape_to_zod(
     }
 }
 
-fn fixed_to_zod(_fixed_shape: &dyn FixedShape) -> String {
+fn fixed_to_zod(_dec32_shape: &dyn Dec32Shape) -> String {
     // For now, just return z.number()
     // TODO: Check metadata for slider min/max/step
     "z.number()".to_string()

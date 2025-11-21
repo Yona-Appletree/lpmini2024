@@ -3,9 +3,8 @@ extern crate alloc;
 use alloc::format;
 use alloc::string::String;
 
-use lp_script::shared::Type;
-use lp_script::vm::opcodes::LpsOpCode;
-use lp_script::vm::{FunctionDef, LpsProgram};
+use lp_gfx::lp_script::vm::{FunctionDef, LpsProgram};
+use lp_gfx::lp_script::{LpsOpCode, Type};
 
 /// Convert a compiled program to LPA assembly format
 pub fn program_to_lpa(program: &LpsProgram) -> String {
@@ -72,10 +71,10 @@ fn function_to_lpa(func: &FunctionDef, _func_idx: usize, program: &LpsProgram) -
 
 /// Convert opcode to pretty assembly string
 fn opcode_to_pretty_string(opcode: &LpsOpCode, func: &FunctionDef, program: &LpsProgram) -> String {
-    use lp_script::vm::opcodes::LoadSource;
+    use lp_gfx::lp_script::vm::opcodes::load::LoadSource;
 
     match opcode {
-        LpsOpCode::Push(fixed) => format!("push {}", fixed.to_f32()),
+        LpsOpCode::Push(value) => format!("push {}", value.to_f32()),
 
         LpsOpCode::Load(source) => {
             let source_name = match source {
@@ -91,7 +90,7 @@ fn opcode_to_pretty_string(opcode: &LpsOpCode, func: &FunctionDef, program: &Lps
             format!("load {}", source_name)
         }
 
-        LpsOpCode::LoadLocalFixed(idx) => {
+        LpsOpCode::LoadLocalDec32(idx) => {
             let local_name = func
                 .locals
                 .get(*idx as usize)
@@ -100,7 +99,7 @@ fn opcode_to_pretty_string(opcode: &LpsOpCode, func: &FunctionDef, program: &Lps
             format!("load local.{}", local_name)
         }
 
-        LpsOpCode::StoreLocalFixed(idx) => {
+        LpsOpCode::StoreLocalDec32(idx) => {
             let local_name = func
                 .locals
                 .get(*idx as usize)
@@ -175,20 +174,20 @@ fn opcode_to_pretty_string(opcode: &LpsOpCode, func: &FunctionDef, program: &Lps
         LpsOpCode::Return => "return".to_string(),
 
         // Arithmetic
-        LpsOpCode::AddFixed => "add".to_string(),
-        LpsOpCode::SubFixed => "sub".to_string(),
-        LpsOpCode::MulFixed => "mul".to_string(),
-        LpsOpCode::DivFixed => "div".to_string(),
-        LpsOpCode::NegFixed => "neg".to_string(),
+        LpsOpCode::AddDec32 => "add".to_string(),
+        LpsOpCode::SubDec32 => "sub".to_string(),
+        LpsOpCode::MulDec32 => "mul".to_string(),
+        LpsOpCode::DivDec32 => "div".to_string(),
+        LpsOpCode::NegDec32 => "neg".to_string(),
 
         // Trig
-        LpsOpCode::SinFixed => "sin".to_string(),
-        LpsOpCode::CosFixed => "cos".to_string(),
+        LpsOpCode::SinDec32 => "sin".to_string(),
+        LpsOpCode::CosDec32 => "cos".to_string(),
 
         // Advanced
-        LpsOpCode::SmoothstepFixed => "smoothstep".to_string(),
-        LpsOpCode::FractFixed => "fract".to_string(),
-        LpsOpCode::SaturateFixed => "saturate".to_string(),
+        LpsOpCode::SmoothstepDec32 => "smoothstep".to_string(),
+        LpsOpCode::FractDec32 => "fract".to_string(),
+        LpsOpCode::SaturateDec32 => "saturate".to_string(),
 
         LpsOpCode::Perlin3(octaves) => format!("perlin3 octaves={}", octaves),
 
@@ -205,7 +204,7 @@ fn opcode_to_pretty_string(opcode: &LpsOpCode, func: &FunctionDef, program: &Lps
 /// Convert type to string
 fn type_to_string(ty: &Type) -> &'static str {
     match ty {
-        Type::Fixed => "float",
+        Type::Dec32 => "float",
         Type::Int32 => "int",
         Type::Vec2 => "vec2",
         Type::Vec3 => "vec3",
@@ -218,7 +217,7 @@ fn type_to_string(ty: &Type) -> &'static str {
 
 #[cfg(test)]
 mod tests {
-    use lp_script::{parse_expr, parse_script};
+    use lp_gfx::lp_script::{parse_expr, parse_script};
 
     use super::*;
 
@@ -287,18 +286,18 @@ mod tests {
     }
 
     #[test]
-    fn test_fixed_values_as_floats() {
+    fn test_dec32_values_as_floats() {
         // Use xNorm + constant to prevent constant folding
         let program = parse_expr("xNorm + 2.5");
         let lpa = program_to_lpa(&program);
 
-        // Should show human-readable float 2.5, not raw fixed-point int
+        // Should show human-readable float 2.5, not raw dec32-point int
         assert!(lpa.contains("2.5"), "Should contain 2.5, got:\n{}", lpa);
 
-        // Should NOT contain the raw fixed-point integer representation
-        // 2.5 in fixed-point is 163840 (2.5 * 65536)
+        // Should NOT contain the raw dec32-point integer representation
+        // 2.5 in dec32-point is 163840 (2.5 * 65536)
         assert!(
-            !lpa.contains("Fixed(163840)"),
+            !lpa.contains("Dec32(163840)"),
             "Should not show raw int 163840 for 2.5"
         );
         assert!(

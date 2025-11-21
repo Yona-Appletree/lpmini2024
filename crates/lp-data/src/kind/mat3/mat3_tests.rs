@@ -1,6 +1,6 @@
 //! Tests for Mat3 type support.
 
-use lp_math::fixed::Mat3;
+use lp_math::dec32::Mat3;
 
 use crate::kind::mat3::mat3_static::MAT3_SHAPE;
 use crate::kind::shape::LpShape;

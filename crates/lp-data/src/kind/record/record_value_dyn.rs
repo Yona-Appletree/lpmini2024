@@ -48,7 +48,7 @@ impl RecordValueDyn {
     pub fn add_field(&mut self, name: String, value: LpValueBox) -> Result<(), RuntimeError> {
         // Extract the shape reference first (shapes are 'static, so this is safe)
         let shape_ref: &'static dyn LpShape = match &value {
-            LpValueBox::Fixed(boxed) => Self::static_shape_of(boxed.as_ref()),
+            LpValueBox::Dec32(boxed) => Self::static_shape_of(boxed.as_ref()),
             LpValueBox::Int32(boxed) => Self::static_shape_of(boxed.as_ref()),
             LpValueBox::Bool(boxed) => Self::static_shape_of(boxed.as_ref()),
             LpValueBox::Vec2(boxed) => Self::static_shape_of(boxed.as_ref()),
@@ -158,7 +158,7 @@ impl RecordValue for RecordValueDyn {
             .ok_or(RuntimeError::IndexOutOfBounds { index, len })?;
 
         let value_ref = match field_value {
-            LpValueBox::Fixed(boxed) => LpValueRef::Fixed(boxed.as_ref()),
+            LpValueBox::Dec32(boxed) => LpValueRef::Dec32(boxed.as_ref()),
             LpValueBox::Int32(boxed) => LpValueRef::Int32(boxed.as_ref()),
             LpValueBox::Bool(boxed) => LpValueRef::Bool(boxed.as_ref()),
             LpValueBox::Vec2(boxed) => LpValueRef::Vec2(boxed.as_ref()),
@@ -183,7 +183,7 @@ impl RecordValue for RecordValueDyn {
             .ok_or(RuntimeError::IndexOutOfBounds { index, len })?;
 
         let value_ref_mut = match field_value {
-            LpValueBox::Fixed(boxed) => LpValueRefMut::Fixed(boxed.as_mut()),
+            LpValueBox::Dec32(boxed) => LpValueRefMut::Dec32(boxed.as_mut()),
             LpValueBox::Int32(boxed) => LpValueRefMut::Int32(boxed.as_mut()),
             LpValueBox::Bool(boxed) => LpValueRefMut::Bool(boxed.as_mut()),
             LpValueBox::Vec2(boxed) => LpValueRefMut::Vec2(boxed.as_mut()),
@@ -221,7 +221,7 @@ mod tests {
     use lp_alloc::{
         enter_global_alloc_allowance, init_test_allocator, AllocLimitError as AllocError,
     };
-    use lp_math::fixed::{Fixed, Vec2, Vec3, Vec4};
+    use lp_math::dec32::{Dec32, Vec2, Vec3, Vec4};
 
     use super::*;
     use crate::kind::record::record_dyn::RecordShapeDyn;
@@ -277,8 +277,8 @@ mod tests {
             };
             let mut record = RecordValueDyn::new(shape);
 
-            // Create a Fixed value and convert it to LpValueBox
-            let fixed_value = Fixed::ZERO;
+            // Create a Dec32 value and convert it to LpValueBox
+            let fixed_value = Dec32::ZERO;
             let field_name = Ok::<_, AllocError>("value".to_string())?;
 
             let value_box = LpValueBox::from(fixed_value);
@@ -315,8 +315,8 @@ mod tests {
             // Add multiple fields
             let field1_name = Ok::<_, AllocError>("field1".to_string())?;
             let field2_name = Ok::<_, AllocError>("field2".to_string())?;
-            let value1 = LpValueBox::from(Fixed::ZERO);
-            let value2 = LpValueBox::from(Fixed::ZERO);
+            let value1 = LpValueBox::from(Dec32::ZERO);
+            let value2 = LpValueBox::from(Dec32::ZERO);
 
             record
                 .add_field(field1_name, value1)
@@ -362,7 +362,7 @@ mod tests {
             };
             let mut record = RecordValueDyn::new(shape);
 
-            let fixed_value = Fixed::ZERO; // Use ZERO for now
+            let fixed_value = Dec32::ZERO; // Use ZERO for now
             let field_name = Ok::<_, AllocError>("value".to_string())?;
 
             let value_box = LpValueBox::from(fixed_value);
@@ -375,7 +375,7 @@ mod tests {
                 .map_err(|_| AllocError::SoftLimitExceeded)?;
             assert_eq!(
                 retrieved.as_lp_value().shape().kind(),
-                crate::kind::kind::LpKind::Fixed
+                crate::kind::kind::LpKind::Dec32
             );
 
             Ok::<(), AllocError>(())
@@ -397,7 +397,7 @@ mod tests {
             };
             let mut record = RecordValueDyn::new(shape);
 
-            let fixed_value = Fixed::ZERO;
+            let fixed_value = Dec32::ZERO;
             let field_name = Ok::<_, AllocError>("value".to_string())?;
 
             let value_box = LpValueBox::from(fixed_value);
@@ -439,8 +439,8 @@ mod tests {
             };
             let mut record = RecordValueDyn::new(shape);
 
-            let value1 = Fixed::ZERO;
-            let value2 = Fixed::ZERO;
+            let value1 = Dec32::ZERO;
+            let value2 = Dec32::ZERO;
             let field_name = Ok::<_, AllocError>("value".to_string())?;
 
             let value_box1 = LpValueBox::from(value1);
@@ -510,9 +510,9 @@ mod tests {
             };
             let mut record = RecordValueDyn::new(shape);
 
-            let value1 = Fixed::ZERO;
-            let value2 = Fixed::ZERO;
-            let value3 = Fixed::ZERO;
+            let value1 = Dec32::ZERO;
+            let value2 = Dec32::ZERO;
+            let value3 = Dec32::ZERO;
 
             let value_box1 = LpValueBox::from(value1);
             let value_box2 = LpValueBox::from(value2);
@@ -565,7 +565,7 @@ mod tests {
             };
             let mut record = RecordValueDyn::new(shape);
 
-            let fixed_value = Fixed::ZERO;
+            let fixed_value = Dec32::ZERO;
             let field_name = Ok::<_, AllocError>("value".to_string())?;
 
             let value_box = LpValueBox::from(fixed_value);
@@ -579,7 +579,7 @@ mod tests {
                 .map_err(|_| AllocError::SoftLimitExceeded)?;
             assert_eq!(
                 mut_field.as_lp_value_mut().shape().kind(),
-                crate::kind::kind::LpKind::Fixed
+                crate::kind::kind::LpKind::Dec32
             );
 
             Ok::<(), AllocError>(())
@@ -646,30 +646,30 @@ mod tests {
             record
                 .add_field(
                     Ok::<_, AllocError>("position".to_string())?,
-                    LpValueBox::from(Vec2::new(Fixed::ZERO, Fixed::ZERO)),
+                    LpValueBox::from(Vec2::new(Dec32::ZERO, Dec32::ZERO)),
                 )
                 .map_err(|_| AllocError::SoftLimitExceeded)?;
             record
                 .add_field(
                     Ok::<_, AllocError>("rotation".to_string())?,
-                    LpValueBox::from(Vec3::new(Fixed::ZERO, Fixed::ZERO, Fixed::ZERO)),
+                    LpValueBox::from(Vec3::new(Dec32::ZERO, Dec32::ZERO, Dec32::ZERO)),
                 )
                 .map_err(|_| AllocError::SoftLimitExceeded)?;
             record
                 .add_field(
                     Ok::<_, AllocError>("color".to_string())?,
                     LpValueBox::from(Vec4::new(
-                        Fixed::ZERO,
-                        Fixed::ZERO,
-                        Fixed::ZERO,
-                        Fixed::ZERO,
+                        Dec32::ZERO,
+                        Dec32::ZERO,
+                        Dec32::ZERO,
+                        Dec32::ZERO,
                     )),
                 )
                 .map_err(|_| AllocError::SoftLimitExceeded)?;
             record
                 .add_field(
                     Ok::<_, AllocError>("frequency".to_string())?,
-                    LpValueBox::from(Fixed::from_i32(42)),
+                    LpValueBox::from(Dec32::from_i32(42)),
                 )
                 .map_err(|_| AllocError::SoftLimitExceeded)?;
 
@@ -726,7 +726,7 @@ mod tests {
                     .as_lp_value()
                     .shape()
                     .kind(),
-                crate::kind::kind::LpKind::Fixed
+                crate::kind::kind::LpKind::Dec32
             );
 
             Ok::<(), AllocError>(())

@@ -1,6 +1,6 @@
 //! Value implementation for Vec3.
 
-use lp_math::fixed::Vec3;
+use lp_math::dec32::Vec3;
 
 use crate::kind::vec3::vec3_static::VEC3_SHAPE;
 

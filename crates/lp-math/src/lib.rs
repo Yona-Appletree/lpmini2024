@@ -1,3 +1,3 @@
 #![no_std]
 
-pub mod fixed;
+pub mod dec32;

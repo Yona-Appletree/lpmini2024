@@ -816,7 +816,7 @@ enum TypeInfo {
 enum PrimitiveKind {
     String,
     Int32,
-    Fixed,
+    Dec32,
 }
 
 #[derive(Clone, Copy)]
@@ -835,8 +835,8 @@ fn classify_type(ty: &Type) -> Result<TypeInfo, Error> {
                 Ok(TypeInfo::Primitive(PrimitiveKind::Int32))
             } else if path.path.is_ident("bool") {
                 Ok(TypeInfo::Bool)
-            } else if is_fixed(path) {
-                Ok(TypeInfo::Primitive(PrimitiveKind::Fixed))
+            } else if is_dec32(path) {
+                Ok(TypeInfo::Primitive(PrimitiveKind::Dec32))
             } else if is_lp_int32(path) {
                 // LpInt32 is a newtype wrapper around i32, treat it as i32
                 Ok(TypeInfo::Primitive(PrimitiveKind::Int32))
@@ -929,11 +929,11 @@ fn is_lp_vec4(path: &TypePath) -> bool {
     }
 }
 
-fn is_fixed(path: &TypePath) -> bool {
+fn is_dec32(path: &TypePath) -> bool {
     path.path
         .segments
         .last()
-        .map(|seg| seg.ident == "Fixed")
+        .map(|seg| seg.ident == "Dec32")
         .unwrap_or(false)
 }
 
@@ -1035,16 +1035,16 @@ fn primitive_shape_expr(
                 quote! { Int32ShapeRef },
             ))
         }
-        PrimitiveKind::Fixed => {
-            let shape_type = quote! { lp_data::shape::fixed::StaticFixedShape };
+        PrimitiveKind::Dec32 => {
+            let shape_type = quote! { lp_data::shape::dec32::StaticDec32Shape };
             let shape_expr = match ui {
                 None | Some(UiAttr::NumberTextbox) => {
-                    quote! { lp_data::shape::fixed::StaticFixedShape::default() }
+                    quote! { lp_data::shape::dec32::StaticDec32Shape::default() }
                 }
                 Some(UiAttr::NumberSlider { min, max, step }) => {
                     let _ = step; // step is parsed but not yet used in shape generation
-                    let slider_ui = quote! { lp_data::shape::fixed::fixed_meta::FixedUi::Slider { min: (#min) as i32, max: (#max) as i32 } };
-                    quote! { lp_data::shape::fixed::StaticFixedShape::new(#slider_ui) }
+                    let slider_ui = quote! { lp_data::shape::dec32::dec32_meta::Dec32Ui::Slider { min: (#min) as i32, max: (#max) as i32 } };
+                    quote! { lp_data::shape::dec32::StaticDec32Shape::new(#slider_ui) }
                 }
                 Some(other) => {
                     return Err(Error::new(
@@ -1059,8 +1059,8 @@ fn primitive_shape_expr(
             Ok((
                 shape_type,
                 shape_expr,
-                quote! { Fixed },
-                quote! { FixedShapeRef },
+                quote! { Dec32 },
+                quote! { Dec32ShapeRef },
             ))
         }
     }

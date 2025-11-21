@@ -2,8 +2,8 @@
 extern crate alloc;
 use alloc::vec::Vec;
 
-use lp_script::fixed::Fixed;
-use lp_script::LpsProgram;
+use lp_gfx::lp_script::dec32::Dec32;
+use lp_gfx::lp_script::LpsProgram;
 
 use super::palette::Palette;
 use super::power_limit::PowerLimitConfig;
@@ -78,7 +78,7 @@ pub enum PipelineStep {
     BlurStep {
         input: BufferRef,
         output: BufferRef,
-        radius: Fixed, // Blur radius in fixed-point (pixels)
+        radius: Dec32, // Blur radius in dec32-point (pixels)
     },
 }
 
@@ -97,8 +97,8 @@ pub enum PipelineError {
         step_idx: usize,
     },
     TypeMismatch {
-        expected: crate::lp_script::shared::Type,
-        actual: crate::lp_script::shared::Type,
+        expected: lp_gfx::lp_script::Type,
+        actual: lp_gfx::lp_script::Type,
         context: alloc::string::String,
     },
     InvalidProgram(alloc::string::String),

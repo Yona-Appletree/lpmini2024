@@ -9,7 +9,6 @@
       <sourceFolder url="file://$MODULE_DIR$/perf-test-validator/tests" isTestSource="true" />
       <sourceFolder url="file://$MODULE_DIR$/perf-tests-common/src" isTestSource="false" />
       <sourceFolder url="file://$MODULE_DIR$/crates/lp-data/src" isTestSource="false" />
-      <sourceFolder url="file://$MODULE_DIR$/crates/lp-script/src" isTestSource="false" />
       <sourceFolder url="file://$MODULE_DIR$/apps/fw-esp32c3/src" isTestSource="false" />
       <sourceFolder url="file://$MODULE_DIR$/apps/fw-esp32c3/tests" isTestSource="true" />
       <sourceFolder url="file://$MODULE_DIR$/apps/lp-debug/src" isTestSource="false" />
@@ -23,9 +22,12 @@
       <sourceFolder url="file://$MODULE_DIR$/crates/lp-pool/src" isTestSource="false" />
       <sourceFolder url="file://$MODULE_DIR$/crates/lpcore/src" isTestSource="false" />
       <sourceFolder url="file://$MODULE_DIR$/crates/lp-alloc/src" isTestSource="false" />
-      <sourceFolder url="file://$MODULE_DIR$/crates/lp-math/tests" isTestSource="true" />
       <sourceFolder url="file://$MODULE_DIR$/tools/migrations/lp-pool-to-alloc/src" isTestSource="false" />
       <sourceFolder url="file://$MODULE_DIR$/crates/lp-math/tests" isTestSource="true" />
+      <sourceFolder url="file://$MODULE_DIR$/crates/lp-math/tests" isTestSource="true" />
+      <sourceFolder url="file://$MODULE_DIR$/crates/lp-gfx/src" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/crates/lp-gfx/tests" isTestSource="true" />
+      <sourceFolder url="file://$MODULE_DIR$/crates/lp-scene/src" isTestSource="false" />
       <excludeFolder url="file://$MODULE_DIR$/node_modules" />
       <excludeFolder url="file://$MODULE_DIR$/target" />
     </content>

@@ -1,7 +1,5 @@
-use core::cmp::{max, min};
-
-use lp_script::fixed::trig::{cos, sin};
-use lp_script::fixed::{Fixed, ToFixed, FIXED_ONE, FIXED_SHIFT};
+use lp_gfx::lp_script::dec32::trig::{cos, sin};
+use lp_gfx::lp_script::dec32::{Dec32, ToDec32};
 
 /// Spiral LED mappings
 use super::{LedMap, LedMapping};
@@ -29,45 +27,42 @@ impl LedMapping {
             let led_in_arm = i / arms;
             let total_leds_per_arm = 128_usize.div_ceil(arms);
 
-            // Calculate spiral parameters in fixed-point
+            // Calculate spiral parameters in dec32-point
             // t = led_in_arm / total_leds_per_arm (progress along arm, 0..1)
-            let t_fixed = (led_in_arm as i32 * FIXED_ONE) / total_leds_per_arm as i32;
+            let t: Dec32 = led_in_arm.to_dec32() / total_leds_per_arm.to_dec32();
 
             // radius = t * max_radius
-            let max_radius_fixed = (max_radius_px as i32) << FIXED_SHIFT;
-            let radius_fixed = ((t_fixed as i64 * max_radius_fixed as i64) >> FIXED_SHIFT) as i32;
+            let max_radius: Dec32 = max_radius_px.to_dec32();
+            let radius: Dec32 = t * max_radius;
 
             // angle = (arm / arms) + (t * 4) in 0..1 range (represents rotations)
-            let arm_angle = (arm as i32 * FIXED_ONE) / arms as i32;
-            let spiral_angle = t_fixed << 2; // t * 4 (4 full rotations along spiral)
-            let angle_normalized = arm_angle + spiral_angle;
+            let arm_angle: Dec32 = arm.to_dec32() / arms.to_dec32();
+            let spiral_angle: Dec32 = t * 4.to_dec32(); // t * 4 (4 full rotations along spiral)
+            let angle_normalized: Dec32 = arm_angle + spiral_angle;
 
             // Convert normalized angle (0..1) to radians (0..2π)
-            let angle_radians =
-                Fixed(((angle_normalized as i64 * Fixed::TAU.0 as i64) >> FIXED_SHIFT) as i32);
+            let angle_radians: Dec32 = angle_normalized * Dec32::TAU;
 
-            // Use fixed-point sin/cos (they expect radians, return -1..1 in Fixed)
-            let cos_val = cos(angle_radians).0;
-            let sin_val = sin(angle_radians).0;
+            // Use dec32-point sin/cos (they expect radians, return -1..1 in Dec32)
+            let cos_val: Dec32 = cos(angle_radians);
+            let sin_val: Dec32 = sin(angle_radians);
 
             // sin/cos already return -1..1, use directly
             // x = center_x + radius * cos, y = center_y + radius * sin
-            let center_x_fixed = (center_x_px as i32) << FIXED_SHIFT;
-            let center_y_fixed = (center_y_px as i32) << FIXED_SHIFT;
+            let center_x: Dec32 = center_x_px.to_dec32();
+            let center_y: Dec32 = center_y_px.to_dec32();
 
-            let x_offset = ((radius_fixed as i64 * cos_val as i64) >> FIXED_SHIFT) as i32;
-            let y_offset = ((radius_fixed as i64 * sin_val as i64) >> FIXED_SHIFT) as i32;
+            let x_offset: Dec32 = radius * cos_val;
+            let y_offset: Dec32 = radius * sin_val;
 
-            let x_fixed = min(
-                max(0, center_x_fixed + x_offset),
-                (width as i32 - 1).to_fixed().0 + FIXED_ONE,
-            );
-            let y_fixed = min(
-                max(0, center_y_fixed + y_offset),
-                (height as i32 - 1).to_fixed().0 + FIXED_ONE,
-            );
+            let x: Dec32 = (center_x + x_offset)
+                .max(Dec32::ZERO)
+                .min((width as i32 - 1).to_dec32() + Dec32::ONE);
+            let y: Dec32 = (center_y + y_offset)
+                .max(Dec32::ZERO)
+                .min((height as i32 - 1).to_dec32() + Dec32::ONE);
 
-            *map = LedMap::new_fixed(x_fixed, y_fixed);
+            *map = LedMap::new_dec32(x, y);
         }
 
         LedMapping { maps }

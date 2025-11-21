@@ -13,7 +13,7 @@ use engine_core::test_engine::demo_program::create_demo_scene;
 use engine_core::test_engine::scene::SceneRuntime;
 use engine_core::test_engine::test_scene::{render_test_scene, SceneData, HEIGHT, WIDTH};
 use engine_core::test_engine::{LedMapping, RuntimeOptions};
-use lp_script::fixed::{Fixed, ToFixed};
+use lp_gfx::lp_script::dec32::{Dec32, ToDec32};
 use minifb::{Key, Window, WindowOptions};
 
 const SCALE: usize = 16;
@@ -198,7 +198,7 @@ fn main() {
         last_frame_time = frame_start;
 
         scene_time += delta * 0.5;
-        let time = scene_time.to_fixed();
+        let time = scene_time.to_dec32();
 
         // Time just the engine render
         let engine_start = std::time::Instant::now();
@@ -224,7 +224,7 @@ fn main() {
             if let Some(buf) = scene.pipeline().get_buffer(i) {
                 match buf.last_format {
                     engine_core::test_engine::BufferFormat::ImageGrey => {
-                        let greyscale = scene.pipeline().get_greyscale_fixed(i);
+                        let greyscale = scene.pipeline().get_greyscale_dec32(i);
                         draw_greyscale(&greyscale, &mut buffer, x_offset, 0, SCALE);
                         x_offset += WIDTH * SCALE;
                     }
@@ -293,7 +293,7 @@ fn main() {
 }
 
 fn draw_greyscale(
-    greyscale: &[Fixed],
+    greyscale: &[Dec32],
     buffer: &mut [u32],
     offset_x: usize,
     offset_y: usize,

@@ -2,8 +2,8 @@
 #[cfg(test)]
 #[allow(clippy::module_inception)]
 mod pipeline_tests {
-    use lp_script::fixed::Fixed;
-    use lp_script::parse_expr;
+    use lp_gfx::lp_script::dec32::Dec32;
+    use lp_gfx::lp_script::parse_expr;
 
     use crate::test_engine::{
         BufferFormat, BufferRef, FxPipeline, FxPipelineConfig, Palette, PipelineStep,
@@ -27,12 +27,12 @@ mod pipeline_tests {
         let options = RuntimeOptions::new(4, 4);
         let mut pipeline = FxPipeline::new(config, options).expect("Valid config");
 
-        pipeline.render(Fixed::ZERO).expect("Render should succeed");
+        pipeline.render(Dec32::ZERO).expect("Render should succeed");
 
         // Check buffer 0 has white values
         let buffer = pipeline.get_buffer(0).expect("Buffer should exist");
         for (i, &val) in buffer.data.iter().enumerate() {
-            let f = Fixed(val).to_f32();
+            let f = Dec32(val).to_f32();
             assert!(
                 (f - 1.0).abs() < 0.01,
                 "Pixel {} should be ~1.0, got {}",
@@ -66,7 +66,7 @@ mod pipeline_tests {
         let options = RuntimeOptions::new(8, 8);
         let mut pipeline = FxPipeline::new(config, options).expect("Valid config");
 
-        pipeline.render(Fixed::ZERO).expect("Render should succeed");
+        pipeline.render(Dec32::ZERO).expect("Render should succeed");
 
         // Buffer 1 should be RGB format
         let buffer = pipeline.get_buffer(1).expect("Buffer 1 should exist");
@@ -103,7 +103,7 @@ mod pipeline_tests {
 
         let options = RuntimeOptions::new(4, 4);
         let mut pipeline = FxPipeline::new(config, options).expect("Valid config");
-        pipeline.render(Fixed::ZERO).expect("Render should succeed");
+        pipeline.render(Dec32::ZERO).expect("Render should succeed");
 
         let mut rgb_bytes = vec![0u8; 4 * 4 * 3];
         pipeline.extract_rgb_bytes(1, &mut rgb_bytes);

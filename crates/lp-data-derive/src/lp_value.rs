@@ -178,10 +178,10 @@ fn get_field_shape(
 ) -> Result<FieldShape, Error> {
     match ty {
         Type::Path(path) => {
-            if is_fixed(path) {
+            if is_dec32(path) {
                 Ok(FieldShape {
                     shape_expr: quote! {
-                        &crate::kind::fixed::fixed_static::FIXED_SHAPE
+                        &crate::kind::dec32::dec32_static::DEC32_SHAPE
                     },
                     bounds: Vec::new(),
                 })
@@ -216,16 +216,16 @@ fn get_field_shape(
         }
         _ => Err(Error::new(
             ty.span(),
-            "unsupported field type; expected Fixed or record types",
+            "unsupported field type; expected Dec32 or record types",
         )),
     }
 }
 
-fn is_fixed(path: &TypePath) -> bool {
+fn is_dec32(path: &TypePath) -> bool {
     path.path
         .segments
         .last()
-        .map(|seg| seg.ident == "Fixed")
+        .map(|seg| seg.ident == "Dec32")
         .unwrap_or(false)
 }
 

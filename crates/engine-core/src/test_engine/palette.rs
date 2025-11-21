@@ -1,5 +1,5 @@
 /// Palette-based RGB conversion
-use lp_script::fixed::{Fixed, FIXED_ONE, FIXED_SHIFT};
+use lp_gfx::lp_script::dec32::{Dec32, ToDec32};
 
 /// RGB color representation
 #[derive(Debug, Clone, Copy)]
@@ -61,34 +61,47 @@ impl Palette {
         Palette { colors }
     }
 
-    /// Get interpolated color for a value in range [0, 1] (fixed-point)
+    /// Get interpolated color for a value in range [0, 1] (dec32-point)
     #[inline(always)]
-    pub fn get_color(&self, value: Fixed) -> Rgb {
+    pub fn get_color(&self, value: Dec32) -> Rgb {
         // Clamp value to 0..1 range
-        let clamped = value.0.clamp(0, FIXED_ONE);
+        let clamped: Dec32 = value.clamp(Dec32::ZERO, Dec32::ONE);
 
         // Map to palette range [0, 15]
-        // value * 15.0 in fixed-point
-        let scaled = ((clamped as i64 * 15) >> FIXED_SHIFT) as i32;
-        let index = if scaled > 14 { 14 } else { scaled as usize }; // Max index is 14 for interpolation
+        // value * 15.0 in dec32-point
+        let scaled: Dec32 = clamped * 15.to_dec32();
+        let scaled_i32 = scaled.to_i32();
+        let index = if scaled_i32 > 14 {
+            14
+        } else {
+            scaled_i32 as usize
+        }; // Max index is 14 for interpolation
 
-        // Get fractional part for interpolation (0..FIXED_ONE)
-        // frac = (value * 15) - floor(value * 15)
-        let frac_fixed = (clamped * 15) - (index as i32 * FIXED_ONE);
+        // Get fractional part for interpolation (0..Dec32::ONE)
+        // frac = scaled - floor(scaled)
+        let scaled_floor: Dec32 = index.to_dec32();
+        let frac: Dec32 = scaled - scaled_floor;
 
-        // Interpolate between current and next color using fixed-point
+        // Interpolate between current and next color using dec32-point
         // result = c1 + (c2 - c1) * frac
         let c1 = &self.colors[index];
         let c2 = &self.colors[index + 1];
 
-        let r = c1.r as i32 + (((c2.r as i32 - c1.r as i32) * frac_fixed) >> FIXED_SHIFT);
-        let g = c1.g as i32 + (((c2.g as i32 - c1.g as i32) * frac_fixed) >> FIXED_SHIFT);
-        let b = c1.b as i32 + (((c2.b as i32 - c1.b as i32) * frac_fixed) >> FIXED_SHIFT);
+        let c1_r: Dec32 = (c1.r as i32).to_dec32();
+        let c1_g: Dec32 = (c1.g as i32).to_dec32();
+        let c1_b: Dec32 = (c1.b as i32).to_dec32();
+        let c2_r: Dec32 = (c2.r as i32).to_dec32();
+        let c2_g: Dec32 = (c2.g as i32).to_dec32();
+        let c2_b: Dec32 = (c2.b as i32).to_dec32();
+
+        let r: Dec32 = c1_r + (c2_r - c1_r) * frac;
+        let g: Dec32 = c1_g + (c2_g - c1_g) * frac;
+        let b: Dec32 = c1_b + (c2_b - c1_b) * frac;
 
         Rgb {
-            r: r as u8,
-            g: g as u8,
-            b: b as u8,
+            r: r.to_i32().clamp(0, 255) as u8,
+            g: g.to_i32().clamp(0, 255) as u8,
+            b: b.to_i32().clamp(0, 255) as u8,
         }
     }
 }
@@ -96,10 +109,10 @@ impl Palette {
 /// Convert a grayscale buffer to RGB using a palette
 ///
 /// # Arguments
-/// * `greyscale` - Input grayscale buffer (fixed-point values 0..1)
+/// * `greyscale` - Input grayscale buffer (dec32-point values 0..1)
 /// * `rgb_buffer` - Output RGB buffer (3 bytes per pixel: R, G, B)
 /// * `palette` - 16-entry palette for color mapping
-pub fn rgb_buffer_from_greyscale(greyscale: &[Fixed], rgb_buffer: &mut [u8], palette: &Palette) {
+pub fn rgb_buffer_from_greyscale(greyscale: &[Dec32], rgb_buffer: &mut [u8], palette: &Palette) {
     let pixel_count = greyscale.len();
     assert!(rgb_buffer.len() >= pixel_count * 3, "RGB buffer too small");
 
@@ -114,7 +127,7 @@ pub fn rgb_buffer_from_greyscale(greyscale: &[Fixed], rgb_buffer: &mut [u8], pal
 
 #[cfg(test)]
 mod tests {
-    use lp_script::fixed::ToFixed;
+    use lp_gfx::lp_script::dec32::ToDec32;
 
     use super::*;
 
@@ -123,13 +136,13 @@ mod tests {
         let palette = Palette::rainbow();
 
         // At 0.0, should get first color
-        let c0 = palette.get_color(Fixed::ZERO);
+        let c0 = palette.get_color(Dec32::ZERO);
         assert_eq!(c0.r, 255);
         assert_eq!(c0.g, 0);
         assert_eq!(c0.b, 0);
 
         // At 1.0, should get last color (or close to it)
-        let c1 = palette.get_color(Fixed::ONE);
+        let c1 = palette.get_color(Dec32::ONE);
         // Should be close to the last color
         assert!(c1.r > 200);
     }
@@ -137,7 +150,7 @@ mod tests {
     #[test]
     fn test_rgb_conversion() {
         let palette = Palette::rainbow();
-        let greyscale = vec![Fixed::ZERO, 0.5f32.to_fixed(), Fixed::ONE];
+        let greyscale = vec![Dec32::ZERO, 0.5f32.to_dec32(), Dec32::ONE];
         let mut rgb_buffer = vec![0u8; 9];
 
         rgb_buffer_from_greyscale(&greyscale, &mut rgb_buffer, &palette);

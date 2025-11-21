@@ -34,7 +34,7 @@ impl OptionValueDyn {
 
     fn lp_value_ref(value: &LpValueBox) -> LpValueRef<'_> {
         match value {
-            LpValueBox::Fixed(boxed) => LpValueRef::Fixed(boxed.as_ref()),
+            LpValueBox::Dec32(boxed) => LpValueRef::Dec32(boxed.as_ref()),
             LpValueBox::Int32(boxed) => LpValueRef::Int32(boxed.as_ref()),
             LpValueBox::Bool(boxed) => LpValueRef::Bool(boxed.as_ref()),
             LpValueBox::Vec2(boxed) => LpValueRef::Vec2(boxed.as_ref()),
@@ -51,7 +51,7 @@ impl OptionValueDyn {
 
     fn lp_value_ref_mut(value: &mut LpValueBox) -> LpValueRefMut<'_> {
         match value {
-            LpValueBox::Fixed(boxed) => LpValueRefMut::Fixed(boxed.as_mut()),
+            LpValueBox::Dec32(boxed) => LpValueRefMut::Dec32(boxed.as_mut()),
             LpValueBox::Int32(boxed) => LpValueRefMut::Int32(boxed.as_mut()),
             LpValueBox::Bool(boxed) => LpValueRefMut::Bool(boxed.as_mut()),
             LpValueBox::Vec2(boxed) => LpValueRefMut::Vec2(boxed.as_mut()),

@@ -8,7 +8,7 @@ use engine_core::test_engine::scene::SceneRuntime;
 use engine_core::test_engine::RuntimeOptions;
 use esp_hal::clock::CpuClock;
 use esp_hal::timer::systimer::SystemTimer;
-use lp_script::fixed::ToFixed;
+use lp_gfx::lp_script::dec32::ToDec32;
 use panic_rtt_target as _;
 
 esp_bootloader_esp_idf::esp_app_desc!();
@@ -25,7 +25,7 @@ async fn benchmark_16x16() {
 
     while test_start.elapsed().as_millis() < TEST_DURATION_MS {
         let frame_start = Instant::now();
-        let time = (frame_count as f32 * 0.01).to_fixed();
+        let time = (frame_count as f32 * 0.01).to_dec32();
 
         scene.render(time, 1).expect("Render failed");
         total_us += frame_start.elapsed().as_micros();
